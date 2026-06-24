@@ -262,18 +262,18 @@ table.data-table tr:hover td{background:var(--paper)}
 
 .sched-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:var(--radius-sm)}
 table.sched-table{border-collapse:collapse;font-size:11px;width:100%;min-width:700px;table-layout:fixed}
-table.sched-table th, table.sched-table td{border-bottom:1px solid #d4d4d0;border-right:1px solid #d4d4d0}
+table.sched-table th, table.sched-table td{border-bottom:1px solid #ccc;border-right:1px solid #ccc}
 table.sched-table th:last-child, table.sched-table td:last-child{border-right:none}
-.sched-name-col{position:sticky;left:0;background:var(--surface);z-index:2;text-align:left;padding:4px 8px;width:130px;min-width:130px;max-width:130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600;font-size:11.5px;border-right:2px solid #c8c8c4;box-sizing:border-box;vertical-align:middle}
+.sched-name-col{position:sticky;left:0;background:var(--surface);z-index:2;text-align:left;padding:4px 8px;width:130px;min-width:130px;max-width:130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700;font-size:12px;color:#1a1a1a;border-right:2px solid #c8c8c4;box-sizing:border-box;vertical-align:middle}
 thead .sched-name-col{z-index:3;font-size:11px;font-weight:500;color:var(--ink-soft)}
 body.employee-view .sched-name-col{width:120px;min-width:120px;max-width:120px;padding:4px 8px}
-.sched-day-col{text-align:center;padding:3px 0;font-size:10.5px;color:#444;font-weight:700;overflow:hidden}
+.sched-day-col{text-align:center;padding:3px 0;font-size:11px;color:#222;font-weight:800;overflow:hidden}
 .sched-day-col.weekend{background:#f5f3ee}
-.sched-day-col .dow{font-weight:500;font-size:9px;color:#666;display:block}
+.sched-day-col .dow{font-weight:600;font-size:9.5px;color:#555;display:block}
 .sched-cell{text-align:center;padding:0;cursor:pointer;height:26px;position:relative}
 .sched-cell.weekend{background:#faf8f4}
 .sched-cell:hover{background:var(--accent-soft)}
-.sched-chip{display:inline-block;width:100%;height:100%;line-height:26px;font-family:var(--font-mono);font-size:9.5px;font-weight:700;color:#fff;pointer-events:none;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.sched-chip{display:inline-block;width:100%;height:100%;line-height:26px;font-family:var(--font-mono);font-size:10px;font-weight:800;color:#fff;pointer-events:none;-webkit-print-color-adjust:exact;print-color-adjust:exact;text-shadow:0 1px 2px rgba(0,0,0,.25)}
 .sched-chip.auto{opacity:0.85}
 body.employee-view .sched-chip.auto{opacity:1}
 .sched-chip.x-chip{background:#999!important;color:#fff}
@@ -4587,6 +4587,53 @@ function openEmployeeSettings(){
   overlay.classList.add('open');
 }
 
+async function saveProfile(){
+  const name  = document.getElementById('prof-name')?.value.trim();
+  const phone = document.getElementById('prof-phone')?.value.trim();
+  const res   = document.getElementById('prof-save-result');
+  if(!name){ if(res){res.style.display='block';res.style.color='var(--red)';res.textContent='Jméno nesmí být prázdné.';} return; }
+
+  const myEmp = employees.find(e=>e.id===currentEmployeeId);
+  if(!myEmp){ if(res){res.style.display='block';res.style.color='var(--red)';res.textContent='Zaměstnanec nenalezen.';} return; }
+
+  // Update notes: preserve existing notes, replace/add tel: line
+  let notes = (myEmp.notes||'').replace(/tel:[^\n\[]+/,'').trim();
+  if(phone) notes = `tel:${phone}` + (notes ? '\n'+notes : '');
+
+  const { error } = await sb.from('employees').update({ name, notes }).eq('id', currentEmployeeId);
+  if(error){
+    if(res){res.style.display='block';res.style.color='var(--red)';res.textContent='Chyba: '+error.message;}
+    return;
+  }
+  // Update local cache
+  myEmp.name = name; myEmp.notes = notes;
+  // Update topbar name
+  const nameEl = document.getElementById('user-display-name');
+  if(nameEl) nameEl.textContent = name;
+  const bannerName = document.getElementById('emp-banner-name');
+  if(bannerName) bannerName.textContent = name;
+  if(res){res.style.display='block';res.style.color='var(--accent)';res.textContent='✓ Údaje uloženy.';}
+  setTimeout(()=>{ if(res) res.style.display='none'; }, 2500);
+  renderCalendar();
+}
+
+async function changePassword(){
+  const p1  = document.getElementById('prof-pass1')?.value;
+  const p2  = document.getElementById('prof-pass2')?.value;
+  const res = document.getElementById('prof-pass-result');
+  if(!p1 || p1.length < 6){ if(res){res.style.display='block';res.style.color='var(--red)';res.textContent='Heslo musí mít alespoň 6 znaků.';} return; }
+  if(p1 !== p2){ if(res){res.style.display='block';res.style.color='var(--red)';res.textContent='Hesla se neshodují.';} return; }
+  const { error } = await sb.auth.updateUser({ password: p1 });
+  if(error){
+    if(res){res.style.display='block';res.style.color='var(--red)';res.textContent='Chyba: '+error.message;}
+    return;
+  }
+  if(res){res.style.display='block';res.style.color='var(--accent)';res.textContent='✓ Heslo změněno.';}
+  document.getElementById('prof-pass1').value = '';
+  document.getElementById('prof-pass2').value = '';
+  setTimeout(()=>{ if(res) res.style.display='none'; }, 2500);
+}
+
 // ============================================================
 // ACCESS MANAGEMENT — link auth accounts to employees
 // ============================================================
@@ -5187,6 +5234,14 @@ const EMPLOYEE_STEPS = [
   },
   {
     tab: 'schedule',
+    target: '#emp-settings-btn',
+    icon: '⚙️',
+    title: 'Tvůj profil',
+    body: 'Přes tlačítko ⚙ Profil si můžeš změnit jméno, přidat telefon a změnit heslo. Tvůj kód zaměstnance tam taky najdeš — dej ho vedoucímu pokud tě ještě nepropojil.',
+    position: 'bottom'
+  },
+  {
+    tab: 'schedule',
     target: '.topbar-right',
     icon: '🎉',
     title: 'Vše je nastaveno!',
@@ -5259,7 +5314,6 @@ function positionTutorial(el, preferredPos){
   const arrow     = document.getElementById('tut-arrow');
 
   if(!el){
-    // No target — just center the bubble
     backdrop.style.boxShadow = 'inset 0 0 0 9999px rgba(15,20,35,.55)';
     spotlight.style.display = 'none';
     bubble.style.top  = '50%';
@@ -5273,7 +5327,7 @@ function positionTutorial(el, preferredPos){
   const pad  = 8;
   const vw   = window.innerWidth;
   const vh   = window.innerHeight;
-  const bw   = 300; // bubble width
+  const bw   = 300;
   const bh   = bubble.offsetHeight || 220;
 
   // Spotlight
@@ -5283,61 +5337,60 @@ function positionTutorial(el, preferredPos){
   spotlight.style.width   = (r.width  + pad*2) + 'px';
   spotlight.style.height  = (r.height + pad*2) + 'px';
   spotlight.style.boxShadow = '0 0 0 4px var(--accent), 0 0 0 9999px rgba(15,20,35,.55)';
-
-  // Backdrop (no extra shadow — spotlight handles it)
   backdrop.style.boxShadow = '';
 
-  // Determine best position
+  // Smart position: try preferred, fallback if off-screen
   let pos = preferredPos;
-  if(pos === 'bottom' && r.bottom + bh + 20 > vh) pos = 'top';
-  if(pos === 'top'    && r.top    - bh - 20 < 0)  pos = 'bottom';
-  if(pos === 'right'  && r.right  + bw + 20 > vw) pos = 'left';
+  const spaceBelow = vh - r.bottom;
+  const spaceAbove = r.top;
+  const spaceRight = vw - r.right;
+  const spaceLeft  = r.left;
 
-  const gap = 16;
+  if(pos === 'bottom' && spaceBelow < bh + 24) pos = spaceAbove > bh + 24 ? 'top' : 'right';
+  if(pos === 'top'    && spaceAbove < bh + 24) pos = spaceBelow > bh + 24 ? 'bottom' : 'right';
+  if(pos === 'right'  && spaceRight < bw + 24) pos = spaceLeft  > bw + 24 ? 'left'   : 'bottom';
+  if(pos === 'left'   && spaceLeft  < bw + 24) pos = spaceRight > bw + 24 ? 'right'  : 'bottom';
+
+  const gap = 14;
   let bTop, bLeft;
   arrow.style.display = 'block';
+  // Reset arrow borders
+  arrow.style.borderTop = ''; arrow.style.borderBottom = '';
+  arrow.style.borderLeft = ''; arrow.style.borderRight = '';
 
   if(pos === 'bottom'){
     bTop  = r.bottom + gap;
     bLeft = Math.min(Math.max(r.left + r.width/2 - bw/2, 12), vw - bw - 12);
-    arrow.style.top    = '-7px';
-    arrow.style.left   = (r.left + r.width/2 - bLeft - 6) + 'px';
-    arrow.style.bottom = 'auto';
-    arrow.style.right  = 'auto';
-    arrow.style.borderBottom = 'none';
-    arrow.style.borderRight  = 'none';
+    arrow.style.top = '-7px'; arrow.style.bottom = 'auto';
+    arrow.style.left = Math.max(8, r.left + r.width/2 - bLeft - 6) + 'px'; arrow.style.right = 'auto';
+    arrow.style.borderBottom = 'none'; arrow.style.borderRight = 'none';
   } else if(pos === 'top'){
     bTop  = r.top - bh - gap;
     bLeft = Math.min(Math.max(r.left + r.width/2 - bw/2, 12), vw - bw - 12);
-    arrow.style.bottom = '-7px';
-    arrow.style.top    = 'auto';
-    arrow.style.left   = (r.left + r.width/2 - bLeft - 6) + 'px';
-    arrow.style.right  = 'auto';
-    arrow.style.borderTop   = 'none';
-    arrow.style.borderLeft  = 'none';
+    arrow.style.bottom = '-7px'; arrow.style.top = 'auto';
+    arrow.style.left = Math.max(8, r.left + r.width/2 - bLeft - 6) + 'px'; arrow.style.right = 'auto';
+    arrow.style.borderTop = 'none'; arrow.style.borderLeft = 'none';
   } else if(pos === 'right'){
     bLeft = r.right + gap;
     bTop  = Math.min(Math.max(r.top + r.height/2 - bh/2, 12), vh - bh - 12);
-    arrow.style.left   = '-7px';
-    arrow.style.top    = (r.top + r.height/2 - bTop - 6) + 'px';
-    arrow.style.right  = 'auto';
-    arrow.style.bottom = 'auto';
-    arrow.style.borderTop    = 'none';
-    arrow.style.borderRight  = 'none';
-  } else { // left
+    arrow.style.left = '-7px'; arrow.style.right = 'auto';
+    arrow.style.top = Math.max(8, r.top + r.height/2 - bTop - 6) + 'px'; arrow.style.bottom = 'auto';
+    arrow.style.borderTop = 'none'; arrow.style.borderRight = 'none';
+  } else {
     bLeft = r.left - bw - gap;
     bTop  = Math.min(Math.max(r.top + r.height/2 - bh/2, 12), vh - bh - 12);
-    arrow.style.right  = '-7px';
-    arrow.style.left   = 'auto';
-    arrow.style.top    = (r.top + r.height/2 - bTop - 6) + 'px';
-    arrow.style.bottom = 'auto';
-    arrow.style.borderBottom = 'none';
-    arrow.style.borderLeft   = 'none';
+    arrow.style.right = '-7px'; arrow.style.left = 'auto';
+    arrow.style.top = Math.max(8, r.top + r.height/2 - bTop - 6) + 'px'; arrow.style.bottom = 'auto';
+    arrow.style.borderBottom = 'none'; arrow.style.borderLeft = 'none';
   }
 
+  // Clamp to viewport
+  bTop  = Math.max(8, Math.min(bTop,  vh - bh - 8));
+  bLeft = Math.max(8, Math.min(bLeft, vw - bw - 8));
+
   bubble.style.transform = 'none';
-  bubble.style.top  = Math.max(8, bTop) + 'px';
-  bubble.style.left = Math.max(8, bLeft) + 'px';
+  bubble.style.top  = bTop  + 'px';
+  bubble.style.left = bLeft + 'px';
 }
 
 function maybeStartTutorial(){
