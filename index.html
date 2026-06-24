@@ -5008,12 +5008,22 @@ let tutIndex = 0;
 let tutActive = false;
 
 const ADMIN_STEPS = [
+  // ── ROZPIS ──────────────────────────────────────────────
   {
     tab: 'schedule',
-    target: '.sched-toolbar',
+    target: '.month-nav',
     icon: '📅',
-    title: 'Toto je rozpis',
-    body: 'Tady vidíš celý měsíc pro všechny zaměstnance. Naviguj mezi měsíci šipkami vlevo/vpravo. Každý řádek = jeden zaměstnanec, každý sloupec = jeden den.',
+    title: 'Navigace v měsících',
+    body: 'Šipkami se pohybuješ mezi měsíci. Každý měsíc je samostatný rozvrh — směny se ukládají do databáze, takže je přístupný odkudkoli a pro celý tým.',
+    position: 'bottom',
+    onEnter: () => switchAppTab('schedule')
+  },
+  {
+    tab: 'schedule',
+    target: '.sched-legend',
+    icon: '🎨',
+    title: 'Legenda barev',
+    body: 'Každá pobočka má svou barvu. Písmeno nebo číslo v buňce říká typ směny (K = Karolína, M1/M2 = Majestic slot 1/2…). Barvy si nastavíš v záložce Pobočky.',
     position: 'bottom'
   },
   {
@@ -5021,68 +5031,105 @@ const ADMIN_STEPS = [
     target: '#auto-schedule-btn',
     icon: '⚡',
     title: 'Automatické plánování',
-    body: 'Toto je srdce appky. Klikni a algoritmus sám rozplánuje celý měsíc — pokryje pobočky, respektuje volna zaměstnanců a snaží se o spravedlivé rozdělení směn.',
+    body: 'Srdce appky. Algoritmus spustí desítky pokusů a vybere nejlepší rozvrh — pokryje pobočky, dodrží limity, respektuje volna (X) zaměstnanců a snaží se o spravedlivé rozdělení.',
     position: 'bottom'
   },
   {
     tab: 'schedule',
-    target: '.score-bar-wrap, #score-bar',
+    target: '#score-bar-wrap, .score-bar-wrap',
     icon: '📊',
     title: 'Kvalita rozpisu',
-    body: 'Lišta ukazuje jak dobrý je aktuální rozvrh v procentech. Klikni na ni pro podrobný přehled — co ho táhne dolů a kde jsou slabiny.',
+    body: 'Procento ukazuje jak dobrý je aktuální rozvrh. Klikni na lištu pro podrobný přehled — uvidíš skóre po pobočkách i zaměstnancích, a kde jsou slabiny.',
     position: 'bottom'
   },
   {
+    tab: 'schedule',
+    target: '.sched-table',
+    icon: '🖱️',
+    title: 'Klikání do kalendáře',
+    body: 'Klikni na číslo dne v záhlaví → detail dne (kdo pracuje, kdo může přijít, rychlé přiřazení). Klikni na buňku zaměstnance → picker pro výběr nebo odebrání směny.',
+    position: 'top'
+  },
+  {
+    tab: 'schedule',
+    target: '#fill-mode-select, .fill-mode-wrap',
+    icon: '🔍',
+    title: 'Kde doplnit',
+    body: 'Dropdown "Kde doplnit" přepne zobrazení — uvidíš jen dny kde konkrétní pobočka nemá dostatečné pokrytí. Šetří čas při ručním doplňování.',
+    position: 'bottom'
+  },
+  // ── ZAMĚSTNANCI ─────────────────────────────────────────
+  {
     tab: 'employees',
-    target: '.panel',
+    target: '#pane-employees .panel, #pane-employees',
     icon: '👥',
-    title: 'Zaměstnanci',
-    body: 'Zde spravuješ tým. Přidej zaměstnance tlačítkem "+ Přidat", nastav mu limity směn na pobočkách a propoj jeho účet přes tlačítko 🔑.',
+    title: 'Správa zaměstnanců',
+    body: 'Každý zaměstnanec má jméno, min/max počet směn za měsíc a limity pro každou pobočku (max kolik směn tam může dostat). Limity ovlivňují algoritmus.',
     position: 'right',
     onEnter: () => switchAppTab('employees')
   },
   {
     tab: 'employees',
-    target: '#add-employee-btn, .panel .btn-primary',
+    target: '#pane-employees .btn-primary',
     icon: '➕',
     title: 'Přidat zaměstnance',
-    body: 'Klikni sem pro přidání nového zaměstnance. Zadáš jméno, min/max počet směn a limity pro každou pobočku. Zaměstnanec pak dostane přístup přes pozvánkový odkaz nebo kód.',
+    body: 'Přidáš jméno a nastavíš limity. Pak mu přes tlačítko 🔑 vygeneruješ pozvánkový odkaz — zaměstnanec ho otevře, zaregistruje se a je automaticky přiřazen k jeho profilu.',
     position: 'bottom'
   },
+  // ── POBOČKY ─────────────────────────────────────────────
   {
     tab: 'branches',
-    target: '.panel',
+    target: '#pane-branches .panel, #pane-branches',
     icon: '🏢',
-    title: 'Pobočky',
-    body: 'Zde nastavuješ kde se pracuje. Každá pobočka má barvu, kód a požadavky na minimální pokrytí ve všední dny a o víkendech. Sem přidej třeba "Karolína", "Ungelt" atd.',
+    title: 'Pobočky a typy směn',
+    body: 'Každá pobočka má barvu, kód, a minimální pokrytí ve všední dny a o víkendech. U poboček s více sloty (Majestic M1–M4) přidáš více typů směn — každý slot jde obsadit zvlášť.',
     position: 'right',
     onEnter: () => switchAppTab('branches')
   },
   {
+    tab: 'branches',
+    target: '#pane-branches .btn-primary',
+    icon: '🎨',
+    title: 'Přidat pobočku',
+    body: 'Klikni pro přidání nové pobočky. Vyber barvu, zadej kód (1–3 znaky) a nastav minimální počty obsazení. Algoritmus pak garantuje tato minima při plánování.',
+    position: 'bottom'
+  },
+  // ── MEZERY ──────────────────────────────────────────────
+  {
     tab: 'gaps',
-    target: '.panel',
+    target: '#pane-gaps .panel, #pane-gaps',
     icon: '📋',
-    title: 'Mezery v rozpisu',
-    body: 'Záložka Mezery ti ukáže které dny mají nedostatečné pokrytí — seřazené od nejhorších. Klikni na den a hned doplníš chybějícího člověka bez hledání v kalendáři.',
+    title: 'Mezery v pokrytí',
+    body: 'Záložka Mezery zobrazí dny seřazené od nejhoršího pokrytí — okamžitě vidíš kde „hoří". Klikni na den a hned doplníš chybějícího zaměstnance bez zdlouhavého hledání v kalendáři.',
     position: 'right',
     onEnter: () => switchAppTab('gaps')
   },
+  // ── PRAVIDLA ────────────────────────────────────────────
   {
     tab: 'rules',
-    target: '.panel',
+    target: '#pane-rules .panel, #pane-rules',
     icon: '⚖️',
-    title: 'Pravidla & váhy',
-    body: 'Tady ovlivňuješ jak algoritmus plánuje. Nastav co je "tvrdé" pravidlo (nikdy neporuš) a co je "měkké" (snaž se). Váhy určují co je důležitější — pokrytí nebo rovnoměrnost.',
+    title: 'Pravidla plánování',
+    body: 'Tvrdá pravidla algoritmus nikdy neporuší (pokrytí, min směny). Měkká se snaží plnit, ale může je obětovat pro celkově lepší výsledek. Tady si to přizpůsobíš svému provozu.',
     position: 'right',
     onEnter: () => switchAppTab('rules')
   },
   {
+    tab: 'rules',
+    target: '#pane-rules',
+    icon: '🎚️',
+    title: 'Váhy a balance páry',
+    body: 'Posuvníky vah říkají co je důležitější — pokrytí, rovnoměrnost, nebo volné víkendy. Balance páry hlídají spravedlnost mezi skupinami zaměstnanců (např. senioři vs. junioři).',
+    position: 'right'
+  },
+  // ── ZÁVĚR ───────────────────────────────────────────────
+  {
     tab: 'schedule',
-    target: '.sched-scroll, .sched-table',
+    target: '.topbar',
     icon: '🎉',
-    title: 'Jsi připravený!',
-    body: 'To je vše. Začni přidáním poboček a zaměstnanců — pak klikni ⚡ Automaticky doplnit a první rozvrh máš za pár sekund. Průvodce kdykoli znovu spustíš přes tlačítko ? v pravém horním rohu.',
-    position: 'top',
+    title: 'To je vše!',
+    body: 'Průvodce kdykoli znovu spustíš přes tlačítko <strong>?</strong> vpravo nahoře. Začni přidáním poboček a zaměstnanců → pak ⚡ Automaticky doplnit → první rozvrh za pár sekund.',
+    position: 'bottom',
     isLast: true,
     onEnter: () => switchAppTab('schedule')
   }
@@ -5091,26 +5138,59 @@ const ADMIN_STEPS = [
 const EMPLOYEE_STEPS = [
   {
     tab: 'schedule',
-    target: '.sched-scroll, .sched-table',
+    target: '.sched-table',
     icon: '👋',
-    title: 'Tvůj rozvrh',
-    body: 'V tabulce vidíš celý měsíc. Tvůj řádek je zvýrazněný — hned ho najdeš. Barevné buňky jsou směny, číslo nebo písmeno říká na které pobočce.',
-    position: 'bottom'
+    title: 'Vítej v Směnách!',
+    body: 'Tady vidíš rozvrh celého týmu na aktuální měsíc. Každý řádek je jeden zaměstnanec — tvůj řádek je barevně zvýrazněný, hned ho najdeš.',
+    position: 'top',
+    onEnter: () => switchAppTab('schedule')
   },
   {
     tab: 'schedule',
-    target: '#employee-banner, .emp-row-highlight',
+    target: '.sched-legend',
     icon: '🎨',
-    title: 'Barvy směn',
-    body: 'Každá pobočka má svou barvu. Bílá buňka = volný den. "X" = zadané volno (nebude ti přiřazena směna). Klikni na jakýkoli barevný den pro detail směny.',
+    title: 'Co znamenají barvy',
+    body: 'Každá pobočka má svou barvu — vidíš je v legendě nahoře. Písmeno nebo číslo v buňce říká přesně na které místo a do jaké směny jsi zařazený.',
     position: 'bottom'
   },
   {
     tab: 'schedule',
-    target: '#emp-x-toggle-btn, .emp-x-btn',
+    target: '.sched-table',
+    icon: '👆',
+    title: 'Detail směny',
+    body: 'Klikni na jakoukoliv barevnou buňku ve svém řádku v kalendáři níže — zobrazí se detail: která pobočka, čas a další informace o té konkrétní směně.',
+    position: 'top'
+  },
+  {
+    tab: 'schedule',
+    target: '.month-nav',
+    icon: '📅',
+    title: 'Přepínání měsíců',
+    body: 'Šipkami vlevo/vpravo se pohybuješ mezi měsíci. Vždy vidíš aktuální publikovaný rozvrh — pokud vedoucí ještě nedoplnil nový měsíc, buňky budou prázdné.',
+    position: 'bottom'
+  },
+  {
+    tab: 'schedule',
+    target: '#emp-x-toggle-btn',
     icon: '✏️',
-    title: 'Zadat volno',
-    body: 'Potřebuješ volno? Klikni na "Zadat volno (X)" — zapne se editační mód. Pak klikni na dny kdy nemůžeš přijít. Vedoucí to uvidí při plánování a bude to respektovat.',
+    title: 'Zadat volno (X)',
+    body: 'Potřebuješ volno? Klikni na toto tlačítko — zapne se editační mód. Pak klikni na dny v <strong>tvém řádku</strong> kdy nemůžeš přijít. Vedoucí se pokusí ti volno zajistit a při plánování ho bude respektovat.',
+    position: 'bottom'
+  },
+  {
+    tab: 'schedule',
+    target: '.sched-table',
+    icon: '💡',
+    title: 'Tipy pro X zadávání',
+    body: 'X zadávej s předstihem — ideálně před tím, než vedoucí spustí automatické plánování. Zpětně je to složitější. Kliknutím na X buňku ho také odebereš, pokud sis to rozmyslel.',
+    position: 'top'
+  },
+  {
+    tab: 'schedule',
+    target: '.topbar-right',
+    icon: '🎉',
+    title: 'Vše je nastaveno!',
+    body: 'Průvodce kdykoli znovu spustíš přes tlačítko <strong>?</strong> vpravo nahoře. Pokud máš otázku nebo problém, obrať se na svého vedoucího. Hodně zdaru!',
     position: 'bottom',
     isLast: true
   }
