@@ -2493,7 +2493,7 @@ function renderCalendar(){
     }
   }
 
-  let hRow = `<tr><th class="sched-name-col" style="position:sticky;left:0;z-index:3">${(fillMode && !isGapsMode) ? `🔍 ${selectedSlot||''}` : 'Jméno'}<div class="sched-name-col-resize" id="name-col-resize-handle"></div></th>`;
+  let hRow = `<tr><th class="sched-name-col" id="sched-name-th">${(fillMode && !isGapsMode) ? `🔍 ${selectedSlot||''}` : 'Jméno'}</th>`;
   for(let d=1; d<=daysInMonth; d++){
     const date = new Date(schedYear, schedMonth, d);
     const dow  = date.getDay();
