@@ -21,8 +21,8 @@
   --paper:#F6F5F1;
   --surface:#FFFFFF;
   --ink:#1E2230;
-  --ink-soft:#6B7280;
-  --ink-faint:#A3A8B4;
+  --ink-soft:#4B5563;
+  --ink-faint:#6B7280;
   --line:#E6E3DA;
   --accent:#2B6E4F;
   --accent-soft:#E3EFE8;
@@ -264,11 +264,13 @@ table.data-table tr:hover td{background:var(--paper)}
 table.sched-table{border-collapse:collapse;font-size:11px;width:100%;min-width:700px;table-layout:fixed}
 table.sched-table th, table.sched-table td{border-bottom:1px solid #ccc;border-right:1px solid #ccc}
 table.sched-table th:last-child, table.sched-table td:last-child{border-right:none}
-.sched-name-col{position:sticky;left:0;background:var(--surface);z-index:2;text-align:left;padding:4px 8px;width:130px;min-width:130px;max-width:130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700;font-size:12px;color:#111;border-right:2px solid #c8c8c4;box-sizing:border-box;vertical-align:middle}
-thead .sched-name-col{z-index:3;font-size:11px;font-weight:500;color:var(--ink-soft)}
-body.employee-view .sched-name-col{width:120px;min-width:120px;max-width:120px;padding:4px 8px}
+.sched-name-col{position:sticky;left:0;background:var(--surface);z-index:2;text-align:left;padding:4px 8px;width:160px;min-width:80px;max-width:280px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700;font-size:12px;color:#111;border-right:2px solid #c8c8c4;box-sizing:border-box;vertical-align:middle}
+.sched-name-col-resize{position:absolute;right:-3px;top:0;width:7px;height:100%;cursor:col-resize;z-index:10;background:transparent}
+.sched-name-col-resize:hover, .sched-name-col-resize:active{background:var(--accent);opacity:.4}
+thead .sched-name-col{z-index:3;font-size:11px;font-weight:600;color:#333;position:relative;overflow:visible}
+body.employee-view .sched-name-col{width:160px;min-width:80px;max-width:280px;padding:4px 8px}
 .sched-day-col{text-align:center;padding:3px 0;font-size:11px;color:#111;font-weight:900;overflow:hidden}
-.sched-day-col.weekend{background:#ede8df}
+.sched-day-col.weekend{background:#ede8df;color:#111}
 .sched-day-col .dow{font-weight:700;font-size:9.5px;color:#333;display:block}
 .sched-cell{text-align:center;padding:0;cursor:pointer;height:26px;position:relative}
 .sched-cell.weekend{background:#f5f0e8}
@@ -2491,7 +2493,7 @@ function renderCalendar(){
     }
   }
 
-  let hRow = `<tr><th class="sched-name-col">${(fillMode && !isGapsMode) ? `🔍 ${selectedSlot||''}` : 'Jméno'}</th>`;
+  let hRow = `<tr><th class="sched-name-col" style="position:sticky;left:0;z-index:3">${(fillMode && !isGapsMode) ? `🔍 ${selectedSlot||''}` : 'Jméno'}<div class="sched-name-col-resize" id="name-col-resize-handle"></div></th>`;
   for(let d=1; d<=daysInMonth; d++){
     const date = new Date(schedYear, schedMonth, d);
     const dow  = date.getDay();
@@ -2525,6 +2527,9 @@ function renderCalendar(){
   }
   hRow += `</tr>`;
   thead.innerHTML = hRow;
+  // Apply saved name col width and init resize
+  applyNameColWidth(nameColWidth);
+  requestAnimationFrame(initNameColResize);
 
   renderLegend();
 
@@ -5396,9 +5401,45 @@ function positionTutorial(el, preferredPos){
 function maybeStartTutorial(){
   const key = 'tut_done_' + (currentRole||'');
   if(!localStorage.getItem(key)){
-    // Small delay to let UI settle
     setTimeout(startTutorial, 800);
   }
+}
+
+// ── Name column resize ───────────────────────────────────────
+let nameColWidth = parseInt(localStorage.getItem('nameColWidth')||'160');
+
+function applyNameColWidth(w){
+  nameColWidth = Math.max(80, Math.min(280, w));
+  localStorage.setItem('nameColWidth', nameColWidth);
+  // Set CSS variable — used by both th and td sticky name cells
+  document.documentElement.style.setProperty('--name-col-w', nameColWidth + 'px');
+  document.querySelectorAll('.sched-name-col').forEach(el => {
+    el.style.width    = nameColWidth + 'px';
+    el.style.minWidth = nameColWidth + 'px';
+    el.style.maxWidth = nameColWidth + 'px';
+  });
+}
+
+function initNameColResize(){
+  const handle = document.getElementById('name-col-resize-handle');
+  if(!handle) return;
+  let startX, startW;
+  handle.addEventListener('mousedown', e => {
+    e.preventDefault();
+    startX = e.clientX;
+    startW = nameColWidth;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    const onMove = e => applyNameColWidth(startW + e.clientX - startX);
+    const onUp   = () => {
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
 }
 </script>
 </body>
