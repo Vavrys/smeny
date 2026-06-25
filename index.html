@@ -265,9 +265,9 @@ table.sched-table{border-collapse:collapse;font-size:11px;width:100%;min-width:7
 table.sched-table th, table.sched-table td{border-bottom:1px solid #ccc;border-right:1px solid #ccc}
 table.sched-table th:last-child, table.sched-table td:last-child{border-right:none}
 .sched-name-col{position:sticky;left:0;background:var(--surface);z-index:2;text-align:left;padding:4px 8px;width:160px;min-width:80px;max-width:280px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700;font-size:12px;color:#111;border-right:2px solid #c8c8c4;box-sizing:border-box;vertical-align:middle}
-.sched-name-col-resize{position:absolute;right:-3px;top:0;width:7px;height:100%;cursor:col-resize;z-index:10;background:transparent}
-.sched-name-col-resize:hover, .sched-name-col-resize:active{background:var(--accent);opacity:.4}
-thead .sched-name-col{z-index:3;font-size:11px;font-weight:600;color:#333;position:relative;overflow:visible}
+.sched-name-col-resize{position:absolute;right:-4px;top:0;width:8px;height:100%;cursor:col-resize;z-index:20;background:transparent;border-right:2px solid transparent;transition:border-color .15s}
+.sched-name-col-resize:hover, .sched-name-col-resize.dragging{border-right-color:var(--accent)}
+thead .sched-name-col{z-index:3;font-size:11px;font-weight:600;color:#333;position:relative !important;overflow:visible !important}
 body.employee-view .sched-name-col{width:160px;min-width:80px;max-width:280px;padding:4px 8px}
 .sched-day-col{text-align:center;padding:3px 0;font-size:11px;color:#111;font-weight:900;overflow:hidden}
 .sched-day-col.weekend{background:#ede8df;color:#111}
@@ -5411,35 +5411,49 @@ let nameColWidth = parseInt(localStorage.getItem('nameColWidth')||'160');
 function applyNameColWidth(w){
   nameColWidth = Math.max(80, Math.min(280, w));
   localStorage.setItem('nameColWidth', nameColWidth);
-  // Set CSS variable — used by both th and td sticky name cells
-  document.documentElement.style.setProperty('--name-col-w', nameColWidth + 'px');
-  document.querySelectorAll('.sched-name-col').forEach(el => {
-    el.style.width    = nameColWidth + 'px';
-    el.style.minWidth = nameColWidth + 'px';
-    el.style.maxWidth = nameColWidth + 'px';
-  });
+  const px = nameColWidth + 'px';
+  // Inject a dynamic style tag — most reliable way to override table-layout:fixed
+  let styleEl = document.getElementById('name-col-style');
+  if(!styleEl){
+    styleEl = document.createElement('style');
+    styleEl.id = 'name-col-style';
+    document.head.appendChild(styleEl);
+  }
+  styleEl.textContent = `.sched-name-col { width:${px} !important; min-width:${px} !important; max-width:${px} !important; }`;
 }
 
 function initNameColResize(){
-  const handle = document.getElementById('name-col-resize-handle');
-  if(!handle) return;
-  let startX, startW;
-  handle.addEventListener('mousedown', e => {
+  // Remove old listener if exists
+  if(window._nameColResizeHandler){
+    document.removeEventListener('mousedown', window._nameColResizeHandler);
+  }
+
+  window._nameColResizeHandler = function(e){
+    const handle = document.getElementById('name-col-resize-handle');
+    if(!handle || !handle.contains(e.target)) return;
     e.preventDefault();
-    startX = e.clientX;
-    startW = nameColWidth;
+
+    const startX = e.clientX;
+    const startW = nameColWidth;
+    handle.classList.add('dragging');
     document.body.style.cursor = 'col-resize';
     document.body.style.userSelect = 'none';
-    const onMove = e => applyNameColWidth(startW + e.clientX - startX);
-    const onUp   = () => {
+
+    function onMove(e){
+      applyNameColWidth(startW + e.clientX - startX);
+    }
+    function onUp(){
+      handle.classList.remove('dragging');
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
       document.removeEventListener('mousemove', onMove);
       document.removeEventListener('mouseup', onUp);
-    };
+    }
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onUp);
-  });
+  };
+
+  document.addEventListener('mousedown', window._nameColResizeHandler);
 }
 </script>
 </body>
