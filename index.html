@@ -21,8 +21,8 @@
   --paper:#F6F5F1;
   --surface:#FFFFFF;
   --ink:#1E2230;
-  --ink-soft:#374151;
-  --ink-faint:#4B5563;
+  --ink-soft:#4B5563;
+  --ink-faint:#6B7280;
   --line:#E6E3DA;
   --accent:#2B6E4F;
   --accent-soft:#E3EFE8;
@@ -265,7 +265,9 @@ table.sched-table{border-collapse:collapse;font-size:11px;width:100%;min-width:7
 table.sched-table th, table.sched-table td{border-bottom:1px solid #ccc;border-right:1px solid #ccc}
 table.sched-table th:last-child, table.sched-table td:last-child{border-right:none}
 .sched-name-col{position:sticky;left:0;background:var(--surface);z-index:2;text-align:left;padding:4px 8px;width:160px;min-width:80px;max-width:280px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700;font-size:12px;color:#111;border-right:2px solid #c8c8c4;box-sizing:border-box;vertical-align:middle}
-thead .sched-name-col{z-index:3;font-size:11px;font-weight:600;color:#333;position:relative !important;overflow:visible !important;cursor:col-resize}
+.sched-name-col-resize{position:absolute;right:-4px;top:0;width:8px;height:100%;cursor:col-resize;z-index:20;background:transparent;border-right:2px solid transparent;transition:border-color .15s}
+.sched-name-col-resize:hover, .sched-name-col-resize.dragging{border-right-color:var(--accent)}
+thead .sched-name-col{z-index:3;font-size:11px;font-weight:600;color:#333;position:relative !important;overflow:visible !important}
 body.employee-view .sched-name-col{width:160px;min-width:80px;max-width:280px;padding:4px 8px}
 .sched-day-col{text-align:center;padding:3px 0;font-size:11px;color:#111;font-weight:900;overflow:hidden}
 .sched-day-col.weekend{background:#ede8df;color:#111}
@@ -2453,7 +2455,7 @@ function renderCalendar(){
   const DOW_SHORT   = ['Ne','Po','Út','St','Čt','Pá','So'];
   const isEmployee  = currentRole === 'employee';
   const table = document.getElementById('sched-table');
-  const nameColW = isEmployee ? 120 : 130;
+  const nameColW = nameColWidth;
   const allPairsCols = (orgSettings['balance_pairs']||[]).filter(p=>p[2]!==false);
   const statCols = (currentRole==='admin'||currentRole==='manager') ? 2 + allPairsCols.length : 0;
   const statColW = 68; // px each — wide enough for "Volné víkendy"
@@ -2491,7 +2493,7 @@ function renderCalendar(){
     }
   }
 
-  let hRow = `<tr><th class="sched-name-col" id="sched-name-th">${(fillMode && !isGapsMode) ? `🔍 ${selectedSlot||''}` : 'Jméno'}</th>`;
+  let hRow = `<tr><th class="sched-name-col" style="position:sticky;left:0;z-index:3">${(fillMode && !isGapsMode) ? `🔍 ${selectedSlot||''}` : 'Jméno'}<div class="sched-name-col-resize" id="name-col-resize-handle"></div></th>`;
   for(let d=1; d<=daysInMonth; d++){
     const date = new Date(schedYear, schedMonth, d);
     const dow  = date.getDay();
@@ -2525,7 +2527,9 @@ function renderCalendar(){
   }
   hRow += `</tr>`;
   thead.innerHTML = hRow;
-  setTimeout(initNameColResize, 50);
+  // Apply saved name col width and init resize
+  applyNameColWidth(nameColWidth);
+  requestAnimationFrame(initNameColResize);
 
   renderLegend();
 
@@ -5407,19 +5411,26 @@ let nameColWidth = parseInt(localStorage.getItem('nameColWidth')||'160');
 function applyNameColWidth(w){
   nameColWidth = Math.max(80, Math.min(320, w));
   localStorage.setItem('nameColWidth', nameColWidth);
-  let s = document.getElementById('_ncw');
-  if(!s){ s = document.createElement('style'); s.id='_ncw'; document.head.appendChild(s); }
-  s.textContent = `.sched-name-col{width:${nameColWidth}px!important;min-width:${nameColWidth}px!important;max-width:${nameColWidth}px!important}`;
+  // Update colgroup — the ONLY way to resize in table-layout:fixed
+  const col = document.querySelector('#sched-table colgroup col:first-child');
+  if(col){
+    col.style.width    = nameColWidth + 'px';
+    col.style.minWidth = nameColWidth + 'px';
+  }
 }
 
 function initNameColResize(){
-  applyNameColWidth(nameColWidth);
   const th = document.getElementById('sched-name-th');
   if(!th) return;
-  th.addEventListener('mousedown', function(e){
-    // Only trigger on right 10px of th
+  // Show resize cursor on right 12px of th
+  th.addEventListener('mousemove', function(e){
     const rect = th.getBoundingClientRect();
-    if(e.clientX < rect.right - 10) return;
+    th.style.cursor = e.clientX > rect.right - 12 ? 'col-resize' : 'default';
+  });
+  th.addEventListener('mouseleave', function(){ th.style.cursor = ''; });
+  th.addEventListener('mousedown', function(e){
+    const rect = th.getBoundingClientRect();
+    if(e.clientX <= rect.right - 12) return;
     e.preventDefault();
     const startX = e.clientX;
     const startW = nameColWidth;
