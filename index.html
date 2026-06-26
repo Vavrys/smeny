@@ -248,6 +248,8 @@ table.data-table tr:hover td{background:var(--paper)}
 .modal h3{margin:0 0 18px;font-size:17px}
 
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:11px 18px;border-radius:9px;font-size:13px;font-weight:500;box-shadow:var(--shadow-lg);z-index:300;opacity:0;pointer-events:none;transition:opacity .2s, transform .2s;}
+.toast.toast-error{background:#b91c1c}
+.toast.toast-ok{background:#15803d}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
 .spinner-lg{width:22px;height:22px;border:2.5px solid var(--accent-soft);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto}
@@ -255,7 +257,9 @@ table.data-table tr:hover td{background:var(--paper)}
 /* ============================================================
    SCHEDULE / CALENDAR
    ============================================================ */
-.sched-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.sched-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.toolbar-menu-item{padding:9px 14px;font-size:13px;cursor:pointer;color:var(--ink);transition:background .1s}
+.toolbar-menu-item:hover{background:var(--paper)}
 .month-nav{display:flex;align-items:center;gap:10px;font-weight:600;font-family:var(--font-display);font-size:14px;margin-right:6px}
 .icon-nav-btn{background:none;border:1px solid var(--line);border-radius:7px;width:28px;height:28px;font-size:15px;color:var(--ink-soft);transition:all .15s}
 .icon-nav-btn:hover{border-color:var(--accent);color:var(--accent-ink)}
@@ -610,10 +614,10 @@ body.employee-view #fill-mode-slot-wrap { display: none !important; }
 <div class="app-shell" id="app-shell">
   <div class="topbar">
     <div class="topbar-left">
-      <div class="auth-mark-icon">
+      <div class="auth-mark-icon" onclick="switchAppTab('schedule')" style="cursor:pointer" title="Přejít na Rozpis">
         <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h10M4 17h7"/></svg>
       </div>
-      <span class="org-name" id="org-name-label">—</span>
+      <span class="org-name" id="org-name-label" onclick="switchAppTab('schedule')" style="cursor:pointer" title="Přejít na Rozpis">—</span>
       <span class="org-tag" id="org-role-label">admin</span>
     </div>
     <div class="topbar-right">
@@ -625,17 +629,19 @@ body.employee-view #fill-mode-slot-wrap { display: none !important; }
         </div>
       </div>
       <button class="btn-ghost" id="emp-settings-btn" onclick="openEmployeeSettings()" style="display:none">⚙ Profil</button>
+      <button class="btn-ghost" id="admin-settings-btn" onclick="openEmployeeSettings()" style="display:none">⚙ Profil</button>
       <span id="org-code-badge" style="display:none;font-family:var(--font-mono);font-size:12px;font-weight:700;letter-spacing:1.5px;background:var(--paper);border:1.5px solid var(--line);padding:4px 10px;border-radius:6px;color:var(--ink-soft)" title="Kód firmy"></span>
-      <button class="btn-ghost" id="tutorial-btn" onclick="startTutorial()" title="Průvodce aplikací" style="font-size:15px;padding:6px 10px">?</button>
+      <span title="Verze aplikace" style="font-size:10px;color:var(--ink-faint);font-family:var(--font-mono);padding:0 4px;user-select:none">v0.3.2</span>
+      <button class="btn-ghost" id="tutorial-btn" onclick="openTutorialMenu()" title="Průvodce aplikací" style="font-size:15px;padding:6px 10px">?</button>
       <button class="btn-ghost" onclick="doLogout()">Odhlásit se</button>
     </div>
   </div>
 
   <div class="tabbar">
     <button class="tab-btn active" data-tab="schedule" onclick="switchAppTab('schedule')">Rozpis</button>
-    <button class="tab-btn" data-tab="gaps" onclick="switchAppTab('gaps')">📋 Mezery</button>
-    <button class="tab-btn" data-tab="employees" onclick="switchAppTab('employees')">Zaměstnanci</button>
     <button class="tab-btn" data-tab="branches" onclick="switchAppTab('branches')">Pobočky</button>
+    <button class="tab-btn" data-tab="employees" onclick="switchAppTab('employees')">Zaměstnanci</button>
+    <button class="tab-btn" data-tab="gaps" onclick="switchAppTab('gaps')">📋 Mezery</button>
     <button class="tab-btn" data-tab="rules" onclick="switchAppTab('rules')">Pravidla</button>
   </div>
 
@@ -650,18 +656,25 @@ body.employee-view #fill-mode-slot-wrap { display: none !important; }
             <span class="month-label" id="month-label">—</span>
             <button class="icon-nav-btn" onclick="changeMonth(1)">›</button>
           </div>
-          <button class="btn-accent employee-hidden" onclick="runAutoSchedule()">⚡ Automaticky doplnit</button>
-          <button class="btn-outline employee-hidden" onclick="clearAutoShifts()">Smazat auto</button>
-          <button class="btn-outline employee-hidden" onclick="clearAllShifts()">Smazat vše</button>
-          <button class="btn-outline employee-hidden" onclick="openImportModal()">⬆ Import JSON</button>
-          <button class="btn-outline employee-hidden" onclick="exportJSON()">⬇ Export JSON</button>
-          <button class="btn-outline employee-hidden" onclick="printSchedule()">🖨 Tisk / PDF</button>
+          <button class="btn-accent employee-hidden" id="auto-schedule-btn" onclick="runAutoSchedule()">⚡ Automaticky doplnit</button>
           <button class="btn-outline employee-hidden" id="fill-mode-btn" onclick="toggleFillMode()">🔍 Kde doplnit</button>
+          <button class="btn-outline employee-hidden" id="clear-auto-btn" onclick="clearAutoShifts()">Smazat auto</button>
+          <button class="btn-outline employee-hidden" id="clear-all-btn" onclick="clearAllShifts()">Smazat vše</button>
           <span id="fill-mode-slot-wrap" style="display:none;align-items:center;gap:6px">
             <select id="fill-mode-slot" onchange="renderCalendar()" style="padding:6px 8px;border:1.5px solid var(--accent);border-radius:7px;font-size:12.5px;font-family:var(--font-mono);font-weight:600;color:var(--accent-ink);background:var(--accent-soft)">
             </select>
             <button class="btn-outline" style="padding:5px 10px;font-size:12px" onclick="toggleFillMode()">✕ Ukončit</button>
           </span>
+          <!-- Secondary actions dropdown — Import/Export/Tisk only -->
+          <div class="employee-hidden" style="position:relative;margin-left:auto">
+            <button class="btn-outline" id="toolbar-more-btn" onclick="toggleToolbarMenu()" style="padding:6px 12px;font-size:13px">⋯ Více</button>
+            <div id="toolbar-more-menu" style="display:none;position:absolute;top:calc(100% + 6px);right:0;background:var(--surface);border:1.5px solid var(--line);border-radius:10px;box-shadow:0 6px 20px rgba(30,34,48,.12);z-index:500;min-width:170px;overflow:hidden">
+              <div onclick="openImportModal();closeToolbarMenu()" class="toolbar-menu-item">⬆ Import JSON</div>
+              <div onclick="exportJSON();closeToolbarMenu()" class="toolbar-menu-item">⬇ Export JSON</div>
+              <div style="border-top:1px solid var(--line);margin:4px 0"></div>
+              <div onclick="printSchedule();closeToolbarMenu()" class="toolbar-menu-item">🖨 Tisk / PDF</div>
+            </div>
+          </div>
         </div>
 
         <div id="print-header" style="margin-bottom:12px">
@@ -739,10 +752,12 @@ body.employee-view #fill-mode-slot-wrap { display: none !important; }
       <div class="panel">
         <div class="panel-head">
           <div>
-            <h2 class="panel-title">Přehled mezer v rozpisu</h2>
+            <h2 class="panel-title">Přehled mezer v rozpisu <span id="gaps-month-label" style="font-size:14px;font-weight:500;color:var(--ink-soft)"></span></h2>
             <p class="panel-sub">Dny kde chybí pokrytí nebo jsou volné sloty. Klikni na den pro doplnění.</p>
           </div>
           <div style="display:flex;gap:8px;align-items:center">
+            <button class="icon-nav-btn" onclick="changeMonth(-1);renderGaps()">‹</button>
+            <button class="icon-nav-btn" onclick="changeMonth(1);renderGaps()">›</button>
             <label style="font-size:12px;color:var(--ink-soft)">Zobrazit:</label>
             <select id="gaps-filter" onchange="renderGaps()" style="padding:5px 8px;border:1.5px solid var(--line);border-radius:7px;font-size:12.5px">
               <option value="missing">❌ Pouze chybějící (pod minimem)</option>
@@ -777,7 +792,6 @@ body.employee-view #fill-mode-slot-wrap { display: none !important; }
             <p class="panel-sub">Místa, kam přiřazuješ směny. Každá má vlastní barvu a minimální obsazení.</p>
           </div>
           <div style="display:flex;gap:8px">
-            <button class="btn-outline" onclick="resetDefaultColors()" title="Obnoví výchozí barvy pro K, U, M1–M4, P1–P2">🎨 Výchozí barvy</button>
             <button class="btn-accent" onclick="openBranchModal()">+ Přidat pobočku</button>
           </div>
         </div>
@@ -809,10 +823,7 @@ body.employee-view #fill-mode-slot-wrap { display: none !important; }
           <div class="field-hint">Použije se pro zaměstnance, kteří nemají vlastní minimum volných víkendů nastavené ve svém profilu (0 = bez nastavení).</div>
         </div>
 
-        <div style="display:flex;gap:10px;margin-top:18px">
-          <button class="btn-accent" onclick="saveRules()">Uložit pravidla</button>
-          <span class="saved-tag" id="rules-saved" style="display:none">Uloženo!</span>
-        </div>
+        <div style="height:8px"></div>
       </div>
 
       <div class="panel" style="margin-top:0">
@@ -862,7 +873,7 @@ body.employee-view #fill-mode-slot-wrap { display: none !important; }
         </div>
 
         <div style="display:flex;gap:10px;margin-top:18px">
-          <button class="btn-accent" onclick="saveScoring()">Uložit hodnocení</button>
+          <button class="btn-accent" id="save-all-rules-btn" onclick="saveRules();saveScoring()">💾 Uložit všechna pravidla</button>
           <span class="saved-tag" id="scoring-saved" style="display:none">Uloženo!</span>
         </div>
       </div>
@@ -1126,13 +1137,26 @@ let pendingOrgName = '';
 // ============================================================
 // TOAST
 // ============================================================
-function toast(msg){
+function toast(msg, type){
   const t = document.getElementById('toast');
   t.textContent = msg;
-  t.classList.add('show');
+  t.className = 'toast show' + (type === 'error' ? ' toast-error' : type === 'ok' ? ' toast-ok' : '');
   clearTimeout(toast._timer);
-  toast._timer = setTimeout(()=>t.classList.remove('show'), 2600);
+  toast._timer = setTimeout(()=>t.classList.remove('show'), type === 'error' ? 4000 : 2600);
 }
+function toastError(msg){ toast('⚠ ' + msg, 'error'); }
+function toastOk(msg){ toast('✓ ' + msg, 'ok'); }
+
+// Global error handler — catch unhandled promise rejections
+window.addEventListener('unhandledrejection', e => {
+  console.error('Unhandled:', e.reason);
+  const msg = e.reason?.message || String(e.reason);
+  if(msg.includes('Failed to fetch') || msg.includes('NetworkError')){
+    toastError('Chyba připojení — zkontroluj internet a obnov stránku.');
+  } else if(msg.includes('JWT') || msg.includes('auth')){
+    toastError('Platnost přihlášení vypršela — přihlas se znovu.');
+  }
+});
 
 // ============================================================
 // AUTH SCREEN TABS
@@ -1572,6 +1596,9 @@ async function bootstrapAfterAuth(){
 
     } else {
       document.body.classList.remove('employee-view');
+      // Show admin profile button
+      const adminSettingsBtn = document.getElementById('admin-settings-btn');
+      if(adminSettingsBtn) adminSettingsBtn.style.display = 'block';
       // Load and show org code for admin
       await loadOrgCode();
       const badge = document.getElementById('org-code-badge');
@@ -1602,6 +1629,8 @@ function switchAppTab(tab){
   const pane = document.getElementById('pane-'+tab);
   if(pane) pane.style.display='block';
   if(tab==='gaps') renderGaps();
+  // Trigger contextual tutorial on first visit to each tab
+  if(!tutActive) maybeStartTabTutorial(tab);
 }
 
 // ============================================================
@@ -1633,9 +1662,10 @@ function renderEmployees(){
 
   if(!employees.length){
     wrap.innerHTML = `<div class="empty-state">
-      <div class="ee-icon">👥</div>
-      <p><strong>Zatím tu nikdo není.</strong></p>
-      <p>Přidej prvního zaměstnance a začni stavět tým.</p>
+      <div style="font-size:40px;margin-bottom:12px">👥</div>
+      <p style="font-size:16px;font-weight:700;margin-bottom:6px">Zatím žádní zaměstnanci</p>
+      <p style="font-size:13px;color:var(--ink-soft);margin-bottom:20px">Přidej první zaměstnance a začni stavět tým.<br>Každý dostane pozvánkový odkaz pro přístup do appky.</p>
+      <button class="btn-accent" onclick="openEmployeeModal()">+ Přidat prvního zaměstnance</button>
     </div>`;
     return;
   }
@@ -1865,9 +1895,10 @@ function renderBranches(){
   const wrap = document.getElementById('branches-table-wrap');
   if(!branches.length){
     wrap.innerHTML = `<div class="empty-state">
-      <div class="ee-icon">🏠</div>
-      <p><strong>Zatím žádné pobočky.</strong></p>
-      <p>Přidej místa, na která budeš přiřazovat směny.</p>
+      <div style="font-size:40px;margin-bottom:12px">🏢</div>
+      <p style="font-size:16px;font-weight:700;margin-bottom:6px">Zatím žádné pobočky</p>
+      <p style="font-size:13px;color:var(--ink-soft);margin-bottom:20px">Přidej místa kde se pracuje — Karolína, Ungelt, Majestic…<br>Bez poboček nelze generovat rozvrh.</p>
+      <button class="btn-accent" onclick="openBranchModal()">+ Přidat první pobočku</button>
     </div>`;
     return;
   }
@@ -1916,10 +1947,14 @@ async function openBranchModal(id){
     editingBranchShiftTypes = data || [];
     renderShiftTypesList();
   } else {
+    const randomColors = ['#2B6E4F','#1a5fa8','#b5360b','#7c3aed','#b45309','#0891b2','#be185d','#166534','#9333ea','#c2410c','#0369a1','#15803d'];
+    const usedColors = branches.map(b=>b.color);
+    const available = randomColors.filter(c=>!usedColors.includes(c));
+    const randomColor = available.length > 0 ? available[Math.floor(Math.random()*available.length)] : randomColors[Math.floor(Math.random()*randomColors.length)];
     document.getElementById('branch-modal-title').textContent = 'Nová pobočka';
     document.getElementById('branch-code').value = '';
     document.getElementById('branch-name').value = '';
-    document.getElementById('branch-color').value = '#2B6E4F';
+    document.getElementById('branch-color').value = randomColor;
     document.getElementById('branch-minwd').value = 1;
     document.getElementById('branch-minwe').value = 1;
     document.getElementById('branch-maxday').value = 1;
@@ -2029,7 +2064,7 @@ async function saveBranch(){
 
 async function deleteBranch(id){
   const b = branches.find(x=>x.id===id);
-  if(!confirm(`Smazat pobočku ${b.name}?`)) return;
+  if(!confirm(`Opravdu chcete smazat pobočku "${b.name}"?\n\nPozor: Tímto se smažou i všechny směny této pobočky v rozpisu. Tato akce je nevratná.`)) return;
   const { error } = await sb.from('branches').delete().eq('id', id);
   if(error){ toast('Smazání se nezdařilo'); return; }
   toast('Pobočka smazána');
@@ -2220,6 +2255,30 @@ async function saveRules(){
 function initSchedule(){
   renderMonthLabel();
   loadShiftsForMonth();
+  initKeyboardShortcuts();
+}
+
+function initKeyboardShortcuts(){
+  if(window._kbInit) return;
+  window._kbInit = true;
+  document.addEventListener('keydown', e => {
+    // Don't fire if user is typing in an input
+    if(e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+    // Don't fire if a modal is open
+    const modalOpen = document.querySelector('.modal-overlay.open, .picker.open, #tut-overlay[style*="block"]');
+
+    if(e.key === 'Escape'){
+      // Close any open modal/picker/tutorial
+      if(document.getElementById('tut-overlay')?.style.display === 'block') { endTutorial(); return; }
+      document.querySelectorAll('.modal-overlay.open').forEach(m => m.classList.remove('open'));
+      const picker = document.getElementById('picker');
+      if(picker?.classList.contains('open')) picker.classList.remove('open');
+      return;
+    }
+    if(modalOpen) return;
+    if(e.key === 'ArrowLeft'  && !e.ctrlKey && !e.metaKey) changeMonth(-1);
+    if(e.key === 'ArrowRight' && !e.ctrlKey && !e.metaKey) changeMonth(1);
+  });
 }
 
 function changeMonth(dir){
@@ -2493,7 +2552,7 @@ function renderCalendar(){
     }
   }
 
-  let hRow = `<tr><th class="sched-name-col" id="sched-name-th">${(fillMode && !isGapsMode) ? `🔍 ${selectedSlot||''}` : 'Jméno'}</th>`;
+  let hRow = `<tr><th class="sched-name-col" style="position:sticky;left:0;z-index:3">${(fillMode && !isGapsMode) ? `🔍 ${selectedSlot||''}` : 'Jméno'}<div class="sched-name-col-resize" id="name-col-resize-handle"></div></th>`;
   for(let d=1; d<=daysInMonth; d++){
     const date = new Date(schedYear, schedMonth, d);
     const dow  = date.getDay();
@@ -4376,6 +4435,10 @@ function renderGapsInline(){
 function renderGaps(){
   const container = document.getElementById('gaps-content');
   if(!container) return;
+  // Update month label
+  const MONTHS_CZ = ['Leden','Únor','Březen','Duben','Květen','Červen','Červenec','Srpen','Září','Říjen','Listopad','Prosinec'];
+  const monthLbl = document.getElementById('gaps-month-label');
+  if(monthLbl) monthLbl.textContent = `— ${MONTHS_CZ[schedMonth]} ${schedYear}`;
   if(!branches.length || !employees.length){
     container.innerHTML = `<div class="empty-state"><p>Nejsou data k zobrazení.</p></div>`;
     return;
@@ -5020,31 +5083,26 @@ document.getElementById('onboard-org-name').addEventListener('keydown', e=>{ if(
 </script>
 
 <!-- ============================================================
-     TUTORIAL SYSTEM
+     TUTORIAL SYSTEM v2 — layered contextual guides
      ============================================================ -->
 <div id="tut-overlay" style="display:none;position:fixed;inset:0;z-index:9000;pointer-events:none">
-  <!-- Dark backdrop with spotlight hole via box-shadow -->
   <div id="tut-backdrop" style="position:absolute;inset:0;pointer-events:all"></div>
-  <!-- Highlight ring around target element -->
-  <div id="tut-spotlight" style="position:absolute;border-radius:10px;pointer-events:none;transition:all .25s cubic-bezier(.4,0,.2,1)"></div>
-  <!-- Tooltip bubble -->
-  <div id="tut-bubble" style="position:absolute;background:var(--surface);border:1.5px solid var(--line);border-radius:14px;box-shadow:0 8px 32px rgba(30,34,48,.18);width:300px;padding:20px;pointer-events:all;transition:all .25s cubic-bezier(.4,0,.2,1)">
-    <!-- Arrow pointer -->
-    <div id="tut-arrow" style="position:absolute;width:12px;height:12px;background:var(--surface);border:1.5px solid var(--line);transform:rotate(45deg)"></div>
-    <!-- Progress dots -->
-    <div id="tut-dots" style="display:flex;gap:5px;margin-bottom:14px"></div>
-    <!-- Icon + title -->
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-      <div id="tut-icon" style="font-size:22px;line-height:1"></div>
-      <div id="tut-title" style="font-size:15px;font-weight:700;font-family:var(--font-display);color:var(--ink)"></div>
+  <div id="tut-spotlight" style="position:absolute;border-radius:10px;pointer-events:none;transition:all .22s cubic-bezier(.4,0,.2,1);box-shadow:none"></div>
+  <div id="tut-bubble" style="position:absolute;background:var(--surface);border:1.5px solid var(--line);border-radius:12px;box-shadow:0 6px 24px rgba(30,34,48,.15);width:290px;padding:18px;pointer-events:all;transition:top .22s,left .22s">
+    <div id="tut-arrow" style="position:absolute;width:12px;height:12px;background:var(--surface);border:1.5px solid var(--line);transform:rotate(45deg);display:none"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div id="tut-dots" style="display:flex;gap:5px"></div>
+      <span id="tut-phase-label" style="font-size:11px;color:var(--ink-faint);font-weight:600;text-transform:uppercase;letter-spacing:.05em"></span>
     </div>
-    <!-- Body text -->
-    <div id="tut-body" style="font-size:13px;color:var(--ink-soft);line-height:1.6;margin-bottom:16px"></div>
-    <!-- Buttons -->
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
-      <button onclick="endTutorial()" style="background:none;border:none;font-size:12px;color:var(--ink-faint);cursor:pointer;padding:4px 0;font-family:inherit">Přeskočit průvodce</button>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+      <div id="tut-icon" style="font-size:20px;line-height:1;flex-shrink:0"></div>
+      <div id="tut-title" style="font-size:14px;font-weight:800;font-family:var(--font-display);color:#111"></div>
+    </div>
+    <div id="tut-body" style="font-size:13px;color:#374151;line-height:1.6;margin-bottom:12px"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <button onclick="endTutorial()" style="background:none;border:none;font-size:12px;color:var(--ink-faint);cursor:pointer;padding:4px 0;font-family:inherit">Přeskočit</button>
       <div style="display:flex;gap:8px">
-        <button id="tut-prev" onclick="tutStep(-1)" style="background:none;border:1.5px solid var(--line);border-radius:8px;padding:7px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;color:var(--ink)">← Zpět</button>
+        <button id="tut-prev" onclick="tutStep(-1)" style="background:none;border:1.5px solid var(--line);border-radius:8px;padding:7px 13px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;color:var(--ink)">← Zpět</button>
         <button id="tut-next" onclick="tutStep(1)" style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:7px 16px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Další →</button>
       </div>
     </div>
@@ -5053,398 +5111,347 @@ document.getElementById('onboard-org-name').addEventListener('keydown', e=>{ if(
 
 <script>
 // ============================================================
-// TUTORIAL ENGINE
 // ============================================================
-let tutSteps = [];
-let tutIndex = 0;
-let tutActive = false;
-
-const ADMIN_STEPS = [
-  // ── ROZPIS ──────────────────────────────────────────────
-  {
-    tab: 'schedule',
-    target: '.month-nav',
-    icon: '📅',
-    title: 'Navigace v měsících',
-    body: 'Šipkami se pohybuješ mezi měsíci. Každý měsíc je samostatný rozvrh — směny se ukládají do databáze, takže je přístupný odkudkoli a pro celý tým.',
-    position: 'bottom',
-    onEnter: () => switchAppTab('schedule')
-  },
-  {
-    tab: 'schedule',
-    target: '.sched-legend',
-    icon: '🎨',
-    title: 'Legenda barev',
-    body: 'Každá pobočka má svou barvu. Písmeno nebo číslo v buňce říká typ směny (K = Karolína, M1/M2 = Majestic slot 1/2…). Barvy si nastavíš v záložce Pobočky.',
-    position: 'bottom'
-  },
-  {
-    tab: 'schedule',
-    target: '#auto-schedule-btn',
-    icon: '⚡',
-    title: 'Automatické plánování',
-    body: 'Srdce appky. Algoritmus spustí desítky pokusů a vybere nejlepší rozvrh — pokryje pobočky, dodrží limity, respektuje volna (X) zaměstnanců a snaží se o spravedlivé rozdělení.',
-    position: 'bottom'
-  },
-  {
-    tab: 'schedule',
-    target: '#score-bar-wrap, .score-bar-wrap',
-    icon: '📊',
-    title: 'Kvalita rozpisu',
-    body: 'Procento ukazuje jak dobrý je aktuální rozvrh. Klikni na lištu pro podrobný přehled — uvidíš skóre po pobočkách i zaměstnancích, a kde jsou slabiny.',
-    position: 'bottom'
-  },
-  {
-    tab: 'schedule',
-    target: '.sched-table',
-    icon: '🖱️',
-    title: 'Klikání do kalendáře',
-    body: 'Klikni na číslo dne v záhlaví → detail dne (kdo pracuje, kdo může přijít, rychlé přiřazení). Klikni na buňku zaměstnance → picker pro výběr nebo odebrání směny.',
-    position: 'top'
-  },
-  {
-    tab: 'schedule',
-    target: '#fill-mode-select, .fill-mode-wrap',
-    icon: '🔍',
-    title: 'Kde doplnit',
-    body: 'Dropdown "Kde doplnit" přepne zobrazení — uvidíš jen dny kde konkrétní pobočka nemá dostatečné pokrytí. Šetří čas při ručním doplňování.',
-    position: 'bottom'
-  },
-  // ── ZAMĚSTNANCI ─────────────────────────────────────────
-  {
-    tab: 'employees',
-    target: '#pane-employees .panel, #pane-employees',
-    icon: '👥',
-    title: 'Správa zaměstnanců',
-    body: 'Každý zaměstnanec má jméno, min/max počet směn za měsíc a limity pro každou pobočku (max kolik směn tam může dostat). Limity ovlivňují algoritmus.',
-    position: 'right',
-    onEnter: () => switchAppTab('employees')
-  },
-  {
-    tab: 'employees',
-    target: '#pane-employees .btn-primary',
-    icon: '➕',
-    title: 'Přidat zaměstnance',
-    body: 'Přidáš jméno a nastavíš limity. Pak mu přes tlačítko 🔑 vygeneruješ pozvánkový odkaz — zaměstnanec ho otevře, zaregistruje se a je automaticky přiřazen k jeho profilu.',
-    position: 'bottom'
-  },
-  // ── POBOČKY ─────────────────────────────────────────────
-  {
-    tab: 'branches',
-    target: '#pane-branches .panel, #pane-branches',
-    icon: '🏢',
-    title: 'Pobočky a typy směn',
-    body: 'Každá pobočka má barvu, kód, a minimální pokrytí ve všední dny a o víkendech. U poboček s více sloty (Majestic M1–M4) přidáš více typů směn — každý slot jde obsadit zvlášť.',
-    position: 'right',
-    onEnter: () => switchAppTab('branches')
-  },
-  {
-    tab: 'branches',
-    target: '#pane-branches .btn-primary',
-    icon: '🎨',
-    title: 'Přidat pobočku',
-    body: 'Klikni pro přidání nové pobočky. Vyber barvu, zadej kód (1–3 znaky) a nastav minimální počty obsazení. Algoritmus pak garantuje tato minima při plánování.',
-    position: 'bottom'
-  },
-  // ── MEZERY ──────────────────────────────────────────────
-  {
-    tab: 'gaps',
-    target: '#pane-gaps .panel, #pane-gaps',
-    icon: '📋',
-    title: 'Mezery v pokrytí',
-    body: 'Záložka Mezery zobrazí dny seřazené od nejhoršího pokrytí — okamžitě vidíš kde „hoří". Klikni na den a hned doplníš chybějícího zaměstnance bez zdlouhavého hledání v kalendáři.',
-    position: 'right',
-    onEnter: () => switchAppTab('gaps')
-  },
-  // ── PRAVIDLA ────────────────────────────────────────────
-  {
-    tab: 'rules',
-    target: '#pane-rules .panel, #pane-rules',
-    icon: '⚖️',
-    title: 'Pravidla plánování',
-    body: 'Tvrdá pravidla algoritmus nikdy neporuší (pokrytí, min směny). Měkká se snaží plnit, ale může je obětovat pro celkově lepší výsledek. Tady si to přizpůsobíš svému provozu.',
-    position: 'right',
-    onEnter: () => switchAppTab('rules')
-  },
-  {
-    tab: 'rules',
-    target: '#pane-rules',
-    icon: '🎚️',
-    title: 'Váhy a balance páry',
-    body: 'Posuvníky vah říkají co je důležitější — pokrytí, rovnoměrnost, nebo volné víkendy. Balance páry hlídají spravedlnost mezi skupinami zaměstnanců (např. senioři vs. junioři).',
-    position: 'right'
-  },
-  // ── ZÁVĚR ───────────────────────────────────────────────
-  {
-    tab: 'schedule',
-    target: '.topbar',
-    icon: '🎉',
-    title: 'To je vše!',
-    body: 'Průvodce kdykoli znovu spustíš přes tlačítko <strong>?</strong> vpravo nahoře. Začni přidáním poboček a zaměstnanců → pak ⚡ Automaticky doplnit → první rozvrh za pár sekund.',
-    position: 'bottom',
-    isLast: true,
-    onEnter: () => switchAppTab('schedule')
+// TOOLBAR MORE MENU
+// ============================================================
+function toggleToolbarMenu(){
+  const menu = document.getElementById('toolbar-more-menu');
+  if(!menu) return;
+  const isOpen = menu.style.display !== 'none';
+  menu.style.display = isOpen ? 'none' : 'block';
+  if(!isOpen){
+    setTimeout(()=>document.addEventListener('click', function h(e){
+      if(!document.getElementById('toolbar-more-menu')?.contains(e.target) && e.target.id!=='toolbar-more-btn'){
+        closeToolbarMenu(); document.removeEventListener('click',h);
+      }
+    }), 0);
   }
+}
+function closeToolbarMenu(){
+  const m = document.getElementById('toolbar-more-menu');
+  if(m) m.style.display='none';
+}
+
+// ============================================================
+// TUTORIAL ENGINE v3 — detailní kontextové průvodce
+// ============================================================
+let tutSteps = [], tutIndex = 0, tutActive = false, tutPhase = '';
+
+// ── Tutorial menu ─────────────────────────────────────────────
+function openTutorialMenu(){
+  let menu = document.getElementById('tut-menu');
+  if(menu){ menu.remove(); return; }
+  const btn = document.getElementById('tutorial-btn');
+  const rect = btn.getBoundingClientRect();
+  menu = document.createElement('div');
+  menu.id = 'tut-menu';
+  menu.style.cssText = `position:fixed;top:${rect.bottom+6}px;right:${window.innerWidth-rect.right}px;background:var(--surface);border:1.5px solid var(--line);border-radius:10px;box-shadow:0 6px 24px rgba(30,34,48,.15);z-index:8000;min-width:200px;overflow:hidden`;
+  const items = currentRole==='admin' ? [
+    ['welcome',   '👋', 'Úvodní přehled'],
+    ['schedule',  '📅', 'Průvodce Rozpis'],
+    ['branches',  '🏢', 'Průvodce Pobočky'],
+    ['employees', '👥', 'Průvodce Zaměstnanci'],
+    ['gaps',      '📋', 'Průvodce Mezery'],
+    ['rules',     '⚖️', 'Průvodce Pravidla'],
+  ] : [
+    ['employee',  '👋', 'Průvodce pro zaměstnance'],
+  ];
+  items.forEach(([phase, icon, label]) => {
+    const div = document.createElement('div');
+    div.style.cssText = 'padding:10px 14px;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:8px;color:var(--ink)';
+    div.innerHTML = `<span>${icon}</span><span>${label}</span>`;
+    div.onmouseenter = ()=>div.style.background='var(--paper)';
+    div.onmouseleave = ()=>div.style.background='';
+    div.onclick = ()=>{ menu.remove(); startTutorial(phase); };
+    menu.appendChild(div);
+  });
+  document.body.appendChild(menu);
+  setTimeout(()=>document.addEventListener('click', function h(e){ if(!menu.contains(e.target)&&e.target.id!=='tutorial-btn'){menu.remove();document.removeEventListener('click',h);} }),0);
+}
+
+// ── Kroky průvodců ────────────────────────────────────────────
+
+const WELCOME_STEPS = [
+  { target:'.topbar', icon:'👋', title:'Vítej v Směnách!', position:'bottom',
+    body:'Rychlý přehled záložek a co v každé najdeš. Každá záložka má vlastní podrobný průvodce — spustí se automaticky při prvním vstupu, nebo přes tlačítko <strong>?</strong> vpravo nahoře.' },
+  { target:'[data-tab="schedule"]', icon:'📅', title:'Rozpis — tvůj dashboard', position:'bottom',
+    body:'Hlavní pohled na celý měsíc. Odtud spouštíš automatické plánování, vidíš kvalitu rozpisu a upravuješ jednotlivé směny.' },
+  { target:'[data-tab="branches"]', icon:'🏢', title:'Pobočky — začni tady', position:'bottom',
+    body:'Nejdřív přidej místa kde se pracuje. Bez poboček nelze plánovat — jsou základem celého systému. Každá má barvu, kód a minimální obsazení.' },
+  { target:'[data-tab="employees"]', icon:'👥', title:'Zaměstnanci — tvůj tým', position:'bottom',
+    body:'Po pobočkách přidej zaměstnance, nastav jim limity směn a pošli jim pozvánkový odkaz pro přístup do appky.' },
+  { target:'[data-tab="gaps"]', icon:'📋', title:'Mezery — kde chybí pokrytí', position:'bottom',
+    body:'Zobrazuje dny seřazené od nejhoršího pokrytí. Po vygenerování rozpisu sem koukni pro rychlé doplnění.' },
+  { target:'[data-tab="rules"]', icon:'⚖️', title:'Pravidla — pokročilé nastavení', position:'bottom',
+    body:'Váhy a pravidla ovlivňují algoritmus. Řeš až po základním nastavení poboček a zaměstnanců.' },
+  { target:'.tabnav', icon:'👉', title:'Kam chceš jít jako první?', position:'bottom', isLast:true,
+    body:`<div style="margin-top:4px;display:flex;flex-direction:column;gap:6px">
+      <button onclick="endTutorial();switchAppTab('branches')" style="background:var(--paper);border:1.5px solid var(--line);border-radius:8px;padding:8px 12px;text-align:left;cursor:pointer;font-family:inherit;font-size:12px;width:100%"><strong>🏢 Pobočky</strong> — přidat místa kde se pracuje</button>
+      <button onclick="endTutorial();switchAppTab('employees')" style="background:var(--paper);border:1.5px solid var(--line);border-radius:8px;padding:8px 12px;text-align:left;cursor:pointer;font-family:inherit;font-size:12px;width:100%"><strong>👥 Zaměstnanci</strong> — přidat tým</button>
+      <button onclick="endTutorial();switchAppTab('schedule')" style="background:var(--paper);border:1.5px solid var(--line);border-radius:8px;padding:8px 12px;text-align:left;cursor:pointer;font-family:inherit;font-size:12px;width:100%"><strong>📅 Rozpis</strong> — podívat se na kalendář</button>
+      <button onclick="endTutorial()" style="background:none;border:none;font-size:12px;color:var(--ink-faint);cursor:pointer;padding:4px 0;font-family:inherit;text-align:left">Zavřít bez výběru</button>
+    </div>` },
+];
+
+const SCHEDULE_STEPS = [
+  { target:'.month-nav', icon:'◀▶', title:'Navigace měsíců', position:'bottom',
+    body:'Šipkami přepínáš mezi měsíci. Každý měsíc je samostatný rozvrh uložený v databázi — přístupný pro celý tým odkudkoli. Fungují také klávesy <strong>← →</strong>.' },
+  { target:'#auto-schedule-btn', icon:'⚡', title:'Automatické plánování', position:'bottom',
+    body:'Klikni a algoritmus za pár sekund vygeneruje celý měsíc. Spustí desítky pokusů, vybere nejlepší výsledek — pokryje pobočky, dodrží limity zaměstnanců a respektuje jejich zadaná volna (X).' },
+  { target:'#fill-mode-btn', icon:'🔍', title:'Kde doplnit', position:'bottom',
+    body:'Přepne zobrazení — ukáže jen dny kde konkrétní pobočka nemá dostatečné pokrytí. Vyber pobočku ze seznamu a klikni na zvýrazněný den pro rychlé doplnění.' },
+  { target:'#clear-auto-btn', icon:'🗑️', title:'Smazat auto / Smazat vše', position:'bottom',
+    body:'<strong>Smazat auto</strong> odstraní pouze automaticky přiřazené směny a zachová tvoje ruční úpravy. <strong>Smazat vše</strong> vymaže celý měsíc včetně ručních úprav.' },
+  { target:'#toolbar-more-btn', icon:'⋯', title:'Import, Export a Tisk', position:'bottom',
+    body:'Tlačítko "⋯ Více" obsahuje méně časté akce: <strong>Import JSON</strong> — načtení dat ze starší verze, <strong>Export JSON</strong> — záloha měsíce, <strong>Tisk / PDF</strong> — tisk nebo uložení jako PDF.' },
+  { target:'#score-bar-wrap', icon:'📊', title:'Kvalita rozpisu', position:'bottom',
+    body:'Procento ukazuje jak dobrý je aktuální rozvrh. Klikni na lištu pro podrobný přehled — skóre po pobočkách i zaměstnancích. Červené číslo = pod minimem, oranžové = pod cílem.' },
+  { target:'#sched-info-box', icon:'🎨', title:'Legenda barev', position:'bottom',
+    body:'Každá pobočka má svou barvu viditelnou v legendě. Písmeno nebo číslo v buňce říká přesně na které místo je zaměstnanec zařazen. <strong>X</strong> = zadané volno, bílá buňka = volný den.' },
+  { target:'#sched-name-th', icon:'↔️', title:'Šířka sloupce jmen', position:'right',
+    body:'Najeď myší na <strong>pravý okraj</strong> záhlaví "Jméno" — kurzor se změní na šipku pro změnu šířky. Táhnutím nastavíš šířku sloupce. Nastavení se pamatuje v prohlížeči.' },
+  { target:'.sched-scroll', icon:'👆', title:'Práce s kalendářem', position:'top', isLast:true,
+    body:'Klikni na <strong>číslo dne</strong> v záhlaví → detail dne s přehledem pokrytí a možností přiřadit zaměstnance. Klikni na <strong>buňku v řádku zaměstnance</strong> → otevře výběr pro přiřazení nebo odebrání směny ručně.' },
+];
+
+const BRANCHES_STEPS = [
+  { target:null, icon:'🏢', title:'Správa poboček', position:'center',
+    body:'Pobočky jsou místa kde se pracuje — Karolína, Ungelt, Majestic… Každá má vlastní barvu v rozpisu a minimální počty obsazení. Bez poboček nelze generovat rozvrh.' },
+  { target:'[onclick="openBranchModal()"]', icon:'➕', title:'Přidat pobočku', position:'left',
+    body:'Klikni na toto zelené tlačítko vpravo nahoře. Vyplníš <strong>název</strong> pobočky, <strong>kód</strong> (1–3 písmena — zobrazuje se v každé buňce kalendáře), <strong>barvu</strong> a minimální počty lidí na směně ve všední dny a o víkendech.' },
+  { target:'#pane-branches table', icon:'📋', title:'Co vidíš v tabulce', position:'top',
+    body:'Každý řádek = jedna pobočka. <strong>MIN VŠEDNÍ</strong> a <strong>MIN VÍKEND</strong> = minimální počet lidí na směně. <strong>MAX/DEN</strong> = max obsazení za den. <strong>LIMIT/MĚSÍC</strong> = celkový měsíční rozsah směn.' },
+  { target:'#pane-branches table', icon:'✎', title:'Úprava a mazání', position:'top',
+    body:'Tlačítko <strong>✎</strong> na konci řádku = upravit nastavení pobočky. <strong>✕</strong> = smazat pobočku — pozor, tím se smažou i všechny přiřazené směny této pobočky v celém rozpisu.', isLast:true },
+];
+
+const EMPLOYEES_STEPS = [
+  { target:null, icon:'👥', title:'Správa zaměstnanců', position:'center',
+    body:'Tady spravuješ celý tým. Každý zaměstnanec má nastavené limity směn za měsíc, limity pro každou pobočku zvlášť a může mít přístupový odkaz do appky pro zobrazení vlastního rozvrhu.' },
+  { target:'[onclick="openEmployeeModal()"]', icon:'➕', title:'Přidat zaměstnance', position:'left',
+    body:'Klikni na toto zelené tlačítko vpravo nahoře. Zadáš jméno, minimální, cílový a maximální počet směn za měsíc a maximální počet dní v řadě. Pak nastavíš limity poboček.' },
+  { target:'#pane-employees table', icon:'📊', title:'Co vidíš v tabulce', position:'top',
+    body:'<strong>MIN–CÍL</strong> = min a cílový počet směn. <strong>MAX</strong> = absolutní maximum. <strong>MAX SÉRIE</strong> = max dní v řadě. <strong>PŘÍSTUP</strong> = má zaměstnanec účet v appce pro sledování rozvrhu?' },
+  { target:'#pane-employees table', icon:'✎', title:'Limity poboček', position:'top',
+    body:'Klikni na <strong>✎</strong> u jakéhokoliv zaměstnance — v editačním formuláři najdeš sekci Limity poboček. Nastavíš kolik směn maximum může dostat na každé pobočce. 0 nebo prázdno = na tuto pobočku se neplánuje.' },
+  { target:'#pane-employees table', icon:'🔑', title:'Pozvánkový odkaz — klíček', position:'top',
+    body:'Ikona klíčku 🔑 u každého zaměstnance vygeneruje jedinečný odkaz. Zaměstnanec ho otevře, zaregistruje se a je automaticky přiřazen k jeho profilu. Sdílej odkaz přes email nebo WhatsApp.' },
+  { target:'#org-code-badge', icon:'🏷️', title:'Kód firmy', position:'bottom',
+    body:'Kód firmy vpravo nahoře je alternativa k osobnímu odkazu. Zaměstnanec ho zadá při registraci, propojí se s firmou a čeká na přiřazení konkrétního profilu adminem.', isLast:true },
+];
+
+const GAPS_STEPS = [
+  { target:null, icon:'📋', title:'Mezery v pokrytí', position:'center',
+    body:'Tato záložka zobrazuje dny aktuálního měsíce seřazené od nejhoršího pokrytí poboček. Okamžitě vidíš kde "hoří" — kde chybí zaměstnanci na minimálním počtu. Šipkami ‹ › vlevo/vpravo přepínáš měsíce.' },
+  { target:null, icon:'🎨', title:'Barevné označení dnů', position:'center',
+    body:'<strong>Červený rámeček</strong> = den je pod minimem obsazení (kritické — priorita). <strong>Oranžový</strong> = obsazení na minimu ale pod cílem. V každém dni vidíš přesně které sloty a pobočky chybí.' },
+  { target:null, icon:'👆', title:'Rychlé doplnění', position:'center',
+    body:'Klikni na libovolný den v přehledu → přepne tě přímo do kalendáře na ten konkrétní den a otevře detail s možností okamžitého přiřazení dostupného zaměstnance. Ušetří zdlouhavé hledání v tabulce.', isLast:true },
+];
+
+const RULES_STEPS = [
+  { target:null, icon:'⚖️', title:'Pravidla plánování', position:'center',
+    body:'Tady ovlivňuješ jak algoritmus přemýšlí při generování rozpisu. Jsou zde dvě kategorie: <strong>tvrdá pravidla</strong> (absolutní limity, nikdy neporuší) a <strong>měkká pravidla</strong> s váhami (priority).' },
+  { target:'#hard-coverage', icon:'🔒', title:'Tvrdá pravidla', position:'right',
+    body:'Zaškrtnutá tvrdá pravidla algoritmus <strong>nikdy neporuší</strong>. Pokud podmínka není splněna, výsledek zahodí a zkusí znovu. Zaškrtni pouze co je pro tvůj provoz absolutně nezbytné.' },
+  { target:'#score-weights-list', icon:'📊', title:'Váhy — měkká pravidla', position:'right',
+    body:'Posuvníky určují co je pro algoritmus důležitější. <strong>Pokrytí poboček</strong> vs. <strong>rovnoměrnost směn</strong> vs. <strong>volné víkendy</strong>. Celkem musí dát 100 %. Nastav podle priorit svého provozu.' },
+  { target:'#save-all-rules-btn', icon:'💾', title:'Uložit vše', position:'top',
+    body:'Po změně čehokoliv v pravidlech klikni na <strong>Uložit všechna pravidla</strong>. Jedno tlačítko uloží pravidla víkendů i všechny váhy najednou. Změny se projeví při příštím spuštění algoritmu.', isLast:true },
 ];
 
 const EMPLOYEE_STEPS = [
-  {
-    tab: 'schedule',
-    target: '.sched-table',
-    icon: '👋',
-    title: 'Vítej v Směnách!',
-    body: 'Tady vidíš rozvrh celého týmu na aktuální měsíc. Každý řádek je jeden zaměstnanec — tvůj řádek je barevně zvýrazněný, hned ho najdeš.',
-    position: 'top',
-    onEnter: () => switchAppTab('schedule')
-  },
-  {
-    tab: 'schedule',
-    target: '.sched-legend',
-    icon: '🎨',
-    title: 'Co znamenají barvy',
-    body: 'Každá pobočka má svou barvu — vidíš je v legendě nahoře. Písmeno nebo číslo v buňce říká přesně na které místo a do jaké směny jsi zařazený.',
-    position: 'bottom'
-  },
-  {
-    tab: 'schedule',
-    target: '.sched-table',
-    icon: '👆',
-    title: 'Detail směny',
-    body: 'Klikni na jakoukoliv barevnou buňku ve svém řádku v kalendáři níže — zobrazí se detail: která pobočka, čas a další informace o té konkrétní směně.',
-    position: 'top'
-  },
-  {
-    tab: 'schedule',
-    target: '.month-nav',
-    icon: '📅',
-    title: 'Přepínání měsíců',
-    body: 'Šipkami vlevo/vpravo se pohybuješ mezi měsíci. Vždy vidíš aktuální publikovaný rozvrh — pokud vedoucí ještě nedoplnil nový měsíc, buňky budou prázdné.',
-    position: 'bottom'
-  },
-  {
-    tab: 'schedule',
-    target: '#emp-x-toggle-btn',
-    icon: '✏️',
-    title: 'Zadat volno (X)',
-    body: 'Potřebuješ volno? Klikni na toto tlačítko — zapne se editační mód. Pak klikni na dny v <strong>tvém řádku</strong> kdy nemůžeš přijít. Vedoucí se pokusí ti volno zajistit a při plánování ho bude respektovat.',
-    position: 'bottom'
-  },
-  {
-    tab: 'schedule',
-    target: '.sched-table',
-    icon: '💡',
-    title: 'Tipy pro X zadávání',
-    body: 'X zadávej s předstihem — ideálně před tím, než vedoucí spustí automatické plánování. Zpětně je to složitější. Kliknutím na X buňku ho také odebereš, pokud sis to rozmyslel.',
-    position: 'top'
-  },
-  {
-    tab: 'schedule',
-    target: '#emp-settings-btn',
-    icon: '⚙️',
-    title: 'Tvůj profil',
-    body: 'Přes tlačítko ⚙ Profil si můžeš změnit jméno, přidat telefon a změnit heslo. Tvůj kód zaměstnance tam taky najdeš — dej ho vedoucímu pokud tě ještě nepropojil.',
-    position: 'bottom'
-  },
-  {
-    tab: 'schedule',
-    target: '.topbar-right',
-    icon: '🎉',
-    title: 'Vše je nastaveno!',
-    body: 'Průvodce kdykoli znovu spustíš přes tlačítko <strong>?</strong> vpravo nahoře. Pokud máš otázku nebo problém, obrať se na svého vedoucího. Hodně zdaru!',
-    position: 'bottom',
-    isLast: true
-  }
+  { target:'.topbar', icon:'👋', title:'Vítej v Směnách!', position:'bottom',
+    body:'Tady najdeš svůj pracovní rozvrh. Krátký průvodce tě provede základními funkcemi.' },
+  { target:'.sched-table', icon:'📅', title:'Tvůj rozvrh', position:'top',
+    body:'V tabulce vidíš celý měsíc. Tvůj řádek je <strong>zvýrazněný zeleně</strong> — hned ho najdeš. Barevné buňky jsou směny, bílé jsou volné dny.' },
+  { target:'.sched-legend', icon:'🎨', title:'Co znamenají barvy', position:'bottom',
+    body:'Každá pobočka má svou barvu viditelnou v legendě nahoře. Písmeno v buňce říká přesně na které místo jsi zařazen. <strong>X</strong> = tvoje zadané volno.' },
+  { target:'.month-nav', icon:'◀▶', title:'Přepínání měsíců', position:'bottom',
+    body:'Šipkami vlevo a vpravo se pohybuješ mezi měsíci. Vždy vidíš aktuálně zveřejněný rozvrh.' },
+  { target:'.sched-table', icon:'👆', title:'Detail směny', position:'top',
+    body:'Klikni na libovolnou barevnou buňku ve svém řádku → zobrazí se detail směny s informacemi o pobočce a dni.' },
+  { target:'#emp-x-toggle-btn', icon:'✏️', title:'Zadat volno (X)', position:'bottom',
+    body:'Potřebuješ volno? Klikni na toto tlačítko — zapne se editační mód. Klikni na dny ve svém řádku kdy nemůžeš přijít. Kliknutím znovu X odebereš. <strong>Vedoucí se pokusí toto volno zajistit.</strong>' },
+  { target:'#emp-settings-btn', icon:'⚙️', title:'Tvůj profil', position:'bottom',
+    body:'Přes ⚙ Profil si změníš jméno, telefonní číslo nebo heslo. Najdeš tam i svůj osobní kód zaměstnance pro případ propojení účtu.' },
+  { target:'#tutorial-btn', icon:'✅', title:'Hotovo!', position:'bottom', isLast:true,
+    body:'Průvodce kdykoli znovu spustíš přes tlačítko <strong>?</strong> vpravo nahoře. Pokud máš otázku, obrať se na svého vedoucího.' },
 ];
 
-function startTutorial(){
-  tutSteps = currentRole === 'admin' ? ADMIN_STEPS : EMPLOYEE_STEPS;
+// ── Engine ────────────────────────────────────────────────────
+const PHASE_STEPS = {
+  welcome:   WELCOME_STEPS,
+  schedule:  SCHEDULE_STEPS,
+  branches:  BRANCHES_STEPS,
+  employees: EMPLOYEES_STEPS,
+  gaps:      GAPS_STEPS,
+  rules:     RULES_STEPS,
+  employee:  EMPLOYEE_STEPS,
+};
+
+function startTutorial(phase){
+  phase = phase || (currentRole === 'admin' ? 'welcome' : 'employee');
+  tutPhase = phase;
+  tutSteps = PHASE_STEPS[phase] || WELCOME_STEPS;
   tutIndex = 0;
   tutActive = true;
   document.getElementById('tut-overlay').style.display = 'block';
+  // Reposition on scroll
+  if(!window._tutScrollHandler){
+    window._tutScrollHandler = () => {
+      if(tutActive && tutSteps[tutIndex]){
+        const step = tutSteps[tutIndex];
+        const el = step.target ? document.querySelector(step.target) : null;
+        positionTutorial(el, step.position||'bottom');
+      }
+    };
+    document.addEventListener('scroll', window._tutScrollHandler, true);
+  }
   renderTutStep();
 }
 
 function endTutorial(){
   tutActive = false;
   document.getElementById('tut-overlay').style.display = 'none';
-  document.getElementById('tut-backdrop').style.boxShadow = '';
-  document.getElementById('tut-spotlight').style.display = 'none';
-  localStorage.setItem('tut_done_' + (currentRole||''), '1');
+  const sp = document.getElementById('tut-spotlight');
+  sp.style.boxShadow = 'none'; sp.style.display = 'none';
+  if(tutPhase) localStorage.setItem('tut_done_'+tutPhase, '1');
+  tutPhase = '';
 }
 
 function tutStep(dir){
-  tutIndex = Math.max(0, Math.min(tutSteps.length - 1, tutIndex + dir));
+  const step = tutSteps[tutIndex];
+  if(dir > 0 && (step.isLast || tutIndex === tutSteps.length-1)){ endTutorial(); return; }
+  tutIndex = Math.max(0, Math.min(tutSteps.length-1, tutIndex+dir));
   renderTutStep();
 }
 
 function renderTutStep(){
   const step = tutSteps[tutIndex];
   if(!step) return endTutorial();
-
-  // Run tab switch / onEnter if needed
   if(step.onEnter) step.onEnter();
 
-  // Find target element
-  const el = document.querySelector(step.target);
-
-  // Update dots
-  const dotsEl = document.getElementById('tut-dots');
-  dotsEl.innerHTML = tutSteps.map((_, i) =>
-    `<div style="width:${i===tutIndex?16:6}px;height:6px;border-radius:3px;background:${i===tutIndex?'var(--accent)':'var(--line)'};transition:all .2s"></div>`
+  const labels = { welcome:'Úvod', schedule:'Rozpis', branches:'Pobočky', employees:'Zaměstnanci', gaps:'Mezery', rules:'Pravidla', employee:'Průvodce' };
+  document.getElementById('tut-phase-label').textContent = (labels[tutPhase]||'') + ' ' + (tutIndex+1) + '/' + tutSteps.length;
+  document.getElementById('tut-dots').innerHTML = tutSteps.map((_,i)=>
+    `<div style="width:${i===tutIndex?14:5}px;height:5px;border-radius:3px;background:${i===tutIndex?'var(--accent)':'var(--line)'};transition:all .2s"></div>`
   ).join('');
-
-  // Update content
   document.getElementById('tut-icon').textContent  = step.icon;
   document.getElementById('tut-title').textContent = step.title;
   document.getElementById('tut-body').innerHTML    = step.body;
-
-  // Buttons
-  document.getElementById('tut-prev').style.display = tutIndex === 0 ? 'none' : 'inline-block';
-  const nextBtn = document.getElementById('tut-next');
-  nextBtn.textContent = (step.isLast || tutIndex === tutSteps.length - 1) ? '✓ Hotovo' : 'Další →';
-  if(step.isLast || tutIndex === tutSteps.length - 1){
-    nextBtn.onclick = endTutorial;
-  } else {
-    nextBtn.onclick = () => tutStep(1);
-  }
-
-  // Spotlight + bubble positioning
-  requestAnimationFrame(() => positionTutorial(el, step.position || 'bottom'));
+  document.getElementById('tut-prev').style.display = tutIndex===0 ? 'none' : 'inline-block';
+  const nb = document.getElementById('tut-next');
+  nb.textContent = (step.isLast || tutIndex===tutSteps.length-1) ? '✓ Hotovo' : 'Další →';
+  const el = step.target ? document.querySelector(step.target) : null;
+  requestAnimationFrame(()=>positionTutorial(el, step.position||'bottom'));
 }
 
-function positionTutorial(el, preferredPos){
-  const backdrop  = document.getElementById('tut-backdrop');
-  const spotlight = document.getElementById('tut-spotlight');
-  const bubble    = document.getElementById('tut-bubble');
-  const arrow     = document.getElementById('tut-arrow');
+function positionTutorial(el, pref){
+  const sp = document.getElementById('tut-spotlight');
+  const bb = document.getElementById('tut-bubble');
+  const ar = document.getElementById('tut-arrow');
+  const vw = window.innerWidth, vh = window.innerHeight;
+  const bw = 290, bh = bb.offsetHeight||200, pad=8, gap=12;
 
   if(!el){
-    backdrop.style.boxShadow = 'inset 0 0 0 9999px rgba(15,20,35,.55)';
-    spotlight.style.display = 'none';
-    bubble.style.top  = '50%';
-    bubble.style.left = '50%';
-    bubble.style.transform = 'translate(-50%,-50%)';
-    arrow.style.display = 'none';
-    return;
+    sp.style.display='none';
+    document.getElementById('tut-backdrop').style.boxShadow='inset 0 0 0 9999px rgba(15,20,35,.5)';
+    bb.style.top='50%'; bb.style.left='50%'; bb.style.transform='translate(-50%,-50%)';
+    ar.style.display='none'; return;
   }
+  document.getElementById('tut-backdrop').style.boxShadow='';
+  const r = el.getBoundingClientRect();
+  sp.style.display='block';
+  sp.style.left=(r.left-pad)+'px'; sp.style.top=(r.top-pad)+'px';
+  sp.style.width=(r.width+pad*2)+'px'; sp.style.height=(r.height+pad*2)+'px';
+  sp.style.boxShadow='0 0 0 3px var(--accent), 0 0 0 9999px rgba(15,20,35,.5)';
 
-  const r    = el.getBoundingClientRect();
-  const pad  = 8;
-  const vw   = window.innerWidth;
-  const vh   = window.innerHeight;
-  const bw   = 300;
-  const bh   = bubble.offsetHeight || 220;
+  let pos=pref;
+  if(pos==='bottom' && r.bottom+bh+gap>vh) pos=r.top>bh+gap?'top':'right';
+  if(pos==='top'    && r.top-bh-gap<0)    pos=r.bottom+bh+gap<vh?'bottom':'right';
+  if(pos==='right'  && r.right+bw+gap>vw) pos=r.left>bw+gap?'left':'bottom';
+  if(pos==='left'   && r.left-bw-gap<0)   pos='bottom';
 
-  // Spotlight
-  spotlight.style.display = 'block';
-  spotlight.style.left    = (r.left - pad) + 'px';
-  spotlight.style.top     = (r.top  - pad) + 'px';
-  spotlight.style.width   = (r.width  + pad*2) + 'px';
-  spotlight.style.height  = (r.height + pad*2) + 'px';
-  spotlight.style.boxShadow = '0 0 0 4px var(--accent), 0 0 0 9999px rgba(15,20,35,.55)';
-  backdrop.style.boxShadow = '';
+  let bt, bl;
+  ar.style.display='block';
+  ['borderTop','borderBottom','borderLeft','borderRight'].forEach(k=>ar.style[k]='');
 
-  // Smart position: try preferred, fallback if off-screen
-  let pos = preferredPos;
-  const spaceBelow = vh - r.bottom;
-  const spaceAbove = r.top;
-  const spaceRight = vw - r.right;
-  const spaceLeft  = r.left;
-
-  if(pos === 'bottom' && spaceBelow < bh + 24) pos = spaceAbove > bh + 24 ? 'top' : 'right';
-  if(pos === 'top'    && spaceAbove < bh + 24) pos = spaceBelow > bh + 24 ? 'bottom' : 'right';
-  if(pos === 'right'  && spaceRight < bw + 24) pos = spaceLeft  > bw + 24 ? 'left'   : 'bottom';
-  if(pos === 'left'   && spaceLeft  < bw + 24) pos = spaceRight > bw + 24 ? 'right'  : 'bottom';
-
-  const gap = 14;
-  let bTop, bLeft;
-  arrow.style.display = 'block';
-  // Reset arrow borders
-  arrow.style.borderTop = ''; arrow.style.borderBottom = '';
-  arrow.style.borderLeft = ''; arrow.style.borderRight = '';
-
-  if(pos === 'bottom'){
-    bTop  = r.bottom + gap;
-    bLeft = Math.min(Math.max(r.left + r.width/2 - bw/2, 12), vw - bw - 12);
-    arrow.style.top = '-7px'; arrow.style.bottom = 'auto';
-    arrow.style.left = Math.max(8, r.left + r.width/2 - bLeft - 6) + 'px'; arrow.style.right = 'auto';
-    arrow.style.borderBottom = 'none'; arrow.style.borderRight = 'none';
-  } else if(pos === 'top'){
-    bTop  = r.top - bh - gap;
-    bLeft = Math.min(Math.max(r.left + r.width/2 - bw/2, 12), vw - bw - 12);
-    arrow.style.bottom = '-7px'; arrow.style.top = 'auto';
-    arrow.style.left = Math.max(8, r.left + r.width/2 - bLeft - 6) + 'px'; arrow.style.right = 'auto';
-    arrow.style.borderTop = 'none'; arrow.style.borderLeft = 'none';
-  } else if(pos === 'right'){
-    bLeft = r.right + gap;
-    bTop  = Math.min(Math.max(r.top + r.height/2 - bh/2, 12), vh - bh - 12);
-    arrow.style.left = '-7px'; arrow.style.right = 'auto';
-    arrow.style.top = Math.max(8, r.top + r.height/2 - bTop - 6) + 'px'; arrow.style.bottom = 'auto';
-    arrow.style.borderTop = 'none'; arrow.style.borderRight = 'none';
+  if(pos==='bottom'){
+    bt=r.bottom+gap; bl=Math.min(Math.max(r.left+r.width/2-bw/2,8),vw-bw-8);
+    ar.style.top='-7px'; ar.style.bottom='auto';
+    ar.style.left=Math.max(8,r.left+r.width/2-bl-6)+'px'; ar.style.right='auto';
+    ar.style.borderBottom='none'; ar.style.borderRight='none';
+  } else if(pos==='top'){
+    bt=r.top-bh-gap; bl=Math.min(Math.max(r.left+r.width/2-bw/2,8),vw-bw-8);
+    ar.style.bottom='-7px'; ar.style.top='auto';
+    ar.style.left=Math.max(8,r.left+r.width/2-bl-6)+'px'; ar.style.right='auto';
+    ar.style.borderTop='none'; ar.style.borderLeft='none';
+  } else if(pos==='right'){
+    bl=r.right+gap; bt=Math.min(Math.max(r.top+r.height/2-bh/2,8),vh-bh-8);
+    ar.style.left='-7px'; ar.style.right='auto';
+    ar.style.top=Math.max(8,r.top+r.height/2-bt-6)+'px'; ar.style.bottom='auto';
+    ar.style.borderTop='none'; ar.style.borderRight='none';
   } else {
-    bLeft = r.left - bw - gap;
-    bTop  = Math.min(Math.max(r.top + r.height/2 - bh/2, 12), vh - bh - 12);
-    arrow.style.right = '-7px'; arrow.style.left = 'auto';
-    arrow.style.top = Math.max(8, r.top + r.height/2 - bTop - 6) + 'px'; arrow.style.bottom = 'auto';
-    arrow.style.borderBottom = 'none'; arrow.style.borderLeft = 'none';
+    bl=r.left-bw-gap; bt=Math.min(Math.max(r.top+r.height/2-bh/2,8),vh-bh-8);
+    ar.style.right='-7px'; ar.style.left='auto';
+    ar.style.top=Math.max(8,r.top+r.height/2-bt-6)+'px'; ar.style.bottom='auto';
+    ar.style.borderBottom='none'; ar.style.borderLeft='none';
   }
-
-  // Clamp to viewport
-  bTop  = Math.max(8, Math.min(bTop,  vh - bh - 8));
-  bLeft = Math.max(8, Math.min(bLeft, vw - bw - 8));
-
-  bubble.style.transform = 'none';
-  bubble.style.top  = bTop  + 'px';
-  bubble.style.left = bLeft + 'px';
+  bb.style.transform='none';
+  bb.style.top=Math.max(8,bt)+'px';
+  bb.style.left=Math.max(8,bl)+'px';
 }
 
+// ── Auto-triggers ─────────────────────────────────────────────
 function maybeStartTutorial(){
-  const key = 'tut_done_' + (currentRole||'');
-  if(!localStorage.getItem(key)){
-    setTimeout(startTutorial, 800);
+  const phase = currentRole==='admin' ? 'schedule' : 'employee';
+  // First ever login: start schedule tutorial for admin, employee tutorial for employees
+  if(!localStorage.getItem('tut_done_'+phase)){
+    // For admin: show welcome first, then schedule will trigger on first switchAppTab
+    if(currentRole==='admin' && !localStorage.getItem('tut_done_welcome')){
+      setTimeout(()=>startTutorial('welcome'), 600);
+    } else if(currentRole!=='admin'){
+      setTimeout(()=>startTutorial('employee'), 600);
+    } else {
+      setTimeout(()=>startTutorial('schedule'), 600);
+    }
   }
 }
 
-// ── Name column resize ───────────────────────────────────────
+function maybeStartTabTutorial(tab){
+  if(currentRole!=='admin') return;
+  if(!tutActive && !localStorage.getItem('tut_done_'+tab) && PHASE_STEPS[tab]){
+    setTimeout(()=>startTutorial(tab), 350);
+  }
+}
+
+// ── Name column resize ────────────────────────────────────────
 let nameColWidth = parseInt(localStorage.getItem('nameColWidth')||'160');
 
 function applyNameColWidth(w){
   nameColWidth = Math.max(80, Math.min(320, w));
   localStorage.setItem('nameColWidth', nameColWidth);
-  // Update colgroup — the ONLY way to resize in table-layout:fixed
   const col = document.querySelector('#sched-table colgroup col:first-child');
-  if(col){
-    col.style.width    = nameColWidth + 'px';
-    col.style.minWidth = nameColWidth + 'px';
-  }
+  if(col){ col.style.width=nameColWidth+'px'; col.style.minWidth=nameColWidth+'px'; }
 }
 
 function initNameColResize(){
   const th = document.getElementById('sched-name-th');
   if(!th) return;
-  // Show resize cursor on right 12px of th
-  th.addEventListener('mousemove', function(e){
-    const rect = th.getBoundingClientRect();
-    th.style.cursor = e.clientX > rect.right - 12 ? 'col-resize' : 'default';
+  th.addEventListener('mousemove', e=>{
+    th.style.cursor = e.clientX > th.getBoundingClientRect().right-12 ? 'col-resize' : 'default';
   });
-  th.addEventListener('mouseleave', function(){ th.style.cursor = ''; });
-  th.addEventListener('mousedown', function(e){
-    const rect = th.getBoundingClientRect();
-    if(e.clientX <= rect.right - 12) return;
+  th.addEventListener('mouseleave', ()=>th.style.cursor='');
+  th.addEventListener('mousedown', e=>{
+    if(e.clientX <= th.getBoundingClientRect().right-12) return;
     e.preventDefault();
-    const startX = e.clientX;
-    const startW = nameColWidth;
-    document.body.style.cursor = 'col-resize';
-    document.body.style.userSelect = 'none';
-    function onMove(e){ applyNameColWidth(startW + e.clientX - startX); }
-    function onUp(){
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-      document.removeEventListener('mousemove', onMove);
-      document.removeEventListener('mouseup', onUp);
-    }
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('mouseup', onUp);
+    const sx=e.clientX, sw=nameColWidth;
+    document.body.style.cursor='col-resize'; document.body.style.userSelect='none';
+    const mv=e=>applyNameColWidth(sw+e.clientX-sx);
+    const up=()=>{ document.body.style.cursor=''; document.body.style.userSelect='';
+      document.removeEventListener('mousemove',mv); document.removeEventListener('mouseup',up); };
+    document.addEventListener('mousemove',mv); document.addEventListener('mouseup',up);
   });
 }
 </script>
