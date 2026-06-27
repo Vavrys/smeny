@@ -346,7 +346,7 @@ tr.dragging{opacity:.4}
   .picker, .picker-overlay, .modal-overlay { display: none !important; }
   .panel { box-shadow: none !important; border: none !important; padding: 0 !important; }
   .sched-scroll { overflow: visible !important; }
-  #sched-scroll-wrap { max-width: none !important; overflow: visible !important; }
+  #sched-scroll-wrap { width: auto !important; max-width: none !important; margin: 0 !important; overflow: visible !important; }
   #table-width-handle { display: none !important; }
   table.sched-table { font-size: 8.5px !important; }
   .sched-name-col { min-width: 80px !important; max-width: 80px !important; font-size: 8px !important; }
@@ -418,13 +418,19 @@ body.employee-view #fill-mode-slot-wrap { display: none !important; }
 .branch-group-spacer td { border-bottom: none !important; background: var(--paper) !important; }
 #branch-view-btn.active { background: rgba(29,78,216,0.10); color: #1d4ed8; border-color: #1d4ed8; border-width: 2px; font-weight: 700; }
 /* Table width drag handle */
-#sched-scroll-wrap { position: relative; }
+#sched-scroll-wrap { position: relative; margin: 0 auto; }
 #table-width-handle {
-  position: absolute; right: -6px; top: 0; bottom: 0; width: 6px;
+  position: absolute; right: -7px; top: 0; bottom: 0; width: 7px;
   cursor: col-resize; z-index: 5;
-  border-right: 2px solid transparent; transition: border-color .15s;
+  border-right: 3px solid transparent; transition: border-color .15s;
+}
+#table-width-handle-left {
+  position: absolute; left: -7px; top: 0; bottom: 0; width: 7px;
+  cursor: col-resize; z-index: 5;
+  border-left: 3px solid transparent; transition: border-color .15s;
 }
 #table-width-handle:hover, #table-width-handle.dragging { border-right-color: var(--accent); }
+#table-width-handle-left:hover, #table-width-handle-left.dragging { border-left-color: var(--accent); }
 /* Branches panel spacing */
 #pane-branches .panel-head { margin-bottom: 10px; }
 
@@ -734,6 +740,7 @@ body.employee-view #fill-mode-slot-wrap { display: none !important; }
             </table>
           </div>
           <div id="table-width-handle" title="Táhni pro změnu šířky tabulky"></div>
+          <div id="table-width-handle-left" title="Táhni pro změnu šířky tabulky"></div>
         </div>
 
         <!-- Empty state — shown when org has no branches or no employees yet -->
@@ -5645,36 +5652,49 @@ function maybeStartTabTutorial(tab){
 }
 
 // ── Table width resize ────────────────────────────────────────
-let schedTableWidth = parseInt(localStorage.getItem('schedTableWidth') || '0'); // 0 = auto full width
+let schedTableWidth = parseInt(localStorage.getItem('schedTableWidth') || '0');
 
 function initTableResize(){
   const wrap = document.getElementById('sched-scroll-wrap');
-  const handle = document.getElementById('table-width-handle');
-  if(!wrap || !handle) return;
-  if(schedTableWidth > 0) wrap.style.maxWidth = schedTableWidth + 'px';
-  else wrap.style.maxWidth = Math.round(window.innerWidth * 0.70) + 'px';
-  handle.onmousedown = e => {
-    e.preventDefault();
-    handle.classList.add('dragging');
-    const sx = e.clientX, sw = wrap.getBoundingClientRect().width;
-    document.body.style.cursor = 'col-resize';
-    document.body.style.userSelect = 'none';
-    const mv = e => {
-      const w = Math.max(500, Math.round(sw + e.clientX - sx));
-      wrap.style.maxWidth = w + 'px';
-      schedTableWidth = w;
-      localStorage.setItem('schedTableWidth', w);
-    };
-    const up = () => {
-      handle.classList.remove('dragging');
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-      document.removeEventListener('mousemove', mv);
-      document.removeEventListener('mouseup', up);
-    };
-    document.addEventListener('mousemove', mv);
-    document.addEventListener('mouseup', up);
+  const handleR = document.getElementById('table-width-handle');
+  const handleL = document.getElementById('table-width-handle-left');
+  if(!wrap || !handleR) return;
+
+  const applyWidth = w => {
+    wrap.style.width = w + 'px';
+    wrap.style.maxWidth = '';
+    schedTableWidth = w;
+    localStorage.setItem('schedTableWidth', w);
   };
+
+  const initW = schedTableWidth > 0 ? schedTableWidth : Math.round(window.innerWidth * 0.70);
+  applyWidth(initW);
+
+  function attachHandle(handle, side){
+    handle.onmousedown = e => {
+      e.preventDefault();
+      handle.classList.add('dragging');
+      const sx = e.clientX, sw = wrap.getBoundingClientRect().width;
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+      const mv = e => {
+        const delta = (side === 'right') ? (e.clientX - sx) : (sx - e.clientX);
+        applyWidth(Math.max(500, Math.round(sw + delta)));
+      };
+      const up = () => {
+        handle.classList.remove('dragging');
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+        document.removeEventListener('mousemove', mv);
+        document.removeEventListener('mouseup', up);
+      };
+      document.addEventListener('mousemove', mv);
+      document.addEventListener('mouseup', up);
+    };
+  }
+
+  attachHandle(handleR, 'right');
+  if(handleL) attachHandle(handleL, 'left');
 }
 
 // ── Name column resize ────────────────────────────────────────
