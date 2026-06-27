@@ -538,7 +538,7 @@ body.employee-view #fill-mode-slot-wrap { display: none !important; }
         <!-- Create mode: org name -->
         <div id="signup-create-section" class="field" style="margin-top:8px;display:none">
           <label for="signup-orgname">Název firmy</label>
-          <input type="text" id="signup-orgname" name="orgname" autocomplete="off" placeholder="Beer Spa Bernard">
+          <input type="text" id="signup-orgname" name="orgname" autocomplete="off" placeholder="Název firmy">
         </div>
 
         <button type="submit" class="btn-primary" id="signup-btn">Vytvořit účet</button>
@@ -571,7 +571,7 @@ body.employee-view #fill-mode-slot-wrap { display: none !important; }
       <div class="auth-error" id="onboard-error" style="display:none"></div>
       <div class="field">
         <label for="onboard-org-name">Název firmy</label>
-        <input type="text" id="onboard-org-name" placeholder="Beer Spa Bernard">
+        <input type="text" id="onboard-org-name" placeholder="Název firmy">
       </div>
       <button class="btn-primary" id="onboard-btn" onclick="createOrgFromOnboarding()">Založit firmu</button>
     </div>
@@ -622,7 +622,7 @@ body.employee-view #fill-mode-slot-wrap { display: none !important; }
         <div id="waiting-create-org-section" style="display:none;margin-top:12px;text-align:left">
           <div class="field">
             <label for="waiting-org-name">Název firmy</label>
-            <input type="text" id="waiting-org-name" placeholder="Beer Spa Bernard">
+            <input type="text" id="waiting-org-name" placeholder="Název firmy">
           </div>
           <div class="auth-error" id="waiting-create-error" style="display:none"></div>
           <button class="btn-primary" onclick="createOrgFromWaiting()" style="width:100%">Založit firmu</button>
@@ -654,7 +654,7 @@ body.employee-view #fill-mode-slot-wrap { display: none !important; }
       <button class="btn-ghost" id="emp-settings-btn" onclick="openEmployeeSettings()" style="display:none">⚙ Profil</button>
       <button class="btn-ghost" id="admin-settings-btn" onclick="openEmployeeSettings()" style="display:none">⚙ Profil</button>
       <span id="org-code-badge" style="display:none;font-family:var(--font-mono);font-size:12px;font-weight:700;letter-spacing:1.5px;background:var(--paper);border:1.5px solid var(--line);padding:4px 10px;border-radius:6px;color:var(--ink-soft)" title="Kód firmy"></span>
-      <span title="Verze aplikace" style="font-size:10px;color:var(--ink-faint);font-family:var(--font-mono);padding:0 4px;user-select:none">v0.3.2</span>
+      <span title="Verze aplikace" style="font-size:10px;color:var(--ink-faint);font-family:var(--font-mono);padding:0 4px;user-select:none">v0.3.3</span>
       <button class="btn-ghost" id="tutorial-btn" onclick="openTutorialMenu()" title="Průvodce aplikací" style="font-size:15px;padding:6px 10px">?</button>
       <button class="btn-ghost" onclick="doLogout()">Odhlásit se</button>
     </div>
@@ -2251,7 +2251,7 @@ function updateHardConstraintsWarning(){
   const boxes = document.querySelectorAll('#hard-constraints-section input[type="checkbox"]');
   const n = Array.from(boxes).filter(c => c.checked).length;
   const w = document.getElementById('hard-constraints-warning');
-  if(w) w.style.display = n > 2 ? 'block' : 'none';
+  if(w) w.style.display = n > 1 ? 'block' : 'none';
 }
 
 async function saveScoring(){
