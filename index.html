@@ -926,15 +926,18 @@ body.employee-view #fill-mode-slot-wrap { display: none !important; }
      ============================================================ -->
 <div class="modal-overlay" id="employee-modal-overlay">
   <div class="modal" style="max-width:560px">
-    <h3 id="employee-modal-title">Nový zaměstnanec</h3>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+      <h3 id="employee-modal-title" style="margin:0">Nový zaměstnanec</h3>
+      <button onclick="startEmpTutorial()" title="Průvodce formulářem" style="background:none;border:1.5px solid var(--line);border-radius:8px;width:28px;height:28px;font-size:13px;cursor:pointer;font-family:inherit;color:var(--ink-soft);flex-shrink:0">?</button>
+    </div>
     <input type="hidden" id="employee-edit-id">
-    <div class="field">
+    <div class="field" id="emp-name-field">
       <label>Jméno a příjmení</label>
       <input type="text" id="employee-name" placeholder="Jana Nováková">
     </div>
 
     <div class="sub-title">Počty směn / měsíc</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+    <div id="emp-shift-counts-grid" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
       <div class="field">
         <label>Min. směn</label>
         <input type="number" id="employee-min" value="12" min="0" max="31">
@@ -959,6 +962,8 @@ body.employee-view #fill-mode-slot-wrap { display: none !important; }
         <label>Max. směn v sérii za sebou</label>
         <input type="number" id="employee-maxc" value="4" min="1" max="14">
       </div>
+    </div>
+    <div id="emp-rest-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
       <div class="field">
         <label>Min. volno po sérii (dny)</label>
         <input type="number" id="employee-minrest" value="1" min="1" max="7">
@@ -970,7 +975,7 @@ body.employee-view #fill-mode-slot-wrap { display: none !important; }
         <div class="field-hint">Preferované — algoritmus se o to snaží.</div>
       </div>
     </div>
-    <div class="field">
+    <div class="field" id="emp-minwe-field">
       <label>Min. volných víkendů (Pá–Ne) / měsíc</label>
       <input type="number" id="employee-minwe" value="0" min="0" max="8">
     </div>
@@ -985,7 +990,7 @@ body.employee-view #fill-mode-slot-wrap { display: none !important; }
       <div id="employee-branch-limits-list"></div>
     </div>
 
-    <div class="field" style="margin-top:14px;padding-top:14px;border-top:1px solid var(--line)">
+    <div id="employee-fixed-section" class="field" style="margin-top:14px;padding-top:14px;border-top:1px solid var(--line)">
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:0">
         <input type="checkbox" id="employee-fixed" style="width:16px;height:16px" onchange="toggleEmployeeFixedFields()">
         <span>Fixní rozvrh (krátký/dlouhý týden apod.)</span>
@@ -1777,9 +1782,14 @@ function openEmployeeModal(id){
     document.getElementById('employee-fixed').checked = false;
   }
   document.getElementById('employee-modal-overlay').classList.add('open');
+  if(!localStorage.getItem('tut_done_emp_modal')){
+    localStorage.setItem('tut_done_emp_modal','1');
+    setTimeout(startEmpTutorial, 220);
+  }
 }
 function closeEmployeeModal(){
   document.getElementById('employee-modal-overlay').classList.remove('open');
+  endEmpTutorial();
 }
 function toggleEmployeeFixedFields(){
   // Placeholder hook — fixed-schedule pattern editor will be added alongside the calendar
@@ -5295,6 +5305,26 @@ document.getElementById('onboard-org-name').addEventListener('keydown', e=>{ if(
 </script>
 
 <!-- ============================================================
+     EMPLOYEE MODAL MINI TUTORIAL
+     ============================================================ -->
+<div id="emp-tut-bubble" style="display:none;position:fixed;z-index:1500;width:260px;background:var(--surface);border:1.5px solid var(--line);border-radius:12px;box-shadow:0 6px 24px rgba(30,34,48,.22);padding:14px 16px">
+  <div id="emp-tut-arrow" style="position:absolute;width:10px;height:10px;background:var(--surface);border:1.5px solid var(--line);transform:rotate(45deg);display:none"></div>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+    <div id="emp-tut-dots" style="display:flex;gap:4px"></div>
+    <span id="emp-tut-label" style="font-size:11px;color:var(--ink-faint);font-weight:600;text-transform:uppercase;letter-spacing:.05em"></span>
+  </div>
+  <div id="emp-tut-title" style="font-size:13px;font-weight:800;font-family:var(--font-display);color:#111;margin-bottom:6px"></div>
+  <div id="emp-tut-body" style="font-size:12px;color:#374151;line-height:1.55;margin-bottom:10px"></div>
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <button onclick="endEmpTutorial()" style="background:none;border:none;font-size:11px;color:var(--ink-faint);cursor:pointer;padding:2px 0;font-family:inherit">Přeskočit</button>
+    <div style="display:flex;gap:6px">
+      <button id="emp-tut-prev" onclick="empTutStep(-1)" style="background:none;border:1.5px solid var(--line);border-radius:7px;padding:5px 11px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;color:var(--ink)">← Zpět</button>
+      <button id="emp-tut-next" onclick="empTutStep(1)" style="background:var(--accent);color:#fff;border:none;border-radius:7px;padding:5px 13px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">Další →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
      TUTORIAL SYSTEM v2 — layered contextual guides
      ============================================================ -->
 <div id="tut-overlay" style="display:none;position:fixed;inset:0;z-index:9000;pointer-events:none">
@@ -5361,20 +5391,24 @@ function openTutorialMenu(){
   const items = currentRole==='admin' ? [
     ['welcome',   '👋', 'Úvodní přehled'],
     ['schedule',  '📅', 'Průvodce Rozpis'],
-    ['branches',  '🏢', 'Průvodce Pobočky'],
+    ['branches',  '🏠', 'Průvodce Pobočky'],
     ['employees', '👥', 'Průvodce Zaměstnanci'],
     ['gaps',      '📋', 'Průvodce Mezery'],
     ['rules',     '⚖️', 'Průvodce Pravidla'],
+    ['emp_modal', '📝', 'Průvodce formulářem', ()=>{
+      if(!document.getElementById('employee-modal-overlay').classList.contains('open')) openEmployeeModal();
+      setTimeout(startEmpTutorial, 220);
+    }],
   ] : [
     ['employee',  '👋', 'Průvodce pro zaměstnance'],
   ];
-  items.forEach(([phase, icon, label]) => {
+  items.forEach(([phase, icon, label, action]) => {
     const div = document.createElement('div');
     div.style.cssText = 'padding:10px 14px;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:8px;color:var(--ink)';
     div.innerHTML = `<span>${icon}</span><span>${label}</span>`;
     div.onmouseenter = ()=>div.style.background='var(--paper)';
     div.onmouseleave = ()=>div.style.background='';
-    div.onclick = ()=>{ menu.remove(); startTutorial(phase); };
+    div.onclick = ()=>{ menu.remove(); action ? action() : startTutorial(phase); };
     menu.appendChild(div);
   });
   document.body.appendChild(menu);
@@ -5436,7 +5470,7 @@ function buildSchedTutSteps(){
 }
 
 const BRANCHES_STEPS = [
-  { target:null, icon:'🏢', title:'Správa poboček', position:'center',
+  { target:null, icon:'🏠', title:'Správa poboček', position:'center',
     body:'Pobočky jsou místa kde se pracuje — prodejna, sklad, pobočka A, pobočka B… Každá má vlastní barvu v rozpisu a minimální počty obsazení. Bez poboček nelze generovat rozvrh.' },
   { target:'[onclick="openBranchModal()"]', icon:'🏠', title:'Přidat pobočku', position:'bottom',
     body:'Klikni na toto zelené tlačítko <strong>+ Přidat pobočku</strong>. Vyplníš název, kód (1–3 písmena — zobrazuje se v každé buňce kalendáře), barvu a minimální počty lidí na směně ve všední dny a o víkendech.' },
@@ -5728,6 +5762,141 @@ function initNameColResize(){
     document.addEventListener('mousemove', mv);
     document.addEventListener('mouseup', up);
   };
+}
+
+// ── Employee Modal Mini Tutorial ──────────────────────────────
+let empTutIndex = 0, empTutActive = false;
+
+const EMP_TUT_STEPS = [
+  { target:'#emp-name-field',
+    title:'Jméno a příjmení',
+    body:'Jméno se zobrazuje v tabulce rozpisu a je hlavní identifikace zaměstnance. Používej celé jméno nebo přezdívku — musí být rozlišitelná mezi kolegy.' },
+  { target:'#emp-shift-counts-grid',
+    title:'Počty směn / měsíc',
+    body:'<strong>Min.</strong> = nejméně směn které musí dostat — algoritmus to garantuje. <strong>Cíl</strong> = ideální počet který se algoritmus snaží splnit. <strong>Max.</strong> = absolutní strop — nikdy ho nepřekročí.' },
+  { target:'#emp-rest-grid',
+    title:'Min. volno po sérii / Ideál',
+    body:'<strong>Min. volno po sérii</strong> = povinné minimum dní volna po skončení série směn — nikdy se neporuší. <strong>Ideál volna</strong> = preferovaný počet dní — algoritmus se o to snaží, ale může porušit.' },
+  { target:'#emp-minwe-field',
+    title:'Min. volných víkendů',
+    body:'Přepisuje globální nastavení z Pravidel pro tohoto konkrétního zaměstnance. <strong>0</strong> = použije se výchozí hodnota nastavená v záložce Pravidla.' },
+  { target:'#employee-branch-limits-section',
+    title:'Limity na pobočkách',
+    body:'Nastav kolik směn může zaměstnanec odpracovat na každé pobočce za měsíc. <strong>Min.</strong> = garantovaný počet, <strong>Max.</strong> = strop. Prázdné nebo nula = bez omezení na dané pobočce.' },
+  { target:'#employee-fixed-section',
+    title:'Fixní rozvrh',
+    body:'Zaměstnanec s fixním rozvrhem se <strong>neúčastní automatického doplnění</strong> — jeho směny se zadávají ručně podle pevného vzoru. Vhodné pro vedoucí nebo zaměstnance s neměnným harmonogramem.',
+    isLast:true },
+];
+
+function startEmpTutorial(){
+  empTutIndex = 0;
+  empTutActive = true;
+  document.getElementById('emp-tut-bubble').style.display = 'block';
+  renderEmpTutStep();
+}
+
+function endEmpTutorial(){
+  empTutActive = false;
+  const b = document.getElementById('emp-tut-bubble');
+  if(b) b.style.display = 'none';
+}
+
+function empTutStep(dir){
+  const step = EMP_TUT_STEPS[empTutIndex];
+  if(dir > 0 && (step.isLast || empTutIndex === EMP_TUT_STEPS.length - 1)){ endEmpTutorial(); return; }
+  empTutIndex = Math.max(0, Math.min(EMP_TUT_STEPS.length - 1, empTutIndex + dir));
+  renderEmpTutStep();
+}
+
+function renderEmpTutStep(){
+  const step = EMP_TUT_STEPS[empTutIndex];
+  if(!step) return endEmpTutorial();
+  const n = EMP_TUT_STEPS.length;
+  document.getElementById('emp-tut-label').textContent = `Formulář ${empTutIndex + 1}/${n}`;
+  document.getElementById('emp-tut-dots').innerHTML = EMP_TUT_STEPS.map((_,i) =>
+    `<div style="width:${i===empTutIndex?12:5}px;height:5px;border-radius:3px;background:${i===empTutIndex?'var(--accent)':'var(--line)'};transition:all .2s"></div>`
+  ).join('');
+  document.getElementById('emp-tut-title').textContent = step.title;
+  document.getElementById('emp-tut-body').innerHTML = step.body;
+  document.getElementById('emp-tut-prev').style.display = empTutIndex === 0 ? 'none' : 'inline-block';
+  const nb = document.getElementById('emp-tut-next');
+  nb.textContent = (step.isLast || empTutIndex === n - 1) ? '✓ Hotovo' : 'Další →';
+  requestAnimationFrame(() => positionEmpBubble());
+}
+
+function positionEmpBubble(){
+  const step = EMP_TUT_STEPS[empTutIndex];
+  const bb = document.getElementById('emp-tut-bubble');
+  const ar = document.getElementById('emp-tut-arrow');
+  const modal = document.querySelector('#employee-modal-overlay .modal');
+  if(!modal || !bb) return;
+
+  const mr = modal.getBoundingClientRect();
+  const bw = 260, pad = 8, gap = 10;
+
+  const el = step.target ? document.querySelector(step.target) : null;
+  const elVisible = el && el.offsetHeight > 0 && el.offsetWidth > 0 &&
+                    getComputedStyle(el).display !== 'none';
+
+  if(elVisible){
+    el.scrollIntoView({ block:'nearest', behavior:'instant' });
+  }
+
+  // Use rAF so layout is recalculated after scroll
+  requestAnimationFrame(() => {
+    const bh = bb.offsetHeight || 170;
+
+    if(!elVisible){
+      ar.style.display = 'none';
+      bb.style.left = (mr.left + (mr.width  - bw) / 2) + 'px';
+      bb.style.top  = (mr.top  + (mr.height - bh) / 2) + 'px';
+      return;
+    }
+
+    const r = el.getBoundingClientRect();
+    const midX = r.left + r.width / 2;
+
+    ar.style.display = 'block';
+    ['borderTop','borderBottom','borderLeft','borderRight'].forEach(k => ar.style[k] = '');
+
+    let left, top, arSide;
+
+    if(r.top - mr.top >= bh + gap + pad){
+      // Fits above
+      top    = r.top - bh - gap;
+      left   = Math.max(mr.left + pad, Math.min(mr.right - bw - pad, midX - bw / 2));
+      arSide = 'bottom';
+    } else if(mr.bottom - r.bottom >= bh + gap + pad){
+      // Fits below
+      top    = r.bottom + gap;
+      left   = Math.max(mr.left + pad, Math.min(mr.right - bw - pad, midX - bw / 2));
+      arSide = 'top';
+    } else {
+      // No room — centre in modal
+      ar.style.display = 'none';
+      bb.style.left = (mr.left + (mr.width  - bw) / 2) + 'px';
+      bb.style.top  = Math.max(mr.top + pad, Math.min(mr.bottom - bh - pad,
+                        mr.top + (mr.height - bh) / 2)) + 'px';
+      return;
+    }
+
+    const finalLeft = Math.max(mr.left + pad, Math.min(mr.right - bw - pad, left));
+    const finalTop  = Math.max(mr.top  + pad, Math.min(mr.bottom - bh - pad, top));
+    bb.style.left = finalLeft + 'px';
+    bb.style.top  = finalTop  + 'px';
+
+    const arOff = Math.max(8, Math.min(bw - 16, midX - finalLeft - 5));
+    ar.style.left  = arOff + 'px';
+    ar.style.right = 'auto';
+    if(arSide === 'top'){
+      ar.style.top = '-6px'; ar.style.bottom = 'auto';
+      ar.style.borderBottom = 'none'; ar.style.borderRight = 'none';
+    } else {
+      ar.style.bottom = '-6px'; ar.style.top = 'auto';
+      ar.style.borderTop = 'none'; ar.style.borderLeft = 'none';
+    }
+  });
 }
 </script>
 </body>
