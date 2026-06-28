@@ -39,35 +39,58 @@
   --font-display:'Space Grotesk',system-ui,sans-serif;
   --font-body:'Inter',system-ui,sans-serif;
   --font-mono:'IBM Plex Mono',ui-monospace,monospace;
+  --font-base:14px;
   /* Appearance settings — overridden by JS */
-  --tbl-fs:12px;   /* table cell font size */
-  --tbl-h:26px;    /* table cell height */
-  --tbl-name-fs:12px; /* name column font */
-  --ui-fs:13.5px;  /* base UI font */
+  --tbl-fs:12px;
+  --tbl-h:26px;
+  --tbl-name-fs:12px;
+  --ui-fs:13.5px;
 }
-/* Dark mode */
+/* ── Complete dark mode ── */
 body.dark{
-  --paper:#1b1e27;--surface:#252830;--ink:#e4e8f0;--ink-soft:#9ba3b0;
-  --ink-faint:#616a77;--line:#333844;--accent-soft:#172b20;
-  --amber-soft:#2d1c0a;--red-soft:#2a0e0e;
+  --paper:#1a1d2e;
+  --surface:#232638;
+  --ink:#e8eaf0;
+  --ink-soft:#9aa0b8;
+  --ink-faint:#5a617a;
+  --line:#2e3148;
+  --red:#f87171;
+  --red-soft:rgba(248,113,113,0.15);
+  --amber:#fbbf24;
+  --amber-soft:rgba(251,191,36,0.15);
+  --shadow:0 1px 2px rgba(0,0,0,.15), 0 8px 24px -8px rgba(0,0,0,.3);
+  --shadow-lg:0 24px 64px -16px rgba(0,0,0,.6);
 }
-body.dark .auth-card,.dark .modal,.dark .picker,.dark .panel{background:var(--surface)!important}
-body.dark .topbar,.dark .tabbar{background:var(--surface);border-color:var(--line)}
+body.dark .auth-card,body.dark .modal,body.dark .picker,body.dark .panel{background:var(--surface)!important}
+body.dark .topbar,body.dark .tabbar{background:var(--surface);border-color:var(--line)}
 body.dark .sched-name-col{background:var(--surface)}
-body.dark .sched-day-col.weekend{background:#2a2c36}
-body.dark .sched-cell.weekend{background:#232530}
-body.dark .score-bar,.dark .auto-progress-box,.dark .condition-row{background:var(--surface);border-color:var(--line)}
+body.dark .sched-day-col.weekend{background:#242638}
+body.dark .sched-cell.weekend{background:#1e2035}
+body.dark .score-bar,body.dark .auto-progress-box,body.dark .condition-row{background:var(--surface);border-color:var(--line)}
 body.dark .condition-row.is-hard{border-color:var(--red);background:var(--red-soft)}
-body.dark table.data-table tr:hover td{background:#1f222b}
+body.dark table.data-table tr:hover td{background:#1e2132}
 body.dark .sched-scroll{border-color:var(--line)}
+body.dark .toolbar-menu-item:hover{background:var(--paper)}
+body.dark .btn-ghost{border-color:var(--line);color:var(--ink-soft)}
+body.dark .btn-ghost:hover{border-color:var(--ink-soft);color:var(--ink)}
+body.dark .btn-outline{border-color:var(--line);color:var(--ink)}
+body.dark .field input,body.dark select,body.dark textarea{background:var(--paper);color:var(--ink);border-color:var(--line)}
+body.dark .auth-tabs{background:var(--paper)}
+body.dark .loading-screen{background:var(--paper)}
+body.dark .org-tag{background:var(--paper)}
+body.dark .pick-btn.pick-clear{background:#4a5066}
+body.dark .notif-item{border-color:var(--line)}
+body.dark #notif-panel{background:var(--surface);border-color:var(--line)}
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
 body{
   font-family:var(--font-body);
+  font-size:var(--font-base);
   background:var(--paper);
   color:var(--ink);
   -webkit-font-smoothing:antialiased;
   min-height:100vh;
+  transition:background .2s,color .2s;
 }
 h1,h2,h3,.display{font-family:var(--font-display);letter-spacing:-0.01em}
 code,.mono{font-family:var(--font-mono)}
@@ -467,6 +490,29 @@ body.employee-view #fill-mode-slot-wrap { display: none !important; }
 /* Table bottom resize handle */
 #table-height-handle { width:100%;height:7px;cursor:row-resize;z-index:5;border-bottom:3px solid transparent;transition:border-color .15s;margin-top:1px }
 #table-height-handle:hover, #table-height-handle.dragging { border-bottom-color:var(--accent) }
+/* ── Density classes ── */
+table.sched-table.density-compact .sched-cell{height:24px}
+table.sched-table.density-compact .sched-chip{line-height:24px;font-size:10px}
+table.sched-table.density-compact .sched-name-col{font-size:10px;padding:2px 6px}
+table.sched-table.density-compact .sched-day-col{font-size:10px;padding:1px 0}
+table.sched-table.density-compact .sched-stat-col{font-size:10px;padding:2px 4px}
+table.sched-table.density-normal .sched-cell{height:30px}
+table.sched-table.density-normal .sched-chip{line-height:30px;font-size:12px}
+table.sched-table.density-normal .sched-name-col{font-size:12px;padding:4px 8px}
+table.sched-table.density-normal .sched-day-col{font-size:11px;padding:3px 0}
+table.sched-table.density-normal .sched-stat-col{font-size:11px;padding:3px 6px}
+table.sched-table.density-airy .sched-cell{height:38px}
+table.sched-table.density-airy .sched-chip{line-height:38px;font-size:13px}
+table.sched-table.density-airy .sched-name-col{font-size:13px;padding:6px 10px}
+table.sched-table.density-airy .sched-day-col{font-size:11.5px;padding:4px 0}
+table.sched-table.density-airy .sched-stat-col{font-size:11px;padding:4px 6px}
+/* ── Panel headings ── */
+.panel-title{font-size:18px!important;font-weight:700;font-family:var(--font-display);margin:0;letter-spacing:-0.01em;color:var(--ink)!important}
+.panel-sub{font-size:13px;color:var(--ink-soft);margin:4px 0 0;line-height:1.45}
+.rules-section-title{font-size:15px;font-weight:700;font-family:var(--font-display);color:var(--ink);margin:0 0 8px;letter-spacing:-0.01em}
+.rules-section-hint{font-size:12.5px;color:var(--ink-soft);margin:0 0 18px;line-height:1.55}
+/* ── Theme transition ── */
+.topbar,.tabbar,.modal,.panel,.picker,.auth-card{transition:background .2s,border-color .2s}
 
 .loading-screen{position:fixed;inset:0;background:var(--paper);display:flex;align-items:center;justify-content:center;z-index:500}
 
@@ -699,13 +745,13 @@ body.employee-view #fill-mode-slot-wrap { display: none !important; }
           <span id="user-email-label" style="font-size:12px"></span>
         </div>
       </div>
-      <button class="btn-ghost" id="emp-settings-btn" onclick="openEmployeeSettings()" style="display:none">⚙ Profil</button>
-      <button class="btn-ghost" id="admin-settings-btn" onclick="openEmployeeSettings()" style="display:none">⚙ Profil</button>
+      <button class="btn-ghost" id="emp-settings-btn" onclick="openEmployeeSettings()" style="display:none">👤 Profil</button>
+      <button class="btn-ghost" id="admin-settings-btn" onclick="openEmployeeSettings()" style="display:none">👤 Profil</button>
       <span id="org-code-badge" style="display:none;font-family:var(--font-mono);font-size:12px;font-weight:700;letter-spacing:1.5px;background:var(--paper);border:1.5px solid var(--line);padding:4px 10px;border-radius:6px;color:var(--ink-soft)" title="Kód firmy"></span>
-      <span title="Verze aplikace" style="font-size:10px;color:var(--ink-faint);font-family:var(--font-mono);padding:0 4px;user-select:none">v0.4.1</span>
-      <button class="btn-ghost" id="notif-btn" onclick="toggleNotifPanel()" title="Notifikace" style="position:relative;padding:6px 10px;font-size:16px;display:none">
+      <span title="Verze aplikace" style="font-size:10px;color:var(--ink-faint);font-family:var(--font-mono);padding:0 4px;user-select:none">v0.4.2</span>
+      <button class="btn-ghost" id="notif-btn" onclick="toggleNotifPanel()" title="Notifikace" style="position:relative;padding:6px 10px;font-size:16px;display:none;align-items:center;justify-content:center">
         🔔
-        <span id="notif-badge" style="display:none;position:absolute;top:4px;right:4px;width:8px;height:8px;background:var(--red);border-radius:50%;border:1.5px solid var(--surface)"></span>
+        <span id="notif-badge" style="display:none;position:absolute;top:3px;right:3px;width:9px;height:9px;background:var(--red);border-radius:50%;border:2px solid var(--surface)"></span>
       </button>
       <button class="btn-ghost" id="tutorial-btn" onclick="openTutorialMenu()" title="Průvodce aplikací" style="font-size:15px;padding:6px 10px">?</button>
       <button class="btn-ghost" onclick="doLogout()">🚪 Odhlásit</button>
@@ -763,7 +809,7 @@ body.employee-view #fill-mode-slot-wrap { display: none !important; }
             <div id="toolbar-more-menu" style="display:none;position:absolute;top:calc(100% + 6px);right:0;background:var(--surface);border:1.5px solid var(--line);border-radius:10px;box-shadow:0 6px 20px rgba(30,34,48,.12);z-index:500;min-width:170px;overflow:hidden">
               <div onclick="openImportModal();closeToolbarMenu()" class="toolbar-menu-item">⬆ Import JSON</div>
               <div onclick="exportJSON();closeToolbarMenu()" class="toolbar-menu-item">⬇ Export JSON</div>
-              <div onclick="exportXLSX();closeToolbarMenu()" class="toolbar-menu-item">⬇ Export Excel (.xlsx)</div>
+              <div onclick="exportXLSX();closeToolbarMenu()" class="toolbar-menu-item">📊 Export Excel (.xlsx)</div>
               <div style="border-top:1px solid var(--line);margin:4px 0"></div>
               <div onclick="printSchedule();closeToolbarMenu()" class="toolbar-menu-item">🖨 Tisk / PDF</div>
             </div>
@@ -875,7 +921,7 @@ body.employee-view #fill-mode-slot-wrap { display: none !important; }
             <h2 class="panel-title">Zaměstnanci</h2>
             <p class="panel-sub" id="employees-count-label">Načítám…</p>
           </div>
-          <button class="btn-accent" onclick="openEmployeeModal()">+ Přidat zaměstnance</button>
+          <button class="btn-accent" onclick="openEmployeeModal()">➕ Přidat zaměstnance</button>
         </div>
         <div id="employees-table-wrap"></div>
       </div>
@@ -890,7 +936,7 @@ body.employee-view #fill-mode-slot-wrap { display: none !important; }
             <p class="panel-sub">Místa, kam přiřazuješ směny. Každá má vlastní barvu a minimální obsazení.</p>
           </div>
           <div style="display:flex;gap:8px">
-            <button class="btn-accent" onclick="openBranchModal()">+ Přidat pobočku</button>
+            <button class="btn-accent" onclick="openBranchModal()">➕ Přidat pobočku</button>
           </div>
         </div>
         <div id="branches-table-wrap"></div>
@@ -948,7 +994,7 @@ body.employee-view #fill-mode-slot-wrap { display: none !important; }
             <input type="text" id="bp-code1" placeholder="kód A" maxlength="6" style="width:80px;font-family:var(--font-mono);text-transform:uppercase;padding:7px 9px;border:1.5px solid var(--line);border-radius:7px;font-size:13px;color:var(--ink)">
             <span style="color:var(--ink-soft);font-weight:600;font-size:13px">vs</span>
             <input type="text" id="bp-code2" placeholder="kód B" maxlength="6" style="width:80px;font-family:var(--font-mono);text-transform:uppercase;padding:7px 9px;border:1.5px solid var(--line);border-radius:7px;font-size:13px;color:var(--ink)">
-            <button class="btn-outline" onclick="addBalancePair()">+ Přidat pár</button>
+            <button class="btn-outline" onclick="addBalancePair()">➕ Přidat pár</button>
           </div>
         </div>
 
@@ -956,7 +1002,7 @@ body.employee-view #fill-mode-slot-wrap { display: none !important; }
 
         <!-- 4. Uložit -->
         <div style="display:flex;gap:10px">
-          <button class="btn-accent" id="save-all-rules-btn" onclick="saveRules();saveScoring()">✓ Uložit všechna pravidla</button>
+          <button class="btn-accent" id="save-all-rules-btn" onclick="saveRules();saveScoring()">💾 Uložit všechna pravidla</button>
           <span class="saved-tag" id="scoring-saved" style="display:none">Uloženo!</span>
         </div>
       </div>
@@ -1052,8 +1098,8 @@ body.employee-view #fill-mode-slot-wrap { display: none !important; }
     </div>
 
     <div style="display:flex;gap:10px;margin-top:18px">
-      <button class="btn-outline" style="flex:1" onclick="closeEmployeeModal()">Zrušit</button>
-      <button class="btn-accent" style="flex:1" onclick="saveEmployee()">Uložit</button>
+      <button class="btn-outline" style="flex:1" onclick="closeEmployeeModal()">✕ Zrušit</button>
+      <button class="btn-accent" style="flex:1" onclick="saveEmployee()">💾 Uložit</button>
     </div>
   </div>
 </div>
@@ -1114,13 +1160,13 @@ body.employee-view #fill-mode-slot-wrap { display: none !important; }
         <input type="text" id="new-shifttype-code" placeholder="M1" style="font-family:var(--font-mono);text-transform:uppercase;padding:8px 10px;border:1.5px solid var(--line);border-radius:8px;font-size:13px">
         <input type="text" id="new-shifttype-label" placeholder="Název (M1, Ranní...)" style="padding:8px 10px;border:1.5px solid var(--line);border-radius:8px;font-size:13px">
         <input type="color" id="new-shifttype-color" value="#e74c3c" style="padding:2px;height:36px;width:44px;border:1.5px solid var(--line);border-radius:8px;cursor:pointer">
-        <button class="btn-outline" onclick="addShiftType()">+ Přidat</button>
+        <button class="btn-outline" onclick="addShiftType()">➕ Přidat</button>
       </div>
     </div>
 
     <div style="display:flex;gap:10px;margin-top:18px">
-      <button class="btn-outline" style="flex:1" onclick="closeBranchModal()">Zrušit</button>
-      <button class="btn-accent" style="flex:1" onclick="saveBranch()">Uložit</button>
+      <button class="btn-outline" style="flex:1" onclick="closeBranchModal()">✕ Zrušit</button>
+      <button class="btn-accent" style="flex:1" onclick="saveBranch()">💾 Uložit</button>
     </div>
   </div>
 </div>
@@ -1234,8 +1280,8 @@ body.employee-view #fill-mode-slot-wrap { display: none !important; }
     <div id="import-preview" style="display:none;background:var(--paper);border-radius:8px;padding:12px;font-size:12.5px;margin-bottom:14px;max-height:200px;overflow-y:auto"></div>
     <div class="auth-error" id="import-error" style="display:none"></div>
     <div style="display:flex;gap:10px;margin-top:4px">
-      <button class="btn-outline" style="flex:1" onclick="closeImportModal()">Zrušit</button>
-      <button class="btn-accent" style="flex:1" id="import-run-btn" disabled onclick="runImport()">Importovat</button>
+      <button class="btn-outline" style="flex:1" onclick="closeImportModal()">✕ Zrušit</button>
+      <button class="btn-accent" style="flex:1" id="import-run-btn" disabled onclick="runImport()">⬆ Importovat</button>
     </div>
   </div>
 </div>
@@ -1749,11 +1795,10 @@ async function bootstrapAfterAuth(){
     }
 
     // Load notifications for employees
-    if(currentRole !== 'admin'){
-      const notifBtn = document.getElementById('notif-btn');
-      if(notifBtn) notifBtn.style.display = 'inline-flex';
-      loadNotifications();
-    }
+    // Load notifications for all users
+    const notifBtn = document.getElementById('notif-btn');
+    if(notifBtn) notifBtn.style.display = 'inline-flex';
+    loadNotifications();
 
     initSchedule();
     maybeStartTutorial();
@@ -4994,7 +5039,7 @@ async function openEmployeeSettings(){
               placeholder="+420 777 123 456"
               style="padding:7px 9px;border:1.5px solid var(--line);border-radius:7px;font-size:13px;width:100%;box-sizing:border-box"></div>
         </div>
-        <button onclick="saveProfile()" class="btn-primary" style="width:100%;padding:8px">Uložit údaje</button>
+        <button onclick="saveProfile()" class="btn-primary" style="width:100%;padding:8px">💾 Uložit údaje</button>
         <div id="prof-save-result" style="font-size:12px;margin-top:6px;display:none"></div>
       </div>
       <div style="border-top:1px solid var(--line);padding-top:16px">
@@ -5005,8 +5050,28 @@ async function openEmployeeSettings(){
           <input type="password" id="prof-pass2" placeholder="Potvrzení nového hesla"
             style="padding:7px 9px;border:1.5px solid var(--line);border-radius:7px;font-size:13px">
         </div>
-        <button onclick="changePassword()" class="btn-outline" style="width:100%;padding:8px">Změnit heslo</button>
+        <button onclick="changePassword()" class="btn-outline" style="width:100%;padding:8px">🔑 Změnit heslo</button>
         <div id="prof-pass-result" style="font-size:12px;margin-top:6px;display:none"></div>
+      </div>
+      <div style="border-top:1px solid var(--line);padding-top:16px">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--ink-soft);margin-bottom:10px">🔔 Notifikace</div>
+        ${myEmp ? `
+        <label style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line)">
+          <div>
+            <div style="font-size:13px;font-weight:600">In-app notifikace</div>
+            <div style="font-size:11.5px;color:var(--ink-soft);margin-top:2px">Zobrazit upozornění v aplikaci</div>
+          </div>
+          <input type="checkbox" id="notif-inapp" ${(orgSettings['emp_notify']?.[myEmp.id]?.inapp)!==false?'checked':''} style="width:16px;height:16px;cursor:pointer">
+        </label>
+        <label style="display:flex;align-items:center;justify-content:space-between;padding:10px 0">
+          <div>
+            <div style="font-size:13px;font-weight:600">Email při publikování</div>
+            <div style="font-size:11.5px;color:var(--ink-soft);margin-top:2px">Dostávat email když admin publikuje rozpis</div>
+          </div>
+          <input type="checkbox" id="notif-email" ${(orgSettings['emp_notify']?.[myEmp.id]?.email)!==false?'checked':''} style="width:16px;height:16px;cursor:pointer">
+        </label>
+        <button onclick="saveNotifPrefs('${myEmp.id}')" class="btn-outline" style="width:100%;margin-top:6px;padding:7px">💾 Uložit nastavení notifikací</button>
+        ` : `<div style="font-size:13px;color:var(--ink-soft)">Notifikace nejsou pro administrátory bez zaměstnaneckého záznamu k dispozici.</div>`}
       </div>
       <div style="border-top:1px solid var(--line);padding-top:16px">
         <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--ink-soft);margin-bottom:8px">Identifikace</div>
@@ -5056,34 +5121,64 @@ function switchSettingsTab(tab){
 // ============================================================
 // APPEARANCE SETTINGS
 // ============================================================
-const APPEAR_DEFAULTS = { fontSize:'normal', density:'normal', darkMode:false, bg:'default' };
+const APPEAR_DEFAULTS = { fontSize:'normal', density:'normal', darkMode:false, theme:'classic' };
 let appearSettings = {...APPEAR_DEFAULTS};
 let tempAppear = null; // pending preview state before explicit save
 
-const BG_PRESETS = {
-  default: { paper:'#F6F5F1', label:'Papírové' },
-  white:   { paper:'#FFFFFF', label:'Bílé' },
-  blue:    { paper:'#EFF4FB', label:'Modrý nádech' },
-  green:   { paper:'#EFF7F2', label:'Zelený nádech' },
-  neutral: { paper:'#F2F2F2', label:'Neutrální šedá' },
-  custom:  { paper:'#F6F5F1', label:'Vlastní obrázek' },
+const THEME_PRESETS = {
+  classic:  {
+    label:'Klasický', emoji:'🌿',
+    accent:'#2B6E4F', accentSoft:'#E3EFE8', accentInk:'#16432E', paper:'#F6F5F1',
+    dkAccent:'#4ade80', dkAccentSoft:'rgba(74,222,128,0.15)', dkAccentInk:'#dcfce7',
+  },
+  ocean:    {
+    label:'Oceán', emoji:'🌊',
+    accent:'#0ea5e9', accentSoft:'#e0f2fe', accentInk:'#0369a1', paper:'#EFF4FB',
+    dkAccent:'#38bdf8', dkAccentSoft:'rgba(56,189,248,0.15)', dkAccentInk:'#e0f2fe',
+  },
+  lavender: {
+    label:'Levandule', emoji:'💜',
+    accent:'#8b5cf6', accentSoft:'#ede9fe', accentInk:'#5b21b6', paper:'#F3F0FC',
+    dkAccent:'#a78bfa', dkAccentSoft:'rgba(167,139,250,0.15)', dkAccentInk:'#ede9fe',
+  },
+  sunset:   {
+    label:'Západ slunce', emoji:'🌅',
+    accent:'#f97316', accentSoft:'#fff7ed', accentInk:'#c2410c', paper:'#FDF6F0',
+    dkAccent:'#fb923c', dkAccentSoft:'rgba(251,146,60,0.15)', dkAccentInk:'#fff7ed',
+  },
+  slate:    {
+    label:'Uhlí', emoji:'⚫',
+    accent:'#64748b', accentSoft:'#f1f5f9', accentInk:'#334155', paper:'#F0F2F5',
+    dkAccent:'#94a3b8', dkAccentSoft:'rgba(148,163,184,0.15)', dkAccentInk:'#e2e8f0',
+  },
+  custom:   {
+    label:'Vlastní', emoji:'🖼',
+    accent:'#2B6E4F', accentSoft:'#E3EFE8', accentInk:'#16432E', paper:'#F6F5F1',
+    dkAccent:'#4ade80', dkAccentSoft:'rgba(74,222,128,0.15)', dkAccentInk:'#dcfce7',
+  },
 };
 
 const FS_PRESETS = {
-  small:  { tblFs:'10px', tblH:'22px', tblNameFs:'11px' },
-  normal: { tblFs:'12px', tblH:'26px', tblNameFs:'12px' },
-  large:  { tblFs:'13.5px', tblH:'30px', tblNameFs:'13px' },
+  small:  { fontBase:'12px', tblFs:'10px', tblNameFs:'11px' },
+  normal: { fontBase:'14px', tblFs:'12px', tblNameFs:'12px' },
+  large:  { fontBase:'16px', tblFs:'13.5px', tblNameFs:'13px' },
 };
 
 const DENSITY_PRESETS = {
-  compact: { tblH:'20px' },
-  normal:  { tblH:'26px' },
-  airy:    { tblH:'34px' },
+  compact: { cls:'density-compact', tblH:'24px' },
+  normal:  { cls:'density-normal',  tblH:'30px' },
+  airy:    { cls:'density-airy',    tblH:'38px' },
 };
 
 function loadAppearSettings(){
   try{ appearSettings = {...APPEAR_DEFAULTS, ...JSON.parse(localStorage.getItem('smeny_appear')||'{}')}; }
   catch(e){ appearSettings = {...APPEAR_DEFAULTS}; }
+  // Migrate old 'bg' key to 'theme'
+  if(appearSettings.bg && !appearSettings.theme){
+    const bgToTheme = { default:'classic', white:'classic', blue:'ocean', green:'classic', neutral:'slate' };
+    appearSettings.theme = bgToTheme[appearSettings.bg] || 'classic';
+    delete appearSettings.bg;
+  }
   applyAppearSettings();
 }
 
@@ -5100,28 +5195,48 @@ function applyAppearSettings(s){
   const root = document.documentElement.style;
   const fs = FS_PRESETS[s.fontSize] || FS_PRESETS.normal;
   const dn = DENSITY_PRESETS[s.density] || DENSITY_PRESETS.normal;
-  const bg = BG_PRESETS[s.bg] || BG_PRESETS.default;
+  const theme = THEME_PRESETS[s.theme] || THEME_PRESETS.classic;
 
+  // Font size
+  root.setProperty('--font-base', fs.fontBase);
   root.setProperty('--tbl-fs',      fs.tblFs);
   root.setProperty('--tbl-name-fs', fs.tblNameFs);
-  root.setProperty('--tbl-h',       dn.tblH);
+  // tbl-h from density (CSS class takes precedence for actual cells)
+  root.setProperty('--tbl-h', dn.tblH);
 
-  if(!s.darkMode){
-    if(s.bg === 'custom'){
+  // Apply density CSS class to sched-table
+  const tbl = document.getElementById('sched-table');
+  if(tbl){
+    tbl.classList.remove('density-compact','density-normal','density-airy');
+    tbl.classList.add(dn.cls);
+  }
+
+  // Apply theme accent colors
+  if(s.darkMode){
+    root.setProperty('--accent',      theme.dkAccent);
+    root.setProperty('--accent-soft', theme.dkAccentSoft);
+    root.setProperty('--accent-ink',  theme.dkAccentInk);
+    document.body.style.backgroundImage = '';
+  } else {
+    root.setProperty('--accent',      theme.accent);
+    root.setProperty('--accent-soft', theme.accentSoft);
+    root.setProperty('--accent-ink',  theme.accentInk);
+    if(s.theme === 'custom'){
       const img = localStorage.getItem('smeny_bg_img');
       if(img){
         document.body.style.backgroundImage = `url(${img})`;
         document.body.style.backgroundSize = 'cover';
         document.body.style.backgroundPosition = 'center';
         document.body.style.backgroundAttachment = 'fixed';
-        root.setProperty('--paper', 'rgba(246,245,241,0.92)');
+        root.setProperty('--paper', 'rgba(246,245,241,0.93)');
+      } else {
+        document.body.style.backgroundImage = '';
+        root.setProperty('--paper', theme.paper);
       }
     } else {
       document.body.style.backgroundImage = '';
-      root.setProperty('--paper', bg.paper);
+      root.setProperty('--paper', theme.paper);
     }
-  } else {
-    document.body.style.backgroundImage = '';
   }
 
   document.body.classList.toggle('dark', !!s.darkMode);
@@ -5147,7 +5262,7 @@ function handleBgImageUpload(input){
   const reader = new FileReader();
   reader.onload = e => {
     localStorage.setItem('smeny_bg_img', e.target.result);
-    previewAppear('bg', 'custom');
+    previewAppear('theme', 'custom');
   };
   reader.readAsDataURL(file);
 }
@@ -5161,92 +5276,113 @@ function renderAppearSettings(){
   const saved = appearSettings;
   const hasChanges = JSON.stringify(s) !== JSON.stringify(saved);
 
-  const densityRowStyle = (h) => `display:flex;align-items:center;gap:2px;margin:2px 0;height:${h};background:var(--line);border-radius:2px;overflow:hidden;width:100%`;
-  const densityCell = `<div style="flex:1;background:var(--paper);margin:1px;border-radius:1px"></div>`;
+  const selBtn = (active) =>
+    `border:2px solid ${active?'var(--accent)':'var(--line)'};background:${active?'var(--accent-soft)':'none'};color:${active?'var(--accent-ink)':'var(--ink)'}`;
 
-  const fsPreviewStyle = (key) => {
-    const p = FS_PRESETS[key]||FS_PRESETS.normal;
-    return `font-size:${p.tblFs};font-weight:700;font-family:var(--font-mono);color:var(--ink)`;
-  };
+  // Font size preview: show "Aa" at actual body font size
+  const fsSizes = { small:'12px', normal:'14px', large:'16px' };
+  const fsLabels = { small:'Malé', normal:'Střední', large:'Velké' };
 
-  const selBtn = (active) => `border:2px solid ${active?'var(--accent)':'var(--line)'};background:${active?'var(--accent-soft)':'none'};color:${active?'var(--accent-ink)':'var(--ink)'}`;
+  // Density preview rows
+  const densRow = (h) =>
+    `<div style="display:flex;gap:1px;margin:1px 0;height:${h};background:var(--line);border-radius:2px;overflow:hidden;width:100%">` +
+    `<div style="flex:1;background:var(--paper);margin:1px;border-radius:1px"></div>`.repeat(3) +
+    `</div>`;
+
+  const densInfo = { compact:['24px','Kompaktní'], normal:['30px','Normální'], airy:['38px','Vzdušná'] };
 
   el.innerHTML = `
-    <div style="display:flex;flex-direction:column;gap:18px">
+    <div style="display:flex;flex-direction:column;gap:20px">
 
+      <!-- Font size -->
       <div>
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--ink-soft);margin-bottom:8px">Velikost písma v tabulce</div>
-        <div style="display:flex;gap:6px">
-          ${[['small','Malé'],['normal','Střední'],['large','Velké']].map(([val,label])=>`
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--ink-soft);margin-bottom:10px;letter-spacing:.04em">📝 Velikost písma</div>
+        <div style="display:flex;gap:8px">
+          ${Object.entries(fsSizes).map(([val,px])=>`
             <button onclick="previewAppear('fontSize','${val}')"
-              style="flex:1;border-radius:8px;padding:8px 6px;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;${selBtn(s.fontSize===val)}">
-              <span style="${fsPreviewStyle(val)}">Aa</span><br>
-              <span style="font-size:10.5px">${label}</span>
+              style="flex:1;border-radius:10px;padding:12px 8px;font-size:12px;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:6px;${selBtn(s.fontSize===val)}">
+              <span style="font-size:${px};font-weight:700;font-family:var(--font-mono);line-height:1;color:var(--ink)">Aa</span>
+              <span style="font-size:11px">${fsLabels[val]}</span>
+              <span style="font-size:10px;color:var(--ink-faint)">${px}</span>
             </button>`).join('')}
         </div>
       </div>
 
+      <!-- Density -->
       <div>
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--ink-soft);margin-bottom:8px">Hustota tabulky</div>
-        <div style="display:flex;gap:6px">
-          ${[['compact','Kompaktní','20px'],['normal','Normální','26px'],['airy','Vzdušná','34px']].map(([val,label,h])=>`
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--ink-soft);margin-bottom:10px;letter-spacing:.04em">📐 Hustota tabulky</div>
+        <div style="display:flex;gap:8px">
+          ${Object.entries(densInfo).map(([val,[h,label]])=>`
             <button onclick="previewAppear('density','${val}')"
-              style="flex:1;border-radius:8px;padding:8px 6px;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;${selBtn(s.density===val)}">
-              <div style="margin-bottom:4px">
-                <div style="${densityRowStyle(h)}">${densityCell}${densityCell}${densityCell}</div>
-                <div style="${densityRowStyle(h)}">${densityCell}${densityCell}${densityCell}</div>
-              </div>
-              <span style="font-size:10.5px">${label}</span>
+              style="flex:1;border-radius:10px;padding:10px 8px;font-size:12px;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:6px;${selBtn(s.density===val)}">
+              <div style="width:100%">${densRow(h)}${densRow(h)}${densRow(h)}</div>
+              <span style="font-size:11px">${label}</span>
             </button>`).join('')}
         </div>
       </div>
 
-      <div style="border-top:1px solid var(--line);padding-top:14px">
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--ink-soft);margin-bottom:10px">Pozadí aplikace</div>
+      <!-- Themes -->
+      <div style="border-top:1px solid var(--line);padding-top:16px">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--ink-soft);margin-bottom:10px;letter-spacing:.04em">🎨 Motiv aplikace</div>
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px">
-          ${Object.entries(BG_PRESETS).filter(([k])=>k!=='custom').map(([k,v])=>`
-            <button onclick="previewAppear('bg','${k}')"
-              style="border-radius:10px;border:2.5px solid ${s.bg===k?'var(--accent)':'var(--line)'};background:${v.paper};cursor:pointer;padding:12px 6px;display:flex;flex-direction:column;align-items:center;gap:4px">
-              <div style="width:32px;height:20px;border-radius:4px;background:${v.paper};border:1px solid rgba(0,0,0,.1)"></div>
-              <span style="font-size:10.5px;color:#444;font-weight:${s.bg===k?700:500}">${v.label}</span>
-              ${s.bg===k?'<span style="font-size:9px;color:var(--accent)">✓ Vybrané</span>':''}
+          ${Object.entries(THEME_PRESETS).filter(([k])=>k!=='custom').map(([k,t])=>`
+            <button onclick="previewAppear('theme','${k}')"
+              style="border-radius:12px;border:2.5px solid ${s.theme===k?'var(--accent)':'var(--line)'};cursor:pointer;padding:0;overflow:hidden;display:flex;flex-direction:column;min-height:80px">
+              <!-- Color preview strip -->
+              <div style="height:44px;background:${t.paper};display:flex;align-items:center;justify-content:center;gap:6px;padding:8px">
+                <div style="width:28px;height:28px;border-radius:6px;background:${t.accent}"></div>
+                <div style="flex:1;height:8px;border-radius:4px;background:${t.accentSoft}"></div>
+              </div>
+              <!-- Label -->
+              <div style="padding:6px 8px;background:${s.theme===k?t.accentSoft:'var(--surface)'};flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:2px">
+                <span style="font-size:14px">${t.emoji}</span>
+                <span style="font-size:10.5px;font-weight:${s.theme===k?700:500};color:${s.theme===k?t.accentInk:'var(--ink)'};">${t.label}</span>
+              </div>
             </button>`).join('')}
-          <button onclick="document.getElementById('bg-img-input').click()"
-            style="border-radius:10px;border:2.5px solid ${s.bg==='custom'?'var(--accent)':'var(--line)'};cursor:pointer;padding:12px 6px;display:flex;flex-direction:column;align-items:center;gap:4px;background:${s.bg==='custom'?'var(--accent-soft)':'none'}">
-            <div style="width:32px;height:20px;border-radius:4px;background:linear-gradient(135deg,#e8d5c4,#c4d5e8);border:1px solid rgba(0,0,0,.1);display:flex;align-items:center;justify-content:center;font-size:10px">🖼</div>
-            <span style="font-size:10.5px;color:var(--ink);font-weight:${s.bg==='custom'?700:500}">Vlastní obrázek</span>
-            ${s.bg==='custom'?'<span style="font-size:9px;color:var(--accent)">✓ Vybrané</span>':''}
-          </button>
         </div>
+        <!-- Custom bg -->
+        <button onclick="document.getElementById('bg-img-input').click()"
+          style="width:100%;border-radius:12px;border:2.5px solid ${s.theme==='custom'?'var(--accent)':'var(--line)'};cursor:pointer;padding:10px 14px;display:flex;align-items:center;gap:10px;background:${s.theme==='custom'?'var(--accent-soft)':'none'}">
+          <span style="font-size:22px">🖼</span>
+          <div style="text-align:left">
+            <div style="font-size:13px;font-weight:600;color:var(--ink)">Vlastní obrázek pozadí</div>
+            <div style="font-size:11px;color:var(--ink-soft)">Nahraj JPG/PNG (max 5 MB)</div>
+          </div>
+          ${s.theme==='custom'?`<span style="margin-left:auto;font-size:12px;color:var(--accent);font-weight:700">✓ Vybrané</span>`:''}
+        </button>
         <input type="file" id="bg-img-input" accept="image/*" style="display:none" onchange="handleBgImageUpload(this)">
-        ${s.bg==='custom'&&localStorage.getItem('smeny_bg_img')?`
-          <div style="font-size:11px;color:var(--ink-soft);margin-bottom:6px">Náhled pozadí:</div>
-          <div style="border-radius:8px;overflow:hidden;height:80px;background-image:url(${localStorage.getItem('smeny_bg_img')});background-size:cover;background-position:center;margin-bottom:6px"></div>
-          <button onclick="localStorage.removeItem('smeny_bg_img');previewAppear('bg','default')" class="btn-outline" style="font-size:11px;padding:4px 10px">✕ Odebrat obrázek</button>
+        ${s.theme==='custom'&&localStorage.getItem('smeny_bg_img')?`
+          <div style="margin-top:8px;border-radius:8px;overflow:hidden;height:80px;background-image:url(${localStorage.getItem('smeny_bg_img')});background-size:cover;background-position:center;position:relative">
+            <button onclick="localStorage.removeItem('smeny_bg_img');previewAppear('theme','classic')"
+              style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,.55);color:#fff;border:none;border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer">✕ Odebrat</button>
+          </div>
         `:''}
       </div>
 
-      <div style="border-top:1px solid var(--line);padding-top:14px;display:flex;align-items:center;justify-content:space-between">
+      <!-- Dark mode toggle -->
+      <div style="border-top:1px solid var(--line);padding-top:16px;display:flex;align-items:center;justify-content:space-between">
         <div>
-          <div style="font-size:13px;font-weight:600">Tmavý režim</div>
-          <div style="font-size:11.5px;color:var(--ink-faint)">Tmavé pozadí pro práci v noci</div>
+          <div style="font-size:14px;font-weight:600">🌙 Tmavý režim</div>
+          <div style="font-size:12px;color:var(--ink-soft);margin-top:2px">Ztmaví celou aplikaci — panely, tabulku, modaly</div>
         </div>
-        <label style="position:relative;display:inline-block;width:44px;height:24px;cursor:pointer">
+        <label style="position:relative;display:inline-block;width:48px;height:26px;cursor:pointer;flex-shrink:0">
           <input type="checkbox" ${s.darkMode?'checked':''} onchange="previewAppear('darkMode',this.checked)"
             style="opacity:0;width:0;height:0;position:absolute">
-          <span style="position:absolute;inset:0;background:${s.darkMode?'var(--accent)':'var(--line)'};border-radius:12px;transition:.2s"></span>
-          <span style="position:absolute;top:3px;left:${s.darkMode?'23px':'3px'};width:18px;height:18px;background:#fff;border-radius:50%;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.2)"></span>
+          <span style="position:absolute;inset:0;background:${s.darkMode?'var(--accent)':'var(--line)'};border-radius:13px;transition:.2s"></span>
+          <span style="position:absolute;top:3px;left:${s.darkMode?'25px':'3px'};width:20px;height:20px;background:#fff;border-radius:50%;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.25)"></span>
         </label>
       </div>
 
-      <div style="border-top:1px solid var(--line);padding-top:14px;display:flex;gap:8px">
-        <button onclick="saveAppearSettings()"
-          class="btn-primary" style="flex:1;padding:9px;font-weight:700${hasChanges?'':';opacity:.6'}">
-          ✓ Uložit nastavení vzhledu${hasChanges?' *':''}
+      <!-- Save bar -->
+      <div style="border-top:1px solid var(--line);padding-top:14px;display:flex;gap:8px;align-items:center">
+        <button onclick="saveAppearSettings()" class="btn-primary"
+          style="flex:1;padding:10px;font-weight:700;font-size:14px${hasChanges?'':';opacity:.55;cursor:default'}">
+          ✓ Uložit vzhled${hasChanges?' ●':''}
         </button>
-        <button onclick="resetAppearSettings()" class="btn-outline" style="padding:9px 14px" title="Obnovit výchozí">↺</button>
+        <button onclick="resetAppearSettings()" class="btn-outline" style="padding:10px 14px;font-size:14px" title="Obnovit výchozí nastavení">↺</button>
       </div>
-      ${hasChanges?`<div style="font-size:11px;color:var(--amber);text-align:center;margin-top:-8px">Náhled aktivní — klikni Uložit pro trvalé použití</div>`:''}
+      ${hasChanges?`<p style="font-size:11.5px;color:var(--amber);text-align:center;margin:0">Náhled aktivní — klikni Uložit pro trvalé použití</p>`:''}
+
     </div>
   `;
 }
@@ -5382,6 +5518,17 @@ async function markAllNotifsRead(){
   _notifications = _notifications.map(n=>({...n, read:true}));
   updateNotifBadge();
   renderNotifPanel();
+}
+
+async function saveNotifPrefs(empId){
+  const inapp = document.getElementById('notif-inapp')?.checked !== false;
+  const email = document.getElementById('notif-email')?.checked !== false;
+  if(!orgSettings['emp_notify']) orgSettings['emp_notify'] = {};
+  if(!orgSettings['emp_notify'][empId]) orgSettings['emp_notify'][empId] = {};
+  orgSettings['emp_notify'][empId].inapp = inapp;
+  orgSettings['emp_notify'][empId].email = email;
+  await saveOrgSettings();
+  toast('✓ Nastavení notifikací uloženo');
 }
 
 // PUBLISH SCHEDULE
