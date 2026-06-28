@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
 /* ============================================================
    DESIGN TOKENS
@@ -329,7 +330,7 @@ thead .sched-stat-col{white-space:normal;line-height:1.3;font-size:10px;font-wei
 .picker-label{font-size:10px;color:var(--ink-faint);font-weight:600;text-transform:uppercase;letter-spacing:.03em;margin-top:2px}
 .pick-btn{border:none;border-radius:6px;padding:6px 9px;font-size:11.5px;font-weight:600;color:#fff;font-family:var(--font-mono);transition:transform .1s}
 .pick-btn:hover{transform:scale(1.05)}
-.pick-btn.pick-clear{font-family:var(--font-body);background:var(--ink-faint);width:100%}
+.pick-btn.pick-clear{font-family:var(--font-body);background:#7D8797;color:#fff;width:100%}
 /* Drag & drop rows */
 .drag-handle{cursor:grab;color:var(--ink-faint);margin-right:4px;font-size:13px;user-select:none;display:inline-block;vertical-align:middle}
 .drag-handle:active{cursor:grabbing}
@@ -454,9 +455,12 @@ body.employee-view #fill-mode-slot-wrap { display: none !important; }
 /* Branches panel spacing */
 #pane-branches .panel-head { margin-bottom: 14px; }
 /* Rules panel section separators */
-.rules-section-sep { border:none;border-top:1px solid var(--line);margin:20px 0 }
-.rules-section-title { font-size:13.5px;font-weight:700;font-family:var(--font-display);color:var(--ink);margin:0 0 5px }
-.rules-section-hint { font-size:12px;color:var(--ink-faint);margin:0 0 14px;line-height:1.5 }
+.rules-section-sep { border:none;border-top:1.5px solid var(--line);margin:28px 0 }
+.rules-section-title { font-size:15px;font-weight:800;font-family:var(--font-display);color:var(--ink);margin:0 0 6px;letter-spacing:-0.01em }
+.rules-section-hint { font-size:12.5px;color:var(--ink-soft);margin:0 0 16px;line-height:1.5 }
+/* Notification panel */
+#notif-panel { position:fixed;top:56px;right:12px;width:320px;max-height:420px;background:var(--surface);border:1.5px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow-lg);z-index:600;overflow-y:auto;display:none }
+#notif-panel.open { display:block }
 /* Condition rows in unified rules panel */
 .condition-row { border:1.5px solid var(--line);border-radius:10px;padding:11px 14px;margin-bottom:8px }
 .condition-row.is-hard { border-color:var(--red);background:#fff8f8 }
@@ -698,7 +702,11 @@ body.employee-view #fill-mode-slot-wrap { display: none !important; }
       <button class="btn-ghost" id="emp-settings-btn" onclick="openEmployeeSettings()" style="display:none">⚙ Profil</button>
       <button class="btn-ghost" id="admin-settings-btn" onclick="openEmployeeSettings()" style="display:none">⚙ Profil</button>
       <span id="org-code-badge" style="display:none;font-family:var(--font-mono);font-size:12px;font-weight:700;letter-spacing:1.5px;background:var(--paper);border:1.5px solid var(--line);padding:4px 10px;border-radius:6px;color:var(--ink-soft)" title="Kód firmy"></span>
-      <span title="Verze aplikace" style="font-size:10px;color:var(--ink-faint);font-family:var(--font-mono);padding:0 4px;user-select:none">v0.4.0</span>
+      <span title="Verze aplikace" style="font-size:10px;color:var(--ink-faint);font-family:var(--font-mono);padding:0 4px;user-select:none">v0.4.1</span>
+      <button class="btn-ghost" id="notif-btn" onclick="toggleNotifPanel()" title="Notifikace" style="position:relative;padding:6px 10px;font-size:16px;display:none">
+        🔔
+        <span id="notif-badge" style="display:none;position:absolute;top:4px;right:4px;width:8px;height:8px;background:var(--red);border-radius:50%;border:1.5px solid var(--surface)"></span>
+      </button>
       <button class="btn-ghost" id="tutorial-btn" onclick="openTutorialMenu()" title="Průvodce aplikací" style="font-size:15px;padding:6px 10px">?</button>
       <button class="btn-ghost" onclick="doLogout()">🚪 Odhlásit</button>
     </div>
@@ -755,6 +763,7 @@ body.employee-view #fill-mode-slot-wrap { display: none !important; }
             <div id="toolbar-more-menu" style="display:none;position:absolute;top:calc(100% + 6px);right:0;background:var(--surface);border:1.5px solid var(--line);border-radius:10px;box-shadow:0 6px 20px rgba(30,34,48,.12);z-index:500;min-width:170px;overflow:hidden">
               <div onclick="openImportModal();closeToolbarMenu()" class="toolbar-menu-item">⬆ Import JSON</div>
               <div onclick="exportJSON();closeToolbarMenu()" class="toolbar-menu-item">⬇ Export JSON</div>
+              <div onclick="exportXLSX();closeToolbarMenu()" class="toolbar-menu-item">⬇ Export Excel (.xlsx)</div>
               <div style="border-top:1px solid var(--line);margin:4px 0"></div>
               <div onclick="printSchedule();closeToolbarMenu()" class="toolbar-menu-item">🖨 Tisk / PDF</div>
             </div>
@@ -900,7 +909,7 @@ body.employee-view #fill-mode-slot-wrap { display: none !important; }
 
         <!-- 1. Podmínky plánování (tvrdé + váhy sloučeny) -->
         <div id="conditions-section" style="margin-bottom:0">
-          <p class="rules-section-title">Podmínky plánování</p>
+          <p class="rules-section-title">📋 Podmínky plánování</p>
           <p class="rules-section-hint">Každou podmínku lze označit jako <strong>Neporušitelné</strong> — algoritmus pak výsledky kde podmínka není splněna zahodí a zkusí znovu. <strong>Váha</strong> určuje jak silně podmínka ovlivňuje celkové skóre (součet musí dát 100 %).</p>
           <div id="conditions-list"></div>
           <div id="hard-constraints-warning" style="display:none;margin-top:4px;padding:8px 12px;background:#fef3c7;border:1.5px solid #fbbf24;border-radius:8px;font-size:12px;color:#92400e;max-width:580px">
@@ -947,7 +956,7 @@ body.employee-view #fill-mode-slot-wrap { display: none !important; }
 
         <!-- 4. Uložit -->
         <div style="display:flex;gap:10px">
-          <button class="btn-accent" id="save-all-rules-btn" onclick="saveRules();saveScoring()">💾 Uložit všechna pravidla</button>
+          <button class="btn-accent" id="save-all-rules-btn" onclick="saveRules();saveScoring()">✓ Uložit všechna pravidla</button>
           <span class="saved-tag" id="scoring-saved" style="display:none">Uloženo!</span>
         </div>
       </div>
@@ -1031,6 +1040,15 @@ body.employee-view #fill-mode-slot-wrap { display: none !important; }
         <span>Fixní rozvrh (krátký/dlouhý týden apod.)</span>
       </label>
       <div class="field-hint">Tenhle zaměstnanec se nebude účastnit automatického doplnění — jeho směny zadáš ručně podle pevného vzoru.</div>
+    </div>
+
+    <div class="field" style="margin-top:14px;padding-top:14px;border-top:1px solid var(--line)">
+      <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--ink-soft);margin-bottom:10px">🔔 Notifikace</div>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+        <input type="checkbox" id="employee-notify-email" style="width:15px;height:15px" checked>
+        <span style="font-size:13px">Dostávat email při publikování rozpisu</span>
+      </label>
+      <div class="field-hint">Zaměstnanec dostane e-mail pokaždé, když admin publikuje nový rozpis. Výchozí: zapnuto.</div>
     </div>
 
     <div style="display:flex;gap:10px;margin-top:18px">
@@ -1122,6 +1140,28 @@ body.employee-view #fill-mode-slot-wrap { display: none !important; }
 <!-- ============================================================
      EMPLOYEE SETTINGS MODAL
      ============================================================ -->
+<!-- Notification panel (not a modal, fixed panel) -->
+<div id="notif-panel">
+  <div style="padding:14px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between">
+    <span style="font-weight:700;font-size:14px;font-family:var(--font-display)">🔔 Notifikace</span>
+    <button onclick="markAllNotifsRead()" style="background:none;border:none;font-size:11px;color:var(--accent);cursor:pointer;font-family:inherit;font-weight:600">Označit vše jako přečtené</button>
+  </div>
+  <div id="notif-list" style="padding:8px 0"></div>
+</div>
+
+<!-- Publish confirm modal -->
+<div class="modal-overlay" id="publish-confirm-overlay">
+  <div class="modal" style="max-width:380px;text-align:center">
+    <div style="font-size:36px;margin-bottom:14px">📢</div>
+    <h3 style="margin:0 0 10px;font-family:var(--font-display)">Publikovat rozpis?</h3>
+    <p id="publish-confirm-msg" style="font-size:13.5px;color:var(--ink-soft);margin:0 0 20px;line-height:1.5"></p>
+    <div style="display:flex;gap:10px;justify-content:center">
+      <button onclick="document.getElementById('publish-confirm-overlay').classList.remove('open')" class="btn-outline" style="min-width:100px">Zrušit</button>
+      <button onclick="document.getElementById('publish-confirm-overlay').classList.remove('open');doPublishSchedule()" class="btn-accent" style="min-width:120px">📢 Publikovat</button>
+    </div>
+  </div>
+</div>
+
 <!-- Dashboard modal -->
 <div class="modal-overlay" id="dashboard-overlay">
   <div class="modal" style="max-width:500px">
@@ -1708,6 +1748,13 @@ async function bootstrapAfterAuth(){
       }
     }
 
+    // Load notifications for employees
+    if(currentRole !== 'admin'){
+      const notifBtn = document.getElementById('notif-btn');
+      if(notifBtn) notifBtn.style.display = 'inline-flex';
+      loadNotifications();
+    }
+
     initSchedule();
     maybeStartTutorial();
   } catch(err){
@@ -1822,6 +1869,8 @@ function openEmployeeModal(id){
     document.getElementById('employee-minwe').value = e.min_free_weekends;
     document.getElementById('employee-notes').value = e.notes || '';
     document.getElementById('employee-fixed').checked = !!e.is_fixed;
+    const notifyEl = document.getElementById('employee-notify-email');
+    if(notifyEl) notifyEl.checked = (orgSettings['emp_notify']?.[e.id]?.email) !== false;
   } else {
     document.getElementById('employee-modal-title').textContent = 'Nový zaměstnanec';
     document.getElementById('employee-name').value = '';
@@ -1835,6 +1884,8 @@ function openEmployeeModal(id){
     document.getElementById('employee-minwe').value = 0;
     document.getElementById('employee-notes').value = '';
     document.getElementById('employee-fixed').checked = false;
+    const notifyEl = document.getElementById('employee-notify-email');
+    if(notifyEl) notifyEl.checked = true; // default on for new employees
   }
   document.getElementById('employee-modal-overlay').classList.add('open');
   if(!localStorage.getItem('tut_done_emp_modal')){
@@ -1898,15 +1949,28 @@ async function saveEmployee(){
     is_fixed: document.getElementById('employee-fixed').checked,
   };
 
+  const notifyEmailEl = document.getElementById('employee-notify-email');
+
   if(id){
     const { error } = await sb.from('employees').update(payload).eq('id', id);
     if(error){ toast('Uložení se nezdařilo: ' + error.message); return; }
+    if(notifyEmailEl){
+      if(!orgSettings['emp_notify']) orgSettings['emp_notify'] = {};
+      if(!orgSettings['emp_notify'][id]) orgSettings['emp_notify'][id] = {};
+      orgSettings['emp_notify'][id].email = notifyEmailEl.checked;
+      await saveOrgSettings();
+    }
     toast('Uloženo');
   } else {
     payload.org_id = currentOrg.id;
     payload.sort_order = employees.length;
-    const { error } = await sb.from('employees').insert(payload);
+    const { data: newEmp, error } = await sb.from('employees').insert(payload).select().single();
     if(error){ toast('Přidání se nezdařilo: ' + error.message); return; }
+    if(notifyEmailEl && newEmp){
+      if(!orgSettings['emp_notify']) orgSettings['emp_notify'] = {};
+      orgSettings['emp_notify'][newEmp.id] = { email: notifyEmailEl.checked };
+      await saveOrgSettings();
+    }
     toast('Zaměstnanec přidán');
   }
   closeEmployeeModal();
@@ -2194,7 +2258,7 @@ function renderBalancePairsList(){
       <span style="flex:1"></span>
       <button class="btn-ghost" style="padding:4px 10px;font-size:11px" onclick="toggleBalancePair(${i})"
         title="${hidden?'Zobrazit sloupec v rozpisu':'Skrýt sloupec v rozpisu'}">
-        ${hidden ? '👁 Zobrazit' : '🙈 Skrýt'}
+        ${hidden ? '👁 Zobrazit' : '⊙ Skrýt'}
       </button>
       <button class="icon-btn danger" onclick="removeBalancePair(${i})" title="Smazat">✕</button>
     </div>`;
@@ -2355,6 +2419,11 @@ async function saveScoring(){
 // ============================================================
 // ORG SETTINGS (updated to also load scoring)
 // ============================================================
+async function saveOrgSettings(){
+  const { error } = await sb.from('org_settings').update({ settings: orgSettings }).eq('org_id', currentOrg.id);
+  if(error){ toast('Chyba ukládání nastavení: '+error.message); }
+}
+
 async function loadOrgSettings(){
   // org_settings has ONE row per org with a jsonb 'settings' column
   const { data } = await sb.from('org_settings').select('settings').eq('org_id', currentOrg.id).maybeSingle();
@@ -4899,7 +4968,7 @@ async function loadOrgCode(){
 // ============================================================
 // EMPLOYEE SETTINGS — emp sees their codes, can enter org code
 // ============================================================
-function openEmployeeSettings(){
+async function openEmployeeSettings(){
   const overlay = document.getElementById('emp-settings-overlay');
   if(!overlay) return;
   // Default to Profile tab
@@ -4908,6 +4977,9 @@ function openEmployeeSettings(){
   const myMember = orgMembers.find(m=>m.employee_id===currentEmployeeId);
   const myEmp = employees.find(e=>e.id===currentEmployeeId);
   const empCode = myMember?.emp_code || '—';
+  const authUser = (await sb.auth.getUser()).data?.user;
+  const adminName = authUser?.user_metadata?.display_name || authUser?.email || '';
+  const adminPhone = authUser?.user_metadata?.phone || '';
 
   document.getElementById('emp-settings-body').innerHTML = `
     <div style="display:flex;flex-direction:column;gap:18px">
@@ -4915,10 +4987,10 @@ function openEmployeeSettings(){
         <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--ink-soft);margin-bottom:8px">Osobní údaje</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
           <div><label style="font-size:11px;display:block;margin-bottom:3px">Jméno</label>
-            <input type="text" id="prof-name" value="${escapeHtml(myEmp?.name||'')}"
+            <input type="text" id="prof-name" value="${escapeHtml(myEmp?.name||adminName)}"
               style="padding:7px 9px;border:1.5px solid var(--line);border-radius:7px;font-size:13px;width:100%;box-sizing:border-box"></div>
           <div><label style="font-size:11px;display:block;margin-bottom:3px">Telefon</label>
-            <input type="tel" id="prof-phone" value="${escapeHtml((myEmp?.notes||'').match(/tel:([^\n\[]+)/)?.[1]?.trim()||'')}"
+            <input type="tel" id="prof-phone" value="${escapeHtml(myEmp ? (myEmp.notes||'').match(/tel:([^\n\[]+)/)?.[1]?.trim()||'' : adminPhone)}"
               placeholder="+420 777 123 456"
               style="padding:7px 9px;border:1.5px solid var(--line);border-radius:7px;font-size:13px;width:100%;box-sizing:border-box"></div>
         </div>
@@ -4978,7 +5050,7 @@ function switchSettingsTab(tab){
     tAppear.style.boxShadow   = !isProfile ? 'var(--shadow)' : 'none';
     tAppear.style.fontWeight  = !isProfile ? '700' : '500';
   }
-  if(!isProfile) renderAppearSettings();
+  if(!isProfile){ tempAppear = {...appearSettings}; renderAppearSettings(); }
 }
 
 // ============================================================
@@ -4986,6 +5058,7 @@ function switchSettingsTab(tab){
 // ============================================================
 const APPEAR_DEFAULTS = { fontSize:'normal', density:'normal', darkMode:false, bg:'default' };
 let appearSettings = {...APPEAR_DEFAULTS};
+let tempAppear = null; // pending preview state before explicit save
 
 const BG_PRESETS = {
   default: { paper:'#F6F5F1', label:'Papírové' },
@@ -4993,6 +5066,7 @@ const BG_PRESETS = {
   blue:    { paper:'#EFF4FB', label:'Modrý nádech' },
   green:   { paper:'#EFF7F2', label:'Zelený nádech' },
   neutral: { paper:'#F2F2F2', label:'Neutrální šedá' },
+  custom:  { paper:'#F6F5F1', label:'Vlastní obrázek' },
 };
 
 const FS_PRESETS = {
@@ -5014,79 +5088,165 @@ function loadAppearSettings(){
 }
 
 function saveAppearSettings(){
+  appearSettings = {...tempAppear};
   localStorage.setItem('smeny_appear', JSON.stringify(appearSettings));
-  applyAppearSettings();
+  applyAppearSettings(appearSettings);
+  renderAppearSettings();
+  toast('✓ Nastavení vzhledu uloženo');
 }
 
-function applyAppearSettings(){
+function applyAppearSettings(s){
+  if(!s) s = appearSettings;
   const root = document.documentElement.style;
-  const fs = FS_PRESETS[appearSettings.fontSize] || FS_PRESETS.normal;
-  const dn = DENSITY_PRESETS[appearSettings.density] || DENSITY_PRESETS.normal;
-  const bg = BG_PRESETS[appearSettings.bg] || BG_PRESETS.default;
+  const fs = FS_PRESETS[s.fontSize] || FS_PRESETS.normal;
+  const dn = DENSITY_PRESETS[s.density] || DENSITY_PRESETS.normal;
+  const bg = BG_PRESETS[s.bg] || BG_PRESETS.default;
 
-  // Font size controls tbl-fs and tbl-name-fs; density controls tbl-h
   root.setProperty('--tbl-fs',      fs.tblFs);
   root.setProperty('--tbl-name-fs', fs.tblNameFs);
-  root.setProperty('--tbl-h',       dn.tblH); // density overrides height
+  root.setProperty('--tbl-h',       dn.tblH);
 
-  // Background
-  if(!appearSettings.darkMode){
-    root.setProperty('--paper', bg.paper);
+  if(!s.darkMode){
+    if(s.bg === 'custom'){
+      const img = localStorage.getItem('smeny_bg_img');
+      if(img){
+        document.body.style.backgroundImage = `url(${img})`;
+        document.body.style.backgroundSize = 'cover';
+        document.body.style.backgroundPosition = 'center';
+        document.body.style.backgroundAttachment = 'fixed';
+        root.setProperty('--paper', 'rgba(246,245,241,0.92)');
+      }
+    } else {
+      document.body.style.backgroundImage = '';
+      root.setProperty('--paper', bg.paper);
+    }
+  } else {
+    document.body.style.backgroundImage = '';
   }
 
-  // Dark mode
-  document.body.classList.toggle('dark', !!appearSettings.darkMode);
+  document.body.classList.toggle('dark', !!s.darkMode);
+}
+
+function previewAppear(key, value){
+  if(!tempAppear) tempAppear = {...appearSettings};
+  tempAppear[key] = value;
+  applyAppearSettings(tempAppear);
+  renderAppearSettings();
+}
+
+function resetAppearSettings(){
+  tempAppear = {...APPEAR_DEFAULTS};
+  applyAppearSettings(tempAppear);
+  renderAppearSettings();
+}
+
+function handleBgImageUpload(input){
+  const file = input.files[0];
+  if(!file) return;
+  if(file.size > 5*1024*1024){ toast('Obrázek je příliš velký (max 5 MB)', 'error'); return; }
+  const reader = new FileReader();
+  reader.onload = e => {
+    localStorage.setItem('smeny_bg_img', e.target.result);
+    previewAppear('bg', 'custom');
+  };
+  reader.readAsDataURL(file);
 }
 
 function renderAppearSettings(){
   const el = document.getElementById('appear-settings-body');
   if(!el) return;
 
-  const s = appearSettings;
-  const btnGroup = (key, opts, current) => opts.map(([val, label]) =>
-    `<button onclick="appearSettings['${key}']='${val}';saveAppearSettings();renderAppearSettings()"
-      style="flex:1;border:1.5px solid ${current===val?'var(--accent)':'var(--line)'};border-radius:8px;padding:8px 6px;font-size:12.5px;font-weight:${current===val?700:500};cursor:pointer;font-family:inherit;background:${current===val?'var(--accent-soft)':'none'};color:${current===val?'var(--accent-ink)':'var(--ink)'}">${label}</button>`
-  ).join('');
+  if(!tempAppear) tempAppear = {...appearSettings};
+  const s = tempAppear;
+  const saved = appearSettings;
+  const hasChanges = JSON.stringify(s) !== JSON.stringify(saved);
+
+  const densityRowStyle = (h) => `display:flex;align-items:center;gap:2px;margin:2px 0;height:${h};background:var(--line);border-radius:2px;overflow:hidden;width:100%`;
+  const densityCell = `<div style="flex:1;background:var(--paper);margin:1px;border-radius:1px"></div>`;
+
+  const fsPreviewStyle = (key) => {
+    const p = FS_PRESETS[key]||FS_PRESETS.normal;
+    return `font-size:${p.tblFs};font-weight:700;font-family:var(--font-mono);color:var(--ink)`;
+  };
+
+  const selBtn = (active) => `border:2px solid ${active?'var(--accent)':'var(--line)'};background:${active?'var(--accent-soft)':'none'};color:${active?'var(--accent-ink)':'var(--ink)'}`;
 
   el.innerHTML = `
     <div style="display:flex;flex-direction:column;gap:18px">
+
       <div>
         <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--ink-soft);margin-bottom:8px">Velikost písma v tabulce</div>
         <div style="display:flex;gap:6px">
-          ${btnGroup('fontSize', [['small','Malé'],['normal','Střední'],['large','Velké']], s.fontSize)}
+          ${[['small','Malé'],['normal','Střední'],['large','Velké']].map(([val,label])=>`
+            <button onclick="previewAppear('fontSize','${val}')"
+              style="flex:1;border-radius:8px;padding:8px 6px;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;${selBtn(s.fontSize===val)}">
+              <span style="${fsPreviewStyle(val)}">Aa</span><br>
+              <span style="font-size:10.5px">${label}</span>
+            </button>`).join('')}
         </div>
       </div>
+
       <div>
         <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--ink-soft);margin-bottom:8px">Hustota tabulky</div>
         <div style="display:flex;gap:6px">
-          ${btnGroup('density', [['compact','Kompaktní'],['normal','Normální'],['airy','Vzdušná']], s.density)}
+          ${[['compact','Kompaktní','20px'],['normal','Normální','26px'],['airy','Vzdušná','34px']].map(([val,label,h])=>`
+            <button onclick="previewAppear('density','${val}')"
+              style="flex:1;border-radius:8px;padding:8px 6px;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;${selBtn(s.density===val)}">
+              <div style="margin-bottom:4px">
+                <div style="${densityRowStyle(h)}">${densityCell}${densityCell}${densityCell}</div>
+                <div style="${densityRowStyle(h)}">${densityCell}${densityCell}${densityCell}</div>
+              </div>
+              <span style="font-size:10.5px">${label}</span>
+            </button>`).join('')}
         </div>
       </div>
+
       <div style="border-top:1px solid var(--line);padding-top:14px">
         <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--ink-soft);margin-bottom:10px">Pozadí aplikace</div>
-        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px">
-          ${Object.entries(BG_PRESETS).map(([k,v])=>`
-            <button onclick="appearSettings.bg='${k}';saveAppearSettings();renderAppearSettings()"
-              title="${v.label}"
-              style="height:36px;border-radius:8px;border:2.5px solid ${s.bg===k?'var(--accent)':'var(--line)'};background:${v.paper};cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:9px;color:#666;font-weight:600">
-              ${s.bg===k?'✓':''}</button>`).join('')}
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px">
+          ${Object.entries(BG_PRESETS).filter(([k])=>k!=='custom').map(([k,v])=>`
+            <button onclick="previewAppear('bg','${k}')"
+              style="border-radius:10px;border:2.5px solid ${s.bg===k?'var(--accent)':'var(--line)'};background:${v.paper};cursor:pointer;padding:12px 6px;display:flex;flex-direction:column;align-items:center;gap:4px">
+              <div style="width:32px;height:20px;border-radius:4px;background:${v.paper};border:1px solid rgba(0,0,0,.1)"></div>
+              <span style="font-size:10.5px;color:#444;font-weight:${s.bg===k?700:500}">${v.label}</span>
+              ${s.bg===k?'<span style="font-size:9px;color:var(--accent)">✓ Vybrané</span>':''}
+            </button>`).join('')}
+          <button onclick="document.getElementById('bg-img-input').click()"
+            style="border-radius:10px;border:2.5px solid ${s.bg==='custom'?'var(--accent)':'var(--line)'};cursor:pointer;padding:12px 6px;display:flex;flex-direction:column;align-items:center;gap:4px;background:${s.bg==='custom'?'var(--accent-soft)':'none'}">
+            <div style="width:32px;height:20px;border-radius:4px;background:linear-gradient(135deg,#e8d5c4,#c4d5e8);border:1px solid rgba(0,0,0,.1);display:flex;align-items:center;justify-content:center;font-size:10px">🖼</div>
+            <span style="font-size:10.5px;color:var(--ink);font-weight:${s.bg==='custom'?700:500}">Vlastní obrázek</span>
+            ${s.bg==='custom'?'<span style="font-size:9px;color:var(--accent)">✓ Vybrané</span>':''}
+          </button>
         </div>
-        <div style="font-size:11px;color:var(--ink-faint);margin-top:4px">${BG_PRESETS[s.bg]?.label||''}</div>
+        <input type="file" id="bg-img-input" accept="image/*" style="display:none" onchange="handleBgImageUpload(this)">
+        ${s.bg==='custom'&&localStorage.getItem('smeny_bg_img')?`
+          <div style="font-size:11px;color:var(--ink-soft);margin-bottom:6px">Náhled pozadí:</div>
+          <div style="border-radius:8px;overflow:hidden;height:80px;background-image:url(${localStorage.getItem('smeny_bg_img')});background-size:cover;background-position:center;margin-bottom:6px"></div>
+          <button onclick="localStorage.removeItem('smeny_bg_img');previewAppear('bg','default')" class="btn-outline" style="font-size:11px;padding:4px 10px">✕ Odebrat obrázek</button>
+        `:''}
       </div>
+
       <div style="border-top:1px solid var(--line);padding-top:14px;display:flex;align-items:center;justify-content:space-between">
         <div>
           <div style="font-size:13px;font-weight:600">Tmavý režim</div>
           <div style="font-size:11.5px;color:var(--ink-faint)">Tmavé pozadí pro práci v noci</div>
         </div>
         <label style="position:relative;display:inline-block;width:44px;height:24px;cursor:pointer">
-          <input type="checkbox" ${s.darkMode?'checked':''} onchange="appearSettings.darkMode=this.checked;saveAppearSettings();renderAppearSettings()"
+          <input type="checkbox" ${s.darkMode?'checked':''} onchange="previewAppear('darkMode',this.checked)"
             style="opacity:0;width:0;height:0;position:absolute">
           <span style="position:absolute;inset:0;background:${s.darkMode?'var(--accent)':'var(--line)'};border-radius:12px;transition:.2s"></span>
           <span style="position:absolute;top:3px;left:${s.darkMode?'23px':'3px'};width:18px;height:18px;background:#fff;border-radius:50%;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.2)"></span>
         </label>
       </div>
-      <button onclick="appearSettings={...APPEAR_DEFAULTS};saveAppearSettings();renderAppearSettings()"
-        class="btn-outline" style="width:100%">↺ Obnovit výchozí nastavení</button>
+
+      <div style="border-top:1px solid var(--line);padding-top:14px;display:flex;gap:8px">
+        <button onclick="saveAppearSettings()"
+          class="btn-primary" style="flex:1;padding:9px;font-weight:700${hasChanges?'':';opacity:.6'}">
+          ✓ Uložit nastavení vzhledu${hasChanges?' *':''}
+        </button>
+        <button onclick="resetAppearSettings()" class="btn-outline" style="padding:9px 14px" title="Obnovit výchozí">↺</button>
+      </div>
+      ${hasChanges?`<div style="font-size:11px;color:var(--amber);text-align:center;margin-top:-8px">Náhled aktivní — klikni Uložit pro trvalé použití</div>`:''}
     </div>
   `;
 }
@@ -5148,6 +5308,82 @@ function openDashboard(){
 }
 
 // ============================================================
+// NOTIFICATIONS
+// ============================================================
+let _notifications = [];
+
+async function loadNotifications(){
+  if(!currentUser || !currentOrg) return;
+  const { data } = await sb.from('notifications')
+    .select('*')
+    .eq('org_id', currentOrg.id)
+    .eq('user_id', currentUser.id)
+    .order('created_at', { ascending: false })
+    .limit(30);
+  _notifications = data || [];
+  updateNotifBadge();
+}
+
+function updateNotifBadge(){
+  const badge = document.getElementById('notif-badge');
+  const unread = _notifications.filter(n=>!n.read).length;
+  if(badge) badge.style.display = unread > 0 ? 'block' : 'none';
+}
+
+function toggleNotifPanel(){
+  const panel = document.getElementById('notif-panel');
+  if(!panel) return;
+  const isOpen = panel.classList.contains('open');
+  if(isOpen){
+    panel.classList.remove('open');
+  } else {
+    renderNotifPanel();
+    panel.classList.add('open');
+    // Close when clicking outside
+    setTimeout(()=>{
+      document.addEventListener('click', closeNotifOnOutside, { once:true });
+    }, 0);
+  }
+}
+
+function closeNotifOnOutside(e){
+  const panel = document.getElementById('notif-panel');
+  const btn = document.getElementById('notif-btn');
+  if(panel && !panel.contains(e.target) && btn && !btn.contains(e.target)){
+    panel.classList.remove('open');
+  } else if(panel && panel.classList.contains('open')){
+    document.addEventListener('click', closeNotifOnOutside, { once:true });
+  }
+}
+
+function renderNotifPanel(){
+  const list = document.getElementById('notif-list');
+  if(!list) return;
+  if(_notifications.length === 0){
+    list.innerHTML = '<div style="padding:20px 16px;text-align:center;color:var(--ink-faint);font-size:13px">Žádné notifikace</div>';
+    return;
+  }
+  list.innerHTML = _notifications.map(n=>{
+    const date = new Date(n.created_at).toLocaleDateString('cs-CZ',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+    return `<div style="padding:10px 16px;border-bottom:1px solid var(--line);display:flex;gap:10px;align-items:flex-start;background:${n.read?'none':'var(--accent-soft)'}">
+      <div style="flex:1">
+        <div style="font-size:13px;color:var(--ink);line-height:1.4">${escapeHtml(n.message)}</div>
+        <div style="font-size:11px;color:var(--ink-faint);margin-top:3px">${date}</div>
+      </div>
+      ${!n.read?`<div style="width:7px;height:7px;border-radius:50%;background:var(--red);flex-shrink:0;margin-top:5px"></div>`:''}
+    </div>`;
+  }).join('');
+}
+
+async function markAllNotifsRead(){
+  const unreadIds = _notifications.filter(n=>!n.read).map(n=>n.id);
+  if(unreadIds.length === 0) return;
+  await sb.from('notifications').update({ read: true }).in('id', unreadIds);
+  _notifications = _notifications.map(n=>({...n, read:true}));
+  updateNotifBadge();
+  renderNotifPanel();
+}
+
 // PUBLISH SCHEDULE
 // ============================================================
 function updatePublishBtn(){
@@ -5159,18 +5395,53 @@ function updatePublishBtn(){
   btn.style.color       = isPublished ? 'var(--accent-ink)' : '';
 }
 
-async function publishSchedule(){
+function publishSchedule(){
   const key = `${schedYear}-${String(schedMonth+1).padStart(2,'0')}`;
+  const monthLabel = new Date(schedYear, schedMonth, 1)
+    .toLocaleDateString('cs-CZ',{month:'long',year:'numeric'});
+  const msgEl = document.getElementById('publish-confirm-msg');
+  if(msgEl) msgEl.textContent = `Publikovat rozpis na ${monthLabel}? Zaměstnanci budou upozorněni in-app notifikací a emailem.`;
+  document.getElementById('publish-confirm-overlay').classList.add('open');
+}
+
+async function doPublishSchedule(){
+  const key = `${schedYear}-${String(schedMonth+1).padStart(2,'0')}`;
+  const monthLabel = new Date(schedYear, schedMonth, 1)
+    .toLocaleDateString('cs-CZ',{month:'long',year:'numeric'});
   const published = orgSettings['published_months'] || [];
   if(!published.includes(key)) published.push(key);
-  const notify = orgSettings['notify_on_publish'] !== false;
 
   const newSettings = { ...orgSettings, published_months: published };
   const { error } = await sb.from('org_settings').update({ settings: newSettings }).eq('org_id', currentOrg.id);
   if(error){ toast('Chyba: ' + error.message, 'error'); return; }
   orgSettings = newSettings;
 
-  toast(`📢 Rozpis ${key} publikován${notify?' — zaměstnanci budou informováni':''}`, 'ok');
+  // Insert in-app notifications for all org employees
+  const notifRows = employees
+    .filter(emp => emp.user_id)
+    .map(emp => ({
+      org_id: currentOrg.id,
+      user_id: emp.user_id,
+      message: `📢 Byl publikován nový rozpis na ${monthLabel}.`,
+      type: 'publish',
+      read: false,
+    }));
+  if(notifRows.length > 0){
+    await sb.from('notifications').insert(notifRows);
+  }
+
+  // Send email notifications (best-effort via Edge Function)
+  const emailRecipients = employees.filter(emp => {
+    const pref = orgSettings['emp_notify']?.[emp.id];
+    return emp.user_id && (pref === undefined || pref?.email !== false);
+  }).map(emp => emp.user_id);
+  if(emailRecipients.length > 0){
+    sb.functions.invoke('smeny-notify', {
+      body: { org_id: currentOrg.id, month: key, user_ids: emailRecipients, month_label: monthLabel }
+    }).catch(()=>{});
+  }
+
+  toast(`📢 Rozpis ${monthLabel} publikován`, 'ok');
   updatePublishBtn();
 }
 
@@ -5181,7 +5452,20 @@ async function saveProfile(){
   if(!name){ if(res){res.style.display='block';res.style.color='var(--red)';res.textContent='Jméno nesmí být prázdné.';} return; }
 
   const myEmp = employees.find(e=>e.id===currentEmployeeId);
-  if(!myEmp){ if(res){res.style.display='block';res.style.color='var(--red)';res.textContent='Zaměstnanec nenalezen.';} return; }
+
+  if(!myEmp){
+    // Admin without employee record — save to auth user metadata
+    const { error } = await sb.auth.updateUser({ data: { display_name: name, phone: phone||'' } });
+    if(error){
+      if(res){res.style.display='block';res.style.color='var(--red)';res.textContent='Chyba: '+error.message;}
+      return;
+    }
+    const nameEl = document.getElementById('user-display-name');
+    if(nameEl) nameEl.textContent = name;
+    if(res){res.style.display='block';res.style.color='var(--accent)';res.textContent='✓ Údaje uloženy.';}
+    setTimeout(()=>{ if(res) res.style.display='none'; }, 2500);
+    return;
+  }
 
   // Update notes: preserve existing notes, replace/add tel: line
   let notes = (myEmp.notes||'').replace(/tel:[^\n\[]+/,'').trim();
@@ -5517,6 +5801,75 @@ function exportJSON(){
   a.click();
   URL.revokeObjectURL(url);
   toast('JSON exportován');
+}
+
+function exportXLSX(){
+  const daysInMonth = new Date(schedYear, schedMonth+1, 0).getDate();
+  const monthName = new Date(schedYear, schedMonth, 1)
+    .toLocaleDateString('cs-CZ',{month:'long',year:'numeric'});
+
+  // Build HTML table with inline styles for Excel
+  const dayNames = ['Ne','Po','Út','St','Čt','Pá','So'];
+  const headerStyle = 'font-weight:700;background:#3b4a6b;color:#fff;padding:5px 8px;border:1px solid #bbb;font-size:11px;text-align:center;white-space:nowrap';
+  const nameStyle = 'font-weight:600;background:#f4f6fb;padding:5px 10px;border:1px solid #ddd;font-size:11px;white-space:nowrap;min-width:120px';
+  const cellBase = 'padding:4px 6px;border:1px solid #ddd;font-size:11px;text-align:center;font-family:monospace;font-weight:700';
+
+  let html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+<head><meta charset="utf-8"><meta name=ProgId content=Excel.Sheet></head><body>
+<table border=1 style="border-collapse:collapse;font-family:Arial,sans-serif">
+<tr>
+  <th style="${headerStyle};min-width:120px">${escapeHtml(currentOrg?.name||'Směny')} — ${escapeHtml(monthName)}</th>`;
+
+  // Day headers
+  for(let d=1;d<=daysInMonth;d++){
+    const dow = new Date(schedYear, schedMonth, d).getDay();
+    const isWE = dow===0||dow===6;
+    const bg = isWE ? '#4a6baa' : '#3b4a6b';
+    html += `<th style="${headerStyle};background:${bg};min-width:32px">${d}<br><span style="font-size:9px;font-weight:400">${dayNames[dow]}</span></th>`;
+  }
+  html += '<th style="'+headerStyle+'">Počet</th></tr>';
+
+  // Employee rows
+  employees.forEach(emp=>{
+    html += `<tr><td style="${nameStyle}">${escapeHtml(emp.name)}</td>`;
+    let count = 0;
+    for(let d=1;d<=daysInMonth;d++){
+      const dateStr = isoDate(schedYear, schedMonth+1, d);
+      const key = emp.id+':'+dateStr;
+      const s = shifts[key];
+      const u = unavail[key];
+      const dow = new Date(schedYear, schedMonth, d).getDay();
+      const isWE = dow===0||dow===6;
+
+      if(u){
+        html += `<td style="${cellBase};background:#f5f5f5;color:#aaa">X</td>`;
+      } else if(s && s.shift_type_code && s.shift_type_code!=='X'){
+        const code = s.shift_type_code;
+        const color = codeColor(code).replace('var(--','').replace(')','');
+        // Resolve CSS var colors to hex
+        let bg = codeColor(code);
+        if(bg.startsWith('var(')) bg = '#888888';
+        html += `<td style="${cellBase};background:${bg};color:#fff">${escapeHtml(code)}</td>`;
+        count++;
+      } else if(s && s.shift_type_code==='X'){
+        html += `<td style="${cellBase};background:#fef3f3;color:#e53935">X</td>`;
+      } else {
+        const cellBg = isWE ? '#f0f4ff' : '#ffffff';
+        html += `<td style="${cellBase};background:${cellBg};color:#ccc">—</td>`;
+      }
+    }
+    html += `<td style="${cellBase};font-weight:700;background:#f4f6fb">${count}</td></tr>`;
+  });
+
+  html += '</table></body></html>';
+
+  const blob = new Blob(['﻿'+html], {type:'application/vnd.ms-excel;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const fname = `smeny_${monthName.replace(/ /g,'_')}.xls`;
+  a.href = url; a.download = fname; a.click();
+  URL.revokeObjectURL(url);
+  toast('Excel exportován');
 }
 
 // ============================================================
