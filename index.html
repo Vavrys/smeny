@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Směny — Plánování rozpisu</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 36 36'%3E%3Crect x='2' y='6' width='32' height='26' rx='5' fill='%232b6e4f' opacity='.9'/%3E%3Crect x='2' y='6' width='32' height='26' rx='5' stroke='%232b6e4f' stroke-width='2'/%3E%3Cline x1='2' y1='14' x2='34' y2='14' stroke='%23fff' stroke-width='2'/%3E%3Cline x1='10' y1='2' x2='10' y2='10' stroke='%232b6e4f' stroke-width='2.5' stroke-linecap='round'/%3E%3Cline x1='26' y1='2' x2='26' y2='10' stroke='%232b6e4f' stroke-width='2.5' stroke-linecap='round'/%3E%3Crect x='7' y='18' width='6' height='5' rx='1.5' fill='%23fff'/%3E%3Crect x='15' y='18' width='6' height='5' rx='1.5' fill='%23fff' opacity='.7'/%3E%3Crect x='23' y='18' width='6' height='5' rx='1.5' fill='%23fff' opacity='.4'/%3E%3Crect x='7' y='25' width='6' height='4' rx='1.5' fill='%23fff' opacity='.5'/%3E%3Crect x='15' y='25' width='6' height='4' rx='1.5' fill='%23fff'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
@@ -115,6 +116,10 @@ a{color:var(--accent)}
   position:relative;
   overflow:hidden;
   padding:24px;
+  background: linear-gradient(135deg, #f0f7f4 0%, #e8f5ee 40%, #f6f5f1 100%);
+}
+body.dark .auth-shell{
+  background: linear-gradient(135deg, #151825 0%, #1a2535 40%, #1a1d2e 100%);
 }
 .auth-ring{
   position:absolute;
@@ -139,11 +144,67 @@ a{color:var(--accent)}
   z-index:2;
   background:var(--surface);
   border-radius:20px;
-  box-shadow:var(--shadow-lg);
+  box-shadow:var(--shadow-lg), 0 0 0 1px rgba(43,110,79,0.06);
   width:100%;
   max-width:392px;
   padding:40px 36px 32px;
 }
+/* ── Onboarding wizard modal ── */
+.onboarding-overlay{
+  position:fixed;inset:0;background:rgba(15,20,35,.55);
+  display:none;align-items:center;justify-content:center;z-index:800;padding:20px;
+}
+.onboarding-overlay.open{display:flex}
+.onboarding-card{
+  background:var(--surface);border-radius:20px;
+  box-shadow:var(--shadow-lg), 0 0 0 1px rgba(43,110,79,0.06);
+  width:100%;max-width:480px;padding:36px 32px 28px;
+  max-height:90vh;overflow-y:auto;
+}
+.onboarding-progress{
+  display:flex;align-items:center;gap:8px;margin-bottom:24px;
+}
+.onboarding-progress-label{
+  font-size:12px;font-weight:600;color:var(--ink-soft);white-space:nowrap;
+}
+.onboarding-progress-track{
+  flex:1;height:5px;background:var(--line);border-radius:4px;overflow:hidden;
+}
+.onboarding-progress-fill{
+  height:100%;background:var(--accent);border-radius:4px;transition:width .3s;
+}
+.onboarding-step{padding:0}
+.onboarding-step h2{font-size:22px;font-weight:700;font-family:var(--font-display);color:var(--ink);margin:0 0 8px;letter-spacing:-0.01em}
+.onboarding-step p{font-size:14px;color:var(--ink-soft);margin:0 0 20px;line-height:1.55}
+.onboarding-skip-link{
+  background:none;border:none;font-size:12.5px;color:var(--ink-faint);
+  cursor:pointer;font-family:inherit;padding:4px 0;text-decoration:underline;display:block;text-align:center;margin-top:14px;
+}
+.onboarding-skip-link:hover{color:var(--ink-soft)}
+.onboarding-item-row{
+  display:flex;align-items:center;gap:8px;margin-bottom:8px;
+}
+.onboarding-item-row input[type="text"]{
+  flex:1;padding:9px 12px;border:1.5px solid var(--line);border-radius:8px;
+  font-size:14px;font-family:inherit;color:var(--ink);background:var(--surface);
+  transition:border-color .15s;
+}
+.onboarding-item-row input[type="text"]:focus{border-color:var(--accent);outline:none}
+.onboarding-added-list{
+  display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;min-height:28px;
+}
+.onboarding-added-item{
+  background:var(--accent-soft);color:var(--accent-ink);border-radius:6px;
+  padding:4px 10px;font-size:13px;font-weight:600;border:1.5px solid var(--accent);
+}
+/* Dashboard CSS */
+.dash-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
+.dash-stat{background:var(--paper);border-radius:var(--radius-sm);padding:16px;text-align:center;border:1px solid var(--line)}
+.dash-stat-num{font-size:28px;font-weight:700;font-family:var(--font-display);color:var(--accent-ink)}
+.dash-stat-label{font-size:12px;color:var(--ink-soft);margin-top:2px}
+.dash-quick-actions{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+.dash-activity{font-size:13px;color:var(--ink-soft)}
+.dash-activity-item{padding:8px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between}
 .auth-mark{
   display:flex;
   align-items:center;
@@ -540,6 +601,13 @@ table.sched-table.density-airy .sched-stat-col{font-size:11px;padding:4px 6px}
 <body>
 
 <!-- ============================================================
+     OFFLINE BANNER
+     ============================================================ -->
+<div id="offline-banner" style="display:none;background:#b91c1c;color:#fff;text-align:center;padding:8px;font-size:13px;font-weight:600;position:fixed;top:0;left:0;right:0;z-index:9999">
+  Offline — změny se neuloží
+</div>
+
+<!-- ============================================================
      LOADING SCREEN (shown while checking auth session)
      ============================================================ -->
 <div class="loading-screen" id="loading-screen">
@@ -565,8 +633,19 @@ table.sched-table.density-airy .sched-stat-col{font-size:11px;padding:4px 6px}
 
   <div class="auth-card">
     <div class="auth-mark">
-      <div class="auth-mark-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2.5" stroke="#fff"/><line x1="3" y1="10" x2="21" y2="10" stroke="#fff" stroke-width="1.5"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/><rect x="6" y="13" width="4" height="2.5" rx=".6" fill="#fff" stroke="none"/><rect x="14" y="13" width="4" height="2.5" rx=".6" fill="rgba(255,255,255,.55)" stroke="none"/><rect x="6" y="17" width="2.5" height="2" rx=".5" fill="rgba(255,255,255,.5)" stroke="none"/><rect x="10.5" y="17" width="4" height="2" rx=".5" fill="#fff" stroke="none"/></svg>
+      <div class="auth-mark-icon" style="width:40px;height:40px;border-radius:10px;background:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <svg width="26" height="26" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="2" y="6" width="32" height="26" rx="5" fill="#fff" opacity=".15"/>
+          <rect x="2" y="6" width="32" height="26" rx="5" stroke="#fff" stroke-width="2.2"/>
+          <line x1="2" y1="14" x2="34" y2="14" stroke="#fff" stroke-width="2"/>
+          <line x1="10" y1="2" x2="10" y2="10" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="26" y1="2" x2="26" y2="10" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+          <rect x="7" y="18" width="6" height="5" rx="1.5" fill="#fff"/>
+          <rect x="15" y="18" width="6" height="5" rx="1.5" fill="#fff" opacity=".6"/>
+          <rect x="23" y="18" width="6" height="5" rx="1.5" fill="#fff" opacity=".3"/>
+          <rect x="7" y="25" width="6" height="4" rx="1.5" fill="#fff" opacity=".4"/>
+          <rect x="15" y="25" width="6" height="4" rx="1.5" fill="#fff"/>
+        </svg>
       </div>
       <span class="auth-mark-text">Směny</span>
     </div>
@@ -652,8 +731,19 @@ table.sched-table.density-airy .sched-stat-col{font-size:11px;padding:4px 6px}
 <div class="auth-shell" id="onboarding-shell" style="display:none">
   <div class="auth-card">
     <div class="auth-mark">
-      <div class="auth-mark-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2.5" stroke="#fff"/><line x1="3" y1="10" x2="21" y2="10" stroke="#fff" stroke-width="1.5"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/><rect x="6" y="13" width="4" height="2.5" rx=".6" fill="#fff" stroke="none"/><rect x="14" y="13" width="4" height="2.5" rx=".6" fill="rgba(255,255,255,.55)" stroke="none"/><rect x="6" y="17" width="2.5" height="2" rx=".5" fill="rgba(255,255,255,.5)" stroke="none"/><rect x="10.5" y="17" width="4" height="2" rx=".5" fill="#fff" stroke="none"/></svg>
+      <div class="auth-mark-icon" style="width:40px;height:40px;border-radius:10px;background:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <svg width="26" height="26" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="2" y="6" width="32" height="26" rx="5" fill="#fff" opacity=".15"/>
+          <rect x="2" y="6" width="32" height="26" rx="5" stroke="#fff" stroke-width="2.2"/>
+          <line x1="2" y1="14" x2="34" y2="14" stroke="#fff" stroke-width="2"/>
+          <line x1="10" y1="2" x2="10" y2="10" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="26" y1="2" x2="26" y2="10" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+          <rect x="7" y="18" width="6" height="5" rx="1.5" fill="#fff"/>
+          <rect x="15" y="18" width="6" height="5" rx="1.5" fill="#fff" opacity=".6"/>
+          <rect x="23" y="18" width="6" height="5" rx="1.5" fill="#fff" opacity=".3"/>
+          <rect x="7" y="25" width="6" height="4" rx="1.5" fill="#fff" opacity=".4"/>
+          <rect x="15" y="25" width="6" height="4" rx="1.5" fill="#fff"/>
+        </svg>
       </div>
       <span class="auth-mark-text">Směny</span>
     </div>
@@ -731,8 +821,19 @@ table.sched-table.density-airy .sched-stat-col{font-size:11px;padding:4px 6px}
 <div class="app-shell" id="app-shell">
   <div class="topbar">
     <div class="topbar-left">
-      <div class="auth-mark-icon" onclick="openDashboard()" style="cursor:pointer" title="Přehled organizace">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2.5" stroke="#fff"/><line x1="3" y1="10" x2="21" y2="10" stroke="#fff" stroke-width="1.5"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/><rect x="6" y="13" width="4" height="2.5" rx=".6" fill="#fff" stroke="none"/><rect x="14" y="13" width="4" height="2.5" rx=".6" fill="rgba(255,255,255,.55)" stroke="none"/><rect x="6" y="17" width="2.5" height="2" rx=".5" fill="rgba(255,255,255,.5)" stroke="none"/><rect x="10.5" y="17" width="4" height="2" rx=".5" fill="#fff" stroke="none"/></svg>
+      <div onclick="openDashboard()" style="cursor:pointer;width:28px;height:28px;border-radius:7px;background:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0" title="Přehled organizace">
+        <svg width="18" height="18" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="2" y="6" width="32" height="26" rx="5" fill="#fff" opacity=".15"/>
+          <rect x="2" y="6" width="32" height="26" rx="5" stroke="#fff" stroke-width="2.2"/>
+          <line x1="2" y1="14" x2="34" y2="14" stroke="#fff" stroke-width="2"/>
+          <line x1="10" y1="2" x2="10" y2="10" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="26" y1="2" x2="26" y2="10" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+          <rect x="7" y="18" width="6" height="5" rx="1.5" fill="#fff"/>
+          <rect x="15" y="18" width="6" height="5" rx="1.5" fill="#fff" opacity=".6"/>
+          <rect x="23" y="18" width="6" height="5" rx="1.5" fill="#fff" opacity=".3"/>
+          <rect x="7" y="25" width="6" height="4" rx="1.5" fill="#fff" opacity=".4"/>
+          <rect x="15" y="25" width="6" height="4" rx="1.5" fill="#fff"/>
+        </svg>
       </div>
       <span class="org-name" id="org-name-label" onclick="switchAppTab('schedule')" style="cursor:pointer" title="Přejít na Rozpis">—</span>
       <span class="org-tag" id="org-role-label">admin</span>
@@ -748,7 +849,7 @@ table.sched-table.density-airy .sched-stat-col{font-size:11px;padding:4px 6px}
       <button class="btn-ghost" id="emp-settings-btn" onclick="openEmployeeSettings()" style="display:none">👤 Profil</button>
       <button class="btn-ghost" id="admin-settings-btn" onclick="openEmployeeSettings()" style="display:none">👤 Profil</button>
       <span id="org-code-badge" style="display:none;font-family:var(--font-mono);font-size:12px;font-weight:700;letter-spacing:1.5px;background:var(--paper);border:1.5px solid var(--line);padding:4px 10px;border-radius:6px;color:var(--ink-soft)" title="Kód firmy"></span>
-      <span title="Verze aplikace" style="font-size:10px;color:var(--ink-faint);font-family:var(--font-mono);padding:0 4px;user-select:none">v0.4.2</span>
+      <span title="Verze aplikace" style="font-size:10px;color:var(--ink-faint);font-family:var(--font-mono);padding:0 4px;user-select:none">v0.5.0</span>
       <button class="btn-ghost" id="notif-btn" onclick="toggleNotifPanel()" title="Notifikace" style="position:relative;padding:6px 10px;font-size:16px;display:none;align-items:center;justify-content:center">
         🔔
         <span id="notif-badge" style="display:none;position:absolute;top:3px;right:3px;width:9px;height:9px;background:var(--red);border-radius:50%;border:2px solid var(--surface)"></span>
@@ -809,7 +910,7 @@ table.sched-table.density-airy .sched-stat-col{font-size:11px;padding:4px 6px}
             <div id="toolbar-more-menu" style="display:none;position:absolute;top:calc(100% + 6px);right:0;background:var(--surface);border:1.5px solid var(--line);border-radius:10px;box-shadow:0 6px 20px rgba(30,34,48,.12);z-index:500;min-width:170px;overflow:hidden">
               <div onclick="openImportModal();closeToolbarMenu()" class="toolbar-menu-item">⬆ Import JSON</div>
               <div onclick="exportJSON();closeToolbarMenu()" class="toolbar-menu-item">⬇ Export JSON</div>
-              <div onclick="exportXLSX();closeToolbarMenu()" class="toolbar-menu-item">📊 Export Excel (.xlsx)</div>
+              <div onclick="exportToExcel();closeToolbarMenu()" class="toolbar-menu-item">📊 Export Excel (.xlsx)</div>
               <div style="border-top:1px solid var(--line);margin:4px 0"></div>
               <div onclick="printSchedule();closeToolbarMenu()" class="toolbar-menu-item">🖨 Tisk / PDF</div>
             </div>
@@ -1287,6 +1388,37 @@ table.sched-table.density-airy .sched-stat-col{font-size:11px;padding:4px 6px}
 </div>
 
 <!-- ============================================================
+     ONBOARDING WIZARD (new admin — no branches/employees yet)
+     ============================================================ -->
+<div class="onboarding-overlay" id="onboarding-wizard-overlay">
+  <div class="onboarding-card">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
+      <div style="width:32px;height:32px;border-radius:8px;background:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <svg width="20" height="20" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="2" y="6" width="32" height="26" rx="5" fill="#fff" opacity=".15"/>
+          <rect x="2" y="6" width="32" height="26" rx="5" stroke="#fff" stroke-width="2.2"/>
+          <line x1="2" y1="14" x2="34" y2="14" stroke="#fff" stroke-width="2"/>
+          <line x1="10" y1="2" x2="10" y2="10" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="26" y1="2" x2="26" y2="10" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+          <rect x="7" y="18" width="6" height="5" rx="1.5" fill="#fff"/>
+          <rect x="15" y="18" width="6" height="5" rx="1.5" fill="#fff" opacity=".6"/>
+          <rect x="23" y="18" width="6" height="5" rx="1.5" fill="#fff" opacity=".3"/>
+          <rect x="7" y="25" width="6" height="4" rx="1.5" fill="#fff" opacity=".4"/>
+          <rect x="15" y="25" width="6" height="4" rx="1.5" fill="#fff"/>
+        </svg>
+      </div>
+      <span style="font-family:var(--font-display);font-weight:700;font-size:17px;color:var(--ink)">Směny</span>
+    </div>
+    <div class="onboarding-progress">
+      <span class="onboarding-progress-label" id="ob-step-label">Krok 1 / 4</span>
+      <div class="onboarding-progress-track"><div class="onboarding-progress-fill" id="ob-progress-fill" style="width:25%"></div></div>
+    </div>
+    <div id="ob-step-content"></div>
+    <button class="onboarding-skip-link" onclick="skipOnboarding()">Přeskočit průvodce</button>
+  </div>
+</div>
+
+<!-- ============================================================
      CELL PICKER (calendar manual edit)
      ============================================================ -->
 <div class="picker-overlay" id="picker-overlay" onclick="closePicker()"></div>
@@ -1295,6 +1427,93 @@ table.sched-table.density-airy .sched-stat-col{font-size:11px;padding:4px 6px}
 <div class="toast" id="toast"></div>
 
 <script>
+// ============================================================
+// GLOBAL ERROR HANDLERS
+// ============================================================
+window.onerror = (msg, src, line, col, err) => {
+  console.error('Global error:', msg, err);
+  return false;
+};
+window.addEventListener('unhandledrejection', e => {
+  console.error('Unhandled promise rejection:', e.reason);
+});
+
+// ============================================================
+// OFFLINE DETECTION
+// ============================================================
+window.addEventListener('online',  () => { const b = document.getElementById('offline-banner'); if(b) b.style.display='none'; });
+window.addEventListener('offline', () => { const b = document.getElementById('offline-banner'); if(b) b.style.display='block'; });
+
+// ============================================================
+// i18n
+// ============================================================
+const TRANSLATIONS = {
+  cs: {
+    'app.name': 'Směny',
+    'app.tagline': 'Plánování směn pro týmy s více pobočkami',
+    'login.title': 'Vítej zpátky',
+    'login.subtitle': 'Přihlas se ke správě rozpisu směn.',
+    'login.email': 'E-mail',
+    'login.password': 'Heslo',
+    'login.submit': 'Přihlásit se',
+    'signup.title': 'Vytvoř si účet',
+    'signup.submit': 'Vytvořit účet',
+    'nav.schedule': 'Rozpis',
+    'nav.employees': 'Zaměstnanci',
+    'nav.branches': 'Pobočky',
+    'nav.rules': 'Pravidla',
+    'nav.gaps': 'Mezery',
+    'nav.appearance': 'Vzhled',
+    'nav.dashboard': 'Dashboard',
+    'toast.connection_error': 'Chyba připojení — zkus to znovu',
+    'toast.session_expired': 'Tvoje session vypršela — přihlas se znovu',
+    'toast.offline': 'Offline — změny se neuloží',
+    'schedule.generate': 'Generovat',
+    'schedule.publish': 'Publikovat',
+    'schedule.export_excel': 'Export Excel',
+    'onboarding.welcome': 'Vítejte v aplikaci Směny',
+    'onboarding.step1_desc': 'Rychlé plánování směn pro váš tým.',
+    'onboarding.step2_title': 'Přidejte pobočky',
+    'onboarding.step3_title': 'Přidejte zaměstnance',
+    'onboarding.step4_title': 'Nastavte pravidla',
+    'onboarding.finish': 'Dokončit a přejít do aplikace',
+    'onboarding.skip': 'Přeskočit průvodce',
+    'invite.expired': 'Tento pozvánkový odkaz vypršel — požádej admina o nový',
+    'appearance.language': 'Jazyk',
+  }
+};
+
+let currentLang = localStorage.getItem('app_lang') || 'cs';
+
+function t(key) {
+  return (TRANSLATIONS[currentLang] && TRANSLATIONS[currentLang][key]) || key;
+}
+
+function setLanguage(lang) {
+  currentLang = lang;
+  localStorage.setItem('app_lang', lang);
+}
+
+// ============================================================
+// SUPABASE HELPER WRAPPER
+// ============================================================
+async function sbCall(fn) {
+  try {
+    const result = await fn();
+    if (result.error) throw result.error;
+    return result.data;
+  } catch (e) {
+    if (e.message && e.message.includes('JWT')) {
+      toast('Tvoje session vypršela — přihlas se znovu', 'error');
+      setTimeout(() => sb.auth.signOut(), 1500);
+      return null;
+    }
+    toast('Chyba připojení — zkus to znovu', 'error');
+    console.error(e);
+    return null;
+  }
+}
+
 // ============================================================
 // SUPABASE CLIENT
 // ============================================================
@@ -1331,16 +1550,7 @@ function toast(msg, type){
 function toastError(msg){ toast('⚠ ' + msg, 'error'); }
 function toastOk(msg){ toast('✓ ' + msg, 'ok'); }
 
-// Global error handler — catch unhandled promise rejections
-window.addEventListener('unhandledrejection', e => {
-  console.error('Unhandled:', e.reason);
-  const msg = e.reason?.message || String(e.reason);
-  if(msg.includes('Failed to fetch') || msg.includes('NetworkError')){
-    toastError('Chyba připojení — zkontroluj internet a obnov stránku.');
-  } else if(msg.includes('JWT') || msg.includes('auth')){
-    toastError('Platnost přihlášení vypršela — přihlas se znovu.');
-  }
-});
+// (unhandledrejection handler is registered at top of script)
 
 // ============================================================
 // AUTH SCREEN TABS
@@ -1382,6 +1592,7 @@ async function doLogin(){
     return;
   }
   await bootstrapAfterAuth();
+  logActivity('Přihlášení uživatele ' + email);
 }
 
 let signupMode = 'join'; // 'join' | 'create'
@@ -1469,7 +1680,7 @@ async function doSignup(){
 async function joinOrgByCode(orgCode){
   // Find org with this invite_code
   const { data: orgs, error } = await sb.from('organizations')
-    .select('id, name')
+    .select('id, name, invite_expires_at')
     .eq('invite_code', orgCode.toUpperCase())
     .limit(1);
 
@@ -1479,6 +1690,12 @@ async function joinOrgByCode(orgCode){
   }
 
   const org = orgs[0];
+
+  // Check invite expiry
+  if(org.invite_expires_at && new Date(org.invite_expires_at) < new Date()){
+    showAuthError('signup', t('invite.expired'));
+    return false;
+  }
   const { data: { user } } = await sb.auth.getUser();
 
   // Check if already member
@@ -1702,7 +1919,7 @@ async function bootstrapAfterAuth(){
 
     const { data: memberRows, error: memberError } = await sb
       .from('org_members')
-      .select('org_id, role, employee_id, organizations(id, name, slug, invite_code)')
+      .select('org_id, role, employee_id, organizations(id, name, slug, invite_code, invite_expires_at)')
       .eq('user_id', user.id)
       .limit(1);
 
@@ -1729,9 +1946,18 @@ async function bootstrapAfterAuth(){
 
     const membership = memberRows[0];
     currentOrg = membership.organizations;
-    currentOrg.invite_code = currentOrg.invite_code || null; // already in query
+    currentOrg.invite_code = currentOrg.invite_code || null;
+    currentOrg.invite_expires_at = currentOrg.invite_expires_at || null;
     currentRole = membership.role;
     currentEmployeeId = membership.employee_id || null;
+
+    // Ensure new orgs get an invite expiry (7 days from now if not set)
+    if(currentRole === 'admin' && !currentOrg.invite_expires_at && currentOrg.id){
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+      sb.from('organizations').update({ invite_expires_at: expiresAt }).eq('id', currentOrg.id).then(() => {
+        currentOrg.invite_expires_at = expiresAt;
+      });
+    }
 
     document.getElementById('app-shell').style.display = 'block';
     loadAppearSettings(); // apply appearance settings from localStorage
@@ -1801,12 +2027,170 @@ async function bootstrapAfterAuth(){
     loadNotifications();
 
     initSchedule();
+    checkAndShowOnboarding();
     maybeStartTutorial();
   } catch(err){
     document.getElementById('loading-screen').style.display = 'none';
     document.getElementById('auth-shell').style.display = 'flex';
     showAuthError('login', 'Nastala chyba při načítání: ' + (err && err.message ? err.message : String(err)));
   }
+}
+
+// ============================================================
+// ACTIVITY LOG
+// ============================================================
+function logActivity(msg) {
+  if (!currentOrg) return;
+  const key = 'activity_log_' + currentOrg.id;
+  const log = JSON.parse(localStorage.getItem(key) || '[]');
+  log.unshift({ msg, ts: new Date().toISOString() });
+  if (log.length > 50) log.length = 50;
+  localStorage.setItem(key, JSON.stringify(log));
+}
+
+// ============================================================
+// ONBOARDING WIZARD
+// ============================================================
+let obStep = 0;
+const OB_STEPS = [
+  { label: 'Vítejte', key: 'welcome' },
+  { label: 'Pobočky',  key: 'branches' },
+  { label: 'Zaměstnanci', key: 'employees' },
+  { label: 'Pravidla', key: 'rules' }
+];
+
+function checkAndShowOnboarding() {
+  if (currentRole !== 'admin') return;
+  if (!currentOrg) return;
+  const doneKey = 'onboarding_done_' + currentOrg.id;
+  if (localStorage.getItem(doneKey)) return;
+  if (branches.length === 0 && employees.length === 0) {
+    obStep = 0;
+    renderOnboardingStep();
+    const overlay = document.getElementById('onboarding-wizard-overlay');
+    if (overlay) overlay.classList.add('open');
+  }
+}
+
+function skipOnboarding() {
+  if (currentOrg) localStorage.setItem('onboarding_done_' + currentOrg.id, '1');
+  const overlay = document.getElementById('onboarding-wizard-overlay');
+  if (overlay) overlay.classList.remove('open');
+}
+
+function finishOnboarding() {
+  if (currentOrg) localStorage.setItem('onboarding_done_' + currentOrg.id, '1');
+  const overlay = document.getElementById('onboarding-wizard-overlay');
+  if (overlay) overlay.classList.remove('open');
+  logActivity('Onboarding dokončen');
+}
+
+function obNext() {
+  if (obStep < OB_STEPS.length - 1) { obStep++; renderOnboardingStep(); }
+  else { finishOnboarding(); }
+}
+
+function obBack() {
+  if (obStep > 0) { obStep--; renderOnboardingStep(); }
+}
+
+function renderOnboardingStep() {
+  const label = document.getElementById('ob-step-label');
+  const fill  = document.getElementById('ob-progress-fill');
+  const content = document.getElementById('ob-step-content');
+  if (!content) return;
+  const total = OB_STEPS.length;
+  if (label) label.textContent = `Krok ${obStep + 1} / ${total} — ${OB_STEPS[obStep].label}`;
+  if (fill)  fill.style.width = `${((obStep + 1) / total) * 100}%`;
+
+  const isLast = obStep === total - 1;
+  const nextLabel = isLast ? 'Dokončit a přejít do aplikace' : 'Další →';
+
+  let html = '';
+  if (obStep === 0) {
+    html = `
+      <div style="text-align:center;padding:16px 0 24px">
+        <div style="font-size:36px;margin-bottom:12px">📅</div>
+        <h2 style="font-size:22px;font-weight:700;margin:0 0 8px">Vítejte v aplikaci Směny!</h2>
+        <p style="color:var(--ink-soft);margin:0 0 24px">Tento průvodce vám pomůže nastavit aplikaci za pár minut.</p>
+        <ul style="text-align:left;list-style:none;padding:0;margin:0 0 8px;display:flex;flex-direction:column;gap:10px">
+          <li style="display:flex;align-items:center;gap:10px"><span style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0">1</span> Přidáte pobočky</li>
+          <li style="display:flex;align-items:center;gap:10px"><span style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0">2</span> Přidáte zaměstnance</li>
+          <li style="display:flex;align-items:center;gap:10px"><span style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0">3</span> Nastavíte pravidla směn</li>
+        </ul>
+      </div>`;
+  } else if (obStep === 1) {
+    const branchList = branches.map(b => `<li style="padding:6px 0;border-bottom:1px solid var(--line)">${b.name}</li>`).join('') || '<li style="color:var(--ink-soft);padding:6px 0">Zatím žádné pobočky</li>';
+    html = `
+      <h3 style="font-size:18px;font-weight:700;margin:0 0 8px">Přidejte pobočky</h3>
+      <p style="color:var(--ink-soft);margin:0 0 16px;font-size:14px">Pobočky jsou provozovny nebo místa, kde tým pracuje.</p>
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <input id="ob-branch-name" type="text" placeholder="Název pobočky" class="form-input" style="flex:1">
+        <button class="btn btn-primary" onclick="onboardingAddBranch()">Přidat</button>
+      </div>
+      <ul style="list-style:none;padding:0;margin:0">${branchList}</ul>`;
+  } else if (obStep === 2) {
+    const empList = employees.map(e => `<li style="padding:6px 0;border-bottom:1px solid var(--line)">${e.full_name}</li>`).join('') || '<li style="color:var(--ink-soft);padding:6px 0">Zatím žádní zaměstnanci</li>';
+    html = `
+      <h3 style="font-size:18px;font-weight:700;margin:0 0 8px">Přidejte zaměstnance</h3>
+      <p style="color:var(--ink-soft);margin:0 0 16px;font-size:14px">Zaměstnanci budou přiřazeni ke směnám. Pozvat je můžeš pozvánkovým kódem organizace.</p>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px">
+        <input id="ob-emp-name" type="text" placeholder="Celé jméno" class="form-input">
+        <input id="ob-emp-email" type="email" placeholder="E-mail (volitelné)" class="form-input">
+        <button class="btn btn-primary" onclick="onboardingAddEmployee()">Přidat</button>
+      </div>
+      <ul style="list-style:none;padding:0;margin:0">${empList}</ul>`;
+  } else if (obStep === 3) {
+    html = `
+      <h3 style="font-size:18px;font-weight:700;margin:0 0 8px">Pravidla směn</h3>
+      <p style="color:var(--ink-soft);margin:0 0 16px;font-size:14px">Pravidla určují, jak algoritmus generuje rozpis. Můžeš je nastavit podrobněji v záložce <strong>Pravidla</strong> po dokončení průvodce.</p>
+      <div style="background:var(--paper);border-radius:var(--radius-sm);padding:16px;border:1px solid var(--line)">
+        <ul style="margin:0;padding-left:18px;color:var(--ink-soft);font-size:14px;display:flex;flex-direction:column;gap:8px">
+          <li>Minimální odpočinek mezi směnami: <strong>11 hodin</strong></li>
+          <li>Max. směn za týden: <strong>5</strong></li>
+          <li>Spravedlivé rozdělení víkendů</li>
+          <li>Zohlednění nedostupnosti zaměstnanců</li>
+        </ul>
+      </div>
+      <p style="color:var(--ink-soft);font-size:13px;margin:12px 0 0">Tato pravidla lze kdykoliv upravit v záložce Pravidla.</p>`;
+  }
+
+  html += `<div style="display:flex;gap:10px;margin-top:24px;justify-content:flex-end">`;
+  if (obStep > 0) html += `<button class="btn btn-secondary" onclick="obBack()">← Zpět</button>`;
+  html += `<button class="btn btn-primary" onclick="obNext()">${nextLabel}</button>`;
+  html += `</div>`;
+
+  content.innerHTML = html;
+}
+
+async function onboardingAddBranch() {
+  const input = document.getElementById('ob-branch-name');
+  if (!input || !input.value.trim()) return;
+  const name = input.value.trim();
+  if (!currentOrg) return;
+  const { data, error } = await sb.from('branches').insert({ org_id: currentOrg.id, name }).select().single();
+  if (error) { toast('Chyba při přidávání pobočky: ' + error.message, 'error'); return; }
+  branches.push(data);
+  input.value = '';
+  renderOnboardingStep();
+}
+
+async function onboardingAddEmployee() {
+  const nameIn  = document.getElementById('ob-emp-name');
+  const emailIn = document.getElementById('ob-emp-email');
+  if (!nameIn || !nameIn.value.trim()) return;
+  const full_name = nameIn.value.trim();
+  const email = emailIn ? emailIn.value.trim() : '';
+  if (!currentOrg) return;
+  const payload = { org_id: currentOrg.id, full_name };
+  if (email) payload.email = email;
+  if (branches.length > 0) payload.branch_id = branches[0].id;
+  const { data, error } = await sb.from('employees').insert(payload).select().single();
+  if (error) { toast('Chyba při přidávání zaměstnance: ' + error.message, 'error'); return; }
+  employees.push(data);
+  nameIn.value = '';
+  if (emailIn) emailIn.value = '';
+  renderOnboardingStep();
 }
 
 // ============================================================
@@ -2052,6 +2436,12 @@ let shifts     = {};    // key: "empId:YYYY-MM-DD" → DB row (uses shift_date, 
 let unavail    = {};    // key: "empId:YYYY-MM-DD" → true
 let shiftTypes = [];    // all shift_types for org
 let orgSettings = {};
+
+function getSettingValue(key, defaultValue) {
+  const v = orgSettings[key];
+  return (v !== undefined && v !== null) ? v : defaultValue;
+}
+
 let autoRunning = false;
 let autoCancel  = false;
 let fillMode    = false;
@@ -3840,7 +4230,9 @@ async function runAutoSchedule(){
       if(error){ toast('Chyba ukládání: '+error.message); break; }
     }
     await loadShiftsForMonth();
+    const monthLabel2 = new Date(schedYear, schedMonth, 1).toLocaleDateString('cs-CZ',{month:'long',year:'numeric'});
     toast('Hotovo — '+bestPct+'% ('+run+' pokusů, '+toInsert.length+' směn)');
+    logActivity(`Rozpis ${monthLabel2} vygenerován (${bestPct}%, ${toInsert.length} směn)`);
   }
 
   progressWrap.innerHTML='';
@@ -5006,8 +5398,26 @@ async function linkByEmpCode(empId){
 // ORG CODE — show to admin so they can share with employees
 // ============================================================
 async function loadOrgCode(){
-  const { data } = await sb.from('organizations').select('invite_code').eq('id', currentOrg.id).single();
-  if(data) currentOrg.invite_code = data.invite_code;
+  const { data } = await sb.from('organizations').select('invite_code, invite_expires_at').eq('id', currentOrg.id).single();
+  if(data){
+    currentOrg.invite_code = data.invite_code;
+    currentOrg.invite_expires_at = data.invite_expires_at;
+  }
+}
+
+async function regenerateInviteCode(){
+  const newCode = Math.random().toString(36).slice(2,8).toUpperCase();
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+  const { error } = await sb.from('organizations')
+    .update({ invite_code: newCode, invite_expires_at: expiresAt })
+    .eq('id', currentOrg.id);
+  if(error){ toast('Chyba: ' + error.message, 'error'); return; }
+  currentOrg.invite_code = newCode;
+  currentOrg.invite_expires_at = expiresAt;
+  const badge = document.getElementById('org-code-badge');
+  if(badge) badge.textContent = `🏢 ${newCode}`;
+  toast('Nový kód vygenerován: ' + newCode, 'ok');
+  logActivity('Pozvánkový kód organizace obnoven');
 }
 
 // ============================================================
@@ -5373,6 +5783,17 @@ function renderAppearSettings(){
         </label>
       </div>
 
+      <!-- Language selector -->
+      <div style="border-top:1px solid var(--line);padding-top:16px;display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <div style="font-size:14px;font-weight:600">🌐 Jazyk</div>
+          <div style="font-size:12px;color:var(--ink-soft);margin-top:2px">Jazyk rozhraní aplikace</div>
+        </div>
+        <select id="lang-select" onchange="setLanguage(this.value)" style="padding:7px 10px;border:1.5px solid var(--line);border-radius:8px;font-size:13px;background:var(--surface);color:var(--ink);cursor:pointer">
+          <option value="cs" ${currentLang==='cs'?'selected':''}>🇨🇿 Čeština</option>
+        </select>
+      </div>
+
       <!-- Save bar -->
       <div style="border-top:1px solid var(--line);padding-top:14px;display:flex;gap:8px;align-items:center">
         <button onclick="saveAppearSettings()" class="btn-primary"
@@ -5425,6 +5846,21 @@ function openDashboard(){
       </div>
     </div>`;
 
+  // Activity log
+  const actLog = currentOrg ? JSON.parse(localStorage.getItem('activity_log_' + currentOrg.id) || '[]') : [];
+  const activityHtml = actLog.length === 0
+    ? '<div style="color:var(--ink-soft);font-size:13px;padding:8px 0">Zatím žádná aktivita</div>'
+    : actLog.slice(0, 8).map(a => {
+        const ts = new Date(a.ts).toLocaleString('cs-CZ', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+        return `<div class="dash-activity-item"><span>${escapeHtml(a.msg)}</span><span style="color:var(--ink-faint);font-size:11px;white-space:nowrap;margin-left:8px">${ts}</span></div>`;
+      }).join('');
+
+  const activitySection = `
+    <div style="margin-top:16px">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--ink-soft);margin-bottom:8px">Poslední aktivita</div>
+      <div class="dash-activity">${activityHtml}</div>
+    </div>`;
+
   document.getElementById('dashboard-body').innerHTML = isAdmin ? `
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
       ${statCard(employees.filter(e=>!e.is_fixed).length, 'Zaměstnanci')}
@@ -5433,12 +5869,14 @@ function openDashboard(){
       ${statCard(isPublished?'✓ Publikován':'Nepublikován', 'Stav rozpisu', isPublished?'var(--accent)':'var(--amber)')}
     </div>
     ${adminActions}
+    ${activitySection}
   ` : `
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
       ${statCard(branches.length, 'Pobočky')}
       ${statCard(isPublished?'✓ Publikován':'Nepublikován', 'Stav rozpisu', isPublished?'var(--accent)':'var(--amber)')}
     </div>
     ${adminActions}
+    ${activitySection}
   `;
   overlay.classList.add('open');
 }
@@ -5589,6 +6027,7 @@ async function doPublishSchedule(){
   }
 
   toast(`📢 Rozpis ${monthLabel} publikován`, 'ok');
+  logActivity(`Rozpis ${monthLabel} byl publikován`);
   updatePublishBtn();
 }
 
@@ -6017,6 +6456,56 @@ function exportXLSX(){
   a.href = url; a.download = fname; a.click();
   URL.revokeObjectURL(url);
   toast('Excel exportován');
+}
+
+// ============================================================
+// EXCEL EXPORT (SheetJS / xlsx library)
+// ============================================================
+function exportToExcel(){
+  if(typeof XLSX === 'undefined'){ toast('Knihovna XLSX není načtena', 'error'); return; }
+
+  const daysInMonth = new Date(schedYear, schedMonth+1, 0).getDate();
+  const monthName = new Date(schedYear, schedMonth, 1)
+    .toLocaleDateString('cs-CZ',{month:'long',year:'numeric'});
+  const dayNames = ['Ne','Po','Út','St','Čt','Pá','So'];
+
+  // Header row
+  const headerRow = ['Zaměstnanec'];
+  for(let d=1; d<=daysInMonth; d++){
+    const dow = new Date(schedYear, schedMonth, d).getDay();
+    headerRow.push(`${d} ${dayNames[dow]}`);
+  }
+  headerRow.push('Počet');
+
+  // Data rows
+  const dataRows = employees.map(emp => {
+    const row = [emp.name || emp.full_name || '—'];
+    let count = 0;
+    for(let d=1; d<=daysInMonth; d++){
+      const dateStr = isoDate(schedYear, schedMonth+1, d);
+      const key = emp.id + ':' + dateStr;
+      const s = shifts[key];
+      const u = unavail[key];
+      if(u){ row.push('N'); }
+      else if(s && s.shift_type_code){ row.push(s.shift_type_code); if(s.shift_type_code !== 'X') count++; }
+      else { row.push(''); }
+    }
+    row.push(count);
+    return row;
+  });
+
+  const aoa = [headerRow, ...dataRows];
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, monthName.slice(0,31));
+
+  // Column widths
+  ws['!cols'] = [{ wch: 20 }, ...Array(daysInMonth).fill({ wch: 5 }), { wch: 6 }];
+
+  const fname = `smeny_${monthName.replace(/\s/g,'_')}.xlsx`;
+  XLSX.writeFile(wb, fname);
+  toast('Excel (.xlsx) exportován');
+  logActivity(`Export Excel ${monthName}`);
 }
 
 // ============================================================
