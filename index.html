@@ -38,7 +38,27 @@
   --font-display:'Space Grotesk',system-ui,sans-serif;
   --font-body:'Inter',system-ui,sans-serif;
   --font-mono:'IBM Plex Mono',ui-monospace,monospace;
+  /* Appearance settings — overridden by JS */
+  --tbl-fs:12px;   /* table cell font size */
+  --tbl-h:26px;    /* table cell height */
+  --tbl-name-fs:12px; /* name column font */
+  --ui-fs:13.5px;  /* base UI font */
 }
+/* Dark mode */
+body.dark{
+  --paper:#1b1e27;--surface:#252830;--ink:#e4e8f0;--ink-soft:#9ba3b0;
+  --ink-faint:#616a77;--line:#333844;--accent-soft:#172b20;
+  --amber-soft:#2d1c0a;--red-soft:#2a0e0e;
+}
+body.dark .auth-card,.dark .modal,.dark .picker,.dark .panel{background:var(--surface)!important}
+body.dark .topbar,.dark .tabbar{background:var(--surface);border-color:var(--line)}
+body.dark .sched-name-col{background:var(--surface)}
+body.dark .sched-day-col.weekend{background:#2a2c36}
+body.dark .sched-cell.weekend{background:#232530}
+body.dark .score-bar,.dark .auto-progress-box,.dark .condition-row{background:var(--surface);border-color:var(--line)}
+body.dark .condition-row.is-hard{border-color:var(--red);background:var(--red-soft)}
+body.dark table.data-table tr:hover td{background:#1f222b}
+body.dark .sched-scroll{border-color:var(--line)}
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
 body{
@@ -212,14 +232,14 @@ a{color:var(--accent)}
 .tab-btn:hover:not(.active){color:var(--ink)}
 
 .main{padding:28px 24px 60px;margin:0 auto}
-.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:22px;margin-bottom:18px;box-shadow:var(--shadow)}
-.panel-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
-.panel-title{font-size:16px;font-weight:600;font-family:var(--font-display);margin:0}
-.panel-sub{font-size:12.5px;color:var(--ink-soft);margin:3px 0 0}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:26px;margin-bottom:18px;box-shadow:var(--shadow)}
+.panel-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.panel-title{font-size:16px;font-weight:700;font-family:var(--font-display);margin:0;letter-spacing:-0.01em}
+.panel-sub{font-size:12.5px;color:var(--ink-soft);margin:4px 0 0;line-height:1.45}
 
-.btn-accent{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:9px 16px;font-size:13px;font-weight:600;transition:background .15s}
+.btn-accent{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:10px 18px;font-size:14px;font-weight:600;transition:background .15s;white-space:nowrap}
 .btn-accent:hover{background:var(--accent-ink)}
-.btn-outline{background:none;border:1.5px solid var(--line);border-radius:8px;padding:8px 15px;font-size:13px;font-weight:600;color:var(--ink);transition:all .15s}
+.btn-outline{background:none;border:1.5px solid var(--line);border-radius:8px;padding:9px 16px;font-size:13.5px;font-weight:600;color:var(--ink);transition:all .15s;white-space:nowrap}
 .btn-outline:hover{border-color:var(--accent);color:var(--accent-ink)}
 
 .empty-state{text-align:center;padding:48px 20px;color:var(--ink-soft)}
@@ -265,10 +285,10 @@ table.data-table tr:hover td{background:var(--paper)}
 .icon-nav-btn:hover{border-color:var(--accent);color:var(--accent-ink)}
 
 .sched-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:var(--radius-sm)}
-table.sched-table{border-collapse:collapse;font-size:11px;width:100%;min-width:700px;table-layout:fixed}
+table.sched-table{border-collapse:collapse;font-size:var(--tbl-fs);width:100%;min-width:700px;table-layout:fixed}
 table.sched-table th, table.sched-table td{border-bottom:1px solid #ccc;border-right:1px solid #ccc}
 table.sched-table th:last-child, table.sched-table td:last-child{border-right:none}
-.sched-name-col{position:sticky;left:0;background:var(--surface);z-index:2;text-align:left;padding:4px 8px;width:160px;min-width:80px;max-width:280px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700;font-size:12px;color:#111;border-right:2px solid #c8c8c4;box-sizing:border-box;vertical-align:middle}
+.sched-name-col{position:sticky;left:0;background:var(--surface);z-index:2;text-align:left;padding:4px 8px;width:160px;min-width:80px;max-width:280px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700;font-size:var(--tbl-name-fs);color:#111;border-right:2px solid #c8c8c4;box-sizing:border-box;vertical-align:middle}
 .sched-name-col-resize{position:absolute;right:-4px;top:0;width:8px;height:100%;cursor:col-resize;z-index:20;background:transparent;border-right:2px solid transparent;transition:border-color .15s}
 .sched-name-col-resize:hover, .sched-name-col-resize.dragging{border-right-color:var(--accent)}
 thead .sched-name-col{z-index:3;font-size:11px;font-weight:600;color:#333;position:relative !important;overflow:visible !important}
@@ -276,10 +296,10 @@ body.employee-view .sched-name-col{width:160px;min-width:80px;max-width:280px;pa
 .sched-day-col{text-align:center;padding:3px 0;font-size:11px;color:#111;font-weight:900;overflow:hidden}
 .sched-day-col.weekend{background:#ede8df;color:#111}
 .sched-day-col .dow{font-weight:700;font-size:9.5px;color:#333;display:block}
-.sched-cell{text-align:center;padding:0;cursor:pointer;height:26px;position:relative}
+.sched-cell{text-align:center;padding:0;cursor:pointer;height:var(--tbl-h);position:relative}
 .sched-cell.weekend{background:#f5f0e8}
 .sched-cell:hover{background:var(--accent-soft)}
-.sched-chip{display:inline-block;width:100%;height:100%;line-height:26px;font-family:var(--font-mono);font-size:10px;font-weight:800;color:#fff;pointer-events:none;-webkit-print-color-adjust:exact;print-color-adjust:exact;text-shadow:0 1px 2px rgba(0,0,0,.25)}
+.sched-chip{display:inline-block;width:100%;height:100%;line-height:var(--tbl-h);font-family:var(--font-mono);font-size:calc(var(--tbl-fs) - 1px);font-weight:800;color:#fff;pointer-events:none;-webkit-print-color-adjust:exact;print-color-adjust:exact;text-shadow:0 1px 2px rgba(0,0,0,.25)}
 .sched-chip.auto{opacity:0.85}
 body.employee-view .sched-chip.auto{opacity:1}
 .sched-chip.x-chip{background:#999!important;color:#fff}
@@ -347,7 +367,7 @@ tr.dragging{opacity:.4}
   .panel { box-shadow: none !important; border: none !important; padding: 0 !important; }
   .sched-scroll { overflow: visible !important; }
   #sched-scroll-wrap { width: auto !important; max-width: none !important; margin: 0 !important; overflow: visible !important; }
-  #table-width-handle { display: none !important; }
+  #table-width-handle, #table-width-handle-left, #table-height-handle { display: none !important; }
   table.sched-table { font-size: 8.5px !important; }
   .sched-name-col { min-width: 80px !important; max-width: 80px !important; font-size: 8px !important; }
   .sched-day-col { min-width: 18px !important; width: 18px !important; font-size: 7.5px !important; }
@@ -432,14 +452,38 @@ body.employee-view #fill-mode-slot-wrap { display: none !important; }
 #table-width-handle:hover, #table-width-handle.dragging { border-right-color: var(--accent); }
 #table-width-handle-left:hover, #table-width-handle-left.dragging { border-left-color: var(--accent); }
 /* Branches panel spacing */
-#pane-branches .panel-head { margin-bottom: 10px; }
+#pane-branches .panel-head { margin-bottom: 14px; }
+/* Rules panel section separators */
+.rules-section-sep { border:none;border-top:1px solid var(--line);margin:20px 0 }
+.rules-section-title { font-size:13.5px;font-weight:700;font-family:var(--font-display);color:var(--ink);margin:0 0 5px }
+.rules-section-hint { font-size:12px;color:var(--ink-faint);margin:0 0 14px;line-height:1.5 }
+/* Condition rows in unified rules panel */
+.condition-row { border:1.5px solid var(--line);border-radius:10px;padding:11px 14px;margin-bottom:8px }
+.condition-row.is-hard { border-color:var(--red);background:#fff8f8 }
+/* Table bottom resize handle */
+#table-height-handle { width:100%;height:7px;cursor:row-resize;z-index:5;border-bottom:3px solid transparent;transition:border-color .15s;margin-top:1px }
+#table-height-handle:hover, #table-height-handle.dragging { border-bottom-color:var(--accent) }
 
 .loading-screen{position:fixed;inset:0;background:var(--paper);display:flex;align-items:center;justify-content:center;z-index:500}
 
 @media (max-width:640px){
-  .topbar,.tabbar,.main{padding-left:14px;padding-right:14px}
+  .topbar,.tabbar,.main{padding-left:12px;padding-right:12px}
   .org-name{display:none}
   table.data-table{font-size:12.5px}
+  /* Toolbar — hide text labels, keep icons */
+  .sched-toolbar .btn-accent .btn-label,
+  .sched-toolbar .btn-outline .btn-label{ display:none }
+  .sched-toolbar .btn-accent,.sched-toolbar .btn-outline{ padding:9px 11px;font-size:13px }
+  /* Modals full-width on mobile */
+  .modal-overlay{ padding:10px }
+  .modal{ max-width:100% !important;max-height:94vh;overflow-y:auto }
+  /* Tutorial bubbles — clamp to screen */
+  #tut-bubble{ width:calc(100vw - 24px) !important;max-width:320px }
+  #emp-tut-bubble{ width:calc(100vw - 24px) !important;max-width:290px }
+  /* Tab labels shorter */
+  .tab-btn{ padding:12px 10px;font-size:12.5px }
+  /* hide some topbar elements */
+  #org-code-badge{ display:none !important }
 }
 </style>
 </head>
@@ -472,7 +516,7 @@ body.employee-view #fill-mode-slot-wrap { display: none !important; }
   <div class="auth-card">
     <div class="auth-mark">
       <div class="auth-mark-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h10M4 17h7"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2.5" stroke="#fff"/><line x1="3" y1="10" x2="21" y2="10" stroke="#fff" stroke-width="1.5"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/><rect x="6" y="13" width="4" height="2.5" rx=".6" fill="#fff" stroke="none"/><rect x="14" y="13" width="4" height="2.5" rx=".6" fill="rgba(255,255,255,.55)" stroke="none"/><rect x="6" y="17" width="2.5" height="2" rx=".5" fill="rgba(255,255,255,.5)" stroke="none"/><rect x="10.5" y="17" width="4" height="2" rx=".5" fill="#fff" stroke="none"/></svg>
       </div>
       <span class="auth-mark-text">Směny</span>
     </div>
@@ -538,14 +582,14 @@ body.employee-view #fill-mode-slot-wrap { display: none !important; }
         <!-- Create mode: org name -->
         <div id="signup-create-section" class="field" style="margin-top:8px;display:none">
           <label for="signup-orgname">Název firmy</label>
-          <input type="text" id="signup-orgname" name="orgname" autocomplete="off" placeholder="Název firmy">
+          <input type="text" id="signup-orgname" name="orgname" autocomplete="off" placeholder="Název vaší firmy">
         </div>
 
         <button type="submit" class="btn-primary" id="signup-btn">Vytvořit účet</button>
       </form>
     </div>
 
-    <div class="auth-foot">Plánování směn pro provozy s více pobočkami</div>
+    <div class="auth-foot">Plánování směn pro týmy s více pobočkami — <strong>rychle, přehledně, odkudkoli</strong></div>
   </div>
 </div>
 
@@ -559,7 +603,7 @@ body.employee-view #fill-mode-slot-wrap { display: none !important; }
   <div class="auth-card">
     <div class="auth-mark">
       <div class="auth-mark-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h10M4 17h7"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2.5" stroke="#fff"/><line x1="3" y1="10" x2="21" y2="10" stroke="#fff" stroke-width="1.5"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/><rect x="6" y="13" width="4" height="2.5" rx=".6" fill="#fff" stroke="none"/><rect x="14" y="13" width="4" height="2.5" rx=".6" fill="rgba(255,255,255,.55)" stroke="none"/><rect x="6" y="17" width="2.5" height="2" rx=".5" fill="rgba(255,255,255,.5)" stroke="none"/><rect x="10.5" y="17" width="4" height="2" rx=".5" fill="#fff" stroke="none"/></svg>
       </div>
       <span class="auth-mark-text">Směny</span>
     </div>
@@ -571,7 +615,7 @@ body.employee-view #fill-mode-slot-wrap { display: none !important; }
       <div class="auth-error" id="onboard-error" style="display:none"></div>
       <div class="field">
         <label for="onboard-org-name">Název firmy</label>
-        <input type="text" id="onboard-org-name" placeholder="Název firmy">
+        <input type="text" id="onboard-org-name" placeholder="Název vaší firmy">
       </div>
       <button class="btn-primary" id="onboard-btn" onclick="createOrgFromOnboarding()">Založit firmu</button>
     </div>
@@ -622,7 +666,7 @@ body.employee-view #fill-mode-slot-wrap { display: none !important; }
         <div id="waiting-create-org-section" style="display:none;margin-top:12px;text-align:left">
           <div class="field">
             <label for="waiting-org-name">Název firmy</label>
-            <input type="text" id="waiting-org-name" placeholder="Název firmy">
+            <input type="text" id="waiting-org-name" placeholder="Název vaší firmy">
           </div>
           <div class="auth-error" id="waiting-create-error" style="display:none"></div>
           <button class="btn-primary" onclick="createOrgFromWaiting()" style="width:100%">Založit firmu</button>
@@ -637,8 +681,8 @@ body.employee-view #fill-mode-slot-wrap { display: none !important; }
 <div class="app-shell" id="app-shell">
   <div class="topbar">
     <div class="topbar-left">
-      <div class="auth-mark-icon" onclick="switchAppTab('schedule')" style="cursor:pointer" title="Přejít na Rozpis">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h10M4 17h7"/></svg>
+      <div class="auth-mark-icon" onclick="openDashboard()" style="cursor:pointer" title="Přehled organizace">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2.5" stroke="#fff"/><line x1="3" y1="10" x2="21" y2="10" stroke="#fff" stroke-width="1.5"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/><rect x="6" y="13" width="4" height="2.5" rx=".6" fill="#fff" stroke="none"/><rect x="14" y="13" width="4" height="2.5" rx=".6" fill="rgba(255,255,255,.55)" stroke="none"/><rect x="6" y="17" width="2.5" height="2" rx=".5" fill="rgba(255,255,255,.5)" stroke="none"/><rect x="10.5" y="17" width="4" height="2" rx=".5" fill="#fff" stroke="none"/></svg>
       </div>
       <span class="org-name" id="org-name-label" onclick="switchAppTab('schedule')" style="cursor:pointer" title="Přejít na Rozpis">—</span>
       <span class="org-tag" id="org-role-label">admin</span>
@@ -654,9 +698,9 @@ body.employee-view #fill-mode-slot-wrap { display: none !important; }
       <button class="btn-ghost" id="emp-settings-btn" onclick="openEmployeeSettings()" style="display:none">⚙ Profil</button>
       <button class="btn-ghost" id="admin-settings-btn" onclick="openEmployeeSettings()" style="display:none">⚙ Profil</button>
       <span id="org-code-badge" style="display:none;font-family:var(--font-mono);font-size:12px;font-weight:700;letter-spacing:1.5px;background:var(--paper);border:1.5px solid var(--line);padding:4px 10px;border-radius:6px;color:var(--ink-soft)" title="Kód firmy"></span>
-      <span title="Verze aplikace" style="font-size:10px;color:var(--ink-faint);font-family:var(--font-mono);padding:0 4px;user-select:none">v0.3.3</span>
+      <span title="Verze aplikace" style="font-size:10px;color:var(--ink-faint);font-family:var(--font-mono);padding:0 4px;user-select:none">v0.4.0</span>
       <button class="btn-ghost" id="tutorial-btn" onclick="openTutorialMenu()" title="Průvodce aplikací" style="font-size:15px;padding:6px 10px">?</button>
-      <button class="btn-ghost" onclick="doLogout()">Odhlásit se</button>
+      <button class="btn-ghost" onclick="doLogout()">🚪 Odhlásit</button>
     </div>
   </div>
 
@@ -682,6 +726,10 @@ body.employee-view #fill-mode-slot-wrap { display: none !important; }
           <button class="btn-accent employee-hidden" id="auto-schedule-btn" onclick="runAutoSchedule()"
             data-tut-icon="⚡" data-tut-title="Automatické plánování" data-tut-pos="bottom"
             data-tut-body="Klikni a algoritmus za pár sekund vygeneruje celý měsíc. Spustí desítky pokusů, vybere nejlepší výsledek — pokryje pobočky, dodrží limity zaměstnanců a respektuje jejich zadaná volna (X)."><span style="filter:drop-shadow(0 0 2px rgba(255,220,0,0.95))">⚡</span> Automaticky doplnit</button>
+          <button class="btn-outline employee-hidden" id="publish-btn" onclick="publishSchedule()"
+            data-tut-icon="📢" data-tut-title="Publikovat rozpis" data-tut-pos="bottom"
+            data-tut-body="Označí aktuální měsíc jako publikovaný — zaměstnanci vidí že je rozvrh hotový. Tlačítko se zeleně zvýrazní. Publikaci lze spustit také z přehledu organizace (klikni na logo v liště).">
+            📢 <span class="btn-label">Publikovat</span></button>
           <button class="btn-outline employee-hidden" id="fill-mode-btn" onclick="toggleFillMode()"
             data-tut-icon="🔍" data-tut-title="Kde doplnit" data-tut-pos="bottom"
             data-tut-body="Přepne zobrazení — ukáže jen dny kde konkrétní pobočka nemá dostatečné pokrytí. Vyber pobočku ze seznamu a klikni na zvýrazněný den pro rychlé doplnění.">🔍 Kde doplnit</button>
@@ -691,8 +739,8 @@ body.employee-view #fill-mode-slot-wrap { display: none !important; }
           <div id="clear-btns-wrap" class="employee-hidden" style="display:flex;gap:8px;align-items:center"
             data-tut-icon="🗑️" data-tut-title="Smazat auto / Smazat vše" data-tut-pos="bottom"
             data-tut-body="Smazat auto odstraní pouze automaticky přiřazené směny a zachová tvoje ruční úpravy. Smazat vše vymaže celý měsíc včetně ručních úprav.">
-            <button class="btn-outline" id="clear-auto-btn" onclick="clearAutoShifts()">Smazat auto</button>
-            <button class="btn-outline" id="clear-all-btn" onclick="clearAllShifts()">Smazat vše</button>
+            <button class="btn-outline" id="clear-auto-btn" onclick="clearAutoShifts()">🗑 <span class="btn-label">Smazat auto</span></button>
+            <button class="btn-outline" id="clear-all-btn" onclick="clearAllShifts()">🗑 <span class="btn-label">Smazat vše</span></button>
           </div>
           <span id="fill-mode-slot-wrap" style="display:none;align-items:center;gap:6px">
             <select id="fill-mode-slot" onchange="renderCalendar()" style="padding:6px 8px;border:1.5px solid var(--accent);border-radius:7px;font-size:12.5px;font-family:var(--font-mono);font-weight:600;color:var(--accent-ink);background:var(--accent-soft)">
@@ -741,6 +789,7 @@ body.employee-view #fill-mode-slot-wrap { display: none !important; }
           </div>
           <div id="table-width-handle" title="Táhni pro změnu šířky tabulky"></div>
           <div id="table-width-handle-left" title="Táhni pro změnu šířky tabulky"></div>
+          <div id="table-height-handle" title="Táhni pro změnu výšky tabulky"></div>
         </div>
 
         <!-- Empty state — shown when org has no branches or no employees yet -->
@@ -845,64 +894,48 @@ body.employee-view #fill-mode-slot-wrap { display: none !important; }
         <div class="panel-head">
           <div>
             <h2 class="panel-title">Pravidla automatického plánování</h2>
-            <p class="panel-sub">Tvrdé podmínky musí být splněny — jinak algoritmus výsledek zahodí. Měkké podmínky jsou váhované a tvoří celkové skóre.</p>
+            <p class="panel-sub">Každou podmínku lze označit jako Neporušitelnou (tvrdá) nebo ponechat měkkou se váhovým skóre. Víkendy, páry směn a výchozí minimum volna.</p>
           </div>
         </div>
 
-        <!-- 1. Tvrdé podmínky -->
-        <div id="hard-constraints-section" style="margin-bottom:24px">
-          <div style="font-size:13px;font-weight:600;margin-bottom:10px;color:var(--ink)">🔴 Tvrdé podmínky (hard constraints)</div>
-          <div class="field-hint" style="margin-bottom:10px">Pokud není splněna alespoň jedna, algoritmus výsledek zahodí a zkusí znovu. Zaškrtni co je pro tebe absolutně nezbytné.</div>
-          <div style="display:flex;flex-direction:column;gap:8px;max-width:520px">
-            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">
-              <input type="checkbox" id="hard-coverage" style="width:15px;height:15px" onchange="updateHardConstraintsWarning()">
-              <span>Pokrytí poboček — každá pobočka musí mít splněné minimální obsazení každý den</span>
-            </label>
-            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">
-              <input type="checkbox" id="hard-minshifts" style="width:15px;height:15px" onchange="updateHardConstraintsWarning()">
-              <span>Minimální počty směn — každý zaměstnanec musí mít alespoň své minimum</span>
-            </label>
-            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">
-              <input type="checkbox" id="hard-weekends" style="width:15px;height:15px" onchange="updateHardConstraintsWarning()">
-              <span>Volné víkendy — každý musí mít alespoň své minimum volných víkendů</span>
-            </label>
+        <!-- 1. Podmínky plánování (tvrdé + váhy sloučeny) -->
+        <div id="conditions-section" style="margin-bottom:0">
+          <p class="rules-section-title">Podmínky plánování</p>
+          <p class="rules-section-hint">Každou podmínku lze označit jako <strong>Neporušitelné</strong> — algoritmus pak výsledky kde podmínka není splněna zahodí a zkusí znovu. <strong>Váha</strong> určuje jak silně podmínka ovlivňuje celkové skóre (součet musí dát 100 %).</p>
+          <div id="conditions-list"></div>
+          <div id="hard-constraints-warning" style="display:none;margin-top:4px;padding:8px 12px;background:#fef3c7;border:1.5px solid #fbbf24;border-radius:8px;font-size:12px;color:#92400e;max-width:580px">
+            ⚠️ Pozor: příliš mnoho neporušitelných podmínek může znemožnit nalezení řešení. Doporučujeme max. 1.
           </div>
-          <div id="hard-constraints-warning" style="display:none;margin-top:10px;padding:8px 12px;background:#fef3c7;border:1.5px solid #fbbf24;border-radius:8px;font-size:12px;color:#92400e;max-width:520px">
-            ⚠️ Pozor: příliš mnoho tvrdých pravidel může znemožnit nalezení řešení. Doporučujeme max. 1 tvrdé pravidlo.
-          </div>
-        </div>
-
-        <!-- 2. Měkké podmínky -->
-        <div id="soft-conditions-section" style="margin-bottom:24px">
-          <div style="font-size:13px;font-weight:600;margin-bottom:10px;color:var(--ink)">🟡 Měkké podmínky — váhy (celkem musí dát 100 %)</div>
-          <div class="field-hint" style="margin-bottom:12px">Vyšší váha = větší vliv na výsledné skóre. Podmínky s vahou 0 se do skóre nezapočítají.</div>
-          <div id="score-weights-list" style="max-width:520px"></div>
           <div id="weights-sum-warning" style="font-size:12px;color:var(--red);margin-top:8px;display:none">⚠ Součet vah není 100 % — uprav hodnoty.</div>
         </div>
 
-        <!-- 3. Víkendy a cílení -->
-        <div id="rules-intro-panel" style="margin-bottom:24px">
-          <div style="font-size:13px;font-weight:600;margin-bottom:10px;color:var(--ink)">🗓️ Víkendy a cílení</div>
-          <div class="field" style="max-width:520px">
+        <hr class="rules-section-sep">
+
+        <!-- 2. Víkendy a cílení -->
+        <div id="rules-intro-panel" style="margin-bottom:0">
+          <p class="rules-section-title">🗓️ Víkendy a cílení</p>
+          <div class="field" style="max-width:580px;margin-bottom:12px">
             <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
               <input type="checkbox" id="rule-weekend-priority" style="width:16px;height:16px">
-              <span>Přednostně doplňovat celé víkendy (Pá–Ne) jedné osobě</span>
+              <span style="font-size:13px">Přednostně doplňovat celé víkendy (Pá–Ne) jedné osobě</span>
             </label>
             <div class="field-hint">Když je zapnuto, algoritmus se nejdřív snaží dát celý víkend (pátek+sobota+neděle) jednomu člověku najednou — tomu, kdo má nejvíc "volna navíc". Vhodné, pokud chceš co nejméně rozbitých víkendů. Vypni, pokud chceš víkendy plánovat den po dni stejně jako všední dny.</div>
           </div>
-          <div class="field" style="max-width:520px">
+          <div class="field" style="max-width:580px;margin-bottom:0">
             <label>Výchozí minimum volných víkendů</label>
             <input type="number" id="rule-default-minwe" min="0" max="8" value="2" style="max-width:120px">
             <div class="field-hint">Použije se pro zaměstnance, kteří nemají vlastní minimum volných víkendů nastavené ve svém profilu (0 = bez nastavení).</div>
           </div>
         </div>
 
-        <!-- 4. Páry pro vyváženost -->
-        <div id="balance-pairs-section" style="margin-bottom:24px">
-          <div style="font-size:13px;font-weight:600;margin-bottom:6px;color:var(--ink)">⚖️ Páry pro vyváženost směn</div>
-          <div class="field-hint" style="margin-bottom:10px">Které typy směn chceš poměřovat vůči sobě? Např. M1 vs M4 = kolik M1 a kolik M4 dostane každý zaměstnanec za měsíc. Sloupec v rozpisu zobrazí <strong>počet_A/počet_B</strong> — zelená = rozdíl max 2 směny (vyvážené), oranžová = větší nerovnováha.</div>
-          <div id="balance-pairs-list" style="max-width:520px"></div>
-          <div style="display:flex;gap:8px;margin-top:10px;max-width:520px;align-items:center">
+        <hr class="rules-section-sep">
+
+        <!-- 3. Páry pro vyváženost -->
+        <div id="balance-pairs-section" style="margin-bottom:0">
+          <p class="rules-section-title">⚖️ Páry pro vyváženost směn</p>
+          <p class="rules-section-hint">Které typy směn chceš poměřovat vůči sobě? Např. M1 vs M4 = kolik M1 a kolik M4 dostane každý zaměstnanec za měsíc. Sloupec v rozpisu zobrazí <strong>počet_A/počet_B</strong> — zelená = rozdíl max 2 směny (vyvážené), oranžová = větší nerovnováha.</p>
+          <div id="balance-pairs-list" style="max-width:580px"></div>
+          <div style="display:flex;gap:8px;margin-top:10px;max-width:580px;align-items:center">
             <input type="text" id="bp-code1" placeholder="kód A" maxlength="6" style="width:80px;font-family:var(--font-mono);text-transform:uppercase;padding:7px 9px;border:1.5px solid var(--line);border-radius:7px;font-size:13px;color:var(--ink)">
             <span style="color:var(--ink-soft);font-weight:600;font-size:13px">vs</span>
             <input type="text" id="bp-code2" placeholder="kód B" maxlength="6" style="width:80px;font-family:var(--font-mono);text-transform:uppercase;padding:7px 9px;border:1.5px solid var(--line);border-radius:7px;font-size:13px;color:var(--ink)">
@@ -910,8 +943,10 @@ body.employee-view #fill-mode-slot-wrap { display: none !important; }
           </div>
         </div>
 
-        <!-- 5. Uložit -->
-        <div style="display:flex;gap:10px;margin-top:4px">
+        <hr class="rules-section-sep">
+
+        <!-- 4. Uložit -->
+        <div style="display:flex;gap:10px">
           <button class="btn-accent" id="save-all-rules-btn" onclick="saveRules();saveScoring()">💾 Uložit všechna pravidla</button>
           <span class="saved-tag" id="scoring-saved" style="display:none">Uloženo!</span>
         </div>
@@ -1087,13 +1122,32 @@ body.employee-view #fill-mode-slot-wrap { display: none !important; }
 <!-- ============================================================
      EMPLOYEE SETTINGS MODAL
      ============================================================ -->
-<div class="modal-overlay" id="emp-settings-overlay">
-  <div class="modal" style="max-width:420px">
-    <h3>⚙ Moje nastavení</h3>
-    <div id="emp-settings-body"></div>
-    <div style="margin-top:16px;text-align:right">
-      <button class="btn-outline" onclick="document.getElementById('emp-settings-overlay').classList.remove('open')">Zavřít</button>
+<!-- Dashboard modal -->
+<div class="modal-overlay" id="dashboard-overlay">
+  <div class="modal" style="max-width:500px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+      <h3 style="margin:0">📊 Přehled organizace</h3>
+      <button class="btn-ghost" onclick="document.getElementById('dashboard-overlay').classList.remove('open')" style="padding:5px 10px;font-size:13px">✕</button>
     </div>
+    <div id="dashboard-body"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="emp-settings-overlay">
+  <div class="modal" style="max-width:460px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <h3 style="margin:0">⚙ Nastavení</h3>
+      <button class="btn-ghost" onclick="document.getElementById('emp-settings-overlay').classList.remove('open')" style="padding:5px 10px;font-size:13px">✕</button>
+    </div>
+    <!-- Settings tabs -->
+    <div style="display:flex;gap:2px;background:var(--paper);border-radius:9px;padding:3px;margin-bottom:18px">
+      <button id="stab-profile" onclick="switchSettingsTab('profile')"
+        style="flex:1;border:none;border-radius:7px;padding:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;background:var(--surface);color:var(--ink);box-shadow:var(--shadow)">👤 Profil</button>
+      <button id="stab-appear" onclick="switchSettingsTab('appear')"
+        style="flex:1;border:none;border-radius:7px;padding:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;background:none;color:var(--ink-soft)">🎨 Vzhled</button>
+    </div>
+    <div id="emp-settings-body"></div>
+    <div id="appear-settings-body" style="display:none"></div>
   </div>
 </div>
 
@@ -1594,6 +1648,7 @@ async function bootstrapAfterAuth(){
     currentEmployeeId = membership.employee_id || null;
 
     document.getElementById('app-shell').style.display = 'block';
+    loadAppearSettings(); // apply appearance settings from localStorage
     document.getElementById('org-name-label').textContent = currentOrg.name;
     document.getElementById('org-role-label').textContent = currentRole === 'admin' ? 'admin' : 'zaměstnanec';
     document.getElementById('user-email-label').textContent = user.email;
@@ -2192,26 +2247,47 @@ const SCORE_METRICS_DEF = [
   { id: 'typebalance',label: 'Vyváženost typů směn',  hint: 'Rovnoměrné rozložení M1/M2/M3/M4 apod.' },
 ];
 
+// Maps scoringWeights key → hardConstraints key (only the 3 hardenable conditions)
+const HARDENABLE_MAP = { coverage:'coverage', counts:'minshifts', weekends:'weekends' };
+
 const DEFAULT_WEIGHTS = { coverage:40, counts:30, weekends:20, idealrest:5, typebalance:5 };
 const DEFAULT_HARD    = { coverage:true, minshifts:false, weekends:false };
 
 let scoringWeights = { ...DEFAULT_WEIGHTS };
 let hardConstraints = { ...DEFAULT_HARD };
 
-function renderScoreWeights(){
-  const list = document.getElementById('score-weights-list');
+function renderConditionsUI(){
+  const list = document.getElementById('conditions-list');
   if(!list) return;
-  list.innerHTML = SCORE_METRICS_DEF.map(m=>`
-    <div style="display:grid;grid-template-columns:1fr auto 60px;align-items:center;gap:10px;margin-bottom:8px">
-      <div>
-        <div style="font-size:13px">${m.label}</div>
-        <div style="font-size:11px;color:var(--ink-faint)">${m.hint}</div>
+  list.innerHTML = SCORE_METRICS_DEF.map(m => {
+    const hkey = HARDENABLE_MAP[m.id];
+    const isHard = hkey ? !!hardConstraints[hkey] : false;
+    const wval = scoringWeights[m.id] ?? 0;
+    const toggleHtml = hkey ? `
+      <label style="display:flex;align-items:center;gap:5px;cursor:pointer;flex-shrink:0;user-select:none;white-space:nowrap">
+        <input type="checkbox" id="hard-${hkey}" class="hard-toggle" ${isHard?'checked':''}
+          onchange="updateHardConstraintsWarning()"
+          style="width:15px;height:15px;cursor:pointer;accent-color:var(--red)">
+        <span class="hard-toggle-label" style="font-size:11.5px;font-weight:600;color:${isHard?'var(--red)':'var(--ink-faint)'}">Neporušitelné</span>
+      </label>` : `<span style="font-size:11px;color:var(--ink-faint);flex-shrink:0;white-space:nowrap">Vždy měkká</span>`;
+    return `
+    <div class="condition-row${isHard?' is-hard':''}">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:8px">
+        <div>
+          <div style="font-size:13px;font-weight:600;color:var(--ink)">${m.label}</div>
+          <div style="font-size:11.5px;color:var(--ink-faint);margin-top:1px">${m.hint}</div>
+        </div>
+        ${toggleHtml}
       </div>
-      <input type="range" min="0" max="100" value="${scoringWeights[m.id]||0}"
-        oninput="onWeightChange('${m.id}',this.value)"
-        style="width:120px">
-      <span id="weight-val-${m.id}" style="font-family:var(--font-mono);font-size:13px;font-weight:600;text-align:right">${scoringWeights[m.id]||0}%</span>
-    </div>`).join('');
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:11px;color:var(--ink-faint);flex-shrink:0">Váha:</span>
+        <input type="range" min="0" max="100" value="${wval}"
+          oninput="onWeightChange('${m.id}',this.value)"
+          style="flex:1;accent-color:var(--accent);cursor:pointer">
+        <span id="weight-val-${m.id}" style="font-family:var(--font-mono);font-size:12px;font-weight:700;text-align:right;min-width:34px">${wval}%</span>
+      </div>
+    </div>`;
+  }).join('');
   checkWeightsSum();
 }
 
@@ -2228,30 +2304,28 @@ function checkWeightsSum(){
 }
 
 function loadScoringUI(){
-  // Load from orgSettings
   const sw = orgSettings['scoring_weights'];
   const hc = orgSettings['hard_constraints'];
   if(sw) scoringWeights = { ...DEFAULT_WEIGHTS, ...sw };
   if(hc) hardConstraints = { ...DEFAULT_HARD, ...hc };
 
-  // Set hard constraint checkboxes
-  const hcov = document.getElementById('hard-coverage');
-  const hmin = document.getElementById('hard-minshifts');
-  const hwe  = document.getElementById('hard-weekends');
-  if(hcov) hcov.checked = !!hardConstraints.coverage;
-  if(hmin) hmin.checked = !!hardConstraints.minshifts;
-  if(hwe)  hwe.checked  = !!hardConstraints.weekends;
-
-  renderScoreWeights();
+  renderConditionsUI(); // renders both hard toggles and weight sliders
   renderBalancePairsList();
   updateHardConstraintsWarning();
 }
 
 function updateHardConstraintsWarning(){
-  const boxes = document.querySelectorAll('#hard-constraints-section input[type="checkbox"]');
+  const boxes = document.querySelectorAll('.hard-toggle');
   const n = Array.from(boxes).filter(c => c.checked).length;
   const w = document.getElementById('hard-constraints-warning');
   if(w) w.style.display = n > 1 ? 'block' : 'none';
+  // Update row visual state and label color
+  boxes.forEach(cb => {
+    const row = cb.closest('.condition-row');
+    if(row) row.classList.toggle('is-hard', cb.checked);
+    const lbl = cb.nextElementSibling;
+    if(lbl) lbl.style.color = cb.checked ? 'var(--red)' : 'var(--ink-faint)';
+  });
 }
 
 async function saveScoring(){
@@ -3524,6 +3598,7 @@ function renderScoreBar(){
   </div>`;
   // Store metrics for detail modal
   window._lastMetrics = metrics;
+  updatePublishBtn();
 }
 
 function showMetricDetail(idx){
@@ -3603,7 +3678,7 @@ async function runAutoSchedule(){
   btn.textContent='⏹ Zastavit';
 
   const progressWrap = document.getElementById('auto-progress-wrap');
-  const MAX_RUNS=80, TARGET_PCT=90, STAGNATION=20;
+  const MAX_RUNS=80, TARGET_PCT=95, STAGNATION=20;
   let best=null, bestPct=-1, run=0, sinceImprove=0;
 
   progressWrap.innerHTML = `<div class="auto-progress-box">
@@ -4827,6 +4902,8 @@ async function loadOrgCode(){
 function openEmployeeSettings(){
   const overlay = document.getElementById('emp-settings-overlay');
   if(!overlay) return;
+  // Default to Profile tab
+  switchSettingsTab('profile');
 
   const myMember = orgMembers.find(m=>m.employee_id===currentEmployeeId);
   const myEmp = employees.find(e=>e.id===currentEmployeeId);
@@ -4875,6 +4952,226 @@ function openEmployeeSettings(){
     </div>
   `;
   overlay.classList.add('open');
+}
+
+// ============================================================
+// SETTINGS TABS
+// ============================================================
+function switchSettingsTab(tab){
+  const profile = document.getElementById('emp-settings-body');
+  const appear  = document.getElementById('appear-settings-body');
+  const tProfile = document.getElementById('stab-profile');
+  const tAppear  = document.getElementById('stab-appear');
+  if(!profile || !appear) return;
+  const isProfile = tab === 'profile';
+  profile.style.display = isProfile ? '' : 'none';
+  appear.style.display  = isProfile ? 'none' : '';
+  if(tProfile){
+    tProfile.style.background = isProfile ? 'var(--surface)' : 'none';
+    tProfile.style.color      = isProfile ? 'var(--ink)' : 'var(--ink-soft)';
+    tProfile.style.boxShadow  = isProfile ? 'var(--shadow)' : 'none';
+    tProfile.style.fontWeight = isProfile ? '700' : '500';
+  }
+  if(tAppear){
+    tAppear.style.background  = !isProfile ? 'var(--surface)' : 'none';
+    tAppear.style.color       = !isProfile ? 'var(--ink)' : 'var(--ink-soft)';
+    tAppear.style.boxShadow   = !isProfile ? 'var(--shadow)' : 'none';
+    tAppear.style.fontWeight  = !isProfile ? '700' : '500';
+  }
+  if(!isProfile) renderAppearSettings();
+}
+
+// ============================================================
+// APPEARANCE SETTINGS
+// ============================================================
+const APPEAR_DEFAULTS = { fontSize:'normal', density:'normal', darkMode:false, bg:'default' };
+let appearSettings = {...APPEAR_DEFAULTS};
+
+const BG_PRESETS = {
+  default: { paper:'#F6F5F1', label:'Papírové' },
+  white:   { paper:'#FFFFFF', label:'Bílé' },
+  blue:    { paper:'#EFF4FB', label:'Modrý nádech' },
+  green:   { paper:'#EFF7F2', label:'Zelený nádech' },
+  neutral: { paper:'#F2F2F2', label:'Neutrální šedá' },
+};
+
+const FS_PRESETS = {
+  small:  { tblFs:'10px', tblH:'22px', tblNameFs:'11px' },
+  normal: { tblFs:'12px', tblH:'26px', tblNameFs:'12px' },
+  large:  { tblFs:'13.5px', tblH:'30px', tblNameFs:'13px' },
+};
+
+const DENSITY_PRESETS = {
+  compact: { tblH:'20px' },
+  normal:  { tblH:'26px' },
+  airy:    { tblH:'34px' },
+};
+
+function loadAppearSettings(){
+  try{ appearSettings = {...APPEAR_DEFAULTS, ...JSON.parse(localStorage.getItem('smeny_appear')||'{}')}; }
+  catch(e){ appearSettings = {...APPEAR_DEFAULTS}; }
+  applyAppearSettings();
+}
+
+function saveAppearSettings(){
+  localStorage.setItem('smeny_appear', JSON.stringify(appearSettings));
+  applyAppearSettings();
+}
+
+function applyAppearSettings(){
+  const root = document.documentElement.style;
+  const fs = FS_PRESETS[appearSettings.fontSize] || FS_PRESETS.normal;
+  const dn = DENSITY_PRESETS[appearSettings.density] || DENSITY_PRESETS.normal;
+  const bg = BG_PRESETS[appearSettings.bg] || BG_PRESETS.default;
+
+  // Font size controls tbl-fs and tbl-name-fs; density controls tbl-h
+  root.setProperty('--tbl-fs',      fs.tblFs);
+  root.setProperty('--tbl-name-fs', fs.tblNameFs);
+  root.setProperty('--tbl-h',       dn.tblH); // density overrides height
+
+  // Background
+  if(!appearSettings.darkMode){
+    root.setProperty('--paper', bg.paper);
+  }
+
+  // Dark mode
+  document.body.classList.toggle('dark', !!appearSettings.darkMode);
+}
+
+function renderAppearSettings(){
+  const el = document.getElementById('appear-settings-body');
+  if(!el) return;
+
+  const s = appearSettings;
+  const btnGroup = (key, opts, current) => opts.map(([val, label]) =>
+    `<button onclick="appearSettings['${key}']='${val}';saveAppearSettings();renderAppearSettings()"
+      style="flex:1;border:1.5px solid ${current===val?'var(--accent)':'var(--line)'};border-radius:8px;padding:8px 6px;font-size:12.5px;font-weight:${current===val?700:500};cursor:pointer;font-family:inherit;background:${current===val?'var(--accent-soft)':'none'};color:${current===val?'var(--accent-ink)':'var(--ink)'}">${label}</button>`
+  ).join('');
+
+  el.innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:18px">
+      <div>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--ink-soft);margin-bottom:8px">Velikost písma v tabulce</div>
+        <div style="display:flex;gap:6px">
+          ${btnGroup('fontSize', [['small','Malé'],['normal','Střední'],['large','Velké']], s.fontSize)}
+        </div>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--ink-soft);margin-bottom:8px">Hustota tabulky</div>
+        <div style="display:flex;gap:6px">
+          ${btnGroup('density', [['compact','Kompaktní'],['normal','Normální'],['airy','Vzdušná']], s.density)}
+        </div>
+      </div>
+      <div style="border-top:1px solid var(--line);padding-top:14px">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--ink-soft);margin-bottom:10px">Pozadí aplikace</div>
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px">
+          ${Object.entries(BG_PRESETS).map(([k,v])=>`
+            <button onclick="appearSettings.bg='${k}';saveAppearSettings();renderAppearSettings()"
+              title="${v.label}"
+              style="height:36px;border-radius:8px;border:2.5px solid ${s.bg===k?'var(--accent)':'var(--line)'};background:${v.paper};cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:9px;color:#666;font-weight:600">
+              ${s.bg===k?'✓':''}</button>`).join('')}
+        </div>
+        <div style="font-size:11px;color:var(--ink-faint);margin-top:4px">${BG_PRESETS[s.bg]?.label||''}</div>
+      </div>
+      <div style="border-top:1px solid var(--line);padding-top:14px;display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <div style="font-size:13px;font-weight:600">Tmavý režim</div>
+          <div style="font-size:11.5px;color:var(--ink-faint)">Tmavé pozadí pro práci v noci</div>
+        </div>
+        <label style="position:relative;display:inline-block;width:44px;height:24px;cursor:pointer">
+          <input type="checkbox" ${s.darkMode?'checked':''} onchange="appearSettings.darkMode=this.checked;saveAppearSettings();renderAppearSettings()"
+            style="opacity:0;width:0;height:0;position:absolute">
+          <span style="position:absolute;inset:0;background:${s.darkMode?'var(--accent)':'var(--line)'};border-radius:12px;transition:.2s"></span>
+          <span style="position:absolute;top:3px;left:${s.darkMode?'23px':'3px'};width:18px;height:18px;background:#fff;border-radius:50%;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.2)"></span>
+        </label>
+      </div>
+      <button onclick="appearSettings={...APPEAR_DEFAULTS};saveAppearSettings();renderAppearSettings()"
+        class="btn-outline" style="width:100%">↺ Obnovit výchozí nastavení</button>
+    </div>
+  `;
+}
+
+// ============================================================
+// DASHBOARD
+// ============================================================
+function openDashboard(){
+  const overlay = document.getElementById('dashboard-overlay');
+  if(!overlay) return;
+
+  const { pct: qualityPct } = computeQuality(shifts, unavail);
+  const qualityColor = qualityPct >= 85 ? 'var(--accent)' : qualityPct >= 65 ? 'var(--amber)' : 'var(--red)';
+
+  const publishedKey = `${schedYear}-${String(schedMonth+1).padStart(2,'0')}`;
+  const isPublished = (orgSettings['published_months']||[]).includes(publishedKey);
+
+  const isAdmin = currentRole === 'admin' || currentRole === 'manager';
+  const statCard = (value, label, color='var(--accent)') =>
+    `<div style="background:var(--paper);border:1.5px solid var(--line);border-radius:12px;padding:16px;text-align:center">
+      <div style="font-size:${typeof value==='string'&&value.length>4?'13px':'28px'};font-weight:${typeof value==='string'&&value.length>4?700:800};font-family:var(--font-display);color:${color};margin-top:${typeof value==='string'&&value.length>4?4:0}px">${value}</div>
+      <div style="font-size:11px;color:var(--ink-faint);font-weight:600;text-transform:uppercase;margin-top:4px">${label}</div>
+    </div>`;
+
+  const adminActions = isAdmin ? `
+    <div style="margin-bottom:16px">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--ink-soft);margin-bottom:8px">Rychlé akce</div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <button onclick="document.getElementById('dashboard-overlay').classList.remove('open');switchAppTab('employees')" class="btn-outline" style="width:100%;text-align:left">➕ Přidat zaměstnance</button>
+        <button onclick="document.getElementById('dashboard-overlay').classList.remove('open');runAutoSchedule()" class="btn-accent" style="width:100%;text-align:left">⚡ Generovat rozvrh</button>
+        <button onclick="document.getElementById('dashboard-overlay').classList.remove('open');switchAppTab('rules')" class="btn-outline" style="width:100%;text-align:left">⚖️ Nastavit pravidla</button>
+        <button onclick="document.getElementById('dashboard-overlay').classList.remove('open');publishSchedule()" class="btn-outline" style="width:100%;text-align:left">📢 Publikovat rozpis</button>
+      </div>
+    </div>` : `
+    <div style="margin-bottom:16px">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--ink-soft);margin-bottom:8px">Rychlé akce</div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <button onclick="document.getElementById('dashboard-overlay').classList.remove('open');toggleEmpXMode()" class="btn-accent" style="width:100%;text-align:left">✏ Zadat volno (X)</button>
+        <button onclick="document.getElementById('dashboard-overlay').classList.remove('open');openEmployeeSettings()" class="btn-outline" style="width:100%;text-align:left">⚙ Otevřít nastavení</button>
+      </div>
+    </div>`;
+
+  document.getElementById('dashboard-body').innerHTML = isAdmin ? `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+      ${statCard(employees.filter(e=>!e.is_fixed).length, 'Zaměstnanci')}
+      ${statCard(branches.length, 'Pobočky')}
+      ${statCard(qualityPct+'%', 'Kvalita rozpisu', qualityColor)}
+      ${statCard(isPublished?'✓ Publikován':'Nepublikován', 'Stav rozpisu', isPublished?'var(--accent)':'var(--amber)')}
+    </div>
+    ${adminActions}
+  ` : `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+      ${statCard(branches.length, 'Pobočky')}
+      ${statCard(isPublished?'✓ Publikován':'Nepublikován', 'Stav rozpisu', isPublished?'var(--accent)':'var(--amber)')}
+    </div>
+    ${adminActions}
+  `;
+  overlay.classList.add('open');
+}
+
+// ============================================================
+// PUBLISH SCHEDULE
+// ============================================================
+function updatePublishBtn(){
+  const btn = document.getElementById('publish-btn');
+  if(!btn) return;
+  const key = `${schedYear}-${String(schedMonth+1).padStart(2,'0')}`;
+  const isPublished = (orgSettings['published_months']||[]).includes(key);
+  btn.style.borderColor = isPublished ? 'var(--accent)' : '';
+  btn.style.color       = isPublished ? 'var(--accent-ink)' : '';
+}
+
+async function publishSchedule(){
+  const key = `${schedYear}-${String(schedMonth+1).padStart(2,'0')}`;
+  const published = orgSettings['published_months'] || [];
+  if(!published.includes(key)) published.push(key);
+  const notify = orgSettings['notify_on_publish'] !== false;
+
+  const newSettings = { ...orgSettings, published_months: published };
+  const { error } = await sb.from('org_settings').update({ settings: newSettings }).eq('org_id', currentOrg.id);
+  if(error){ toast('Chyba: ' + error.message, 'error'); return; }
+  orgSettings = newSettings;
+
+  toast(`📢 Rozpis ${key} publikován${notify?' — zaměstnanci budou informováni':''}`, 'ok');
+  updatePublishBtn();
 }
 
 async function saveProfile(){
@@ -5307,19 +5604,19 @@ document.getElementById('onboard-org-name').addEventListener('keydown', e=>{ if(
 <!-- ============================================================
      EMPLOYEE MODAL MINI TUTORIAL
      ============================================================ -->
-<div id="emp-tut-bubble" style="display:none;position:fixed;z-index:1500;width:260px;background:var(--surface);border:1.5px solid var(--line);border-radius:12px;box-shadow:0 6px 24px rgba(30,34,48,.22);padding:14px 16px">
+<div id="emp-tut-bubble" style="display:none;position:fixed;z-index:1500;width:290px;background:var(--surface);border:1.5px solid var(--line);border-radius:14px;box-shadow:0 8px 32px rgba(30,34,48,.22);padding:18px 20px">
   <div id="emp-tut-arrow" style="position:absolute;width:10px;height:10px;background:var(--surface);border:1.5px solid var(--line);transform:rotate(45deg);display:none"></div>
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
     <div id="emp-tut-dots" style="display:flex;gap:4px"></div>
-    <span id="emp-tut-label" style="font-size:11px;color:var(--ink-faint);font-weight:600;text-transform:uppercase;letter-spacing:.05em"></span>
+    <span id="emp-tut-label" style="font-size:11.5px;color:var(--ink-faint);font-weight:600;text-transform:uppercase;letter-spacing:.05em"></span>
   </div>
-  <div id="emp-tut-title" style="font-size:13px;font-weight:800;font-family:var(--font-display);color:#111;margin-bottom:6px"></div>
-  <div id="emp-tut-body" style="font-size:12px;color:#374151;line-height:1.55;margin-bottom:10px"></div>
+  <div id="emp-tut-title" style="font-size:14px;font-weight:800;font-family:var(--font-display);color:var(--ink);margin-bottom:6px"></div>
+  <div id="emp-tut-body" style="font-size:13px;color:var(--ink-soft);line-height:1.6;margin-bottom:12px"></div>
   <div style="display:flex;justify-content:space-between;align-items:center">
-    <button onclick="endEmpTutorial()" style="background:none;border:none;font-size:11px;color:var(--ink-faint);cursor:pointer;padding:2px 0;font-family:inherit">Přeskočit</button>
+    <button onclick="endEmpTutorial()" style="background:none;border:none;font-size:12px;color:var(--ink-faint);cursor:pointer;padding:2px 0;font-family:inherit">Přeskočit</button>
     <div style="display:flex;gap:6px">
-      <button id="emp-tut-prev" onclick="empTutStep(-1)" style="background:none;border:1.5px solid var(--line);border-radius:7px;padding:5px 11px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;color:var(--ink)">← Zpět</button>
-      <button id="emp-tut-next" onclick="empTutStep(1)" style="background:var(--accent);color:#fff;border:none;border-radius:7px;padding:5px 13px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">Další →</button>
+      <button id="emp-tut-prev" onclick="empTutStep(-1)" style="background:none;border:1.5px solid var(--line);border-radius:8px;padding:7px 13px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;color:var(--ink)">← Zpět</button>
+      <button id="emp-tut-next" onclick="empTutStep(1)" style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:7px 15px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Další →</button>
     </div>
   </div>
 </div>
@@ -5330,22 +5627,22 @@ document.getElementById('onboard-org-name').addEventListener('keydown', e=>{ if(
 <div id="tut-overlay" style="display:none;position:fixed;inset:0;z-index:9000;pointer-events:none">
   <div id="tut-backdrop" style="position:absolute;inset:0;pointer-events:all"></div>
   <div id="tut-spotlight" style="position:absolute;border-radius:10px;pointer-events:none;transition:all .22s cubic-bezier(.4,0,.2,1);box-shadow:none"></div>
-  <div id="tut-bubble" style="position:absolute;background:var(--surface);border:1.5px solid var(--line);border-radius:12px;box-shadow:0 6px 24px rgba(30,34,48,.15);width:290px;padding:18px;pointer-events:all;transition:top .22s,left .22s">
+  <div id="tut-bubble" style="position:absolute;background:var(--surface);border:1.5px solid var(--line);border-radius:14px;box-shadow:0 8px 32px rgba(30,34,48,.18);width:320px;padding:22px;pointer-events:all;transition:top .22s,left .22s">
     <div id="tut-arrow" style="position:absolute;width:12px;height:12px;background:var(--surface);border:1.5px solid var(--line);transform:rotate(45deg);display:none"></div>
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
       <div id="tut-dots" style="display:flex;gap:5px"></div>
-      <span id="tut-phase-label" style="font-size:11px;color:var(--ink-faint);font-weight:600;text-transform:uppercase;letter-spacing:.05em"></span>
+      <span id="tut-phase-label" style="font-size:11.5px;color:var(--ink-faint);font-weight:600;text-transform:uppercase;letter-spacing:.05em"></span>
     </div>
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-      <div id="tut-icon" style="font-size:20px;line-height:1;flex-shrink:0"></div>
-      <div id="tut-title" style="font-size:14px;font-weight:800;font-family:var(--font-display);color:#111"></div>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+      <div id="tut-icon" style="font-size:26px;line-height:1;flex-shrink:0"></div>
+      <div id="tut-title" style="font-size:15px;font-weight:800;font-family:var(--font-display);color:var(--ink)"></div>
     </div>
-    <div id="tut-body" style="font-size:13px;color:#374151;line-height:1.6;margin-bottom:12px"></div>
+    <div id="tut-body" style="font-size:13.5px;color:var(--ink-soft);line-height:1.65;margin-bottom:14px"></div>
     <div style="display:flex;justify-content:space-between;align-items:center">
-      <button onclick="endTutorial()" style="background:none;border:none;font-size:12px;color:var(--ink-faint);cursor:pointer;padding:4px 0;font-family:inherit">Přeskočit</button>
+      <button onclick="endTutorial()" style="background:none;border:none;font-size:12.5px;color:var(--ink-faint);cursor:pointer;padding:4px 0;font-family:inherit">Přeskočit</button>
       <div style="display:flex;gap:8px">
-        <button id="tut-prev" onclick="tutStep(-1)" style="background:none;border:1.5px solid var(--line);border-radius:8px;padding:7px 13px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;color:var(--ink)">← Zpět</button>
-        <button id="tut-next" onclick="tutStep(1)" style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:7px 16px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Další →</button>
+        <button id="tut-prev" onclick="tutStep(-1)" style="background:none;border:1.5px solid var(--line);border-radius:8px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;color:var(--ink)">← Zpět</button>
+        <button id="tut-next" onclick="tutStep(1)" style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 18px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Další →</button>
       </div>
     </div>
   </div>
@@ -5505,10 +5802,10 @@ const GAPS_STEPS = [
 ];
 
 const RULES_STEPS = [
-  { target:'#hard-constraints-section', icon:'🔴', title:'Tvrdá pravidla', position:'right',
-    body:'Zaškrtnutá tvrdá pravidla algoritmus <strong>nikdy neporuší</strong> — pokud podmínka není splněna, výsledek zahodí a zkusí znovu. Zaškrtni jen to, co je pro tvůj provoz absolutně nezbytné. Příliš přísná pravidla mohou znemožnit nalezení dobrého řešení.' },
-  { target:'#soft-conditions-section', icon:'🟡', title:'Měkká pravidla — váhy', position:'right',
-    body:'Posuvníky vyvažují priority algoritmu. Vyšší váha = větší vliv na výsledné skóre. <strong>Pokrytí poboček</strong> = priorita splnění minimálního obsazení; <strong>rovnoměrnost</strong> = férové rozdělení směn; <strong>volné víkendy</strong> = respektování minima volna. Součet musí být 100 %.' },
+  { target:'#conditions-section', icon:'🔴', title:'Podmínky plánování', position:'right',
+    body:'Každou podmínku lze přepnout na <strong>Neporušitelné</strong> — algoritmus pak výsledky kde podmínka není splněna zahodí a zkusí znovu (tvrdá). Podmínky bez tohoto přepínače jsou měkké — mohou být porušeny, ale snižují celkové skóre rozpisu. Doporučujeme max. 1 neporušitelnou podmínku.' },
+  { target:'#conditions-list', icon:'🟡', title:'Váhy podmínek', position:'right',
+    body:'Posuvník <strong>Váha</strong> u každé podmínky určuje jak silně ovlivňuje celkové skóre. Vyšší váha = větší vliv. Součet všech vah musí být 100 %. Podmínka s váhou 0 se do skóre nezapočítá, ale pokud je označena jako neporušitelná, stále platí.' },
   { target:'#rules-intro-panel', icon:'🗓️', title:'Víkendy a cílení', position:'right',
     body:'Nastav jak algoritmus přistupuje k víkendům. <strong>Přednostní víkendy</strong> = celý víkend (Pá–Ne) dostane jeden člověk najednou — méně rozbitých víkendů v rozpisu. <strong>Výchozí minimum volných víkendů</strong> = kolik volných víkendů musí mít zaměstnanec bez vlastního nastavení.' },
   { target:'#balance-pairs-section', icon:'⚖️', title:'Páry pro vyváženost směn', position:'right',
@@ -5685,13 +5982,16 @@ function maybeStartTabTutorial(tab){
   }
 }
 
-// ── Table width resize ────────────────────────────────────────
-let schedTableWidth = parseInt(localStorage.getItem('schedTableWidth') || '0');
+// ── Table resize (width + height) ────────────────────────────
+let schedTableWidth  = parseInt(localStorage.getItem('schedTableWidth')  || '0');
+let schedTableHeight = parseInt(localStorage.getItem('schedTableHeight') || '0');
 
 function initTableResize(){
-  const wrap = document.getElementById('sched-scroll-wrap');
+  const wrap    = document.getElementById('sched-scroll-wrap');
+  const scroll  = document.getElementById('sched-scroll');
   const handleR = document.getElementById('table-width-handle');
   const handleL = document.getElementById('table-width-handle-left');
+  const handleB = document.getElementById('table-height-handle');
   if(!wrap || !handleR) return;
 
   const applyWidth = w => {
@@ -5701,10 +6001,19 @@ function initTableResize(){
     localStorage.setItem('schedTableWidth', w);
   };
 
-  const initW = schedTableWidth > 0 ? schedTableWidth : Math.round(window.innerWidth * 0.70);
-  applyWidth(initW);
+  const applyHeight = h => {
+    if(!scroll) return;
+    scroll.style.maxHeight = h + 'px';
+    scroll.style.overflowY = 'auto';
+    schedTableHeight = h;
+    localStorage.setItem('schedTableHeight', h);
+  };
 
-  function attachHandle(handle, side){
+  const initW = schedTableWidth  > 0 ? schedTableWidth  : Math.round(window.innerWidth * 0.70);
+  applyWidth(initW);
+  if(schedTableHeight > 0) applyHeight(schedTableHeight);
+
+  function attachWidthHandle(handle, side){
     handle.onmousedown = e => {
       e.preventDefault();
       handle.classList.add('dragging');
@@ -5727,8 +6036,28 @@ function initTableResize(){
     };
   }
 
-  attachHandle(handleR, 'right');
-  if(handleL) attachHandle(handleL, 'left');
+  attachWidthHandle(handleR, 'right');
+  if(handleL) attachWidthHandle(handleL, 'left');
+
+  if(handleB && scroll){
+    handleB.onmousedown = e => {
+      e.preventDefault();
+      handleB.classList.add('dragging');
+      const sy = e.clientY, sh = scroll.getBoundingClientRect().height;
+      document.body.style.cursor = 'row-resize';
+      document.body.style.userSelect = 'none';
+      const mv = e => applyHeight(Math.max(150, Math.round(sh + e.clientY - sy)));
+      const up = () => {
+        handleB.classList.remove('dragging');
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+        document.removeEventListener('mousemove', mv);
+        document.removeEventListener('mouseup', up);
+      };
+      document.addEventListener('mousemove', mv);
+      document.addEventListener('mouseup', up);
+    };
+  }
 }
 
 // ── Name column resize ────────────────────────────────────────
