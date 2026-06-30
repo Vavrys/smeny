@@ -708,6 +708,67 @@ body.dark .chat-msg.ai{background:var(--paper)}
 .sched-cell.drag-over{background:var(--accent-soft)!important;outline:2px dashed var(--accent)!important}
 .sched-cell[draggable="true"]{cursor:grab}
 .sched-cell.dragging{opacity:.4}
+
+/* ── F1: Weekly pattern table ────────────────────────────────── */
+.weekly-pattern-table{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:4px}
+.weekly-pattern-table th{font-weight:700;text-align:center;padding:5px 4px;background:var(--paper);color:var(--ink-soft);font-size:11px;text-transform:uppercase;border:1px solid var(--line)}
+.weekly-pattern-table th.we-col{background:#f0f4ff;color:#4a6baa}
+.weekly-pattern-table td{padding:3px 2px;border:1px solid var(--line)}
+.weekly-pattern-table input{width:100%;border:none;background:transparent;text-align:center;font-size:13px;font-family:var(--font-mono);font-weight:600;color:var(--ink);padding:3px 2px;min-width:0}
+.weekly-pattern-table input:focus{outline:2px solid var(--accent);border-radius:3px;background:var(--accent-soft)}
+.weekly-pattern-table td.we-col{background:#f7f9ff}
+.pattern-templates{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.pattern-tpl-btn{font-size:11.5px;padding:4px 10px;border:1.5px solid var(--line);border-radius:6px;background:var(--paper);cursor:pointer;font-family:inherit;color:var(--ink-soft);transition:all .15s}
+.pattern-tpl-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.pattern-bar-wrap{display:flex;align-items:flex-end;gap:3px;height:40px;padding:4px 0;margin-top:8px}
+.pattern-bar-col{display:flex;flex-direction:column;align-items:center;gap:1px;flex:1}
+.pattern-bar-fill{border-radius:3px 3px 0 0;width:100%;min-height:2px;transition:height .2s}
+.pattern-bar-label{font-size:9px;color:var(--ink-soft);font-family:var(--font-mono);margin-top:2px}
+.quick-fill-row{display:flex;gap:8px;margin-top:8px}
+.quick-fill-btn{flex:1;font-size:12px;padding:6px 8px;border:1.5px solid var(--line);border-radius:7px;background:transparent;cursor:pointer;font-family:inherit;color:var(--ink-soft);text-align:center;transition:all .15s}
+.quick-fill-btn:hover{border-color:var(--accent);color:var(--accent)}
+.branch-pattern-preview{display:flex;align-items:flex-end;gap:1px;height:20px}
+.branch-pattern-bar{border-radius:1px 1px 0 0;width:4px;min-height:1px}
+
+/* ── F2/F5: Open shifts ──────────────────────────────────────── */
+.open-shift-card{background:var(--surface);border:2px dashed var(--accent);border-radius:10px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
+.open-shift-badge{display:inline-flex;align-items:center;gap:5px;background:var(--amber-soft);color:#b45309;border:1.5px solid #f0c080;border-radius:7px;padding:3px 10px;font-size:12px;font-weight:700}
+.claim-btn{background:var(--accent);color:var(--accent-ink);border:none;border-radius:7px;padding:7px 14px;font-size:13px;font-family:inherit;font-weight:700;cursor:pointer;flex-shrink:0}
+.claim-btn:hover{opacity:.88}
+#open-shifts-panel{margin:16px 0;padding:14px 16px;background:var(--paper);border-radius:12px;border:1.5px solid var(--line)}
+
+/* ── F4: Shift swap ──────────────────────────────────────────── */
+.swap-item{background:var(--surface);border:1.5px solid var(--line);border-radius:9px;padding:11px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px}
+.swap-item.pending{border-color:var(--amber)}
+.swap-item.approved{border-color:var(--accent);background:var(--accent-soft)}
+.swap-item.rejected{border-color:var(--red);opacity:.7}
+.swap-status-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.swap-status-dot.pending{background:var(--amber)}
+.swap-status-dot.approved{background:var(--accent)}
+.swap-status-dot.rejected{background:var(--red)}
+
+/* ── F6: Labor cost ──────────────────────────────────────────── */
+.cost-tag{background:#f0fff4;border:1.5px solid var(--accent);border-radius:7px;padding:4px 10px;font-size:12.5px;font-weight:700;color:var(--accent);display:inline-flex;align-items:center;gap:5px}
+
+/* ── F7: Session timeout / unsaved ──────────────────────────── */
+#session-timeout-banner{position:fixed;top:0;left:0;right:0;z-index:9999;background:#b91c1c;color:#fff;text-align:center;padding:10px 16px;font-size:13.5px;font-weight:600;font-family:var(--font-display);display:none}
+
+/* ── F9: Employment type badge ───────────────────────────────── */
+.emp-type-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px;text-transform:uppercase;font-family:var(--font-mono)}
+.emp-type-badge.full{background:#dcfce7;color:#15803d}
+.emp-type-badge.part{background:#fef3c7;color:#b45309}
+.emp-type-badge.casual{background:#e0e7ff;color:#4338ca}
+
+/* ── F10: Branch manager ─────────────────────────────────────── */
+.role-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px;text-transform:uppercase;font-family:var(--font-mono)}
+.role-badge.admin{background:var(--accent-soft);color:var(--accent)}
+.role-badge.branch_manager{background:#fef3c7;color:#b45309}
+.role-badge.employee{background:var(--paper);color:var(--ink-soft)}
+body.branch-manager-view .tab-btn[data-tab="employees"],
+body.branch-manager-view .tab-btn[data-tab="rules"],
+body.branch-manager-view #pane-employees,
+body.branch-manager-view #pane-rules { display: none !important; }
+body.branch-manager-view .employee-hidden { display: inline-flex !important; }
 </style>
 </head>
 <body>
@@ -1001,9 +1062,25 @@ body.dark .chat-msg.ai{background:var(--paper)}
             <button class="icon-nav-btn" onclick="changeMonth(1)">›</button>
           </div>
           <span id="archive-badge" class="archive-badge" style="display:none">📦 Archiv</span>
-          <button class="btn-accent employee-hidden" id="auto-schedule-btn" onclick="runAutoSchedule()"
+          <div class="employee-hidden" style="position:relative;display:inline-flex"
             data-tut-icon="⚡" data-tut-title="Automatické plánování" data-tut-pos="bottom"
-            data-tut-body="Klikni a algoritmus za pár sekund vygeneruje celý měsíc. Spustí desítky pokusů, vybere nejlepší výsledek — pokryje pobočky, dodrží limity zaměstnanců a respektuje jejich zadaná volna (X)."><span style="filter:drop-shadow(0 0 2px rgba(255,220,0,0.95))">⚡</span> Automaticky doplnit</button>
+            data-tut-body="Klikni a algoritmus za pár sekund vygeneruje celý měsíc. Spustí desítky pokusů, vybere nejlepší výsledek — pokryje pobočky, dodrží limity zaměstnanců a respektuje jejich zadaná volna (X). Šipka vedle nabídne i režim otevřených slotů.">
+            <button class="btn-accent" id="auto-schedule-btn" onclick="runAutoSchedule()" style="border-radius:8px 0 0 8px;border-right:1.5px solid rgba(255,255,255,.3)"><span style="filter:drop-shadow(0 0 2px rgba(255,220,0,0.95))">⚡</span> Automaticky doplnit</button>
+            <button class="btn-accent" onclick="toggleAutoModeMenu()" style="border-radius:0 8px 8px 0;padding:6px 8px;font-size:11px" title="Vybrat režim generování">▾</button>
+            <div id="auto-mode-menu" style="display:none;position:absolute;top:calc(100% + 4px);left:0;background:var(--surface);border:1.5px solid var(--line);border-radius:9px;box-shadow:0 6px 18px rgba(30,34,48,.13);z-index:400;min-width:240px;padding:6px 0">
+              <div style="font-size:11px;font-weight:700;color:var(--ink-soft);padding:4px 12px 2px;text-transform:uppercase">Režim generování</div>
+              <label style="display:flex;align-items:flex-start;gap:8px;padding:8px 12px;cursor:pointer">
+                <input type="radio" name="auto-mode" value="assign" checked style="margin-top:2px">
+                <span><strong style="font-size:13px">Přiřadit přímo zaměstnancům</strong><br><span style="font-size:12px;color:var(--ink-soft)">Stávající chování — algoritmus přiřadí konkrétní osoby.</span></span>
+              </label>
+              <label style="display:flex;align-items:flex-start;gap:8px;padding:8px 12px;cursor:pointer">
+                <input type="radio" name="auto-mode" value="open_slots" style="margin-top:2px">
+                <span><strong style="font-size:13px">Vytvořit jako otevřené sloty</strong><br><span style="font-size:12px;color:var(--ink-soft)">Vytvoří prázdné sloty — zaměstnanci si je nárokují sami.</span></span>
+              </label>
+              <div style="border-top:1px solid var(--line);margin:4px 0"></div>
+              <div onclick="runAutoScheduleWithMode();document.getElementById('auto-mode-menu').style.display='none'" class="toolbar-menu-item" style="color:var(--accent);font-weight:700">⚡ Generovat</div>
+            </div>
+          </div>
           <button class="btn-outline employee-hidden" id="publish-btn" onclick="publishSchedule()"
             data-tut-icon="📢" data-tut-title="Publikovat rozpis" data-tut-pos="bottom"
             data-tut-body="Označí aktuální měsíc jako publikovaný — zaměstnanci vidí že je rozvrh hotový. Tlačítko se zeleně zvýrazní. Publikaci lze spustit také z přehledu organizace (klikni na logo v liště).">
@@ -1041,6 +1118,10 @@ body.dark .chat-msg.ai{background:var(--paper)}
               <div style="border-top:1px solid var(--line);margin:4px 0"></div>
               <div onclick="openPrintOptions();closeToolbarMenu()" class="toolbar-menu-item">🖨 Tisk / PDF</div>
               <div onclick="openPayrollModal();closeToolbarMenu()" class="toolbar-menu-item">💰 Mzdové podklady</div>
+              <div style="border-top:1px solid var(--line);margin:4px 0"></div>
+              <div onclick="openSwapRequestsModal();closeToolbarMenu()" class="toolbar-menu-item employee-hidden">🔄 Žádosti o výměnu</div>
+              <div onclick="openOpenShiftsAdmin();closeToolbarMenu()" class="toolbar-menu-item employee-hidden">📋 Otevřené směny</div>
+              <div onclick="exportFullBackup();closeToolbarMenu()" class="toolbar-menu-item employee-hidden">💾 Záloha organizace (JSON)</div>
             </div>
           </div>
         </div>
@@ -1050,6 +1131,7 @@ body.dark .chat-msg.ai{background:var(--paper)}
           <div style="font-size:12px;color:#666" id="print-subtitle"></div>
         </div>
         <div id="score-bar-wrap"></div>
+        <div id="labor-cost-wrap" style="margin-bottom:8px"></div>
         <div id="auto-progress-wrap"></div>
         <div id="sched-info-box"></div>
         <!-- Employee banner — shown when role is employee -->
@@ -1062,6 +1144,15 @@ body.dark .chat-msg.ai{background:var(--paper)}
             style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap">
             ✏ Zadat volno (X)
           </button>
+          <button onclick="openShiftSwapModal()" style="background:none;border:1.5px solid var(--accent);border-radius:8px;padding:7px 14px;font-size:13px;font-weight:600;cursor:pointer;color:var(--accent)">
+            🔄 Výměna
+          </button>
+        </div>
+
+        <!-- Open shifts panel (employee view) -->
+        <div id="open-shifts-panel" style="display:none">
+          <div style="font-weight:700;font-size:14px;margin-bottom:8px">📋 Otevřené směny — k dispozici</div>
+          <div id="open-shifts-emp-list"></div>
         </div>
 
         <div id="sched-scroll-wrap">
@@ -1185,6 +1276,14 @@ body.dark .chat-msg.ai{background:var(--paper)}
           </div>
           <button class="btn-accent" onclick="openEmployeeModal()">➕ Přidat zaměstnance</button>
         </div>
+        <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center">
+          <select id="emp-type-filter" onchange="renderEmployees()" style="font-size:13px;padding:5px 10px;border:1.5px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);cursor:pointer">
+            <option value="">Všechny typy úvazků</option>
+            <option value="full">Plný úvazek</option>
+            <option value="part">Částečný úvazek</option>
+            <option value="casual">Brigáda / DPP</option>
+          </select>
+        </div>
         <div id="employees-table-wrap"></div>
       </div>
     </div>
@@ -1287,6 +1386,14 @@ body.dark .chat-msg.ai{background:var(--paper)}
       <label>Jméno a příjmení</label>
       <input type="text" id="employee-name" placeholder="Jana Nováková">
     </div>
+    <div class="field">
+      <label>Typ úvazku</label>
+      <select id="employee-employment-type" style="padding:8px 10px;border:1.5px solid var(--line);border-radius:8px;font-size:14px;font-family:inherit;color:var(--ink)">
+        <option value="full">Plný úvazek</option>
+        <option value="part">Částečný úvazek</option>
+        <option value="casual">Brigáda / DPP</option>
+      </select>
+    </div>
 
     <div class="sub-title">Počty směn / měsíc</div>
     <div id="emp-shift-counts-grid" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
@@ -1387,20 +1494,38 @@ body.dark .chat-msg.ai{background:var(--paper)}
       <label>Název</label>
       <input type="text" id="branch-name" placeholder="Karolína">
     </div>
-    <div class="sub-title">Denní obsazení</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
-      <div class="field">
-        <label>Min. všední den</label>
-        <input type="number" id="branch-minwd" value="1" min="0">
-      </div>
-      <div class="field">
-        <label>Min. víkend</label>
-        <input type="number" id="branch-minwe" value="1" min="0">
-      </div>
-      <div class="field">
-        <label>Max / den</label>
-        <input type="number" id="branch-maxday" value="1" min="0">
-      </div>
+    <!-- Hidden legacy inputs kept for saveBranch() backward compat -->
+    <input type="hidden" id="branch-minwd" value="1">
+    <input type="hidden" id="branch-minwe" value="1">
+    <input type="hidden" id="branch-maxday" value="1">
+
+    <div class="sub-title" style="display:flex;align-items:center;justify-content:space-between">
+      <span>Týdenní vzor obsazení</span>
+      <span style="font-size:11px;color:var(--ink-faint);font-weight:400">Min / Cíl / Max za den</span>
+    </div>
+    <!-- Pattern templates -->
+    <div class="pattern-templates">
+      <button class="pattern-tpl-btn" onclick="applyPatternTemplate('even')">📐 Rovnoměrné</button>
+      <button class="pattern-tpl-btn" onclick="applyPatternTemplate('weekend_peak')">🍺 Víkendová špička</button>
+      <button class="pattern-tpl-btn" onclick="applyPatternTemplate('workweek')">💼 Pracovní týden</button>
+      <button class="pattern-tpl-btn" onclick="applyPatternTemplate('empty')">✏️ Vlastní</button>
+    </div>
+    <!-- 7-day table: Mon(1)…Sun(0) displayed as Po–Ne -->
+    <table class="weekly-pattern-table" id="weekly-pattern-tbl">
+      <thead><tr>
+        <th>Po</th><th>Út</th><th>St</th><th>Čt</th><th>Pá</th><th class="we-col">So</th><th class="we-col">Ne</th>
+      </tr></thead>
+      <tbody id="weekly-pattern-body"></tbody>
+    </table>
+    <!-- Quick fill buttons -->
+    <div class="quick-fill-row">
+      <button class="quick-fill-btn" onclick="quickFillPattern('wd')">Použít stejné pro všední dny (Po–Pá)</button>
+      <button class="quick-fill-btn" onclick="quickFillPattern('we')">Použít stejné pro víkend (So–Ne)</button>
+    </div>
+    <!-- Mini bar chart preview -->
+    <div style="margin-top:10px">
+      <div style="font-size:11px;color:var(--ink-faint);margin-bottom:4px">Náhled týdenního vzoru (cílové obsazení)</div>
+      <div id="pattern-preview-chart" class="pattern-bar-wrap"></div>
     </div>
     <div class="sub-title">Měsíční limit směn na pobočce</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
@@ -2393,7 +2518,7 @@ async function bootstrapAfterAuth(){
     document.getElementById('app-shell').style.display = 'block';
     loadAppearSettings(); // apply appearance settings from localStorage
     document.getElementById('org-name-label').textContent = currentOrg.name;
-    document.getElementById('org-role-label').textContent = currentRole === 'admin' ? 'admin' : 'zaměstnanec';
+    document.getElementById('org-role-label').textContent = currentRole === 'admin' ? 'admin' : (currentRole==='branch_manager' ? 'manažer' : 'zaměstnanec');
     document.getElementById('user-email-label').textContent = user.email;
     document.getElementById('user-avatar').textContent = (user.email||'?')[0].toUpperCase();
 
@@ -2402,12 +2527,13 @@ async function bootstrapAfterAuth(){
     await loadOrgSettings();
 
     if(currentRole !== 'admin'){
-      if(!currentEmployeeId){
+      if(!currentEmployeeId && currentRole !== 'branch_manager'){
         document.getElementById('app-shell').style.display = 'none';
         showOnboarding(null, true);
         return;
       }
-      document.body.classList.add('employee-view');
+      if(currentRole !== 'branch_manager') document.body.classList.add('employee-view');
+      if(currentRole === 'branch_manager') document.body.classList.add('branch-manager-view');
       const settingsBtn = document.getElementById('emp-settings-btn');
       if(settingsBtn) settingsBtn.style.display = 'block';
       await loadOrgCode();
@@ -2628,13 +2754,15 @@ async function onboardingAddEmployee() {
 // APP TABS
 // ============================================================
 function switchAppTab(tab){
-  // Employees can only see schedule tab
-  if(currentRole && currentRole !== 'admin' && tab !== 'schedule') return;
+  // Employees can only see schedule tab; branch_manager sees schedule + gaps
+  if(currentRole === 'employee' && tab !== 'schedule') return;
+  if(currentRole === 'branch_manager' && !['schedule','gaps'].includes(tab)) return;
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
   document.querySelectorAll('.tab-pane').forEach(p=>p.style.display='none');
   const pane = document.getElementById('pane-'+tab);
   if(pane) pane.style.display='block';
   if(tab==='gaps') renderGaps();
+  if(tab==='schedule' && currentOrg) loadAndRenderOpenShifts().catch(()=>{});
   // Trigger contextual tutorial on first visit to each tab
   if(!tutActive) maybeStartTabTutorial(tab);
 }
@@ -2663,8 +2791,11 @@ async function loadEmployees(){
 
 function renderEmployees(){
   const wrap = document.getElementById('employees-table-wrap');
+  const typeFilter = document.getElementById('emp-type-filter')?.value || '';
+  const filtered = typeFilter ? employees.filter(e=>(e.employment_type||'full')===typeFilter) : employees;
+
   document.getElementById('employees-count-label').textContent =
-    employees.length ? `${employees.length} ${employees.length===1?'zaměstnanec':employees.length<5?'zaměstnanci':'zaměstnanců'}` : 'Zatím žádní zaměstnanci';
+    employees.length ? `${filtered.length === employees.length ? employees.length : `${filtered.length} z ${employees.length}`} ${employees.length===1?'zaměstnanec':employees.length<5?'zaměstnanci':'zaměstnanců'}` : 'Zatím žádní zaměstnanci';
 
   if(!employees.length){
     wrap.innerHTML = `<div class="empty-state">
@@ -2676,7 +2807,12 @@ function renderEmployees(){
     return;
   }
 
-  let rows = employees.map(e => {
+  if(!filtered.length){
+    wrap.innerHTML = `<p style="text-align:center;color:var(--ink-faint);padding:24px 0;font-size:13px">Žádný zaměstnanec tohoto typu úvazku</p>`;
+    return;
+  }
+
+  let rows = filtered.map(e => {
     // Find linked org_member for this employee
     const member = orgMembers.find(m=>m.employee_id===e.id);
     const isAdmin = orgMembers.find(m=>m.role==='admin' && m.employee_id===e.id);
@@ -2691,22 +2827,25 @@ function renderEmployees(){
 
     return `
     <tr>
-      <td><strong>${escapeHtml(e.name)}</strong></td>
+      <td>
+        <strong>${escapeHtml(e.name)}</strong>
+        ${getEmploymentTypeBadge(e.employment_type)}
+      </td>
       <td><span class="code-pill">${e.min_shifts}–${e.target_shifts}</span></td>
       <td>${e.max_shifts}</td>
       <td>${e.max_consec}</td>
       <td>${accessBadge}</td>
       <td>
         <div class="row-actions">
-          <button class="icon-btn" title="Přístup / pozvánka" onclick="openAccessModal('${e.id}')">🔑</button>
-          <button class="icon-btn" title="Upravit" onclick="openEmployeeModal('${e.id}')">✎</button>
-          <button class="icon-btn danger" title="Smazat" onclick="deleteEmployee('${e.id}')">✕</button>
+          <button class="icon-btn" title="Přístup / pozvánka" onclick="openAccessModal('${e.id}')" aria-label="Přístup / pozvánka pro ${escapeHtml(e.name)}">🔑</button>
+          <button class="icon-btn" title="Upravit" onclick="openEmployeeModal('${e.id}')" aria-label="Upravit ${escapeHtml(e.name)}">✎</button>
+          <button class="icon-btn danger" title="Smazat" onclick="deleteEmployee('${e.id}')" aria-label="Smazat ${escapeHtml(e.name)}">✕</button>
         </div>
       </td>
     </tr>`;
   }).join('');
 
-  wrap.innerHTML = `<table class="data-table">
+  wrap.innerHTML = `<table class="data-table" role="table" aria-label="Seznam zaměstnanců">
     <thead><tr><th>Jméno</th><th>Min–cíl</th><th>Max</th><th>Max série</th><th>Přístup</th><th></th></tr></thead>
     <tbody>${rows}</tbody>
   </table>`;
@@ -2729,6 +2868,8 @@ function openEmployeeModal(id){
     document.getElementById('employee-minwe').value = e.min_free_weekends;
     document.getElementById('employee-notes').value = e.notes || '';
     document.getElementById('employee-fixed').checked = !!e.is_fixed;
+    const etEl = document.getElementById('employee-employment-type');
+    if(etEl) etEl.value = e.employment_type || 'full';
     const notifyEl = document.getElementById('employee-notify-email');
     if(notifyEl) notifyEl.checked = (orgSettings['emp_notify']?.[e.id]?.email) !== false;
   } else {
@@ -2744,6 +2885,8 @@ function openEmployeeModal(id){
     document.getElementById('employee-minwe').value = 0;
     document.getElementById('employee-notes').value = '';
     document.getElementById('employee-fixed').checked = false;
+    const etEl = document.getElementById('employee-employment-type');
+    if(etEl) etEl.value = 'full';
     const notifyEl = document.getElementById('employee-notify-email');
     if(notifyEl) notifyEl.checked = true; // default on for new employees
   }
@@ -2807,6 +2950,7 @@ async function saveEmployee(){
     notes: document.getElementById('employee-notes').value || '',
     branch_limits: branchLimits,
     is_fixed: document.getElementById('employee-fixed').checked,
+    employment_type: document.getElementById('employee-employment-type')?.value || 'full',
   };
 
   const notifyEmailEl = document.getElementById('employee-notify-email');
@@ -2938,26 +3082,30 @@ function renderBranches(){
     return;
   }
 
-  let rows = branches.map(b => `
-    <tr>
+  let rows = branches.map(b => {
+    const minWD = getBranchDayMin(b,1); // Monday as representative weekday
+    const minWE = getBranchDayMin(b,6); // Saturday as representative weekend
+    const maxDay = getBranchDayMax(b,1);
+    return `<tr>
       <td>
         <span class="code-pill" style="background:${b.color}22;border-color:${b.color}55;color:${b.color}">${escapeHtml(b.code)}</span>
       </td>
       <td><strong>${escapeHtml(b.name)}</strong></td>
-      <td>${b.min_weekday}</td>
-      <td>${b.min_weekend}</td>
-      <td>${b.max_per_day}</td>
+      <td style="text-align:center">${minWD} / ${getBranchDayTarget(b,1)} / ${maxDay}</td>
+      <td style="text-align:center">${minWE} / ${getBranchDayTarget(b,6)} / ${getBranchDayMax(b,6)}</td>
+      <td>${renderBranchPatternBar(b, b.color)}</td>
       <td><span class="code-pill">${b.month_min}–${b.month_max}</span></td>
       <td>
         <div class="row-actions">
-          <button class="icon-btn" title="Upravit" onclick="openBranchModal('${b.id}')">✎</button>
-          <button class="icon-btn danger" title="Smazat" onclick="deleteBranch('${b.id}')">✕</button>
+          <button class="icon-btn" title="Upravit" onclick="openBranchModal('${b.id}')" aria-label="Upravit pobočku ${escapeHtml(b.name)}">✎</button>
+          <button class="icon-btn danger" title="Smazat" onclick="deleteBranch('${b.id}')" aria-label="Smazat pobočku ${escapeHtml(b.name)}">✕</button>
         </div>
       </td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
 
-  wrap.innerHTML = `<table class="data-table">
-    <thead><tr><th>Kód</th><th>Název</th><th>Min všední</th><th>Min víkend</th><th>Max/den</th><th>Limit/měsíc</th><th></th></tr></thead>
+  wrap.innerHTML = `<table class="data-table" role="table" aria-label="Správa poboček">
+    <thead><tr><th>Kód</th><th>Název</th><th>Všední (min/cíl/max)</th><th>Víkend (min/cíl/max)</th><th>Vzor týdne</th><th>Limit/měsíc</th><th></th></tr></thead>
     <tbody>${rows}</tbody>
   </table>`;
 }
@@ -2971,11 +3119,11 @@ async function openBranchModal(id){
     document.getElementById('branch-code').value = b.code;
     document.getElementById('branch-name').value = b.name;
     document.getElementById('branch-color').value = b.color;
-    document.getElementById('branch-minwd').value = b.min_weekday;
-    document.getElementById('branch-minwe').value = b.min_weekend;
-    document.getElementById('branch-maxday').value = b.max_per_day;
     document.getElementById('branch-monthmin').value = b.month_min;
     document.getElementById('branch-monthmax').value = b.month_max;
+    // Weekly pattern — fall back to old min/max if no pattern set yet
+    const pat = b.weekly_pattern || defaultWeeklyPattern(b);
+    renderWeeklyPatternTable(pat);
 
     section.style.display = 'block';
     const { data } = await sb.from('shift_types').select('*').eq('branch_id', id).order('sort_order');
@@ -2990,13 +3138,12 @@ async function openBranchModal(id){
     document.getElementById('branch-code').value = '';
     document.getElementById('branch-name').value = '';
     document.getElementById('branch-color').value = randomColor;
-    document.getElementById('branch-minwd').value = 1;
-    document.getElementById('branch-minwe').value = 1;
-    document.getElementById('branch-maxday').value = 1;
     document.getElementById('branch-monthmin').value = 0;
     document.getElementById('branch-monthmax').value = 31;
-    section.style.display = 'none'; // can't manage shift types until branch is saved once
+    section.style.display = 'none';
     editingBranchShiftTypes = [];
+    // Default pattern for new branch (1 person per day)
+    renderWeeklyPatternTable({ 0:{min:1,target:1,max:2}, 1:{min:1,target:1,max:2}, 2:{min:1,target:1,max:2}, 3:{min:1,target:1,max:2}, 4:{min:1,target:1,max:2}, 5:{min:1,target:1,max:2}, 6:{min:1,target:1,max:2} });
   }
   document.getElementById('branch-modal-overlay').classList.add('open');
 }
@@ -3069,14 +3216,25 @@ async function saveBranch(){
   const name = document.getElementById('branch-name').value.trim();
   if(!code || !name){ toast('Vyplň kód i název pobočky'); return; }
 
+  // Build weekly_pattern from 7-day table, also update legacy min/max fields for compat
+  const weeklyPattern = getPatternFromTable();
+  // Derive legacy fields from pattern averages (for backward compat with older clients)
+  const wdMins = [1,2,3,4,5].map(d=>weeklyPattern[d]?.min??0);
+  const weMins = [6,0].map(d=>weeklyPattern[d]?.min??0);
+  const allMaxes = DOW_DISPLAY.map(d=>weeklyPattern[d]?.max??1);
+  const legacyMinWD = Math.round(wdMins.reduce((a,b)=>a+b,0)/wdMins.length);
+  const legacyMinWE = Math.round(weMins.reduce((a,b)=>a+b,0)/weMins.length);
+  const legacyMaxDay = Math.max(...allMaxes, 1);
+
   const payload = {
     code, name,
     color: document.getElementById('branch-color').value,
-    min_weekday: parseInt(document.getElementById('branch-minwd').value)||0,
-    min_weekend: parseInt(document.getElementById('branch-minwe').value)||0,
-    max_per_day: parseInt(document.getElementById('branch-maxday').value)||1,
+    min_weekday: legacyMinWD,
+    min_weekend: legacyMinWE,
+    max_per_day: legacyMaxDay,
     month_min: parseInt(document.getElementById('branch-monthmin').value)||0,
     month_max: parseInt(document.getElementById('branch-monthmax').value)||31,
+    weekly_pattern: weeklyPattern,
   };
 
   if(id){
@@ -3374,11 +3532,25 @@ function isoDate(y,m,d){
 // LOAD SHIFTS + UNAVAILABILITY FROM DB
 // DB: shifts uses shift_date; unavailability uses unavail_date
 // ============================================================
-async function loadShiftsForMonth(){
+const _shiftCache = {}; // Feature 8: cache shifts per month key
+let _lastLoadedMonthKey = null;
+
+async function loadShiftsForMonth(forceRefresh=false){
   if(!currentOrg) return;
   const from = isoDate(schedYear, schedMonth+1, 1);
   const daysInMonth = new Date(schedYear, schedMonth+1, 0).getDate();
   const to   = isoDate(schedYear, schedMonth+1, daysInMonth);
+  const cacheKey = `${currentOrg.id}_${schedYear}_${schedMonth}`;
+  // Feature 8: for archive months use cache to avoid re-fetching
+  if(!forceRefresh && _shiftCache[cacheKey] && isArchiveMonth && isArchiveMonth()){
+    shifts  = _shiftCache[cacheKey].shifts;
+    unavail = _shiftCache[cacheKey].unavail;
+    renderCalendar();
+    if(document.getElementById('pane-gaps')?.style.display !== 'none') renderGaps();
+    loadAndRenderOpenShifts().catch(()=>{});
+    resetSessionTimer();
+    return;
+  }
 
   const [{ data: shiftRows, error: shiftErr }, { data: unavRows, error: unavErr }] = await Promise.all([
     sb.from('shifts').select('*').eq('org_id', currentOrg.id)
@@ -3394,9 +3566,16 @@ async function loadShiftsForMonth(){
   unavail = {};
   (shiftRows||[]).forEach(s=>{ shifts[s.employee_id+':'+s.shift_date] = s; });
   (unavRows||[]).forEach(u=>{ unavail[u.employee_id+':'+u.unavail_date] = true; });
+  // Feature 8: cache for archive months
+  if(typeof isArchiveMonth === 'function' && isArchiveMonth()){
+    _shiftCache[cacheKey] = { shifts: {...shifts}, unavail: {...unavail} };
+  }
 
   renderCalendar();
   if(document.getElementById('pane-gaps')?.style.display !== 'none') renderGaps();
+  // Load open shifts in background (non-critical, table may not exist yet)
+  loadAndRenderOpenShifts().catch(()=>{});
+  resetSessionTimer();
 }
 
 // ============================================================
@@ -3571,9 +3750,10 @@ function slotFilledCountOnDay(dateStr, slotCode){
 }
 
 function slotMaxOnDay(dateStr, slotCode, isWE){
+  const _dow = new Date(dateStr+'T00:00:00').getDay();
   // Find branch for this code
   const b = branches.find(b=>b.code===slotCode);
-  if(b) return isWE ? b.min_weekend : b.min_weekday; // max = min required (1 per slot for branch-type)
+  if(b) return getBranchDayMin(b, _dow); // min required (1 per slot for branch-type)
   // Shift type code — parent branch max_per_day limits how many of ANY type can work
   const st = shiftTypes.find(s=>s.code===slotCode);
   if(st){
@@ -3878,7 +4058,8 @@ function renderCalendar(){
   });
 
   renderScoreBar();
-  requestAnimationFrame(initTableResize);
+  renderLaborCost();
+  requestAnimationFrame(()=>{ initTableResize(); applyAccessibilityAttributes(); scheduleDraftSave(); });
   // If gaps mode active, render inline gaps after calendar
   if(isGapsMode) renderGapsInline();
 }
@@ -4003,7 +4184,8 @@ function renderCalendarBranch(thead, tbody, daysInMonth, DOW_SHORT){
   });
 
   renderScoreBar();
-  requestAnimationFrame(initTableResize);
+  renderLaborCost();
+  requestAnimationFrame(()=>{ initTableResize(); applyAccessibilityAttributes(); });
 }
 
 function collectWeekendBlocks(daysInMonth){
@@ -4359,10 +4541,11 @@ function computeQuality(shiftsMap, unavailMap){
   branches.forEach(b=>{ covBranchDetails[b.code] = { name:b.name, score:0, max:0, missedDays:[] }; });
   for(let d=1;d<=daysInMonth;d++){
     const dateStr = isoDate(schedYear,schedMonth+1,d);
-    const isWE = [0,6].includes(new Date(schedYear,schedMonth,d).getDay());
+    const _dow = new Date(schedYear,schedMonth,d).getDay();
+    const isWE = _dow===0||_dow===6;
     branches.forEach(b=>{
       const sts = shiftTypes.filter(s=>s.branch_id===b.id);
-      const minReq = isWE ? b.min_weekend : b.min_weekday;
+      const minReq = getBranchDayMin(b, _dow);
       if(!minReq) return;
       covMax += minReq;
       covBranchDetails[b.code].max += minReq;
@@ -4720,12 +4903,12 @@ function buildSchedule(daysInMonth){
   // Build required slots for a given day
   // Returns array of shift_type_code strings (K, U, M1, M2, ...)
   function buildDaySlots(dateStr){
-    const dow = new Date(dateStr).getDay();
+    const dow = new Date(dateStr+'T00:00:00').getDay();
     const isWE = dow===0||dow===6;
     const slots = [];
     branches.forEach(b=>{
       const sts = shiftTypes.filter(s=>s.branch_id===b.id);
-      const minReq = isWE ? b.min_weekend : b.min_weekday;
+      const minReq = getBranchDayMin(b, dow);
       if(!sts.length){
         for(let i=0;i<minReq;i++) slots.push(b.code); // e.g. "K"
       } else {
@@ -4789,7 +4972,7 @@ function buildSchedule(daysInMonth){
     });
   });
 
-  // PASS 2: Balance toward target
+  // PASS 2: Balance toward employee target shift count
   shuffle([...nonFixed]).forEach(emp=>{
     const cnt = empShiftCount(emp.id);
     if(cnt >= emp.target_shifts) return;
@@ -4799,18 +4982,41 @@ function buildSchedule(daysInMonth){
       if(added>=need) break;
       const dateStr = isoDate(schedYear,schedMonth+1,d);
       if(S[emp.id+':'+dateStr] || !canWork(emp, dateStr)) continue;
-      // Find any available slot on this day
+      // Find any available slot on this day below branch max (use getBranchDayMax)
+      const dow2 = new Date(dateStr+'T00:00:00').getDay();
       const avail = buildDaySlots(dateStr).filter(code=>{
-        const cnt = Object.values(S).filter(s=>s.shift_date===dateStr&&s.shift_type_code===code).length;
+        const curCnt = Object.values(S).filter(s=>s.shift_date===dateStr&&s.shift_type_code===code).length;
         const b = branches.find(b=>b.code===code);
-        const maxD = b ? b.max_per_day : 1;
-        return cnt < maxD;
+        return curCnt < (b ? getBranchDayMax(b, dow2) : 1);
       });
       if(!avail.length) continue;
       const code = avail[Math.floor(Math.random()*avail.length)];
       S[emp.id+':'+dateStr] = { employee_id:emp.id, shift_date:dateStr, shift_type_code:code, is_auto:true };
       added++;
     }
+  });
+
+  // PASS 3: Fill branches toward day TARGET (soft goal from weekly_pattern)
+  const dayOrder2 = shuffle(Array.from({length:daysInMonth},(_,i)=>i+1));
+  dayOrder2.forEach(d=>{
+    const dateStr = isoDate(schedYear,schedMonth+1,d);
+    const dow3 = new Date(dateStr+'T00:00:00').getDay();
+    branches.forEach(b=>{
+      const tgt = getBranchDayTarget(b, dow3);
+      const curCnt = Object.values(S).filter(s=>s.shift_date===dateStr&&s.shift_type_code===b.code&&s.shift_type_code!=='X').length;
+      if(curCnt >= tgt) return;
+      const need = tgt - curCnt;
+      const eligible = shuffle([...nonFixed]).filter(emp=>
+        !S[emp.id+':'+dateStr] && canWork(emp, dateStr) && empShiftCount(emp.id) < emp.max_shifts
+      );
+      eligible.sort((a,bEmp)=>{ // prefer employees below their target
+        return (bEmp.target_shifts - empShiftCount(bEmp.id)) - (a.target_shifts - empShiftCount(a.id));
+      });
+      for(let i=0; i<Math.min(need, eligible.length); i++){
+        const emp = eligible[i];
+        S[emp.id+':'+dateStr] = { employee_id:emp.id, shift_date:dateStr, shift_type_code:b.code, is_auto:true };
+      }
+    });
   });
 
   return S;
@@ -5296,7 +5502,7 @@ function openDayDetail(day, replaceEmpId=null){
     const sts = shiftTypes.filter(s=>s.branch_id===b.id);
     if(!sts.length){
       const cnt = working.filter(emp=>{ const s=shifts[emp.id+':'+dateStr]; return s&&s.shift_type_code===b.code; }).length;
-      const minReq = isWE ? b.min_weekend : b.min_weekday;
+      const minReq = getBranchDayMin(b, dow);
       const ok = cnt >= minReq;
       const icon = ok ? '✓' : `${cnt}/${minReq}`;
       covHtml += `<span style="padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600;
@@ -5430,14 +5636,17 @@ function openDayDetail(day, replaceEmpId=null){
         }
 
         // Normal mode or the employee being replaced
-        const clickAttr = replaceEmp ? '' : `onclick="openDayDetail(${day},'${emp.id}')"`;
+        const isMyShift = currentEmployeeId && emp.id === currentEmployeeId;
+        const clickAttr = replaceEmp ? '' : (isMyShift ? '' : `onclick="openDayDetail(${day},'${emp.id}')"`);
         return `<div ${clickAttr}
           style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-bottom:1px solid var(--line);border-radius:6px;
-            cursor:${replaceEmp?'default':'pointer'};
-            background:${isBeingReplaced?'var(--amber-soft)':'transparent'}">
+            cursor:${(replaceEmp||isMyShift)?'default':'pointer'};
+            background:${isBeingReplaced?'var(--amber-soft)':(isMyShift?'var(--accent-soft)':'transparent')}">
           <span style="background:${color};color:#fff;font-family:var(--font-mono);font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;flex-shrink:0">${s.shift_type_code}</span>
           <span style="font-size:13px;font-weight:600;flex:1">${escapeHtml(emp.name)}</span>
-          ${!replaceEmp ? `<span style="font-size:10px;color:var(--ink-faint)">upravit ›</span>` : ''}
+          ${isMyShift ? `<button onclick="document.getElementById('day-detail-overlay').classList.remove('open');openShiftSwapModal('${dateStr}','${s.shift_type_code}')"
+            style="background:none;border:1.5px solid var(--accent);color:var(--accent);border-radius:6px;padding:3px 10px;font-size:11px;font-weight:600;cursor:pointer">⇄ Výměna</button>` : ''}
+          ${(!replaceEmp && !isMyShift) ? `<span style="font-size:10px;color:var(--ink-faint)">upravit ›</span>` : ''}
         </div>`;
       }).join('')}
     </div>`;
@@ -5611,13 +5820,14 @@ function renderGapsInline(){
 
     branches.forEach(b=>{
       const sts = shiftTypes.filter(s=>s.branch_id===b.id);
-      const minReq = isWE ? b.min_weekend : b.min_weekday;
+      const minReq = getBranchDayMin(b, dow);
+      const maxDay = getBranchDayMax(b, dow);
       if(!sts.length){
         const cnt = employees.filter(emp=>{
           const s=shifts[emp.id+':'+dateStr]; return s&&s.shift_type_code===b.code;
         }).length;
         for(let i=cnt; i<minReq; i++) missingSlots.push({code:b.code,color:b.color});
-        for(let i=Math.max(cnt,minReq); i<(b.max_per_day||1); i++) freeSlots.push({code:b.code,color:b.color});
+        for(let i=Math.max(cnt,minReq); i<maxDay; i++) freeSlots.push({code:b.code,color:b.color});
       } else {
         sts.forEach(st=>{
           const filled = employees.some(emp=>{const s=shifts[emp.id+':'+dateStr]; return s&&s.shift_type_code===st.code;});
@@ -5694,7 +5904,8 @@ function renderGaps(){
 
     branches.forEach(b=>{
       const sts = shiftTypes.filter(s=>s.branch_id===b.id);
-      const minReq = isWE ? b.min_weekend : b.min_weekday;
+      const minReq = getBranchDayMin(b, dow);
+      const maxDay = getBranchDayMax(b, dow);
 
       if(!sts.length){
         // Branch without subtypes
@@ -5703,7 +5914,7 @@ function renderGaps(){
           return s && s.shift_type_code===b.code;
         });
         const cnt = occupants.length;
-        for(let i=0; i<Math.max(minReq, cnt, b.max_per_day||1); i++){
+        for(let i=0; i<Math.max(minReq, cnt, maxDay); i++){
           const occ = occupants[i];
           const status = i < minReq ? (occ ? 'ok' : 'missing') : (occ ? 'ok' : 'free');
           daySlots.push({ code:b.code, branchCode:b.code, branchName:b.name,
@@ -6556,8 +6767,17 @@ async function openAccessModal(empId){
 
   if(member){
     html = `<div style="background:var(--accent-soft);border-radius:8px;padding:12px;margin-bottom:14px">
-      <div style="font-size:13px;font-weight:600;color:var(--accent-ink)">✓ Má přístup — role: ${member.role}</div>
+      <div style="font-size:13px;font-weight:600;color:var(--accent-ink)">✓ Má přístup ${getRoleBadge(member.role)}</div>
       ${realEmpCode ? `<div style="margin-top:8px;font-size:12px;color:var(--ink-soft)">Kód zaměstnance: <strong style="font-family:var(--font-mono);letter-spacing:1.5px">${escapeHtml(realEmpCode)}</strong></div>` : ''}
+    </div>
+    <div class="field" style="margin-bottom:10px">
+      <label style="font-size:12px;font-weight:600;color:var(--ink-soft)">Role</label>
+      <select id="member-role-select" style="padding:8px 10px;border:1.5px solid var(--line);border-radius:8px;font-size:13px;font-family:inherit;width:100%">
+        <option value="employee"${member.role==='employee'?' selected':''}>Zaměstnanec</option>
+        <option value="branch_manager"${member.role==='branch_manager'?' selected':''}>Manažer pobočky</option>
+        <option value="admin"${member.role==='admin'?' selected':''}>Admin</option>
+      </select>
+      <button onclick="changeMemberRole('${member.id}')" class="btn-outline" style="margin-top:6px;width:100%">Uložit roli</button>
     </div>
     <button onclick="revokeAccess('${member.id}','${empId}')"
       style="background:var(--red);color:#fff;border:none;border-radius:7px;padding:7px 14px;font-size:13px;font-weight:600;cursor:pointer;width:100%">
@@ -6650,6 +6870,17 @@ async function revokeAccess(memberId, empId){
   toast('Přístup odebrán');
   await loadEmployees();
   closeAccessModal();
+}
+
+async function changeMemberRole(memberId){
+  const sel = document.getElementById('member-role-select');
+  const newRole = sel?.value;
+  if(!newRole) return;
+  const { error } = await sb.from('org_members').update({ role: newRole }).eq('id', memberId);
+  if(error){ toast('Chyba: '+error.message); return; }
+  toast(`Role změněna na: ${newRole}`);
+  await loadEmployees();
+  logAudit(`Role člena ${memberId} změněna na ${newRole}`);
 }
 
 // ============================================================
@@ -6783,13 +7014,14 @@ function exportJSON(){
     fixed: emp.is_fixed || false,
   }));
 
-  // Build globalSettings from branches
-  const wd={}, we={}, maxDay={}, monthLim={};
+  // Build globalSettings from branches (include weekly_pattern for newer clients)
+  const wd={}, we={}, maxDay={}, monthLim={}, weeklyPatterns={};
   branches.forEach(b=>{
-    wd[b.code]      = b.min_weekday;
-    we[b.code]      = b.min_weekend;
-    maxDay[b.code]  = b.max_per_day;
-    monthLim[b.code]= { min: b.month_min||0, max: b.month_max||31 };
+    wd[b.code]            = b.min_weekday;
+    we[b.code]            = b.min_weekend;
+    maxDay[b.code]        = b.max_per_day;
+    monthLim[b.code]      = { min: b.month_min||0, max: b.month_max||31 };
+    if(b.weekly_pattern) weeklyPatterns[b.code] = b.weekly_pattern;
   });
 
   const exportData = {
@@ -6797,7 +7029,7 @@ function exportJSON(){
     exported: new Date().toISOString(),
     org: currentOrg?.name || 'export',
     employees: empsArr,
-    globalSettings: { wd, we, maxDay, monthLim },
+    globalSettings: { wd, we, maxDay, monthLim, weeklyPatterns },
     schedules: { [schedKey]: schedObj },
     auto:      { [autoKey]:  autoObj  },
     unavail:   { [unavailKey]: unavailObj },
@@ -7190,11 +7422,15 @@ const BRANCHES_STEPS = [
   { target:null, icon:'🏠', title:'Správa poboček', position:'center',
     body:'Pobočky jsou místa kde se pracuje — prodejna, sklad, pobočka A, pobočka B… Každá má vlastní barvu v rozpisu a minimální počty obsazení. Bez poboček nelze generovat rozvrh.' },
   { target:'[onclick="openBranchModal()"]', icon:'🏠', title:'Přidat pobočku', position:'bottom',
-    body:'Klikni na toto zelené tlačítko <strong>+ Přidat pobočku</strong>. Vyplníš název, kód (1–3 písmena — zobrazuje se v každé buňce kalendáře), barvu a minimální počty lidí na směně ve všední dny a o víkendech.' },
+    body:'Klikni na toto zelené tlačítko <strong>+ Přidat pobočku</strong>. Vyplníš název, kód (1–4 písmena — zobrazuje se v každé buňce kalendáře) a barvu.' },
+  { target:'#weekly-pattern-tbl', icon:'📅', title:'Týdenní vzor obsazení', position:'top',
+    body:'Místo jednoho čísla pro všední/víkend nastavuješ <strong>Min / Cíl / Max</strong> pro každý den v týdnu zvlášť. Příklad: pátek večer potřebuješ 3 lidi, úterý ráno jen 1 — tohle ti pomůže to nastavit přesně. Algoritmus se snaží trefit <em>Cíl</em> pro každý den.' },
+  { target:'.pattern-templates', icon:'📐', title:'Šablony vzoru', position:'bottom',
+    body:'Jedním klikem použiješ přednastavený vzor: <strong>Rovnoměrné</strong>, <strong>Víkendová špička</strong> (typické pro restaurace/bary), <strong>Pracovní týden</strong> (kanceláře/služby), nebo <strong>Vlastní</strong> pro ruční nastavení.' },
   { target:'#pane-branches table', icon:'📋', title:'Co vidíš v tabulce', position:'top',
-    body:'Každý řádek = jedna pobočka. <strong>MIN VŠEDNÍ</strong> a <strong>MIN VÍKEND</strong> = minimální počet lidí na směně. <strong>MAX/DEN</strong> = max obsazení za den. <strong>LIMIT/MĚSÍC</strong> = celkový měsíční rozsah směn.' },
+    body:'Každý řádek = jedna pobočka. Sloupce ukazují <strong>Min/Cíl/Max</strong> pro všední den a víkend (zástupné hodnoty). Sloupcový graf <strong>Vzor týdne</strong> ukazuje cílové obsazení pro každý den.' },
   { target:null, icon:'✎', title:'Úprava a mazání', position:'center',
-    body:'Po přidání pobočky se v každém řádku tabulky zobrazí tlačítko <strong>✎</strong> = upravit nastavení pobočky a <strong>✕</strong> = smazat pobočku. Mazání odstraní i všechny přiřazené směny v celém rozpisu.', isLast:true },
+    body:'Po přidání pobočky se v každém řádku tabulky zobrazí tlačítko <strong>✎</strong> = upravit nastavení a <strong>✕</strong> = smazat. Mazání odstraní i všechny přiřazené směny.', isLast:true },
 ];
 
 const EMPLOYEES_STEPS = [
@@ -7830,86 +8066,145 @@ function deleteShiftNote(){
 
 // ── Feature 4: ŠABLONY ROZPISU ──────────────────────────────
 
-function getTemplatesKey(){ return `sched_templates_${currentOrg?.id}`; }
-function loadTemplates(){ return JSON.parse(localStorage.getItem(getTemplatesKey())||'[]'); }
-function saveTemplates(templates){ localStorage.setItem(getTemplatesKey(), JSON.stringify(templates)); }
+// ── Feature 3: ŠABLONY ROZPISŮ (Supabase) ──────────────────────
 
-function openTemplatesModal(){
-  renderTemplatesList();
+async function _migrateLocalTemplatesToDB(){
+  const migratedKey = `sched_templates_migrated_${currentOrg?.id}`;
+  if(localStorage.getItem(migratedKey)) return;
+  const local = JSON.parse(localStorage.getItem(`sched_templates_${currentOrg?.id}`)||'[]');
+  if(!local.length){ localStorage.setItem(migratedKey,'1'); return; }
+  try {
+    const rows = local.map(t=>({
+      org_id: currentOrg.id,
+      name: t.name,
+      pattern: { shifts: t.shifts, year: t.year, month: t.month, savedAt: t.savedAt }
+    }));
+    const { error } = await sb.from('schedule_templates').insert(rows);
+    if(!error){
+      localStorage.removeItem(`sched_templates_${currentOrg?.id}`);
+      localStorage.setItem(migratedKey,'1');
+    }
+  } catch(e){ /* table doesn't exist yet */ }
+}
+
+async function _loadTemplatesFromDB(){
+  try {
+    const { data, error } = await sb.from('schedule_templates')
+      .select('*').eq('org_id', currentOrg.id).order('created_at',{ ascending:false });
+    if(error) throw error;
+    return data || [];
+  } catch(e){
+    return JSON.parse(localStorage.getItem(`sched_templates_${currentOrg?.id}`)||'[]')
+      .map((t,i)=>({ id:`local_${i}`, name:t.name, pattern:t, created_at:t.savedAt }));
+  }
+}
+
+async function openTemplatesModal(){
+  await _migrateLocalTemplatesToDB();
+  await renderTemplatesList();
   document.getElementById('templates-modal-overlay').classList.add('open');
 }
 
-function renderTemplatesList(){
-  const templates = loadTemplates();
+async function renderTemplatesList(){
   const el = document.getElementById('templates-list');
+  el.innerHTML = '<p style="font-size:13px;color:var(--ink-faint);text-align:center;padding:20px 0">Načítám…</p>';
+  const templates = await _loadTemplatesFromDB();
   if(!templates.length){
     el.innerHTML = '<p style="font-size:13px;color:var(--ink-faint);text-align:center;padding:20px 0">Žádné uložené šablony</p>';
     return;
   }
-  el.innerHTML = templates.map((t,i)=>`
-    <div class="template-card" onclick="loadTemplate(${i})">
+  el.innerHTML = templates.map(t=>`
+    <div class="template-card" onclick="loadTemplate('${t.id}')">
       <div>
         <div class="template-card-name">${escapeHtml(t.name)}</div>
-        <div class="template-card-meta">Uloženo ${new Date(t.savedAt).toLocaleDateString('cs-CZ')} • ${t.shifts?.length||0} směn</div>
+        <div class="template-card-meta">Uloženo ${new Date(t.created_at).toLocaleDateString('cs-CZ')} • ${t.pattern?.shifts?.length||0} směn</div>
       </div>
       <div style="display:flex;gap:8px;align-items:center">
-        <button class="btn-accent" style="padding:5px 12px;font-size:12px" onclick="event.stopPropagation();loadTemplate(${i})">Načíst</button>
-        <button class="btn-ghost" style="padding:5px 10px;font-size:12px;color:var(--red);border-color:var(--red)" onclick="event.stopPropagation();deleteTemplate(${i})">✕</button>
+        <button class="btn-accent" style="padding:5px 12px;font-size:12px" onclick="event.stopPropagation();loadTemplate('${t.id}')">Načíst</button>
+        <button class="btn-ghost" style="padding:5px 10px;font-size:12px;color:var(--red);border-color:var(--red)" onclick="event.stopPropagation();deleteTemplate('${t.id}')">✕</button>
       </div>
     </div>`).join('');
 }
 
-function saveCurrentAsTemplate(){
+async function saveCurrentAsTemplate(){
   const name = prompt('Název šablony (např. "Letní provoz"):','');
   if(!name) return;
   const monthKey = isoDate(schedYear, schedMonth+1, 1).slice(0,7);
   const monthShifts = shifts.filter(s=>s.shift_date.startsWith(monthKey));
-  const templates = loadTemplates();
-  templates.push({ name, savedAt: new Date().toISOString(), shifts: monthShifts, year: schedYear, month: schedMonth });
-  saveTemplates(templates);
-  renderTemplatesList();
-  toast(`Šablona "${name}" uložena`);
-  logAudit('Šablona uložena: ' + name);
+  try {
+    const { error } = await sb.from('schedule_templates').insert({
+      org_id: currentOrg.id,
+      name,
+      pattern: { shifts: monthShifts, year: schedYear, month: schedMonth, savedAt: new Date().toISOString() }
+    });
+    if(error) throw error;
+    await renderTemplatesList();
+    toast(`Šablona "${name}" uložena`);
+    logAudit('Šablona uložena: ' + name);
+  } catch(e){
+    toast('Chyba při ukládání šablony','error');
+  }
 }
 
-function loadTemplate(idx){
-  const templates = loadTemplates();
-  const tpl = templates[idx];
+async function loadTemplate(templateId){
+  let tpl;
+  try {
+    if(String(templateId).startsWith('local_')){
+      const idx = parseInt(templateId.replace('local_',''));
+      const arr = JSON.parse(localStorage.getItem(`sched_templates_${currentOrg?.id}`)||'[]');
+      tpl = arr[idx] ? { name: arr[idx].name, pattern: arr[idx], created_at: arr[idx].savedAt } : null;
+    } else {
+      const { data, error } = await sb.from('schedule_templates').select('*').eq('id',templateId).single();
+      if(error) throw error;
+      tpl = data;
+    }
+  } catch(e){ toast('Šablona nenalezena','error'); return; }
   if(!tpl) return;
   if(!confirm(`Načíst šablonu "${tpl.name}"? Tím přepíšeš aktuální měsíc.`)) return;
-  // Map template shifts to current month dates
-  const daysInTplMonth = new Date(tpl.year, tpl.month+1, 0).getDate();
+  const pat = tpl.pattern || tpl;
+  const templateShifts = pat.shifts || [];
   const daysInCurrMonth = new Date(schedYear, schedMonth+1, 0).getDate();
   const toInsert = [];
-  tpl.shifts.forEach(s=>{
-    const d = new Date(s.shift_date+'T00:00:00');
-    const dayNum = d.getDate();
+  templateShifts.forEach(s=>{
+    const dayNum = new Date(s.shift_date+'T00:00:00').getDate();
     if(dayNum <= daysInCurrMonth){
       const newDate = isoDate(schedYear, schedMonth+1, dayNum);
-      toInsert.push({ ...s, id: undefined, shift_date: newDate, org_id: currentOrg.id, is_auto: false });
+      toInsert.push({ ...s, id:undefined, shift_date:newDate, org_id:currentOrg.id, is_auto:false });
     }
   });
   const from = isoDate(schedYear, schedMonth+1, 1);
   const to   = isoDate(schedYear, schedMonth+1, daysInCurrMonth);
-  sb.from('shifts').delete().eq('org_id',currentOrg.id).gte('shift_date',from).lte('shift_date',to).then(async()=>{
-    if(toInsert.length){
-      const { error } = await sb.from('shifts').insert(toInsert.map(s=>{ const r={...s}; delete r.id; return r; }));
-      if(error){ toast('Chyba při načítání šablony','error'); return; }
-    }
-    await loadShiftsForMonth();
-    toast(`Šablona "${tpl.name}" načtena`);
-    document.getElementById('templates-modal-overlay').classList.remove('open');
-  });
+  await sb.from('shifts').delete().eq('org_id',currentOrg.id).gte('shift_date',from).lte('shift_date',to);
+  if(toInsert.length){
+    const { error } = await sb.from('shifts').insert(toInsert.map(s=>{ const r={...s}; delete r.id; return r; }));
+    if(error){ toast('Chyba při načítání šablony','error'); return; }
+  }
+  await loadShiftsForMonth();
+  toast(`Šablona "${tpl.name}" načtena`);
+  document.getElementById('templates-modal-overlay').classList.remove('open');
 }
 
-function deleteTemplate(idx){
-  const templates = loadTemplates();
-  const name = templates[idx]?.name;
-  if(!confirm(`Smazat šablonu "${name}"?`)) return;
-  templates.splice(idx,1);
-  saveTemplates(templates);
-  renderTemplatesList();
-  toast('Šablona smazána');
+async function deleteTemplate(templateId){
+  if(String(templateId).startsWith('local_')){
+    const idx = parseInt(templateId.replace('local_',''));
+    const arr = JSON.parse(localStorage.getItem(`sched_templates_${currentOrg?.id}`)||'[]');
+    const name = arr[idx]?.name;
+    if(!confirm(`Smazat šablonu "${name}"?`)) return;
+    arr.splice(idx,1);
+    localStorage.setItem(`sched_templates_${currentOrg?.id}`, JSON.stringify(arr));
+    await renderTemplatesList();
+    toast('Šablona smazána');
+    return;
+  }
+  try {
+    const { data } = await sb.from('schedule_templates').select('name').eq('id',templateId).single();
+    if(!confirm(`Smazat šablonu "${data?.name}"?`)) return;
+    const { error } = await sb.from('schedule_templates').delete().eq('id',templateId);
+    if(error) throw error;
+    await renderTemplatesList();
+    toast('Šablona smazána');
+    logAudit('Šablona smazána: ' + (data?.name||''));
+  } catch(e){ toast('Chyba při mazání šablony','error'); }
 }
 
 // ── Feature 5: ZAMĚSTNANECKÝ PROFIL ROZŠÍŘENÍ ───────────────
@@ -8721,11 +9016,14 @@ document.addEventListener('smeny:afterBootstrap', ()=>{
   // Hide org settings tab for non-admins
   const orgTab = document.getElementById('stab-org');
   if(orgTab) orgTab.style.display = currentRole==='admin' ? '' : 'none';
-  // Save quality score for statistics
-  const key = `sched_quality_${currentOrg?.id}`;
-  const qualHistory = JSON.parse(localStorage.getItem(key)||'[]');
-  // (score is saved during auto-schedule in existing code)
   updateArchiveBadge();
+  resetSessionTimer();
+  // Load managed_branches for branch_manager role
+  if(currentRole === 'branch_manager'){
+    sb.from('org_members').select('managed_branches').eq('org_id', currentOrg?.id).eq('user_id', window._supabaseUser?.id||'').single()
+      .then(({data})=>{ window._currentManagedBranches = data?.managed_branches || []; })
+      .catch(()=>{});
+  }
 });
 
 // Also patch the existing bootstrapAfterAuth to dispatch the event
@@ -8746,6 +9044,809 @@ document.addEventListener('keydown', e=>{
     if(appShell&&appShell.style.display!=='none') openSearch();
   }
 });
+
+// ── F7: beforeunload guard ────────────────────────────────────
+let _unsavedChanges = false;
+function markUnsaved(){ _unsavedChanges = true; }
+function clearUnsaved(){ _unsavedChanges = false; }
+window.addEventListener('beforeunload', e => {
+  if(_unsavedChanges){
+    e.preventDefault();
+    e.returnValue = '';
+  }
+});
+
+// ── F7: Session timeout warning ───────────────────────────────
+let _sessionTimer = null;
+function resetSessionTimer(){
+  clearTimeout(_sessionTimer);
+  const banner = document.getElementById('session-timeout-banner');
+  if(banner) banner.style.display = 'none';
+  _sessionTimer = setTimeout(()=>{
+    const banner = document.getElementById('session-timeout-banner');
+    if(banner) banner.style.display = 'block';
+  }, 25*60*1000); // warn 5 min before 30min timeout
+}
+['click','keydown','touchstart'].forEach(ev=>document.addEventListener(ev, resetSessionTimer, {passive:true}));
+
+// ── F7: Auto-draft saving ─────────────────────────────────────
+let _draftTimer = null;
+function scheduleDraftSave(){
+  clearTimeout(_draftTimer);
+  _draftTimer = setTimeout(()=>{
+    if(currentOrg && Object.keys(shifts).length > 0){
+      const key = `draft_${currentOrg.id}_${schedYear}_${schedMonth}`;
+      try { localStorage.setItem(key, JSON.stringify(Object.values(shifts))); } catch(e){}
+    }
+  }, 30000);
+}
+
+// ════════════════════════════════════════════════════════════════
+// FEATURE 1 — TÝDENNÍ VZOR OBSAZENÍ PO DNECH
+// SQL migration needed (run in Supabase SQL editor when ready):
+//   ALTER TABLE branches ADD COLUMN IF NOT EXISTS weekly_pattern JSONB;
+// ════════════════════════════════════════════════════════════════
+
+// DOW mapping: 0=Ne,1=Po,2=Út,3=St,4=Čt,5=Pá,6=So
+// Display order in table: Po(1),Út(2),St(3),Čt(4),Pá(5),So(6),Ne(0)
+const DOW_DISPLAY = [1,2,3,4,5,6,0];
+const DOW_LABELS  = ['','Po','Út','St','Čt','Pá','So','Ne'];
+
+function getBranchDayMin(b, dow){
+  const wp = b.weekly_pattern;
+  if(wp && wp[dow] !== undefined && wp[dow] !== null) return (wp[dow].min ?? 0);
+  return (dow===0||dow===6) ? (b.min_weekend ?? 0) : (b.min_weekday ?? 0);
+}
+function getBranchDayTarget(b, dow){
+  const wp = b.weekly_pattern;
+  if(wp && wp[dow] !== undefined && wp[dow] !== null) return (wp[dow].target ?? getBranchDayMin(b, dow));
+  return getBranchDayMin(b, dow);
+}
+function getBranchDayMax(b, dow){
+  const wp = b.weekly_pattern;
+  if(wp && wp[dow] !== undefined && wp[dow] !== null) return (wp[dow].max ?? (b.max_per_day ?? 1));
+  return (b.max_per_day ?? 1);
+}
+
+// Build default weekly_pattern from old min_weekday/min_weekend
+function defaultWeeklyPattern(b){
+  const pat = {};
+  for(let dow=0;dow<=6;dow++){
+    const isWE = dow===0||dow===6;
+    const min  = isWE ? (b.min_weekend??0) : (b.min_weekday??0);
+    const max  = b.max_per_day ?? 1;
+    pat[dow] = { min, target: min, max };
+  }
+  return pat;
+}
+
+// Render the 7-day input table in branch modal
+function renderWeeklyPatternTable(patternObj){
+  const body = document.getElementById('weekly-pattern-body');
+  if(!body) return;
+  const rows = ['min','target','max'];
+  const rowLabels = { min:'Min', target:'Cíl', max:'Max' };
+  body.innerHTML = rows.map(row=>`
+    <tr>
+      <td style="font-size:10px;font-weight:700;color:var(--ink-soft);background:var(--paper);text-align:right;padding:3px 6px;border:1px solid var(--line)">${rowLabels[row]}</td>
+      ${DOW_DISPLAY.map(dow=>{
+        const isWE = dow===0||dow===6;
+        const val = patternObj && patternObj[dow] ? (patternObj[dow][row]??0) : 0;
+        return `<td class="${isWE?'we-col':''}">
+          <input type="number" min="0" max="20" value="${val}"
+            data-dow="${dow}" data-row="${row}"
+            onchange="onPatternInputChange(${dow},'${row}',this.value)"
+            oninput="updatePatternPreview()">
+        </td>`;
+      }).join('')}
+    </tr>`).join('');
+  updatePatternPreview();
+}
+
+function getPatternFromTable(){
+  const pat = {};
+  for(let dow=0;dow<=6;dow++) pat[dow]={min:0,target:0,max:1};
+  document.querySelectorAll('#weekly-pattern-body input').forEach(inp=>{
+    const dow = parseInt(inp.getAttribute('data-dow'));
+    const row = inp.getAttribute('data-row');
+    pat[dow][row] = parseInt(inp.value)||0;
+  });
+  // Validate: min <= target <= max
+  for(let dow=0;dow<=6;dow++){
+    const p = pat[dow];
+    if(p.target < p.min) p.target = p.min;
+    if(p.max < p.target) p.max = p.target;
+    if(p.max < 1 && p.min > 0) p.max = p.min;
+  }
+  return pat;
+}
+
+function onPatternInputChange(dow, row, val){
+  // Auto-clamp
+  updatePatternPreview();
+}
+
+function updatePatternPreview(){
+  const chart = document.getElementById('pattern-preview-chart');
+  if(!chart) return;
+  const pat = getPatternFromTable();
+  const targets = DOW_DISPLAY.map(dow=>pat[dow]?.target??0);
+  const maxT = Math.max(...targets, 1);
+  const dowLabels = {0:'Ne',1:'Po',2:'Út',3:'St',4:'Čt',5:'Pá',6:'So'};
+  chart.innerHTML = DOW_DISPLAY.map(dow=>{
+    const isWE = dow===0||dow===6;
+    const t = pat[dow]?.target??0;
+    const h = Math.round((t/maxT)*34)+2;
+    const color = isWE ? '#4a6baa' : 'var(--accent)';
+    return `<div class="pattern-bar-col">
+      <div class="pattern-bar-fill" style="height:${h}px;background:${color};opacity:0.75"></div>
+      <div class="pattern-bar-label">${dowLabels[dow]}</div>
+    </div>`;
+  }).join('');
+  // Also update hidden legacy inputs for backward compat
+  const minWD = Math.round([1,2,3,4,5].reduce((s,d)=>s+(pat[d]?.min??0),0)/5);
+  const minWE = Math.round(((pat[6]?.min??0)+(pat[0]?.min??0))/2);
+  const maxDay = Math.max(...DOW_DISPLAY.map(d=>pat[d]?.max??0), 1);
+  const minWdEl = document.getElementById('branch-minwd');
+  const minWeEl = document.getElementById('branch-minwe');
+  const maxDEl  = document.getElementById('branch-maxday');
+  if(minWdEl) minWdEl.value = minWD;
+  if(minWeEl) minWeEl.value = minWE;
+  if(maxDEl)  maxDEl.value  = maxDay;
+}
+
+function quickFillPattern(group){
+  // group: 'wd' (Mon-Fri) or 'we' (Sat-Sun)
+  const dows = group==='wd' ? [1,2,3,4,5] : [6,0];
+  const refDow = dows[0];
+  const refMin  = parseInt(document.querySelector(`[data-dow="${refDow}"][data-row="min"]`)?.value)||0;
+  const refTgt  = parseInt(document.querySelector(`[data-dow="${refDow}"][data-row="target"]`)?.value)||refMin;
+  const refMax  = parseInt(document.querySelector(`[data-dow="${refDow}"][data-row="max"]`)?.value)||1;
+
+  // Prompt for values
+  const newMin = parseInt(prompt(`Minimum pro ${group==='wd'?'všední dny (Po–Pá)':'víkend (So–Ne)'}:`, refMin));
+  if(isNaN(newMin)) return;
+  const newTgt = parseInt(prompt('Cíl:', Math.max(newMin, refTgt)))||newMin;
+  const newMax = parseInt(prompt('Maximum:', Math.max(newTgt, refMax)))||newTgt;
+
+  dows.forEach(dow=>{
+    const minEl = document.querySelector(`[data-dow="${dow}"][data-row="min"]`);
+    const tgtEl = document.querySelector(`[data-dow="${dow}"][data-row="target"]`);
+    const maxEl = document.querySelector(`[data-dow="${dow}"][data-row="max"]`);
+    if(minEl) minEl.value = newMin;
+    if(tgtEl) tgtEl.value = newTgt;
+    if(maxEl) maxEl.value = newMax;
+  });
+  updatePatternPreview();
+}
+
+function applyPatternTemplate(tpl){
+  const patterns = {
+    even:         { 0:{min:1,target:1,max:2}, 1:{min:1,target:1,max:2}, 2:{min:1,target:1,max:2}, 3:{min:1,target:1,max:2}, 4:{min:1,target:1,max:2}, 5:{min:1,target:1,max:2}, 6:{min:1,target:1,max:2} },
+    weekend_peak: { 0:{min:2,target:3,max:4}, 1:{min:1,target:1,max:2}, 2:{min:1,target:1,max:2}, 3:{min:1,target:1,max:2}, 4:{min:1,target:2,max:3}, 5:{min:2,target:3,max:4}, 6:{min:2,target:3,max:4} },
+    workweek:     { 0:{min:0,target:1,max:1}, 1:{min:2,target:3,max:4}, 2:{min:2,target:3,max:4}, 3:{min:2,target:3,max:4}, 4:{min:2,target:3,max:4}, 5:{min:2,target:3,max:4}, 6:{min:0,target:1,max:1} },
+    empty:        { 0:{min:0,target:0,max:1}, 1:{min:0,target:0,max:1}, 2:{min:0,target:0,max:1}, 3:{min:0,target:0,max:1}, 4:{min:0,target:0,max:1}, 5:{min:0,target:0,max:1}, 6:{min:0,target:0,max:1} },
+  };
+  renderWeeklyPatternTable(patterns[tpl]);
+}
+
+// Render mini bar in branches table
+function renderBranchPatternBar(b, color){
+  const maxT = Math.max(...DOW_DISPLAY.map(dow=>getBranchDayTarget(b,dow)), 1);
+  return `<div class="branch-pattern-preview" title="Týdenní vzor (cíl)">${
+    DOW_DISPLAY.map(dow=>{
+      const t = getBranchDayTarget(b, dow);
+      const h = Math.max(1, Math.round((t/maxT)*18));
+      const isWE = dow===0||dow===6;
+      return `<div class="branch-pattern-bar" style="height:${h}px;background:${isWE?'#4a6baa':color};opacity:0.7"></div>`;
+    }).join('')
+  }</div>`;
+}
+
+// ════════════════════════════════════════════════════════════════
+// FEATURE 2/5 — OTEVŘENÉ SLOTY / OPEN SHIFTS
+// SQL migration needed (run in Supabase SQL editor when ready):
+/*
+  CREATE TABLE IF NOT EXISTS open_shifts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    shift_date DATE NOT NULL,
+    shift_type_code TEXT NOT NULL,
+    note TEXT,
+    status TEXT NOT NULL DEFAULT 'open',
+    claimed_by UUID REFERENCES employees(id),
+    approved_by UUID,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+  );
+  ALTER TABLE open_shifts ENABLE ROW LEVEL SECURITY;
+  CREATE POLICY "org_access" ON open_shifts USING (
+    org_id IN (SELECT org_id FROM org_members WHERE user_id = auth.uid())
+  );
+*/
+// ════════════════════════════════════════════════════════════════
+
+let openShiftsAutoApprove = false; // configurable via orgSettings
+
+function toggleAutoModeMenu(){
+  const menu = document.getElementById('auto-mode-menu');
+  if(menu) menu.style.display = menu.style.display==='none' ? 'block' : 'none';
+}
+document.addEventListener('click', e=>{
+  if(!e.target.closest('[onclick="toggleAutoModeMenu()"]') && !e.target.closest('#auto-mode-menu')){
+    const m = document.getElementById('auto-mode-menu');
+    if(m) m.style.display='none';
+  }
+});
+
+async function runAutoScheduleWithMode(){
+  const sel = document.querySelector('input[name="auto-mode"]:checked');
+  const mode = sel ? sel.value : 'assign';
+  if(mode==='open_slots'){
+    await generateOpenSlots();
+  } else {
+    await runAutoSchedule();
+  }
+}
+
+async function generateOpenSlots(){
+  if(!employees.length || !branches.length){ toast('Nejsou zaměstnanci nebo pobočky'); return; }
+  const daysInMonth = new Date(schedYear, schedMonth+1, 0).getDate();
+  const toInsert = [];
+  for(let d=1; d<=daysInMonth; d++){
+    const dateStr = isoDate(schedYear, schedMonth+1, d);
+    const dow = new Date(dateStr+'T00:00:00').getDay();
+    branches.forEach(b=>{
+      const sts = shiftTypes.filter(s=>s.branch_id===b.id);
+      const minReq = getBranchDayMin(b, dow);
+      if(!sts.length){
+        for(let i=0; i<minReq; i++){
+          const alreadyOpen = await checkOpenShiftExists(dateStr, b.code);
+          if(!alreadyOpen) toInsert.push({ org_id: currentOrg.id, shift_date: dateStr, shift_type_code: b.code, status:'open' });
+        }
+      } else {
+        sts.forEach(st=>{
+          toInsert.push({ org_id: currentOrg.id, shift_date: dateStr, shift_type_code: st.code, status:'open' });
+        });
+      }
+    });
+  }
+  if(!toInsert.length){ toast('Žádné sloty ke generování'); return; }
+
+  try {
+    const { error } = await sb.from('open_shifts').insert(toInsert);
+    if(error) throw error;
+    toast(`Vytvořeno ${toInsert.length} otevřených slotů — zaměstnanci si je mohou nárokovat`);
+    logActivity(`Vygenerováno ${toInsert.length} otevřených slotů`);
+    await loadAndRenderOpenShifts();
+  } catch(e){
+    toast('Tabulka open_shifts zatím neexistuje — spusť SQL migraci (viz dokumentace)', 'error');
+  }
+}
+
+async function checkOpenShiftExists(dateStr, code){
+  try {
+    const { data } = await sb.from('open_shifts').select('id').eq('org_id', currentOrg.id)
+      .eq('shift_date', dateStr).eq('shift_type_code', code).limit(1);
+    return !!(data && data.length);
+  } catch(e){ return false; }
+}
+
+async function loadAndRenderOpenShifts(){
+  try {
+    const { data } = await sb.from('open_shifts').select('*').eq('org_id', currentOrg.id)
+      .gte('shift_date', isoDate(schedYear, schedMonth+1, 1))
+      .lte('shift_date', isoDate(schedYear, schedMonth+1, new Date(schedYear, schedMonth+1,0).getDate()))
+      .order('shift_date');
+    renderOpenShiftsEmployee(data||[]);
+    renderOpenShiftsAdmin(data||[]);
+  } catch(e){
+    // Table doesn't exist yet — silently hide panel
+    const panel = document.getElementById('open-shifts-panel');
+    if(panel) panel.style.display='none';
+  }
+}
+
+function renderOpenShiftsEmployee(items){
+  const panel = document.getElementById('open-shifts-panel');
+  const list  = document.getElementById('open-shifts-emp-list');
+  if(!panel||!list) return;
+  const openItems = items.filter(i=>i.status==='open');
+  if(!openItems.length || currentRole!=='employee'){ panel.style.display='none'; return; }
+  panel.style.display='block';
+  list.innerHTML = openItems.map(item=>{
+    const d = new Date(item.shift_date+'T00:00:00');
+    const label = d.toLocaleDateString('cs-CZ',{weekday:'short',day:'numeric',month:'short'});
+    const b = branches.find(b=>b.code===item.shift_type_code) || shiftTypes.find(s=>s.code===item.shift_type_code);
+    const color = b?.color||'var(--accent)';
+    return `<div class="open-shift-card">
+      <div>
+        <span class="code-pill" style="background:${color}22;border-color:${color}55;color:${color}">${escapeHtml(item.shift_type_code)}</span>
+        <strong style="margin-left:8px">${label}</strong>
+        ${item.note ? `<div style="font-size:12px;color:var(--ink-soft);margin-top:3px">${escapeHtml(item.note)}</div>` : ''}
+      </div>
+      <button class="claim-btn" onclick="claimOpenShift('${item.id}')">Vzít tuto směnu</button>
+    </div>`;
+  }).join('');
+}
+
+function renderOpenShiftsAdmin(items){
+  const list = document.getElementById('open-shifts-list');
+  if(!list) return;
+  if(!items.length){ list.innerHTML='<p style="text-align:center;color:var(--ink-soft);padding:20px">Žádné otevřené směny v tomto měsíci.</p>'; return; }
+  const openCount    = items.filter(i=>i.status==='open').length;
+  const claimedCount = items.filter(i=>i.status==='claimed').length;
+  const approvedCount= items.filter(i=>i.status==='approved').length;
+  list.innerHTML = `<div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+    <span class="open-shift-badge">📋 Otevřené: ${openCount}</span>
+    <span class="open-shift-badge" style="background:#f0fdf4;color:var(--accent);border-color:#86efac">✋ Nárokováno: ${claimedCount}</span>
+    <span class="open-shift-badge" style="background:var(--accent-soft);color:var(--accent)">✓ Schváleno: ${approvedCount}</span>
+  </div>` + items.map(item=>{
+    const d = new Date(item.shift_date+'T00:00:00');
+    const label = d.toLocaleDateString('cs-CZ',{weekday:'short',day:'numeric',month:'short'});
+    const claimedEmp = item.claimed_by ? employees.find(e=>e.id===item.claimed_by) : null;
+    const statusIcon = {open:'📋', claimed:'✋', approved:'✓', rejected:'✕'}[item.status]||'?';
+    const statusColor = {open:'var(--ink-soft)', claimed:'var(--amber)', approved:'var(--accent)', rejected:'var(--red)'}[item.status]||'var(--ink)';
+    return `<div class="swap-item" style="border-color:${statusColor}33">
+      <span style="color:${statusColor};font-size:16px">${statusIcon}</span>
+      <div style="flex:1">
+        <strong>${escapeHtml(item.shift_type_code)}</strong> — ${label}
+        ${claimedEmp ? `<div style="font-size:12px;color:var(--ink-soft)">Nárokuje: <strong>${escapeHtml(claimedEmp.name)}</strong></div>` : ''}
+        ${item.note ? `<div style="font-size:12px;color:var(--ink-faint)">${escapeHtml(item.note)}</div>` : ''}
+      </div>
+      ${item.status==='claimed' ? `
+        <button onclick="resolveOpenShift('${item.id}','approved')" class="claim-btn" style="font-size:12px;padding:5px 10px">✓ Schválit</button>
+        <button onclick="resolveOpenShift('${item.id}','rejected')" class="btn-outline" style="font-size:12px;padding:5px 10px;color:var(--red);border-color:var(--red)">✕</button>
+      ` : ''}
+      ${item.status==='open' && currentRole==='admin' ? `
+        <button onclick="deleteOpenShift('${item.id}')" class="btn-outline" style="font-size:12px;padding:5px 8px;color:var(--red)">Smazat</button>
+      ` : ''}
+    </div>`;
+  }).join('');
+}
+
+async function claimOpenShift(id){
+  if(!currentEmployeeId){ toast('Přihlas se jako zaměstnanec'); return; }
+  try {
+    const { error } = await sb.from('open_shifts').update({ status:'claimed', claimed_by: currentEmployeeId }).eq('id', id);
+    if(error) throw error;
+    toast('Směna nárokována — čeká na schválení');
+    await loadAndRenderOpenShifts();
+  } catch(e){ toast('Nepodařilo se nárokovat: '+(e.message||e), 'error'); }
+}
+
+async function resolveOpenShift(id, newStatus){
+  try {
+    const { data: os } = await sb.from('open_shifts').select('*').eq('id', id).single();
+    const { error } = await sb.from('open_shifts').update({ status: newStatus }).eq('id', id);
+    if(error) throw error;
+    if(newStatus==='approved' && os?.claimed_by && os?.shift_date && os?.shift_type_code){
+      await sb.from('shifts').upsert({
+        org_id: currentOrg.id, employee_id: os.claimed_by,
+        shift_date: os.shift_date, shift_type_code: os.shift_type_code, is_auto: false
+      });
+      await loadShiftsForMonth();
+    }
+    toast(newStatus==='approved' ? 'Schváleno a přiřazeno do rozpisu' : 'Odmítnuto');
+    logAudit(`Otevřená směna ${os?.shift_type_code} ${os?.shift_date}: ${newStatus}`);
+    await loadAndRenderOpenShifts();
+  } catch(e){ toast('Chyba: '+(e.message||e), 'error'); }
+}
+
+async function deleteOpenShift(id){
+  if(!confirm('Smazat tuto otevřenou směnu?')) return;
+  try {
+    await sb.from('open_shifts').delete().eq('id', id);
+    await loadAndRenderOpenShifts();
+    toast('Smazáno');
+  } catch(e){ toast('Chyba: '+(e.message||e), 'error'); }
+}
+
+async function openOpenShiftsAdmin(){
+  document.getElementById('open-shifts-modal-overlay').classList.add('open');
+  await loadAndRenderOpenShifts();
+}
+
+// F5: Admin creates manual open shift
+async function createManualOpenShift(dateStr, shiftTypeCode, note=''){
+  try {
+    const { error } = await sb.from('open_shifts').insert({
+      org_id: currentOrg.id, shift_date: dateStr, shift_type_code: shiftTypeCode, note, status:'open'
+    });
+    if(error) throw error;
+    toast('Otevřená směna vytvořena');
+    await loadAndRenderOpenShifts();
+    // Notify all eligible employees via notifications table
+    notifyEligibleEmployees(shiftTypeCode, dateStr, `Nová otevřená směna ${shiftTypeCode} — ${dateStr}`);
+  } catch(e){ toast('Tabulka open_shifts zatím neexistuje — spusť SQL migraci', 'error'); }
+}
+
+async function notifyEligibleEmployees(shiftCode, dateStr, msg){
+  const notifRows = employees
+    .filter(e=>e.id && !e.is_fixed)
+    .map(e=>({ org_id: currentOrg.id, employee_id: e.id, message: msg, read: false }));
+  try { await sb.from('notifications').insert(notifRows); } catch(e){}
+}
+
+// ════════════════════════════════════════════════════════════════
+// FEATURE 4 — VÝMĚNA SMĚN (SHIFT SWAP)
+// SQL migration needed:
+/*
+  CREATE TABLE IF NOT EXISTS shift_swaps (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    requester_id UUID NOT NULL REFERENCES employees(id),
+    target_id UUID REFERENCES employees(id),
+    requester_date DATE NOT NULL,
+    requester_code TEXT NOT NULL,
+    target_date DATE,
+    target_code TEXT,
+    open_offer BOOLEAN DEFAULT FALSE,
+    note TEXT,
+    status TEXT NOT NULL DEFAULT 'pending',
+    created_at TIMESTAMPTZ DEFAULT NOW()
+  );
+  ALTER TABLE shift_swaps ENABLE ROW LEVEL SECURITY;
+  CREATE POLICY "org_access" ON shift_swaps USING (
+    org_id IN (SELECT org_id FROM org_members WHERE user_id = auth.uid())
+  );
+*/
+// ════════════════════════════════════════════════════════════════
+
+let _swapShiftDate = null;
+let _swapShiftCode = null;
+
+function openShiftSwapModal(dateStr, shiftCode){
+  if(!currentEmployeeId){ toast('Swap je dostupný jen pro zaměstnance'); return; }
+  _swapShiftDate = dateStr || null;
+  _swapShiftCode = shiftCode || null;
+  const body = document.getElementById('swap-modal-body');
+  if(!body) return;
+
+  const myShifts = [];
+  for(let d=1; d<=new Date(schedYear, schedMonth+1,0).getDate(); d++){
+    const ds = isoDate(schedYear, schedMonth+1, d);
+    const s  = shifts[currentEmployeeId+':'+ds];
+    if(s && s.shift_type_code && s.shift_type_code!=='X') myShifts.push({ date: ds, code: s.shift_type_code });
+  }
+
+  const myShiftOpts = myShifts.map(s=>`<option value="${s.date}|${s.code}"${s.date===dateStr?'selected':''}>${s.date} (${s.code})</option>`).join('');
+  const colOpts = employees.filter(e=>e.id!==currentEmployeeId).map(e=>`<option value="${e.id}">${escapeHtml(e.name)}</option>`).join('');
+
+  body.innerHTML = `
+    <div class="field">
+      <label>Moje směna k výměně</label>
+      <select id="swap-my-shift" style="padding:8px 10px;border:1.5px solid var(--line);border-radius:8px;font-size:14px;font-family:inherit;width:100%">${myShiftOpts||'<option disabled>Nemáš žádné směny tento měsíc</option>'}</select>
+    </div>
+    <div class="field">
+      <label><input type="checkbox" id="swap-open-offer" onchange="toggleSwapTargetField()"> Nabídnout komukoliv (otevřená výměna)</label>
+    </div>
+    <div class="field" id="swap-target-field">
+      <label>Kolega pro výměnu</label>
+      <select id="swap-target-emp" style="padding:8px 10px;border:1.5px solid var(--line);border-radius:8px;font-size:14px;font-family:inherit;width:100%">${colOpts}</select>
+    </div>
+    <div class="field">
+      <label>Poznámka (nepovinné)</label>
+      <textarea id="swap-note" placeholder="Chci si vyměnit s Hanou protože…" style="width:100%;padding:8px 10px;border:1.5px solid var(--line);border-radius:8px;font-size:13px;font-family:inherit;resize:vertical;min-height:48px"></textarea>
+    </div>`;
+  document.getElementById('swap-modal-overlay').classList.add('open');
+}
+
+function toggleSwapTargetField(){
+  const open = document.getElementById('swap-open-offer')?.checked;
+  const field = document.getElementById('swap-target-field');
+  if(field) field.style.display = open ? 'none' : 'block';
+}
+
+async function submitShiftSwap(){
+  const myShiftEl = document.getElementById('swap-my-shift');
+  if(!myShiftEl||!myShiftEl.value){ toast('Vyber svoji směnu'); return; }
+  const [reqDate, reqCode] = myShiftEl.value.split('|');
+  const isOpen = document.getElementById('swap-open-offer')?.checked;
+  const targetEmpId = isOpen ? null : (document.getElementById('swap-target-emp')?.value||null);
+  const note = document.getElementById('swap-note')?.value||'';
+
+  try {
+    const { error } = await sb.from('shift_swaps').insert({
+      org_id: currentOrg.id,
+      requester_id: currentEmployeeId,
+      target_id: targetEmpId,
+      requester_date: reqDate,
+      requester_code: reqCode,
+      open_offer: isOpen,
+      note,
+      status: 'pending',
+    });
+    if(error) throw error;
+    toast('Výměna nabídnuta — čeká na schválení');
+    document.getElementById('swap-modal-overlay').classList.remove('open');
+    if(targetEmpId){
+      const targetEmp = employees.find(e=>e.id===targetEmpId);
+      const requesterEmp = employees.find(e=>e.id===currentEmployeeId);
+      if(targetEmp){
+        await sb.from('notifications').insert({
+          org_id: currentOrg.id, employee_id: targetEmpId,
+          message: `${requesterEmp?.name||'Kolega'} nabídl výměnu směny ${reqCode} (${reqDate})`, read: false
+        });
+      }
+    }
+    logActivity(`Výměna směny ${reqCode} ${reqDate} nabídnuta`);
+  } catch(e){ toast('Tabulka shift_swaps zatím neexistuje — spusť SQL migraci', 'error'); }
+}
+
+async function openSwapRequestsModal(){
+  document.getElementById('swap-requests-overlay').classList.add('open');
+  await loadSwapRequests();
+}
+
+async function loadSwapRequests(){
+  const list = document.getElementById('swap-requests-list');
+  if(!list) return;
+  try {
+    const { data, error } = await sb.from('shift_swaps').select('*').eq('org_id', currentOrg.id).order('created_at', {ascending:false});
+    if(error) throw error;
+    if(!data||!data.length){ list.innerHTML='<p style="text-align:center;color:var(--ink-soft);padding:20px">Žádné žádosti o výměnu.</p>'; return; }
+    list.innerHTML = data.map(sw=>{
+      const req = employees.find(e=>e.id===sw.requester_id);
+      const tgt = sw.target_id ? employees.find(e=>e.id===sw.target_id) : null;
+      const statusColor = {pending:'var(--amber)', accepted:'var(--accent)', approved:'var(--accent)', rejected:'var(--red)'}[sw.status]||'var(--ink)';
+      const statusLabel = {pending:'Čeká', accepted:'Přijato', approved:'Schváleno', rejected:'Odmítnuto'}[sw.status]||sw.status;
+      return `<div class="swap-item pending">
+        <div class="swap-status-dot pending" style="background:${statusColor}"></div>
+        <div style="flex:1">
+          <strong>${req?.name||'?'}</strong> chce vyměnit směnu <span class="code-pill">${sw.requester_code}</span> (${sw.requester_date})
+          ${tgt ? ` s <strong>${tgt.name}</strong>` : ' — <em>otevřená nabídka</em>'}
+          ${sw.note ? `<div style="font-size:12px;color:var(--ink-soft);margin-top:2px">${escapeHtml(sw.note)}</div>` : ''}
+          <div style="font-size:11px;color:var(--ink-faint);margin-top:2px">${statusLabel}</div>
+        </div>
+        ${sw.status==='pending' ? `
+          <button onclick="resolveSwap('${sw.id}','approved')" class="claim-btn" style="font-size:12px;padding:5px 10px">✓</button>
+          <button onclick="resolveSwap('${sw.id}','rejected')" class="btn-outline" style="font-size:12px;padding:5px 8px;color:var(--red);border-color:var(--red)">✕</button>
+        ` : ''}
+      </div>`;
+    }).join('');
+  } catch(e){
+    list.innerHTML='<p style="text-align:center;color:var(--ink-soft);padding:20px">Tabulka shift_swaps zatím neexistuje — spusť SQL migraci.</p>';
+  }
+}
+
+async function resolveSwap(id, newStatus){
+  try {
+    const { data: sw } = await sb.from('shift_swaps').select('*').eq('id', id).single();
+    const { error } = await sb.from('shift_swaps').update({ status: newStatus }).eq('id', id);
+    if(error) throw error;
+    if(newStatus==='approved' && sw?.requester_id && sw?.target_id && sw?.requester_date && sw?.target_date){
+      // Swap the shifts in the shifts table
+      const reqKey  = sw.requester_id+':'+sw.requester_date;
+      const tgtKey  = sw.target_id+':'+sw.target_date;
+      const reqShift = shifts[reqKey];
+      const tgtShift = shifts[tgtKey];
+      if(reqShift && tgtShift){
+        await sb.from('shifts').update({ employee_id: sw.target_id  }).eq('id', reqShift.id);
+        await sb.from('shifts').update({ employee_id: sw.requester_id }).eq('id', tgtShift.id);
+        await loadShiftsForMonth();
+        toast('Směny vyměněny a uloženy do rozpisu');
+      } else {
+        toast('Schváleno — ale nenašly se obě směny ke přepsání. Zkontroluj ručně.');
+      }
+    } else {
+      toast(newStatus==='approved' ? 'Schváleno' : 'Odmítnuto');
+    }
+    logAudit(`Výměna směny ${id}: ${newStatus}`);
+    await loadSwapRequests();
+  } catch(e){ toast('Chyba: '+(e.message||e), 'error'); }
+}
+
+// ════════════════════════════════════════════════════════════════
+// FEATURE 6 — PŘEDPOVĚĎ MZDOVÝCH NÁKLADŮ
+// Uses existing hourly_rate from emp_extras (orgSettings.emp_extras)
+// ════════════════════════════════════════════════════════════════
+
+function renderLaborCost(){
+  const wrap = document.getElementById('labor-cost-wrap');
+  if(!wrap || currentRole !== 'admin') return;
+  let totalCost = 0;
+  let hasRates = false;
+  const HOURS_PER_SHIFT = 8;
+  const perBranch = {};
+  branches.forEach(b=>{ perBranch[b.code]=0; perBranch[b.name]=b; });
+
+  employees.forEach(emp=>{
+    const extras = getEmpExtras(emp.id);
+    const rate = parseFloat(extras.hourly_rate||0);
+    if(!rate) return;
+    hasRates = true;
+    const daysInMonth = new Date(schedYear, schedMonth+1, 0).getDate();
+    for(let d=1; d<=daysInMonth; d++){
+      const s = shifts[emp.id+':'+isoDate(schedYear, schedMonth+1, d)];
+      if(s && s.shift_type_code && s.shift_type_code!=='X'){
+        const cost = rate * HOURS_PER_SHIFT;
+        totalCost += cost;
+        const b = branches.find(b=>b.code===s.shift_type_code);
+        const code = b ? b.code : (shiftTypes.find(st=>st.code===s.shift_type_code)?.branch_id ? 'other' : 'other');
+        if(b) perBranch[b.code] = (perBranch[b.code]||0) + cost;
+      }
+    }
+  });
+
+  if(!hasRates){ wrap.innerHTML=''; return; }
+  const fmt = n => n.toLocaleString('cs-CZ',{style:'currency',currency:'CZK',maximumFractionDigits:0});
+  const branchCosts = branches.map(b=>{
+    const c = perBranch[b.code]||0;
+    return c > 0 ? `<span style="font-size:11px;color:var(--ink-soft)">${escapeHtml(b.code)}: ${fmt(c)}</span>` : '';
+  }).filter(Boolean).join(' · ');
+  wrap.innerHTML = `<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap">
+    <span class="cost-tag">💰 Odhadované náklady: ${fmt(totalCost)}</span>
+    ${branchCosts ? `<span style="font-size:12px;color:var(--ink-soft)">${branchCosts}</span>` : ''}
+    <span style="font-size:11px;color:var(--ink-faint)">(${HOURS_PER_SHIFT}h/směna)</span>
+  </div>`;
+}
+
+// ════════════════════════════════════════════════════════════════
+// FEATURE 9 — TYPY ÚVAZKŮ
+// SQL migration needed:
+//   ALTER TABLE employees ADD COLUMN IF NOT EXISTS employment_type TEXT DEFAULT 'full';
+// ════════════════════════════════════════════════════════════════
+
+function getEmploymentTypeBadge(type){
+  const labels = { full:'Plný', part:'Částečný', casual:'Brigáda' };
+  return `<span class="emp-type-badge ${type||'full'}">${labels[type||'full']}</span>`;
+}
+
+// ════════════════════════════════════════════════════════════════
+// FEATURE 10 — ROLE ROZŠÍŘENÍ (BRANCH MANAGER)
+// Uses existing org_members table. No migration needed for role column.
+// SQL migration for managed_branches:
+//   ALTER TABLE org_members ADD COLUMN IF NOT EXISTS managed_branches TEXT[] DEFAULT '{}';
+// ════════════════════════════════════════════════════════════════
+
+function getRoleBadge(role){
+  const labels = { admin:'Admin', branch_manager:'Manažer', employee:'Zaměstnanec' };
+  return `<span class="role-badge ${role||'employee'}">${labels[role||'employee']||role}</span>`;
+}
+
+// Checks if current user can access a given branch (for branch_manager role)
+function canAccessBranch(branchCode){
+  if(currentRole === 'admin') return true;
+  if(currentRole === 'branch_manager'){
+    const mb = window._currentManagedBranches || [];
+    return mb.length===0 || mb.includes(branchCode);
+  }
+  return true; // employees see everything (read-only filtered by their own data)
+}
+
+// ════════════════════════════════════════════════════════════════
+// FEATURE 12 — ZÁLOHA & EXPORT DAT ORGANIZACE
+// Full JSON export of all org data (read-only from Supabase)
+// ════════════════════════════════════════════════════════════════
+
+async function exportFullBackup(){
+  if(!currentOrg){ toast('Není vybrána organizace', 'error'); return; }
+  toast('Připravuji zálohu…');
+  try {
+    const [
+      { data: empsData },
+      { data: branchesData },
+      { data: shiftsData },
+      { data: unavailData },
+      { data: settingsData },
+      { data: shiftTypesData },
+      { data: membersData },
+      { data: templatesData },
+    ] = await Promise.all([
+      sb.from('employees').select('*').eq('org_id', currentOrg.id),
+      sb.from('branches').select('*').eq('org_id', currentOrg.id),
+      sb.from('shifts').select('*').eq('org_id', currentOrg.id),
+      sb.from('unavailability').select('*').eq('org_id', currentOrg.id),
+      sb.from('org_settings').select('*').eq('org_id', currentOrg.id).limit(1),
+      sb.from('shift_types').select('*').eq('org_id', currentOrg.id),
+      sb.from('org_members').select('id,role,email,emp_code,employee_id,managed_branches').eq('org_id', currentOrg.id),
+      sb.from('schedule_templates').select('*').eq('org_id', currentOrg.id).catch(()=>({ data:[] })),
+    ]);
+
+    const backup = {
+      version: 'backup-v1',
+      exported: new Date().toISOString(),
+      org: { id: currentOrg.id, name: currentOrg.name },
+      employees: empsData||[],
+      branches: branchesData||[],
+      shiftTypes: shiftTypesData||[],
+      shifts: shiftsData||[],
+      unavailability: unavailData||[],
+      settings: settingsData?.[0]||{},
+      members: membersData||[],
+      scheduleTemplates: templatesData||[],
+      localStorage: {
+        leaves:     localStorage.getItem(`leave_requests_${currentOrg.id}`)||'[]',
+        recurring:  localStorage.getItem(`recurring_${currentOrg.id}`)||'[]',
+        quality:    localStorage.getItem(`sched_quality_${currentOrg.id}`)||'[]',
+      },
+    };
+
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type:'application/json' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url;
+    a.download = `smeny_zaloha_${currentOrg.name.replace(/\s+/g,'_')}_${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast('Záloha stažena');
+    logAudit('Export zálohy organizace');
+  } catch(e){ toast('Chyba při záloze: '+e.message, 'error'); }
+}
+
+// ════════════════════════════════════════════════════════════════
+// FEATURE 11 — PŘÍSTUPNOST (ARIA / KEYBOARD NAV)
+// Called after app renders to inject ARIA attributes
+// ════════════════════════════════════════════════════════════════
+
+function applyAccessibilityAttributes(){
+  // Main nav tabs
+  document.querySelectorAll('.tab-btn').forEach(btn=>{
+    if(!btn.getAttribute('role')) btn.setAttribute('role','tab');
+    if(!btn.getAttribute('aria-selected')) btn.setAttribute('aria-selected', btn.classList.contains('active') ? 'true' : 'false');
+  });
+  // Data tables
+  document.querySelectorAll('.data-table').forEach(tbl=>{
+    if(!tbl.getAttribute('role')) tbl.setAttribute('role','table');
+  });
+  // Icon buttons
+  document.querySelectorAll('.icon-btn').forEach(btn=>{
+    if(!btn.getAttribute('aria-label') && btn.title) btn.setAttribute('aria-label', btn.title);
+  });
+  // Score bar
+  const bar = document.getElementById('score-bar-wrap');
+  if(bar) bar.setAttribute('aria-label','Kvalita rozpisu');
+  // Modal overlays
+  document.querySelectorAll('.modal-overlay').forEach(mo=>{
+    if(!mo.getAttribute('role')) mo.setAttribute('role','dialog');
+    mo.setAttribute('aria-modal','true');
+  });
+  // Sched table
+  const st = document.getElementById('sched-table');
+  if(st){ st.setAttribute('role','grid'); st.setAttribute('aria-label','Rozpis směn'); }
+}
 </script>
+
+<!-- ── F7: Session timeout banner ─────────────────────────────── -->
+<div id="session-timeout-banner" role="alert" aria-live="assertive">
+  ⏳ Relace brzy vyprší — <button onclick="window.location.reload()" style="background:rgba(255,255,255,.2);border:none;color:#fff;font-weight:700;padding:2px 8px;border-radius:5px;cursor:pointer;font-family:inherit">Obnovit</button>
+</div>
+
+<!-- ── F2/F5: Open shifts modal ─────────────────────────────────── -->
+<div class="modal-overlay" id="open-shifts-modal-overlay">
+  <div class="modal" style="max-width:600px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <h3 style="margin:0;font-family:var(--font-display)">Otevřené směny</h3>
+      <button onclick="document.getElementById('open-shifts-modal-overlay').classList.remove('open')" class="btn-outline" style="padding:5px 12px">✕</button>
+    </div>
+    <div id="open-shifts-list" style="max-height:420px;overflow-y:auto"></div>
+    <div style="margin-top:14px;display:flex;justify-content:flex-end">
+      <button class="btn-accent" onclick="document.getElementById('open-shifts-modal-overlay').classList.remove('open')">Zavřít</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── F4: Shift swap modal ──────────────────────────────────────── -->
+<div class="modal-overlay" id="swap-modal-overlay">
+  <div class="modal" style="max-width:520px">
+    <h3 style="margin:0 0 16px;font-family:var(--font-display)">Výměna směny</h3>
+    <div id="swap-modal-body"></div>
+    <div style="display:flex;gap:10px;margin-top:16px">
+      <button class="btn-outline" style="flex:1" onclick="document.getElementById('swap-modal-overlay').classList.remove('open')">✕ Zrušit</button>
+      <button class="btn-accent" style="flex:1" id="swap-confirm-btn" onclick="submitShiftSwap()">🔄 Nabídnout výměnu</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── F4: Swap requests admin view modal ────────────────────────── -->
+<div class="modal-overlay" id="swap-requests-overlay">
+  <div class="modal" style="max-width:640px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <h3 style="margin:0;font-family:var(--font-display)">Žádosti o výměnu směn</h3>
+      <button onclick="document.getElementById('swap-requests-overlay').classList.remove('open')" class="btn-outline" style="padding:5px 12px">✕</button>
+    </div>
+    <div id="swap-requests-list" style="max-height:480px;overflow-y:auto"></div>
+  </div>
+</div>
 </body>
 </html>
