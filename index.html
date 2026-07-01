@@ -659,6 +659,15 @@ body.dark .search-input{color:var(--ink)}
 
 /* AI chat assistant removed — required a client-exposed Claude API key, which is unsafe in this public repo */
 
+/* Search result highlight — flashes the target row after navigating from search */
+@keyframes search-flash{
+  0%{background:var(--accent-soft);box-shadow:inset 0 0 0 2px var(--accent)}
+  70%{background:var(--accent-soft);box-shadow:inset 0 0 0 2px var(--accent)}
+  100%{background:transparent;box-shadow:inset 0 0 0 0 transparent}
+}
+.search-highlight{animation:search-flash 1.8s ease-out}
+@media (prefers-reduced-motion: reduce){ .search-highlight{animation:none;background:var(--accent-soft)} }
+
 /* Org switcher */
 .org-switcher-wrap{position:relative}
 .org-switcher-btn{display:flex;align-items:center;gap:5px;background:none;border:1px solid var(--line);border-radius:7px;padding:4px 9px;font-size:12.5px;font-weight:600;color:var(--ink);cursor:pointer}
@@ -706,6 +715,7 @@ body.dark .search-input{color:var(--ink)}
 .help-answer-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
 .help-answer-list li{font-size:13px;line-height:1.5;color:var(--ink);padding-left:18px;position:relative}
 .help-answer-list li::before{content:'•';position:absolute;left:2px;color:var(--accent)}
+.help-followup-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-soft);margin:20px 0 8px}
 .help-feedback{margin-top:20px;padding-top:14px;border-top:1px solid var(--line);display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--ink-soft)}
 .help-feedback-btn{background:none;border:1.5px solid var(--line);border-radius:8px;padding:4px 10px;cursor:pointer;font-size:14px}
 .help-feedback-btn:hover{border-color:var(--accent)}
@@ -1055,7 +1065,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
       <button class="btn-ghost" id="emp-settings-btn" onclick="openEmployeeSettings()" style="display:none"><span data-icon="set_profil">👤</span> Profil</button>
       <button class="btn-ghost" id="admin-settings-btn" onclick="openEmployeeSettings()" style="display:none"><span data-icon="set_profil">👤</span> Profil</button>
       <span id="org-code-badge" style="display:none;font-family:var(--font-mono);font-size:12px;font-weight:700;letter-spacing:1.5px;background:var(--paper);border:1.5px solid var(--line);padding:4px 10px;border-radius:6px;color:var(--ink-soft)" title="Kód firmy"></span>
-      <span title="Verze aplikace" style="font-size:10px;color:var(--ink-faint);font-family:var(--font-mono);padding:0 4px;user-select:none">v0.6.9</span>
+      <span id="app-version-label" title="Verze aplikace" onclick="handleVersionClick()" style="font-size:10px;color:var(--ink-faint);font-family:var(--font-mono);padding:0 4px;user-select:none;cursor:pointer">v0.7.0</span>
       <button class="btn-ghost" onclick="openSearch()" title="Vyhledat (Ctrl+K)" style="padding:6px 10px;font-size:14px"><span data-icon="btn_hledat">🔍</span></button>
       <button class="btn-ghost" onclick="openHelpCenter()" title="Nápověda" style="padding:6px 10px;font-size:14px"><span data-icon="btn_napoveda">❓</span></button>
       <button class="btn-ghost" id="notif-btn" onclick="toggleNotifPanel()" title="Notifikace" style="position:relative;padding:6px 10px;font-size:16px;display:none;align-items:center;justify-content:center">
@@ -1402,7 +1412,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
 <!-- ============================================================
      EMPLOYEE MODAL
      ============================================================ -->
-<div class="modal-overlay" id="employee-modal-overlay">
+<div class="modal-overlay" id="employee-modal-overlay" onclick="if(event.target===this)closeEmployeeModal()">
   <div class="modal" style="max-width:560px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
       <h3 id="employee-modal-title" style="margin:0">Nový zaměstnanec</h3>
@@ -1503,7 +1513,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
 <!-- ============================================================
      BRANCH MODAL
      ============================================================ -->
-<div class="modal-overlay" id="branch-modal-overlay">
+<div class="modal-overlay" id="branch-modal-overlay" onclick="if(event.target===this)closeBranchModal()">
   <div class="modal" style="max-width:520px">
     <h3 id="branch-modal-title">Nová pobočka</h3>
     <input type="hidden" id="branch-edit-id">
@@ -1588,7 +1598,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
 <!-- ============================================================
      DAY DETAIL MODAL
      ============================================================ -->
-<div class="modal-overlay" id="day-detail-overlay">
+<div class="modal-overlay" id="day-detail-overlay" onclick="if(event.target===this)this.classList.remove('open')">
   <div class="modal" style="max-width:560px">
     <div id="day-detail-body"></div>
     <div style="margin-top:16px;text-align:right">
@@ -1610,7 +1620,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
 </div>
 
 <!-- Publish confirm modal -->
-<div class="modal-overlay" id="publish-confirm-overlay">
+<div class="modal-overlay" id="publish-confirm-overlay" onclick="if(event.target===this)this.classList.remove('open')">
   <div class="modal" style="max-width:380px;text-align:center">
     <div style="font-size:36px;margin-bottom:14px"><span data-icon="btn_publikovat">📢</span></div>
     <h3 style="margin:0 0 10px;font-family:var(--font-display)">Publikovat rozpis?</h3>
@@ -1623,7 +1633,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
 </div>
 
 <!-- Dashboard modal -->
-<div class="modal-overlay" id="dashboard-overlay">
+<div class="modal-overlay" id="dashboard-overlay" onclick="if(event.target===this)this.classList.remove('open')">
   <div class="modal" style="max-width:500px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
       <h3 style="margin:0"><span data-icon="dash_prehled">📊</span> Přehled organizace</h3>
@@ -1633,7 +1643,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
   </div>
 </div>
 
-<div class="modal-overlay" id="emp-settings-overlay">
+<div class="modal-overlay" id="emp-settings-overlay" onclick="if(event.target===this)this.classList.remove('open')">
   <div class="modal" style="max-width:520px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
       <h3 style="margin:0"><span data-icon="help_nastaveni">⚙️</span> Nastavení</h3>
@@ -1660,7 +1670,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
 <!-- ============================================================
      ACCESS MODAL — invite/link employee accounts
      ============================================================ -->
-<div class="modal-overlay" id="access-modal-overlay">
+<div class="modal-overlay" id="access-modal-overlay" onclick="if(event.target===this)closeAccessModal()">
   <div class="modal" style="max-width:480px">
     <h3 id="access-modal-title">Přístup zaměstnance</h3>
     <div id="access-modal-body"></div>
@@ -1673,7 +1683,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
 <!-- ============================================================
      METRIC DETAIL MODAL
      ============================================================ -->
-<div class="modal-overlay" id="metric-detail-overlay">
+<div class="modal-overlay" id="metric-detail-overlay" onclick="if(event.target===this)this.classList.remove('open')">
   <div class="modal" style="max-width:620px">
     <div id="metric-detail-body"></div>
     <div style="margin-top:18px;text-align:right">
@@ -1685,7 +1695,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
 <!-- ============================================================
      IMPORT MODAL
      ============================================================ -->
-<div class="modal-overlay" id="import-modal-overlay">
+<div class="modal-overlay" id="import-modal-overlay" onclick="if(event.target===this)closeImportModal()">
   <div class="modal" style="max-width:520px">
     <h3>Import ze smeny.html (JSON)</h3>
     <p style="font-size:13px;color:var(--ink-soft);margin:0 0 16px">
@@ -1749,7 +1759,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
 <!-- ============================================================
      HELP CENTER — tree-based, no AI, no API
      ============================================================ -->
-<button class="help-fab" id="help-fab" onclick="openHelpCenter()" title="Pomoc">
+<button class="help-fab" id="help-fab" onclick="handleHelpFabClick()" title="Pomoc">
   <span data-icon="btn_napoveda">❓</span>
 </button>
 <div class="help-panel" id="help-panel">
@@ -1771,7 +1781,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
 <!-- ============================================================
      LEAVE REQUEST MODAL
      ============================================================ -->
-<div class="modal-overlay" id="leave-modal-overlay">
+<div class="modal-overlay" id="leave-modal-overlay" onclick="if(event.target===this)this.classList.remove('open')">
   <div class="modal" style="max-width:420px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
       <h3 style="margin:0"><span data-icon="nav_zadosti">🗓️</span> Žádost o volno</h3>
@@ -1795,7 +1805,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
 <!-- ============================================================
      SHIFT NOTE MODAL
      ============================================================ -->
-<div class="modal-overlay" id="note-modal-overlay">
+<div class="modal-overlay" id="note-modal-overlay" onclick="if(event.target===this)this.classList.remove('open')">
   <div class="modal" style="max-width:380px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
       <h3 style="margin:0" id="note-modal-title"><span data-icon="poznamka">💬</span> Poznámka</h3>
@@ -1814,7 +1824,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
 <!-- ============================================================
      TEMPLATES MODAL
      ============================================================ -->
-<div class="modal-overlay" id="templates-modal-overlay">
+<div class="modal-overlay" id="templates-modal-overlay" onclick="if(event.target===this)this.classList.remove('open')">
   <div class="modal" style="max-width:460px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
       <h3 style="margin:0"><span data-icon="btn_sablony">📋</span> Šablony rozpisu</h3>
@@ -1831,7 +1841,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
 <!-- ============================================================
      PRINT OPTIONS MODAL
      ============================================================ -->
-<div class="modal-overlay" id="print-options-overlay">
+<div class="modal-overlay" id="print-options-overlay" onclick="if(event.target===this)this.classList.remove('open')">
   <div class="modal" style="max-width:380px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
       <h3 style="margin:0"><span data-icon="btn_tisk">🖨️</span> Možnosti tisku</h3>
@@ -1870,7 +1880,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
 <!-- ============================================================
      PAYROLL REPORT MODAL
      ============================================================ -->
-<div class="modal-overlay" id="payroll-modal-overlay">
+<div class="modal-overlay" id="payroll-modal-overlay" onclick="if(event.target===this)this.classList.remove('open')">
   <div class="modal" style="max-width:420px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
       <h3 style="margin:0"><span data-icon="btn_mzdy">💰</span> Mzdové podklady</h3>
@@ -1891,7 +1901,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
 <!-- ============================================================
      RECURRING PATTERNS MODAL
      ============================================================ -->
-<div class="modal-overlay" id="recurring-modal-overlay">
+<div class="modal-overlay" id="recurring-modal-overlay" onclick="if(event.target===this)this.classList.remove('open')">
   <div class="modal" style="max-width:440px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
       <h3 style="margin:0"><span data-icon="btn_opakujici_volno">🔁</span> Opakující se volno</h3>
@@ -1927,7 +1937,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
 <!-- ============================================================
      AUDIT LOG MODAL
      ============================================================ -->
-<div class="modal-overlay" id="audit-modal-overlay">
+<div class="modal-overlay" id="audit-modal-overlay" onclick="if(event.target===this)this.classList.remove('open')">
   <div class="modal" style="max-width:520px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
       <h3 style="margin:0"><span data-icon="audit_log">🕵️</span> Historie změn</h3>
@@ -1940,7 +1950,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
 <!-- ============================================================
      ONBOARDING WIZARD (new admin — no branches/employees yet)
      ============================================================ -->
-<div class="onboarding-overlay" id="onboarding-wizard-overlay">
+<div class="onboarding-overlay" id="onboarding-wizard-overlay" onclick="if(event.target===this)skipOnboarding()">
   <div class="onboarding-card">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
       <div style="width:32px;height:32px;border-radius:8px;background:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0">
@@ -2950,7 +2960,7 @@ function renderEmployees(){
     }
 
     return `
-    <tr>
+    <tr data-emp-id="${e.id}">
       <td>
         <strong>${escapeHtml(e.name)}</strong>
         ${getEmploymentTypeBadge(e.employment_type)}
@@ -3210,7 +3220,7 @@ function renderBranches(){
     const minWD = getBranchDayMin(b,1); // Monday as representative weekday
     const minWE = getBranchDayMin(b,6); // Saturday as representative weekend
     const maxDay = getBranchDayMax(b,1);
-    return `<tr>
+    return `<tr data-branch-id="${b.id}">
       <td>
         <span class="code-pill" style="background:${b.color}22;border-color:${b.color}55;color:${b.color}">${escapeHtml(b.code)}</span>
       </td>
@@ -7481,7 +7491,20 @@ function openTutorialMenu(){
     div.innerHTML = `<span>${icon}</span><span>${label}</span>`;
     div.onmouseenter = ()=>div.style.background='var(--paper)';
     div.onmouseleave = ()=>div.style.background='';
-    div.onclick = ()=>{ menu.remove(); action ? action() : startTutorial(phase); };
+    div.onclick = ()=>{
+      menu.remove();
+      if(action){ action(); return; }
+      // Jump to the tab the tutorial is about before starting it, so the
+      // user doesn't have to navigate there manually first.
+      const tutTabMap = { schedule:'schedule', branches:'branches', employees:'employees', gaps:'gaps', rules:'rules', employee:'schedule' };
+      const targetTab = tutTabMap[phase];
+      if(targetTab && document.getElementById('pane-'+targetTab)){
+        switchAppTab(targetTab);
+        setTimeout(()=>startTutorial(phase), 150);
+      } else {
+        startTutorial(phase);
+      }
+    };
     menu.appendChild(div);
   });
   document.body.appendChild(menu);
@@ -8738,12 +8761,18 @@ function renderSearchResults(query){
 
   // Search employees
   employees.filter(e=>e.name.toLowerCase().includes(q)).forEach(e=>{
-    results.push({ type:'emp', icon:ICONS.nav_zamestnanci, main: e.name, sub:'Zaměstnanec', action: ()=>{ closeSearch(); switchAppTab('employees'); } });
+    results.push({ type:'emp', icon:ICONS.nav_zamestnanci, main: e.name, sub:'Zaměstnanec', action: ()=>{
+      closeSearch(); switchAppTab('employees');
+      setTimeout(()=>highlightElement(`tr[data-emp-id="${e.id}"]`), 80);
+    } });
   });
 
   // Search branches
   branches.filter(b=>b.name.toLowerCase().includes(q)).forEach(b=>{
-    results.push({ type:'branch', icon:ICONS.nav_pobocky, main: b.name, sub:'Pobočka', action: ()=>{ closeSearch(); switchAppTab('branches'); } });
+    results.push({ type:'branch', icon:ICONS.nav_pobocky, main: b.name, sub:'Pobočka', action: ()=>{
+      closeSearch(); switchAppTab('branches');
+      setTimeout(()=>highlightElement(`tr[data-branch-id="${b.id}"]`), 80);
+    } });
   });
 
   // Static feature shortcuts
@@ -8774,6 +8803,18 @@ function renderSearchResults(query){
     </div>`).join('');
 
   window.searchResultActions = results.slice(0,10).map(r=>r.action);
+}
+
+// Scrolls to and flashes the target element — used after navigating from a search result
+// so the user can immediately see what they found.
+function highlightElement(selector){
+  const el = document.querySelector(selector);
+  if(!el) return;
+  el.scrollIntoView({behavior:'smooth', block:'center'});
+  el.classList.remove('search-highlight');
+  void el.offsetWidth; // restart animation if already applied
+  el.classList.add('search-highlight');
+  setTimeout(()=>el.classList.remove('search-highlight'), 1800);
 }
 
 function handleSearchKey(e){
@@ -8997,8 +9038,16 @@ function exportICS(){
 
 const HELP_TOPICS = {
   rozpis: { icon:'help_rozpis', label:'Rozpis a generování', items:[
-    { q:'Jak vygenerovat rozpis?', a:['Klikni na "Automaticky doplnit"','Algoritmus zkouší stovky kombinací a vybere nejlepší','Skóre v liště ukazuje kvalitu — cíl je 90%+'] },
-    { q:'Proč je skóre nízké?', a:['Zkontroluj pravidla — možná jsou příliš přísná','Zkontroluj obsazení poboček — min počty mohou být nedosažitelné','Zkus snížit počet neporušitelných podmínek na max 1'] },
+    { q:'Jak vygenerovat rozpis?', a:['Klikni na "Automaticky doplnit"','Algoritmus zkouší stovky kombinací a vybere nejlepší','Skóre v liště ukazuje kvalitu — cíl je 90%+'], follow:[
+      { q:'Proč je skóre nízké i po generování?', a:['Algoritmus zkusil desítky kombinací, ale pravidla mohou být příliš svazující','Zkontroluj kolik neporušitelných podmínek máš zapnutých','Zkus přidat víc zaměstnanců nebo snížit minimální obsazení poboček'] },
+      { q:'Jak upravit vygenerovaný rozpis ručně?', a:['Klikni na buňku v tabulce rozpisu — otevře se výběr směny pro daný den','Ruční úpravy se nepřepíšou při dalším generování, pokud nepoužiješ "Smazat vše"','Klikni na den v záhlaví pro detail dne s možností rychlé záměny'] },
+      { q:'Můžu generovat jen pro jednu pobočku?', a:['Automatické generování vždy počítá s celým měsícem a všemi pobočkami najednou','Po vygenerování ale můžeš ručně upravit jen konkrétní pobočku přes pobočkový přehled','Přepínač "Pobočkový přehled" v toolbaru ti usnadní úpravy po pobočkách'] },
+    ]},
+    { q:'Proč je skóre nízké?', a:['Zkontroluj pravidla — možná jsou příliš přísná','Zkontroluj obsazení poboček — min počty mohou být nedosažitelné','Zkus snížit počet neporušitelných podmínek na max 1'], follow:[
+      { q:'Kolik neporušitelných podmínek je bezpečné mít?', a:['Doporučujeme maximálně 1','Každá další násobí obtížnost najít vyhovující kombinaci','Pokud jich máš víc a algoritmus nic nenajde, zkus jednu přepnout na měkkou'] },
+      { q:'Jak poznám které pravidlo blokuje algoritmus?', a:['Po generování se pod skóre zobrazí červené hlášení "Tvrdá podmínka nesplněna" s názvem podmínky','Zkus danou podmínku dočasně vypnout a zkontrolovat jestli se skóre zlepší','Nejčastější příčina je příliš vysoké minimální obsazení vůči počtu zaměstnanců'] },
+      { q:'Co dělat když algoritmus nenajde řešení?', a:['Sniž počet neporušitelných podmínek na max 1','Zkontroluj jestli máš dost zaměstnanců na pokrytí minim všech poboček','Zkus spustit generování znovu — algoritmus zkouší náhodné kombinace, další pokus může dopadnout lépe'] },
+    ]},
     { q:'Co je pobočkový přehled?', a:['Přepínač v toolbaru — zobrazí rozpis seřazený podle poboček místo zaměstnanců'] },
     { q:'Jak funguje "Kde doplnit"?', a:['Zobrazí které dny a pobočky ještě nemají dostatek lidí'] },
     { q:'Jak smazat rozpis?', a:['Smazat auto — odstraní jen automaticky přiřazené směny','Smazat vše — smaže celý měsíc včetně ručních úprav ⚠️'] },
@@ -9006,7 +9055,11 @@ const HELP_TOPICS = {
   ]},
   zamestnanci: { icon:'help_zamestnanci', label:'Zaměstnanci', items:[
     { q:'Jak přidat zaměstnance?', a:['Záložka Zaměstnanci → "+ Přidat zaměstnance"'] },
-    { q:'Jak pozvat zaměstnance do appky?', a:['Klikni na ikonu 🔑 u zaměstnance','Zkopíruj odkaz a pošli přes email nebo WhatsApp','Zaměstnanec si vytvoří účet a automaticky se přiřadí'] },
+    { q:'Jak pozvat zaměstnance do appky?', a:['Klikni na ikonu 🔑 u zaměstnance','Zkopíruj odkaz a pošli přes email nebo WhatsApp','Zaměstnanec si vytvoří účet a automaticky se přiřadí'], follow:[
+      { q:'Co když zaměstnanec odkaz neobdržel?', a:['Zkontroluj že jsi odkaz zkopíroval celý a poslal aktuální — staré odkazy lze vygenerovat znovu','Alternativa: zaměstnanec zadá kód firmy ručně při registraci','Odkaz nikdy nevyprší, ale dá se kdykoliv vygenerovat nový'] },
+      { q:'Může se zaměstnanec přihlásit bez pozvánky?', a:['Ano — zaregistruje se a zadá kód firmy zobrazený v Nastavení','Poté čeká, než ho admin propojí s konkrétním profilem zaměstnance','Rychlejší je ale poslat mu rovnou pozvánkový odkaz — spáruje se automaticky'] },
+      { q:'Jak zrušit přístup zaměstnanci?', a:['Ve výpisu zaměstnanců klikni na ikonu klíče (přístup / pozvánka)','V okně přístupu klikni na "Odebrat přístup"','Zaměstnanec ztratí přihlášení, ale jeho záznam v rozpisu zůstane zachovaný'] },
+    ]},
     { q:'Co znamenají Min / Cíl / Max směn?', a:['Min = nejméně směn které musí dostat','Cíl = ideální počet který algoritmus cílí','Max = absolutní strop který nelze překročit'] },
     { q:'Co je fixní rozvrh?', a:['Zaměstnanec se neúčastní automatického generování — směny zadáváš ručně'] },
     { q:'Jak nastavit limity na pobočkách?', a:['V editaci zaměstnance → sekce "Limity na pobočkách" — min/max směn na konkrétní pobočku za měsíc'] },
@@ -9044,6 +9097,24 @@ function openHelpCenter(){
   helpGoHome();
 }
 
+// Easter egg: 5 clicks on the help fab within 3s teases the version-label easter egg.
+let _helpFabClicks = [];
+function handleHelpFabClick(){
+  const now = Date.now();
+  _helpFabClicks = _helpFabClicks.filter(t => now - t < 3000);
+  _helpFabClicks.push(now);
+  if(_helpFabClicks.length >= 5){
+    _helpFabClicks = [];
+    toast('🎉 Našel jsi tajnou funkci! Bohužel ti neřekneme jakou. Ale zkus kliknout na verzi aplikace v hlavičce...', 'ok');
+    return;
+  }
+  openHelpCenter();
+}
+
+function handleVersionClick(){
+  toast('🎉 Gratuluju, odemkl jsi... nic. Ale díky že jsi zvědavý!', 'ok');
+}
+
 function closeHelpCenter(){
   document.getElementById('help-panel').classList.remove('open');
 }
@@ -9057,12 +9128,35 @@ function helpOpenCategory(key){
   renderHelpCenter();
 }
 function helpOpenItem(key, idx){
-  helpState = { screen:'answer', catKey:key, itemIdx:idx, query:'' };
+  helpState = { screen:'answer', catKey:key, itemIdx:idx, followIdx:null, query:'' };
+  renderHelpCenter();
+}
+function helpOpenFollow(key, idx, followIdx){
+  helpState = { screen:'follow', catKey:key, itemIdx:idx, followIdx, query:'' };
+  renderHelpCenter();
+}
+function helpOpenContact(){
+  helpState = { screen:'contact', catKey:null, itemIdx:null, followIdx:null, query:'' };
   renderHelpCenter();
 }
 function helpGoBack(){
-  if(helpState.screen==='answer') helpOpenCategory(helpState.catKey);
+  if(helpState.screen==='follow') helpOpenItem(helpState.catKey, helpState.itemIdx);
+  else if(helpState.screen==='answer' || helpState.screen==='contact') helpState.catKey ? helpOpenCategory(helpState.catKey) : helpGoHome();
   else helpGoHome();
+}
+
+// Deterministically picks 2 topics from other categories to suggest as related reading.
+function getRelatedTopics(catKey){
+  const otherKeys = Object.keys(HELP_TOPICS).filter(k=>k!==catKey);
+  const seed = catKey.split('').reduce((a,c)=>a+c.charCodeAt(0),0);
+  const picks = [];
+  for(let i=0;i<2 && i<otherKeys.length;i++){
+    const ck = otherKeys[(seed+i) % otherKeys.length];
+    const cat = HELP_TOPICS[ck];
+    const idx = seed % cat.items.length;
+    picks.push({ catKey:ck, idx, cat, item:cat.items[idx] });
+  }
+  return picks;
 }
 
 const HELP_EASTER_STUCK = ['pomoc','nevím','nevim','wtf','proč','proc','nefunguje','🆘'];
@@ -9127,7 +9221,7 @@ function renderHelpCenter(){
             <div class="help-cat-label">${escapeHtml(cat.label)}</div>
           </div>`).join('')}
       </div>`}
-      <span class="help-contact-link" onclick="sendHelpRequest()">Nenašel jsi odpověď? Napiš nám →</span>
+      <span class="help-contact-link" onclick="helpOpenContact()">Nenašel jsi odpověď? Napiš nám →</span>
     `;
     return;
   }
@@ -9143,14 +9237,29 @@ function renderHelpCenter(){
     return;
   }
 
-  if(helpState.screen==='answer'){
+  if(helpState.screen==='answer' || helpState.screen==='follow'){
     const cat = HELP_TOPICS[helpState.catKey];
-    const item = cat.items[helpState.itemIdx];
+    const parentItem = cat.items[helpState.itemIdx];
+    const isFollow = helpState.screen==='follow';
+    const item = isFollow ? parentItem.follow[helpState.followIdx] : parentItem;
     backBtn.style.display = '';
-    crumb.textContent = `Pomoc › ${cat.label} › ${item.q}`;
+    crumb.textContent = isFollow ? `Pomoc › ${cat.label} › ${parentItem.q} › ${item.q}` : `Pomoc › ${cat.label} › ${item.q}`;
+    const related = getRelatedTopics(helpState.catKey);
     body.innerHTML = `
       <p style="font-size:14px;font-weight:700;margin:0 0 12px">${escapeHtml(item.q)}</p>
       <ul class="help-answer-list">${item.a.map(line=>`<li>${escapeHtml(line)}</li>`).join('')}</ul>
+      ${(!isFollow && item.follow && item.follow.length) ? `
+        <div class="help-followup-title">Doplňující otázky</div>
+        ${item.follow.map((f,fi)=>`
+          <div class="help-item-row" onclick="helpOpenFollow('${helpState.catKey}',${helpState.itemIdx},${fi})">
+            <span>${escapeHtml(f.q)}</span><span style="color:var(--ink-faint)">›</span>
+          </div>`).join('')}
+      ` : ''}
+      <div class="help-followup-title">Mohlo by tě zajímat</div>
+      ${related.map(r=>`
+        <div class="help-item-row" onclick="helpOpenItem('${r.catKey}',${r.idx})">
+          <span>${ICONS[r.cat.icon]} ${escapeHtml(r.item.q)}</span><span style="color:var(--ink-faint)">›</span>
+        </div>`).join('')}
       <div class="help-feedback">
         Pomohlo ti to?
         <button class="help-feedback-btn" onclick="helpFeedback(true)">${ICONS.help_thumbs_up}</button>
@@ -9158,13 +9267,54 @@ function renderHelpCenter(){
       </div>
       <div id="help-feedback-result"></div>
     `;
+    return;
+  }
+
+  if(helpState.screen==='contact'){
+    backBtn.style.display = '';
+    crumb.textContent = 'Pomoc › Napište nám';
+    body.innerHTML = `
+      <div class="field"><label>Jméno</label><input type="text" id="contact-name" placeholder="Jan Novák" style="width:100%;padding:9px;border:1.5px solid var(--line);border-radius:8px;font-size:13.5px;font-family:inherit;color:var(--ink);background:var(--surface)"></div>
+      <div class="field"><label>Email</label><input type="email" id="contact-email" placeholder="jan@firma.cz" style="width:100%;padding:9px;border:1.5px solid var(--line);border-radius:8px;font-size:13.5px;font-family:inherit;color:var(--ink);background:var(--surface)"></div>
+      <div class="field"><label>Telefon <span style="color:var(--ink-faint);font-weight:400">(nepovinné)</span></label><input type="tel" id="contact-phone" placeholder="+420 777 123 456" style="width:100%;padding:9px;border:1.5px solid var(--line);border-radius:8px;font-size:13.5px;font-family:inherit;color:var(--ink);background:var(--surface)"></div>
+      <div class="field"><label>Zpráva</label><textarea id="contact-message" rows="4" placeholder="Popiš svůj dotaz nebo problém…" style="width:100%;padding:9px;border:1.5px solid var(--line);border-radius:8px;font-size:13.5px;font-family:inherit;color:var(--ink);background:var(--surface);resize:vertical"></textarea></div>
+      <button class="btn-accent" id="contact-submit-btn" style="width:100%" onclick="submitSupportRequest()">${ICONS.btn_odeslat} Odeslat</button>
+      <div id="contact-result"></div>
+    `;
+    return;
   }
 }
 
-function sendHelpRequest(){
-  const mailto = `mailto:vavra@dp-partners.cz?subject=${encodeURIComponent('[Směny Support] Dotaz z nápovědy')}`;
-  window.open(mailto,'_blank');
-  toast('Otevírám e-mailového klienta…');
+async function submitSupportRequest(){
+  const name = document.getElementById('contact-name').value.trim();
+  const email = document.getElementById('contact-email').value.trim();
+  const phone = document.getElementById('contact-phone').value.trim();
+  const message = document.getElementById('contact-message').value.trim();
+  const resultEl = document.getElementById('contact-result');
+  if(!name || !email || !message){
+    resultEl.innerHTML = `<div class="help-feedback-msg" style="color:var(--red)">Vyplň prosím jméno, email a zprávu.</div>`;
+    return;
+  }
+  const btn = document.getElementById('contact-submit-btn');
+  btn.disabled = true; btn.textContent = 'Odesílám…';
+  try{
+    await sb.from('support_requests').insert({
+      org_id: currentOrg?.id || null,
+      name, email, phone: phone || null, message,
+    });
+    // Best-effort email notification via Edge Function — failure here doesn't block the saved request.
+    sb.functions.invoke('smeny-support', { body: { org_id: currentOrg?.id, name, email, phone, message } }).catch(()=>{});
+    document.getElementById('help-body').innerHTML = `
+      <div class="help-easter">
+        <span class="help-easter-emoji">${ICONS.status_ok}</span>
+        Zpráva odeslána! Ozveme se do 24 hodin.
+      </div>
+      <button class="btn-outline" style="width:100%" onclick="helpGoHome()">${ICONS.help_home} Zpět na nápovědu</button>
+    `;
+  } catch(e){
+    resultEl.innerHTML = `<div class="help-feedback-msg" style="color:var(--red)">Odeslání se nepovedlo. Zkus to prosím znovu nebo napiš na vavra@dp-partners.cz.</div>`;
+    btn.disabled = false; btn.textContent = `${ICONS.btn_odeslat} Odeslat`;
+  }
 }
 
 // ── Icon editor (Nastavení → 🎨 Ikony) ────────────────────────
@@ -10103,7 +10253,7 @@ function applyAccessibilityAttributes(){
 </div>
 
 <!-- ── F2/F5: Open shifts modal ─────────────────────────────────── -->
-<div class="modal-overlay" id="open-shifts-modal-overlay">
+<div class="modal-overlay" id="open-shifts-modal-overlay" onclick="if(event.target===this)this.classList.remove('open')">
   <div class="modal" style="max-width:600px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
       <h3 style="margin:0;font-family:var(--font-display)">Otevřené směny</h3>
@@ -10117,7 +10267,7 @@ function applyAccessibilityAttributes(){
 </div>
 
 <!-- ── F4: Shift swap modal ──────────────────────────────────────── -->
-<div class="modal-overlay" id="swap-modal-overlay">
+<div class="modal-overlay" id="swap-modal-overlay" onclick="if(event.target===this)this.classList.remove('open')">
   <div class="modal" style="max-width:520px">
     <h3 style="margin:0 0 16px;font-family:var(--font-display)">Výměna směny</h3>
     <div id="swap-modal-body"></div>
@@ -10129,7 +10279,7 @@ function applyAccessibilityAttributes(){
 </div>
 
 <!-- ── F4: Swap requests admin view modal ────────────────────────── -->
-<div class="modal-overlay" id="swap-requests-overlay">
+<div class="modal-overlay" id="swap-requests-overlay" onclick="if(event.target===this)this.classList.remove('open')">
   <div class="modal" style="max-width:640px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
       <h3 style="margin:0;font-family:var(--font-display)">Žádosti o výměnu směn</h3>
