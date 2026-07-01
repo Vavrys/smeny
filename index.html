@@ -669,18 +669,50 @@ body.dark .search-input{color:var(--ink)}
 .org-switch-item:hover{background:var(--paper)}
 .org-switch-item.active{font-weight:700;color:var(--accent-ink)}
 
-/* Help center */
-.help-panel{position:fixed;inset:0;background:rgba(15,20,35,.55);z-index:600;display:none;align-items:flex-end;justify-content:flex-end}
-.help-panel.open{display:flex}
-.help-inner{background:var(--surface);width:380px;height:100%;overflow-y:auto;padding:28px 24px;display:flex;flex-direction:column;gap:0}
-.help-section-title{font-size:12px;font-weight:700;text-transform:uppercase;color:var(--ink-soft);letter-spacing:.04em;margin:20px 0 8px}
-.help-section-title:first-child{margin-top:0}
-.help-faq-item{border:1px solid var(--line);border-radius:8px;margin-bottom:6px;overflow:hidden}
-.help-faq-q{padding:10px 14px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:space-between}
-.help-faq-a{display:none;padding:0 14px 10px;font-size:12.5px;color:var(--ink-soft);line-height:1.55}
-.help-faq-item.open .help-faq-a{display:block}
-.help-faq-item.open .help-faq-q::after{transform:rotate(180deg)}
-.help-faq-q::after{content:'›';display:inline-block;transition:transform .15s;font-size:16px;color:var(--ink-faint)}
+/* Help center — floating fab + panel (350×500), replaces the old AI chat */
+.help-fab{
+  position:fixed;bottom:24px;right:24px;z-index:400;
+  width:52px;height:52px;border-radius:50%;border:none;cursor:pointer;
+  background:linear-gradient(135deg,var(--accent),#1f5a3f);color:#fff;
+  display:flex;align-items:center;justify-content:center;font-size:22px;
+  box-shadow:0 6px 18px rgba(43,110,79,.4);transition:transform .15s,box-shadow .15s;
+}
+.help-fab:hover{transform:scale(1.08);box-shadow:0 8px 22px rgba(43,110,79,.5)}
+.help-panel{
+  position:fixed;bottom:88px;right:24px;z-index:600;
+  width:350px;height:500px;max-width:calc(100vw - 32px);max-height:calc(100vh - 112px);
+  background:var(--surface);border-radius:16px;box-shadow:var(--shadow-lg);border:1.5px solid var(--line);
+  display:flex;flex-direction:column;overflow:hidden;
+  opacity:0;transform:translateY(16px) scale(.97);pointer-events:none;
+  transition:opacity .18s ease,transform .18s ease;
+}
+.help-panel.open{opacity:1;transform:translateY(0) scale(1);pointer-events:auto}
+@media (prefers-reduced-motion: reduce){ .help-panel{transition:none} }
+.help-header{display:flex;align-items:center;gap:6px;padding:10px 12px;border-bottom:1px solid var(--line);flex-shrink:0}
+.help-breadcrumb{flex:1;font-size:12.5px;font-weight:600;color:var(--ink-soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.help-nav-btn{background:none;border:none;cursor:pointer;font-size:14px;padding:5px 7px;border-radius:6px;color:var(--ink-soft);flex-shrink:0}
+.help-nav-btn:hover{background:var(--paper);color:var(--ink)}
+.help-body{flex:1;overflow-y:auto;padding:16px}
+.help-welcome{font-size:13.5px;line-height:1.5;color:var(--ink);margin:0 0 14px}
+.help-search-input{width:100%;padding:9px 12px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;font-family:inherit;background:var(--paper);color:var(--ink);margin-bottom:14px}
+.help-search-input:focus{outline:none;border-color:var(--accent)}
+.help-cat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.help-cat-card{border:1.5px solid var(--line);border-radius:10px;padding:12px 10px;text-align:center;cursor:pointer;background:var(--paper);transition:border-color .15s,transform .1s}
+.help-cat-card:hover{border-color:var(--accent);transform:translateY(-1px)}
+.help-cat-icon{font-size:22px;margin-bottom:6px}
+.help-cat-label{font-size:12px;font-weight:600;color:var(--ink);line-height:1.3}
+.help-item-row{padding:11px 12px;border:1px solid var(--line);border-radius:9px;margin-bottom:7px;cursor:pointer;font-size:13px;font-weight:600;color:var(--ink);display:flex;align-items:center;justify-content:space-between;gap:8px}
+.help-item-row:hover{border-color:var(--accent);background:var(--paper)}
+.help-answer-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.help-answer-list li{font-size:13px;line-height:1.5;color:var(--ink);padding-left:18px;position:relative}
+.help-answer-list li::before{content:'•';position:absolute;left:2px;color:var(--accent)}
+.help-feedback{margin-top:20px;padding-top:14px;border-top:1px solid var(--line);display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--ink-soft)}
+.help-feedback-btn{background:none;border:1.5px solid var(--line);border-radius:8px;padding:4px 10px;cursor:pointer;font-size:14px}
+.help-feedback-btn:hover{border-color:var(--accent)}
+.help-feedback-msg{margin-top:10px;font-size:12.5px;color:var(--ink-soft);background:var(--paper);border-radius:8px;padding:10px 12px}
+.help-easter{text-align:center;padding:20px 8px;font-size:13px;color:var(--ink);line-height:1.6}
+.help-easter-emoji{font-size:34px;display:block;margin-bottom:8px}
+.help-contact-link{display:block;text-align:center;font-size:12px;color:var(--ink-faint);margin-top:16px;text-decoration:underline;cursor:pointer}
 
 /* Template cards */
 .template-card{border:1.5px solid var(--line);border-radius:10px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;cursor:pointer}
@@ -938,12 +970,12 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
         <div style="font-size:12px;color:var(--ink-soft);margin-bottom:8px;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Tvůj kód zaměstnance</div>
         <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:6px">
           <div style="font-size:32px;font-family:var(--font-mono);font-weight:700;letter-spacing:5px;color:var(--accent-ink);user-select:all;cursor:text" id="waiting-emp-code">—</div>
-          <button onclick="navigator.clipboard.writeText(document.getElementById('waiting-emp-code').textContent).then(()=>{ this.textContent='✓'; setTimeout(()=>this.textContent='📋',1500); })"
+          <button onclick="navigator.clipboard.writeText(document.getElementById('waiting-emp-code').textContent).then(()=>{ this.textContent='✓'; setTimeout(()=>this.textContent=ICONS.btn_kopirovat,1500); })"
             style="background:var(--accent);color:#fff;border:none;border-radius:7px;padding:7px 11px;font-size:14px;cursor:pointer;flex-shrink:0" title="Kopírovat kód">
-            📋
+            <span data-icon="btn_kopirovat">📋</span>
           </button>
         </div>
-        <div style="font-size:12px;color:var(--ink-soft);margin-top:8px">Pošli tento kód vedoucímu — zadá ho v záložce Zaměstnanci → 🔑</div>
+        <div style="font-size:12px;color:var(--ink-soft);margin-top:8px">Pošli tento kód vedoucímu — zadá ho v záložce Zaměstnanci → <span data-icon="btn_pozvanka">🔑</span></div>
       </div>
 
       <!-- Secondary: enter org code yourself -->
@@ -962,14 +994,14 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
         <div id="waiting-join-result" style="font-size:12px;margin-top:6px;display:none"></div>
       </div>
 
-      <button class="btn-primary" onclick="checkMembershipAndReload()" style="width:100%">🔄 Zkontrolovat znovu</button>
+      <button class="btn-primary" onclick="checkMembershipAndReload()" style="width:100%"><span data-icon="btn_kontrolovat">🔄</span> Zkontrolovat znovu</button>
 
       <!-- Tertiary: create own org -->
       <div style="margin-top:16px;padding-top:16px;border-top:1.5px solid var(--line);text-align:center">
         <div style="font-size:12px;color:var(--ink-soft);margin-bottom:8px">Jsi vedoucí a chceš založit vlastní firmu?</div>
         <button onclick="document.getElementById('waiting-create-org-section').style.display='block';this.style.display='none'"
           style="background:none;border:1.5px solid var(--line);border-radius:8px;padding:8px 16px;font-size:13px;font-weight:600;color:var(--ink);cursor:pointer;width:100%">
-          ➕ Založit novou firmu
+          <span data-icon="btn_pridat">➕</span> Založit novou firmu
         </button>
         <div id="waiting-create-org-section" style="display:none;margin-top:12px;text-align:left">
           <div class="field">
@@ -1020,29 +1052,29 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
           <span id="user-email-label" style="font-size:12px"></span>
         </div>
       </div>
-      <button class="btn-ghost" id="emp-settings-btn" onclick="openEmployeeSettings()" style="display:none">👤 Profil</button>
-      <button class="btn-ghost" id="admin-settings-btn" onclick="openEmployeeSettings()" style="display:none">👤 Profil</button>
+      <button class="btn-ghost" id="emp-settings-btn" onclick="openEmployeeSettings()" style="display:none"><span data-icon="set_profil">👤</span> Profil</button>
+      <button class="btn-ghost" id="admin-settings-btn" onclick="openEmployeeSettings()" style="display:none"><span data-icon="set_profil">👤</span> Profil</button>
       <span id="org-code-badge" style="display:none;font-family:var(--font-mono);font-size:12px;font-weight:700;letter-spacing:1.5px;background:var(--paper);border:1.5px solid var(--line);padding:4px 10px;border-radius:6px;color:var(--ink-soft)" title="Kód firmy"></span>
-      <span title="Verze aplikace" style="font-size:10px;color:var(--ink-faint);font-family:var(--font-mono);padding:0 4px;user-select:none">v0.6.0</span>
-      <button class="btn-ghost" onclick="openSearch()" title="Vyhledat (Ctrl+K)" style="padding:6px 10px;font-size:14px">🔍</button>
-      <button class="btn-ghost" onclick="openHelpCenter()" title="Nápověda" style="padding:6px 10px;font-size:14px">❓</button>
+      <span title="Verze aplikace" style="font-size:10px;color:var(--ink-faint);font-family:var(--font-mono);padding:0 4px;user-select:none">v0.6.9</span>
+      <button class="btn-ghost" onclick="openSearch()" title="Vyhledat (Ctrl+K)" style="padding:6px 10px;font-size:14px"><span data-icon="btn_hledat">🔍</span></button>
+      <button class="btn-ghost" onclick="openHelpCenter()" title="Nápověda" style="padding:6px 10px;font-size:14px"><span data-icon="btn_napoveda">❓</span></button>
       <button class="btn-ghost" id="notif-btn" onclick="toggleNotifPanel()" title="Notifikace" style="position:relative;padding:6px 10px;font-size:16px;display:none;align-items:center;justify-content:center">
-        🔔
+        <span data-icon="notif_bell">🔔</span>
         <span id="notif-badge" style="display:none;position:absolute;top:3px;right:3px;width:9px;height:9px;background:var(--red);border-radius:50%;border:2px solid var(--surface)"></span>
       </button>
       <button class="btn-ghost" id="tutorial-btn" onclick="openTutorialMenu()" title="Průvodce aplikací" style="font-size:15px;padding:6px 10px">?</button>
-      <button class="btn-ghost" onclick="doLogout()">🚪 Odhlásit</button>
+      <button class="btn-ghost" onclick="doLogout()"><span data-icon="btn_odhlasit">🚪</span> Odhlásit</button>
     </div>
   </div>
 
   <div class="tabbar">
-    <button class="tab-btn active" data-tab="schedule" onclick="switchAppTab('schedule')">Rozpis</button>
-    <button class="tab-btn" data-tab="branches" onclick="switchAppTab('branches')">Pobočky</button>
-    <button class="tab-btn" data-tab="employees" onclick="switchAppTab('employees')">Zaměstnanci</button>
-    <button class="tab-btn" data-tab="gaps" onclick="switchAppTab('gaps')">📋 Mezery</button>
-    <button class="tab-btn employee-hidden" data-tab="stats" onclick="switchAppTab('stats')">📊 Statistiky</button>
-    <button class="tab-btn employee-hidden" data-tab="leaves" onclick="switchAppTab('leaves')">🗓 Žádosti</button>
-    <button class="tab-btn" data-tab="rules" onclick="switchAppTab('rules')">Pravidla</button>
+    <button class="tab-btn active" data-tab="schedule" onclick="switchAppTab('schedule')"><span data-icon="nav_rozpis">📅</span> Rozpis</button>
+    <button class="tab-btn" data-tab="branches" onclick="switchAppTab('branches')"><span data-icon="nav_pobocky">🏠</span> Pobočky</button>
+    <button class="tab-btn" data-tab="employees" onclick="switchAppTab('employees')"><span data-icon="nav_zamestnanci">👤</span> Zaměstnanci</button>
+    <button class="tab-btn" data-tab="gaps" onclick="switchAppTab('gaps')"><span data-icon="nav_mezery">📋</span> Mezery</button>
+    <button class="tab-btn employee-hidden" data-tab="stats" onclick="switchAppTab('stats')"><span data-icon="nav_statistiky">📊</span> Statistiky</button>
+    <button class="tab-btn employee-hidden" data-tab="leaves" onclick="switchAppTab('leaves')"><span data-icon="nav_zadosti">🗓️</span> Žádosti</button>
+    <button class="tab-btn" data-tab="rules" onclick="switchAppTab('rules')"><span data-icon="nav_pravidla">⚖️</span> Pravidla</button>
   </div>
 
   <div class="main">
@@ -1056,11 +1088,11 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
             <span class="month-label" id="month-label">—</span>
             <button class="icon-nav-btn" onclick="changeMonth(1)">›</button>
           </div>
-          <span id="archive-badge" class="archive-badge" style="display:none">📦 Archiv</span>
+          <span id="archive-badge" class="archive-badge" style="display:none"><span data-icon="archiv">📦</span> Archiv</span>
           <div class="employee-hidden" style="position:relative;display:inline-flex"
             data-tut-icon="⚡" data-tut-title="Automatické plánování" data-tut-pos="bottom"
             data-tut-body="Klikni a algoritmus za pár sekund vygeneruje celý měsíc. Spustí desítky pokusů, vybere nejlepší výsledek — pokryje pobočky, dodrží limity zaměstnanců a respektuje jejich zadaná volna (X). Šipka vedle nabídne i režim otevřených slotů.">
-            <button class="btn-accent" id="auto-schedule-btn" onclick="runAutoSchedule()" style="border-radius:8px 0 0 8px;border-right:1.5px solid rgba(255,255,255,.3)"><span style="filter:drop-shadow(0 0 2px rgba(255,220,0,0.95))">⚡</span> Automaticky doplnit</button>
+            <button class="btn-accent" id="auto-schedule-btn" onclick="runAutoSchedule()" style="border-radius:8px 0 0 8px;border-right:1.5px solid rgba(255,255,255,.3)"><span data-icon="btn_auto" style="filter:drop-shadow(0 0 2px rgba(255,220,0,0.95))">⚡</span> Automaticky doplnit</button>
             <button class="btn-accent" onclick="toggleAutoModeMenu()" style="border-radius:0 8px 8px 0;padding:6px 8px;font-size:11px" title="Vybrat režim generování">▾</button>
             <div id="auto-mode-menu" style="display:none;position:absolute;top:calc(100% + 4px);left:0;background:var(--surface);border:1.5px solid var(--line);border-radius:9px;box-shadow:0 6px 18px rgba(30,34,48,.13);z-index:400;min-width:240px;padding:6px 0">
               <div style="font-size:11px;font-weight:700;color:var(--ink-soft);padding:4px 12px 2px;text-transform:uppercase">Režim generování</div>
@@ -1073,24 +1105,24 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
                 <span><strong style="font-size:13px">Vytvořit jako otevřené sloty</strong><br><span style="font-size:12px;color:var(--ink-soft)">Vytvoří prázdné sloty — zaměstnanci si je nárokují sami.</span></span>
               </label>
               <div style="border-top:1px solid var(--line);margin:4px 0"></div>
-              <div onclick="runAutoScheduleWithMode();document.getElementById('auto-mode-menu').style.display='none'" class="toolbar-menu-item" style="color:var(--accent);font-weight:700">⚡ Generovat</div>
+              <div onclick="runAutoScheduleWithMode();document.getElementById('auto-mode-menu').style.display='none'" class="toolbar-menu-item" style="color:var(--accent);font-weight:700"><span data-icon="btn_auto">⚡</span> Generovat</div>
             </div>
           </div>
           <button class="btn-outline employee-hidden" id="publish-btn" onclick="publishSchedule()"
             data-tut-icon="📢" data-tut-title="Publikovat rozpis" data-tut-pos="bottom"
             data-tut-body="Označí aktuální měsíc jako publikovaný — zaměstnanci vidí že je rozvrh hotový. Tlačítko se zeleně zvýrazní. Publikaci lze spustit také z přehledu organizace (klikni na logo v liště).">
-            📢 <span class="btn-label">Publikovat</span></button>
+            <span data-icon="btn_publikovat">📢</span> <span class="btn-label">Publikovat</span></button>
           <button class="btn-outline employee-hidden" id="fill-mode-btn" onclick="toggleFillMode()"
             data-tut-icon="🔍" data-tut-title="Kde doplnit" data-tut-pos="bottom"
-            data-tut-body="Přepne zobrazení — ukáže jen dny kde konkrétní pobočka nemá dostatečné pokrytí. Vyber pobočku ze seznamu a klikni na zvýrazněný den pro rychlé doplnění.">🔍 Kde doplnit</button>
+            data-tut-body="Přepne zobrazení — ukáže jen dny kde konkrétní pobočka nemá dostatečné pokrytí. Vyber pobočku ze seznamu a klikni na zvýrazněný den pro rychlé doplnění."><span data-icon="btn_kde_doplnit">🔍</span> Kde doplnit</button>
           <button class="btn-outline employee-hidden" id="branch-view-btn" onclick="toggleSchedView()" title="Přepnout na pohled podle poboček"
             data-tut-icon="🏠" data-tut-title="Pobočkový přehled" data-tut-pos="bottom"
-            data-tut-body="Přepne kalendář do pohledu podle poboček — každá pobočka má svou sekci s řádky pouze těch zaměstnanců, kteří tam mají alespoň jednu směnu. Stejný zaměstnanec se může zobrazit ve více sekcích.">🏠 Pobočkový přehled</button>
+            data-tut-body="Přepne kalendář do pohledu podle poboček — každá pobočka má svou sekci s řádky pouze těch zaměstnanců, kteří tam mají alespoň jednu směnu. Stejný zaměstnanec se může zobrazit ve více sekcích."><span data-icon="btn_pobocky_prehled">🏠</span> Pobočkový přehled</button>
           <div id="clear-btns-wrap" class="employee-hidden" style="display:flex;gap:8px;align-items:center"
             data-tut-icon="🗑️" data-tut-title="Smazat auto / Smazat vše" data-tut-pos="bottom"
             data-tut-body="Smazat auto odstraní pouze automaticky přiřazené směny a zachová tvoje ruční úpravy. Smazat vše vymaže celý měsíc včetně ručních úprav.">
-            <button class="btn-outline" id="clear-auto-btn" onclick="clearAutoShifts()">🗑 <span class="btn-label">Smazat auto</span></button>
-            <button class="btn-outline" id="clear-all-btn" onclick="clearAllShifts()">🗑 <span class="btn-label">Smazat vše</span></button>
+            <button class="btn-outline" id="clear-auto-btn" onclick="clearAutoShifts()"><span data-icon="btn_smazat_auto">🗑️</span> <span class="btn-label">Smazat auto</span></button>
+            <button class="btn-outline" id="clear-all-btn" onclick="clearAllShifts()"><span data-icon="btn_smazat_vse">🗑️</span> <span class="btn-label">Smazat vše</span></button>
           </div>
           <span id="fill-mode-slot-wrap" style="display:none;align-items:center;gap:6px">
             <select id="fill-mode-slot" onchange="renderCalendar()" style="padding:6px 8px;border:1.5px solid var(--accent);border-radius:7px;font-size:12.5px;font-family:var(--font-mono);font-weight:600;color:var(--accent-ink);background:var(--accent-soft)">
@@ -1101,22 +1133,22 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
           <div class="employee-hidden" style="position:relative;margin-left:auto">
             <button class="btn-outline" id="toolbar-more-btn" onclick="toggleToolbarMenu()" style="padding:6px 12px;font-size:13px"
               data-tut-icon="⋯" data-tut-title="Import, Export a Tisk" data-tut-pos="bottom"
-              data-tut-body="Tlačítko ⋯ Více obsahuje méně časté akce: Import JSON — načtení dat ze starší verze, Export JSON — záloha měsíce, Tisk / PDF — tisk nebo uložení jako PDF.">⋯ Více</button>
+              data-tut-body="Tlačítko ⋯ Více obsahuje méně časté akce: Import JSON — načtení dat ze starší verze, Export JSON — záloha měsíce, Tisk / PDF — tisk nebo uložení jako PDF."><span data-icon="btn_vice">···</span> Více</button>
             <div id="toolbar-more-menu" style="display:none;position:absolute;top:calc(100% + 6px);right:0;background:var(--surface);border:1.5px solid var(--line);border-radius:10px;box-shadow:0 6px 20px rgba(30,34,48,.12);z-index:500;min-width:170px;overflow:hidden">
-              <div onclick="openImportModal();closeToolbarMenu()" class="toolbar-menu-item">⬆ Import JSON</div>
-              <div onclick="exportJSON();closeToolbarMenu()" class="toolbar-menu-item">⬇ Export JSON</div>
-              <div onclick="exportToExcel();closeToolbarMenu()" class="toolbar-menu-item">📊 Export Excel (.xlsx)</div>
-              <div onclick="exportICS();closeToolbarMenu()" class="toolbar-menu-item">📅 Export ICS (kalendář)</div>
+              <div onclick="openImportModal();closeToolbarMenu()" class="toolbar-menu-item"><span data-icon="btn_import_json">⬆️</span> Import JSON</div>
+              <div onclick="exportJSON();closeToolbarMenu()" class="toolbar-menu-item"><span data-icon="btn_export_json">⬇️</span> Export JSON</div>
+              <div onclick="exportToExcel();closeToolbarMenu()" class="toolbar-menu-item"><span data-icon="btn_export_excel">📊</span> Export Excel (.xlsx)</div>
+              <div onclick="exportICS();closeToolbarMenu()" class="toolbar-menu-item"><span data-icon="btn_export_ics">📅</span> Export ICS (kalendář)</div>
               <div style="border-top:1px solid var(--line);margin:4px 0"></div>
-              <div onclick="openTemplatesModal();closeToolbarMenu()" class="toolbar-menu-item">📋 Šablony rozpisu</div>
-              <div onclick="openRecurringModal();closeToolbarMenu()" class="toolbar-menu-item">🔁 Opakující se volno</div>
+              <div onclick="openTemplatesModal();closeToolbarMenu()" class="toolbar-menu-item"><span data-icon="btn_sablony">📋</span> Šablony rozpisu</div>
+              <div onclick="openRecurringModal();closeToolbarMenu()" class="toolbar-menu-item"><span data-icon="btn_opakujici_volno">🔁</span> Opakující se volno</div>
               <div style="border-top:1px solid var(--line);margin:4px 0"></div>
-              <div onclick="openPrintOptions();closeToolbarMenu()" class="toolbar-menu-item">🖨 Tisk / PDF</div>
-              <div onclick="openPayrollModal();closeToolbarMenu()" class="toolbar-menu-item">💰 Mzdové podklady</div>
+              <div onclick="openPrintOptions();closeToolbarMenu()" class="toolbar-menu-item"><span data-icon="btn_tisk">🖨️</span> Tisk / PDF</div>
+              <div onclick="openPayrollModal();closeToolbarMenu()" class="toolbar-menu-item"><span data-icon="btn_mzdy">💰</span> Mzdové podklady</div>
               <div style="border-top:1px solid var(--line);margin:4px 0"></div>
-              <div onclick="openSwapRequestsModal();closeToolbarMenu()" class="toolbar-menu-item employee-hidden">🔄 Žádosti o výměnu</div>
-              <div onclick="openOpenShiftsAdmin();closeToolbarMenu()" class="toolbar-menu-item employee-hidden">📋 Otevřené směny</div>
-              <div onclick="exportFullBackup();closeToolbarMenu()" class="toolbar-menu-item employee-hidden">💾 Záloha organizace (JSON)</div>
+              <div onclick="openSwapRequestsModal();closeToolbarMenu()" class="toolbar-menu-item employee-hidden"><span data-icon="btn_vymeny">🔄</span> Žádosti o výměnu</div>
+              <div onclick="openOpenShiftsAdmin();closeToolbarMenu()" class="toolbar-menu-item employee-hidden"><span data-icon="btn_otevrene_smeny">📋</span> Otevřené směny</div>
+              <div onclick="exportFullBackup();closeToolbarMenu()" class="toolbar-menu-item employee-hidden"><span data-icon="btn_zaloha">💾</span> Záloha organizace (JSON)</div>
             </div>
           </div>
         </div>
@@ -1137,16 +1169,16 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
           </div>
           <button id="emp-x-toggle-btn" onclick="toggleEmpXMode()"
             style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap">
-            ✏ Zadat volno (X)
+            <span data-icon="btn_upravit">✏️</span> Zadat volno (X)
           </button>
           <button onclick="openShiftSwapModal()" style="background:none;border:1.5px solid var(--accent);border-radius:8px;padding:7px 14px;font-size:13px;font-weight:600;cursor:pointer;color:var(--accent)">
-            🔄 Výměna
+            <span data-icon="btn_vymeny">🔄</span> Výměna
           </button>
         </div>
 
         <!-- Open shifts panel (employee view) -->
         <div id="open-shifts-panel" style="display:none">
-          <div style="font-weight:700;font-size:14px;margin-bottom:8px">📋 Otevřené směny — k dispozici</div>
+          <div style="font-weight:700;font-size:14px;margin-bottom:8px"><span data-icon="btn_otevrene_smeny">📋</span> Otevřené směny — k dispozici</div>
           <div id="open-shifts-emp-list"></div>
         </div>
 
@@ -1164,7 +1196,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
 
         <!-- Empty state — shown when org has no branches or no employees yet -->
         <div id="calendar-empty-state" style="display:none;padding:40px 20px;text-align:center">
-          <div style="font-size:36px;margin-bottom:16px">📅</div>
+          <div style="font-size:36px;margin-bottom:16px"><span data-icon="nav_rozpis">📅</span></div>
           <div style="font-size:18px;font-weight:700;font-family:var(--font-display);margin-bottom:8px">Začni nastavením firmy</div>
           <div style="font-size:14px;color:var(--ink-soft);margin-bottom:32px;max-width:380px;margin-left:auto;margin-right:auto">
             Než vygeneruješ první rozvrh, potřebuješ přidat pobočky a zaměstnance.
@@ -1190,7 +1222,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
               <div style="width:32px;height:32px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0">3</div>
               <div>
                 <div style="font-weight:600;font-size:14px">Vygenerovat rozvrh</div>
-                <div style="font-size:12px;color:var(--ink-soft)">Klikni ⚡ Automaticky doplnit</div>
+                <div style="font-size:12px;color:var(--ink-soft)">Klikni <span data-icon="btn_auto">⚡</span> Automaticky doplnit</div>
               </div>
             </div>
           </div>
@@ -1199,7 +1231,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
         <!-- Inline gaps view — shown when __gaps__ selected in fill mode -->
         <div id="gaps-inline" style="display:none;margin-top:16px">
           <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--ink-soft);margin-bottom:10px;letter-spacing:.04em">
-            📋 Mezery v rozpisu — klikni na den pro doplnění
+            <span data-icon="nav_mezery">📋</span> Mezery v rozpisu — klikni na den pro doplnění
           </div>
           <div id="gaps-inline-content"></div>
         </div>
@@ -1239,7 +1271,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
           <div style="display:flex;gap:8px;align-items:center">
             <button class="icon-nav-btn" onclick="changeMonth(-1);renderStats()">‹</button>
             <button class="icon-nav-btn" onclick="changeMonth(1);renderStats()">›</button>
-            <button class="btn-outline" onclick="exportStatsExcel()" style="font-size:12.5px;padding:6px 12px">📊 Export</button>
+            <button class="btn-outline" onclick="exportStatsExcel()" style="font-size:12.5px;padding:6px 12px"><span data-icon="btn_export_excel">📊</span> Export</button>
           </div>
         </div>
         <div id="stats-content"></div>
@@ -1269,7 +1301,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
             <h2 class="panel-title">Zaměstnanci</h2>
             <p class="panel-sub" id="employees-count-label">Načítám…</p>
           </div>
-          <button class="btn-accent" onclick="openEmployeeModal()">➕ Přidat zaměstnance</button>
+          <button class="btn-accent" onclick="openEmployeeModal()"><span data-icon="btn_pridat">➕</span> Přidat zaměstnance</button>
         </div>
         <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center">
           <select id="emp-type-filter" onchange="renderEmployees()" style="font-size:13px;padding:5px 10px;border:1.5px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);cursor:pointer">
@@ -1292,7 +1324,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
             <p class="panel-sub">Místa, kam přiřazuješ směny. Každá má vlastní barvu a minimální obsazení.</p>
           </div>
           <div style="display:flex;gap:8px">
-            <button class="btn-accent" onclick="openBranchModal()">➕ Přidat pobočku</button>
+            <button class="btn-accent" onclick="openBranchModal()"><span data-icon="btn_pridat">➕</span> Přidat pobočku</button>
           </div>
         </div>
         <div id="branches-table-wrap"></div>
@@ -1311,20 +1343,20 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
 
         <!-- 1. Podmínky plánování (tvrdé + váhy sloučeny) -->
         <div id="conditions-section" style="margin-bottom:0">
-          <p class="rules-section-title">📋 Podmínky plánování</p>
+          <p class="rules-section-title"><span data-icon="sec_podminky">📋</span> Podmínky plánování</p>
           <p class="rules-section-hint">Každou podmínku lze označit jako <strong>Neporušitelné</strong> — algoritmus pak výsledky kde podmínka není splněna zahodí a zkusí znovu. <strong>Váha</strong> určuje jak silně podmínka ovlivňuje celkové skóre (součet musí dát 100 %).</p>
           <div id="conditions-list"></div>
           <div id="hard-constraints-warning" style="display:none;margin-top:4px;padding:8px 12px;background:#fef3c7;border:1.5px solid #fbbf24;border-radius:8px;font-size:12px;color:#92400e;max-width:580px">
-            ⚠️ Pozor: příliš mnoho neporušitelných podmínek může znemožnit nalezení řešení. Doporučujeme max. 1.
+            <span data-icon="status_warning">⚠️</span> Pozor: příliš mnoho neporušitelných podmínek může znemožnit nalezení řešení. Doporučujeme max. 1.
           </div>
-          <div id="weights-sum-warning" style="font-size:12px;color:var(--red);margin-top:8px;display:none">⚠ Součet vah není 100 % — uprav hodnoty.</div>
+          <div id="weights-sum-warning" style="font-size:12px;color:var(--red);margin-top:8px;display:none"><span data-icon="status_warning">⚠️</span> Součet vah není 100 % — uprav hodnoty.</div>
         </div>
 
         <hr class="rules-section-sep">
 
         <!-- 2. Víkendy a cílení -->
         <div id="rules-intro-panel" style="margin-bottom:0">
-          <p class="rules-section-title">🗓️ Víkendy a cílení</p>
+          <p class="rules-section-title"><span data-icon="tut_pravidla_vikendy">🗓️</span> Víkendy a cílení</p>
           <div class="field" style="max-width:580px;margin-bottom:12px">
             <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
               <input type="checkbox" id="rule-weekend-priority" style="width:16px;height:16px">
@@ -1343,14 +1375,14 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
 
         <!-- 3. Páry pro vyváženost -->
         <div id="balance-pairs-section" style="margin-bottom:0">
-          <p class="rules-section-title">⚖️ Páry pro vyváženost směn</p>
+          <p class="rules-section-title"><span data-icon="tut_pravidla_pary">⚖️</span> Páry pro vyváženost směn</p>
           <p class="rules-section-hint">Které typy směn chceš poměřovat vůči sobě? Např. M1 vs M4 = kolik M1 a kolik M4 dostane každý zaměstnanec za měsíc. Sloupec v rozpisu zobrazí <strong>počet_A/počet_B</strong> — zelená = rozdíl max 2 směny (vyvážené), oranžová = větší nerovnováha.</p>
           <div id="balance-pairs-list" style="max-width:580px"></div>
           <div style="display:flex;gap:8px;margin-top:10px;max-width:580px;align-items:center">
             <input type="text" id="bp-code1" placeholder="kód A" maxlength="6" style="width:80px;font-family:var(--font-mono);text-transform:uppercase;padding:7px 9px;border:1.5px solid var(--line);border-radius:7px;font-size:13px;color:var(--ink)">
             <span style="color:var(--ink-soft);font-weight:600;font-size:13px">vs</span>
             <input type="text" id="bp-code2" placeholder="kód B" maxlength="6" style="width:80px;font-family:var(--font-mono);text-transform:uppercase;padding:7px 9px;border:1.5px solid var(--line);border-radius:7px;font-size:13px;color:var(--ink)">
-            <button class="btn-outline" onclick="addBalancePair()">➕ Přidat pár</button>
+            <button class="btn-outline" onclick="addBalancePair()"><span data-icon="btn_pridat">➕</span> Přidat pár</button>
           </div>
         </div>
 
@@ -1358,7 +1390,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
 
         <!-- 4. Uložit -->
         <div style="display:flex;gap:10px">
-          <button class="btn-accent" id="save-all-rules-btn" onclick="saveRules();saveScoring()">💾 Uložit všechna pravidla</button>
+          <button class="btn-accent" id="save-all-rules-btn" onclick="saveRules();saveScoring()"><span data-icon="btn_ulozit">💾</span> Uložit všechna pravidla</button>
           <span class="saved-tag" id="scoring-saved" style="display:none">Uloženo!</span>
         </div>
       </div>
@@ -1453,7 +1485,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
     </div>
 
     <div class="field" style="margin-top:14px;padding-top:14px;border-top:1px solid var(--line)">
-      <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--ink-soft);margin-bottom:10px">🔔 Notifikace</div>
+      <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--ink-soft);margin-bottom:10px"><span data-icon="notif_bell">🔔</span> Notifikace</div>
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
         <input type="checkbox" id="employee-notify-email" style="width:15px;height:15px" checked>
         <span style="font-size:13px">Dostávat email při publikování rozpisu</span>
@@ -1463,7 +1495,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
 
     <div style="display:flex;gap:10px;margin-top:18px">
       <button class="btn-outline" style="flex:1" onclick="closeEmployeeModal()">✕ Zrušit</button>
-      <button class="btn-accent" style="flex:1" onclick="saveEmployee()">💾 Uložit</button>
+      <button class="btn-accent" style="flex:1" onclick="saveEmployee()"><span data-icon="btn_ulozit">💾</span> Uložit</button>
     </div>
   </div>
 </div>
@@ -1500,10 +1532,10 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
     </div>
     <!-- Pattern templates -->
     <div class="pattern-templates">
-      <button class="pattern-tpl-btn" onclick="applyPatternTemplate('even')">📐 Rovnoměrné</button>
-      <button class="pattern-tpl-btn" onclick="applyPatternTemplate('weekend_peak')">🍺 Víkendová špička</button>
-      <button class="pattern-tpl-btn" onclick="applyPatternTemplate('workweek')">💼 Pracovní týden</button>
-      <button class="pattern-tpl-btn" onclick="applyPatternTemplate('empty')">✏️ Vlastní</button>
+      <button class="pattern-tpl-btn" onclick="applyPatternTemplate('even')"><span data-icon="tpl_rovnomerne">📐</span> Rovnoměrné</button>
+      <button class="pattern-tpl-btn" onclick="applyPatternTemplate('weekend_peak')"><span data-icon="tpl_weekend_peak">🍺</span> Víkendová špička</button>
+      <button class="pattern-tpl-btn" onclick="applyPatternTemplate('workweek')"><span data-icon="tpl_workweek">💼</span> Pracovní týden</button>
+      <button class="pattern-tpl-btn" onclick="applyPatternTemplate('empty')"><span data-icon="btn_upravit">✏️</span> Vlastní</button>
     </div>
     <!-- 7-day table: Mon(1)…Sun(0) displayed as Po–Ne -->
     <table class="weekly-pattern-table" id="weekly-pattern-tbl">
@@ -1542,13 +1574,13 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
         <input type="text" id="new-shifttype-code" placeholder="M1" style="font-family:var(--font-mono);text-transform:uppercase;padding:8px 10px;border:1.5px solid var(--line);border-radius:8px;font-size:13px">
         <input type="text" id="new-shifttype-label" placeholder="Název (M1, Ranní...)" style="padding:8px 10px;border:1.5px solid var(--line);border-radius:8px;font-size:13px">
         <input type="color" id="new-shifttype-color" value="#e74c3c" style="padding:2px;height:36px;width:44px;border:1.5px solid var(--line);border-radius:8px;cursor:pointer">
-        <button class="btn-outline" onclick="addShiftType()">➕ Přidat</button>
+        <button class="btn-outline" onclick="addShiftType()"><span data-icon="btn_pridat">➕</span> Přidat</button>
       </div>
     </div>
 
     <div style="display:flex;gap:10px;margin-top:18px">
       <button class="btn-outline" style="flex:1" onclick="closeBranchModal()">✕ Zrušit</button>
-      <button class="btn-accent" style="flex:1" onclick="saveBranch()">💾 Uložit</button>
+      <button class="btn-accent" style="flex:1" onclick="saveBranch()"><span data-icon="btn_ulozit">💾</span> Uložit</button>
     </div>
   </div>
 </div>
@@ -1571,7 +1603,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
 <!-- Notification panel (not a modal, fixed panel) -->
 <div id="notif-panel">
   <div style="padding:14px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between">
-    <span style="font-weight:700;font-size:14px;font-family:var(--font-display)">🔔 Notifikace</span>
+    <span style="font-weight:700;font-size:14px;font-family:var(--font-display)"><span data-icon="notif_bell">🔔</span> Notifikace</span>
     <button onclick="markAllNotifsRead()" style="background:none;border:none;font-size:11px;color:var(--accent);cursor:pointer;font-family:inherit;font-weight:600">Označit vše jako přečtené</button>
   </div>
   <div id="notif-list" style="padding:8px 0"></div>
@@ -1580,12 +1612,12 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
 <!-- Publish confirm modal -->
 <div class="modal-overlay" id="publish-confirm-overlay">
   <div class="modal" style="max-width:380px;text-align:center">
-    <div style="font-size:36px;margin-bottom:14px">📢</div>
+    <div style="font-size:36px;margin-bottom:14px"><span data-icon="btn_publikovat">📢</span></div>
     <h3 style="margin:0 0 10px;font-family:var(--font-display)">Publikovat rozpis?</h3>
     <p id="publish-confirm-msg" style="font-size:13.5px;color:var(--ink-soft);margin:0 0 20px;line-height:1.5"></p>
     <div style="display:flex;gap:10px;justify-content:center">
       <button onclick="document.getElementById('publish-confirm-overlay').classList.remove('open')" class="btn-outline" style="min-width:100px">Zrušit</button>
-      <button onclick="document.getElementById('publish-confirm-overlay').classList.remove('open');doPublishSchedule()" class="btn-accent" style="min-width:120px">📢 Publikovat</button>
+      <button onclick="document.getElementById('publish-confirm-overlay').classList.remove('open');doPublishSchedule()" class="btn-accent" style="min-width:120px"><span data-icon="btn_publikovat">📢</span> Publikovat</button>
     </div>
   </div>
 </div>
@@ -1594,7 +1626,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
 <div class="modal-overlay" id="dashboard-overlay">
   <div class="modal" style="max-width:500px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
-      <h3 style="margin:0">📊 Přehled organizace</h3>
+      <h3 style="margin:0"><span data-icon="dash_prehled">📊</span> Přehled organizace</h3>
       <button class="btn-ghost" onclick="document.getElementById('dashboard-overlay').classList.remove('open')" style="padding:5px 10px;font-size:13px">✕</button>
     </div>
     <div id="dashboard-body"></div>
@@ -1602,22 +1634,25 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
 </div>
 
 <div class="modal-overlay" id="emp-settings-overlay">
-  <div class="modal" style="max-width:460px">
+  <div class="modal" style="max-width:520px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-      <h3 style="margin:0">⚙ Nastavení</h3>
+      <h3 style="margin:0"><span data-icon="help_nastaveni">⚙️</span> Nastavení</h3>
       <button class="btn-ghost" onclick="document.getElementById('emp-settings-overlay').classList.remove('open')" style="padding:5px 10px;font-size:13px">✕</button>
     </div>
     <!-- Settings tabs -->
     <div style="display:flex;gap:2px;background:var(--paper);border-radius:9px;padding:3px;margin-bottom:18px">
       <button id="stab-profile" onclick="switchSettingsTab('profile')"
-        style="flex:1;border:none;border-radius:7px;padding:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;background:var(--surface);color:var(--ink);box-shadow:var(--shadow)">👤 Profil</button>
+        style="flex:1;border:none;border-radius:7px;padding:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;background:var(--surface);color:var(--ink);box-shadow:var(--shadow)"><span data-icon="set_profil">👤</span> Profil</button>
       <button id="stab-appear" onclick="switchSettingsTab('appear')"
-        style="flex:1;border:none;border-radius:7px;padding:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;background:none;color:var(--ink-soft)">🎨 Vzhled</button>
+        style="flex:1;border:none;border-radius:7px;padding:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;background:none;color:var(--ink-soft)"><span data-icon="set_vzhled">🎨</span> Vzhled</button>
+      <button id="stab-icons" onclick="switchSettingsTab('icons')"
+        style="flex:1;border:none;border-radius:7px;padding:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;background:none;color:var(--ink-soft)"><span data-icon="set_ikony">🎨</span> Ikony</button>
       <button id="stab-org" onclick="switchSettingsTab('org')"
-        style="flex:1;border:none;border-radius:7px;padding:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;background:none;color:var(--ink-soft)" class="admin-only-stab">🏢 Org</button>
+        style="flex:1;border:none;border-radius:7px;padding:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;background:none;color:var(--ink-soft)" class="admin-only-stab"><span data-icon="set_org">🏢</span> Org</button>
     </div>
     <div id="emp-settings-body"></div>
     <div id="appear-settings-body" style="display:none"></div>
+    <div id="icons-settings-body" style="display:none;max-height:60vh;overflow-y:auto"></div>
     <div id="org-settings-body" style="display:none"></div>
   </div>
 </div>
@@ -1657,7 +1692,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
       Nahraj JSON soubor exportovaný ze starší verze appky. Naimportují se zaměstnanci, pobočky a směny — existující záznamy se <em>nepřepíší</em>.
     </p>
     <div style="border:2px dashed var(--line);border-radius:10px;padding:24px;text-align:center;margin-bottom:14px;cursor:pointer" id="import-drop-zone" onclick="document.getElementById('import-file-input').click()">
-      <div style="font-size:22px;margin-bottom:6px">📂</div>
+      <div style="font-size:22px;margin-bottom:6px"><span data-icon="icon_import">📂</span></div>
       <div style="font-size:13px;color:var(--ink-soft)">Klikni nebo přetáhni JSON soubor sem</div>
       <div style="font-size:11px;color:var(--ink-faint);margin-top:4px" id="import-file-name">žádný soubor</div>
     </div>
@@ -1666,7 +1701,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
     <div class="auth-error" id="import-error" style="display:none"></div>
     <div style="display:flex;gap:10px;margin-top:4px">
       <button class="btn-outline" style="flex:1" onclick="closeImportModal()">✕ Zrušit</button>
-      <button class="btn-accent" style="flex:1" id="import-run-btn" disabled onclick="runImport()">⬆ Importovat</button>
+      <button class="btn-accent" style="flex:1" id="import-run-btn" disabled onclick="runImport()"><span data-icon="btn_import_json">⬆️</span> Importovat</button>
     </div>
   </div>
 </div>
@@ -1691,7 +1726,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
 <div class="kb-overlay" id="kb-overlay" onclick="if(event.target===this)document.getElementById('kb-overlay').classList.remove('open')">
   <div class="kb-card">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-      <h3 style="margin:0;font-family:var(--font-display)">⌨ Klávesové zkratky</h3>
+      <h3 style="margin:0;font-family:var(--font-display)"><span data-icon="icon_klavesy">⌨️</span> Klávesové zkratky</h3>
       <button class="btn-ghost" onclick="document.getElementById('kb-overlay').classList.remove('open')" style="padding:4px 9px">✕</button>
     </div>
     <div class="kb-grid">
@@ -1712,43 +1747,25 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
 </div>
 
 <!-- ============================================================
-     HELP CENTER PANEL
+     HELP CENTER — tree-based, no AI, no API
      ============================================================ -->
-<div class="help-panel" id="help-panel" onclick="if(event.target===this)closeHelpCenter()">
-  <div class="help-inner">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-      <h3 style="margin:0;font-family:var(--font-display)">❓ Nápověda</h3>
-      <button class="btn-ghost" onclick="closeHelpCenter()" style="padding:4px 9px">✕</button>
-    </div>
-    <p style="font-size:13px;color:var(--ink-soft);margin:0 0 4px">Verze v0.6.0</p>
-
-    <p class="help-section-title">Jak začít</p>
-    <div class="help-faq-item"><div class="help-faq-q" onclick="toggleFaq(this.parentElement)">Jak přidat zaměstnance?</div><div class="help-faq-a">Přejdi na záložku <strong>Zaměstnanci</strong> a klikni na <strong>+ Přidat zaměstnance</strong>. Vyplň jméno a limity směn.</div></div>
-    <div class="help-faq-item"><div class="help-faq-q" onclick="toggleFaq(this.parentElement)">Jak pozvat zaměstnance do apky?</div><div class="help-faq-a">Ve výpisu zaměstnanců klikni na ikonu 🔑 u zaměstnance — zobrazí se pozvánkový odkaz nebo kód firmy, který zaměstnanec zadá při registraci.</div></div>
-    <div class="help-faq-item"><div class="help-faq-q" onclick="toggleFaq(this.parentElement)">Jak nastavit pobočky?</div><div class="help-faq-a">Záložka <strong>Pobočky</strong> — přidej pobočku, nastav barvu, minimální a maximální obsazení.</div></div>
-
-    <p class="help-section-title">Generování rozpisu</p>
-    <div class="help-faq-item"><div class="help-faq-q" onclick="toggleFaq(this.parentElement)">Jak automaticky vygenerovat měsíc?</div><div class="help-faq-a">Na záložce Rozpis klikni na tlačítko <strong>⚡ Automaticky doplnit</strong>. Algoritmus vyzkouší desítky kombinací a vybere nejlepší.</div></div>
-    <div class="help-faq-item"><div class="help-faq-q" onclick="toggleFaq(this.parentElement)">Co znamená skóre kvality?</div><div class="help-faq-a">Číslo 0–100 % ukazuje jak dobře splňuje vygenerovaný rozpis nastavená pravidla. Zelená = dobře, žlutá/červená = problémy.</div></div>
-    <div class="help-faq-item"><div class="help-faq-q" onclick="toggleFaq(this.parentElement)">Jak nahrát šablonu rozpisu?</div><div class="help-faq-a">V menu ⋯ Více na záložce Rozpis najdeš <strong>Šablony</strong>. Ulož aktuální rozvrh nebo načti dříve uložený.</div></div>
-
-    <p class="help-section-title">Zaměstnanci</p>
-    <div class="help-faq-item"><div class="help-faq-q" onclick="toggleFaq(this.parentElement)">Jak zadat žádost o volno?</div><div class="help-faq-a">Zaměstnanec přejde na záložku <strong>🗓 Žádosti</strong> a klikne na <strong>+ Požádat o volno</strong>. Admin žádost schválí nebo zamítne.</div></div>
-    <div class="help-faq-item"><div class="help-faq-q" onclick="toggleFaq(this.parentElement)">Jak exportovat směny do kalendáře?</div><div class="help-faq-a">V menu ⋯ Více klikni na <strong>Export ICS (.ics)</strong> — soubor lze importovat do Google Kalendáře, Apple Kalendáře nebo Outlooku.</div></div>
-
-    <p class="help-section-title">FAQ</p>
-    <div class="help-faq-item"><div class="help-faq-q" onclick="toggleFaq(this.parentElement)">Mohu mít více firem?</div><div class="help-faq-a">Ano — klikni na název firmy v liště vlevo. Pokud máš přístup do více organizací, zobrazí se přepínač.</div></div>
-    <div class="help-faq-item"><div class="help-faq-q" onclick="toggleFaq(this.parentElement)">Kde najdu audit log změn?</div><div class="help-faq-a">V nastavení (🏢 Org) → sekce <strong>Historie změn</strong>.</div></div>
-
-    <p class="help-section-title">Kontakt & podpora</p>
-    <p style="font-size:13px;color:var(--ink-soft);margin:0 0 10px">Napiš nám přes formulář nebo přímo na email:</p>
-    <div style="background:var(--paper);border-radius:8px;padding:14px">
-      <div class="field" style="margin-bottom:10px"><label>Předmět</label><input type="text" id="help-subject" placeholder="Krátký popis problému" style="width:100%;padding:8px;border:1.5px solid var(--line);border-radius:7px;font-size:13px;font-family:inherit;background:var(--surface);color:var(--ink)"></div>
-      <div class="field" style="margin-bottom:10px"><label>Zpráva</label><textarea id="help-message" rows="3" placeholder="Popiš problém nebo dotaz…" style="width:100%;padding:8px;border:1.5px solid var(--line);border-radius:7px;font-size:13px;font-family:inherit;background:var(--surface);color:var(--ink);resize:vertical"></textarea></div>
-      <button class="btn-accent" onclick="sendHelpRequest()" style="width:100%">📨 Odeslat</button>
-    </div>
-    <p style="font-size:12px;color:var(--ink-faint);margin-top:14px;text-align:center">Podpora: <a href="mailto:vavra@dp-partners.cz">vavra@dp-partners.cz</a></p>
+<button class="help-fab" id="help-fab" onclick="openHelpCenter()" title="Pomoc">
+  <span data-icon="btn_napoveda">❓</span>
+</button>
+<div class="help-panel" id="help-panel">
+  <div class="help-header">
+    <button class="help-nav-btn" id="help-back-btn" onclick="helpGoBack()" title="Zpět" style="display:none">
+      <span data-icon="btn_zpet">←</span>
+    </button>
+    <div class="help-breadcrumb" id="help-breadcrumb">Pomoc</div>
+    <button class="help-nav-btn" onclick="helpGoHome()" title="Domů">
+      <span data-icon="help_home">🏠</span>
+    </button>
+    <button class="help-nav-btn" onclick="closeHelpCenter()" title="Zavřít">
+      <span data-icon="btn_zrusit">✕</span>
+    </button>
   </div>
+  <div class="help-body" id="help-body"></div>
 </div>
 
 <!-- ============================================================
@@ -1757,7 +1774,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
 <div class="modal-overlay" id="leave-modal-overlay">
   <div class="modal" style="max-width:420px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-      <h3 style="margin:0">🗓 Žádost o volno</h3>
+      <h3 style="margin:0"><span data-icon="nav_zadosti">🗓️</span> Žádost o volno</h3>
       <button class="btn-ghost" onclick="document.getElementById('leave-modal-overlay').classList.remove('open')" style="padding:5px 10px">✕</button>
     </div>
     <div class="field"><label>Zaměstnanec</label>
@@ -1781,12 +1798,12 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
 <div class="modal-overlay" id="note-modal-overlay">
   <div class="modal" style="max-width:380px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-      <h3 style="margin:0" id="note-modal-title">💬 Poznámka</h3>
+      <h3 style="margin:0" id="note-modal-title"><span data-icon="poznamka">💬</span> Poznámka</h3>
       <button class="btn-ghost" onclick="document.getElementById('note-modal-overlay').classList.remove('open')" style="padding:5px 10px">✕</button>
     </div>
     <textarea id="note-text" rows="4" placeholder="Poznámka k tomuto dni…" style="width:100%;padding:10px;border:1.5px solid var(--line);border-radius:8px;font-size:13.5px;font-family:inherit;resize:vertical;color:var(--ink);background:var(--surface)"></textarea>
     <div style="display:flex;gap:10px;margin-top:12px">
-      <button class="btn-outline" style="flex:1;color:var(--red);border-color:var(--red)" onclick="deleteShiftNote()">🗑 Smazat</button>
+      <button class="btn-outline" style="flex:1;color:var(--red);border-color:var(--red)" onclick="deleteShiftNote()"><span data-icon="btn_smazat">🗑️</span> Smazat</button>
       <button class="btn-accent" style="flex:1" onclick="saveShiftNote()">Uložit</button>
     </div>
     <input type="hidden" id="note-date-input">
@@ -1800,11 +1817,11 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
 <div class="modal-overlay" id="templates-modal-overlay">
   <div class="modal" style="max-width:460px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-      <h3 style="margin:0">📋 Šablony rozpisu</h3>
+      <h3 style="margin:0"><span data-icon="btn_sablony">📋</span> Šablony rozpisu</h3>
       <button class="btn-ghost" onclick="document.getElementById('templates-modal-overlay').classList.remove('open')" style="padding:5px 10px">✕</button>
     </div>
     <div style="margin-bottom:14px">
-      <button class="btn-accent" onclick="saveCurrentAsTemplate()" style="width:100%">💾 Uložit aktuální měsíc jako šablonu</button>
+      <button class="btn-accent" onclick="saveCurrentAsTemplate()" style="width:100%"><span data-icon="btn_ulozit">💾</span> Uložit aktuální měsíc jako šablonu</button>
     </div>
     <h4 style="margin:0 0 10px;font-size:13px;color:var(--ink-soft);text-transform:uppercase;font-weight:700;letter-spacing:.04em">Uložené šablony</h4>
     <div id="templates-list"></div>
@@ -1817,7 +1834,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
 <div class="modal-overlay" id="print-options-overlay">
   <div class="modal" style="max-width:380px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-      <h3 style="margin:0">🖨 Možnosti tisku</h3>
+      <h3 style="margin:0"><span data-icon="btn_tisk">🖨️</span> Možnosti tisku</h3>
       <button class="btn-ghost" onclick="document.getElementById('print-options-overlay').classList.remove('open')" style="padding:5px 10px">✕</button>
     </div>
     <div class="print-option-row">
@@ -1845,7 +1862,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
     </div>
     <div style="display:flex;gap:10px;margin-top:16px">
       <button class="btn-outline" style="flex:1" onclick="document.getElementById('print-options-overlay').classList.remove('open')">Zrušit</button>
-      <button class="btn-accent" style="flex:1" onclick="doPrintWithOptions()">🖨 Tisknout</button>
+      <button class="btn-accent" style="flex:1" onclick="doPrintWithOptions()"><span data-icon="btn_tisk">🖨️</span> Tisknout</button>
     </div>
   </div>
 </div>
@@ -1856,7 +1873,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
 <div class="modal-overlay" id="payroll-modal-overlay">
   <div class="modal" style="max-width:420px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-      <h3 style="margin:0">💰 Mzdové podklady</h3>
+      <h3 style="margin:0"><span data-icon="btn_mzdy">💰</span> Mzdové podklady</h3>
       <button class="btn-ghost" onclick="document.getElementById('payroll-modal-overlay').classList.remove('open')" style="padding:5px 10px">✕</button>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
@@ -1866,7 +1883,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
     <p style="font-size:12.5px;color:var(--ink-soft);margin:0 0 14px">Hodinové sazby nastavíš v profilu každého zaměstnance (pole "Sazba Kč/h").</p>
     <div style="display:flex;gap:10px">
       <button class="btn-outline" style="flex:1" onclick="document.getElementById('payroll-modal-overlay').classList.remove('open')">Zrušit</button>
-      <button class="btn-accent" style="flex:1" onclick="exportPayrollExcel()">📊 Export Excel</button>
+      <button class="btn-accent" style="flex:1" onclick="exportPayrollExcel()"><span data-icon="btn_export_excel">📊</span> Export Excel</button>
     </div>
   </div>
 </div>
@@ -1877,7 +1894,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
 <div class="modal-overlay" id="recurring-modal-overlay">
   <div class="modal" style="max-width:440px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-      <h3 style="margin:0">🔁 Opakující se volno</h3>
+      <h3 style="margin:0"><span data-icon="btn_opakujici_volno">🔁</span> Opakující se volno</h3>
       <button class="btn-ghost" onclick="document.getElementById('recurring-modal-overlay').classList.remove('open')" style="padding:5px 10px">✕</button>
     </div>
     <div class="field"><label>Zaměstnanec</label>
@@ -1913,7 +1930,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
 <div class="modal-overlay" id="audit-modal-overlay">
   <div class="modal" style="max-width:520px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-      <h3 style="margin:0">🕵 Historie změn</h3>
+      <h3 style="margin:0"><span data-icon="audit_log">🕵️</span> Historie změn</h3>
       <button class="btn-ghost" onclick="document.getElementById('audit-modal-overlay').classList.remove('open')" style="padding:5px 10px">✕</button>
     </div>
     <div id="audit-log-content" style="max-height:400px;overflow-y:auto;font-size:13px"></div>
@@ -1976,6 +1993,136 @@ window.addEventListener('unhandledrejection', e => {
 // ============================================================
 window.addEventListener('online',  () => { const b = document.getElementById('offline-banner'); if(b) b.style.display='none'; });
 window.addEventListener('offline', () => { const b = document.getElementById('offline-banner'); if(b) b.style.display='block'; });
+
+// ============================================================
+// ICON REGISTRY
+//
+// Every icon/emoji used anywhere in the UI must live here and be
+// referenced as ICONS.key — never hardcode an emoji directly in a
+// button/tab/label. When adding a new tab, button or clickable
+// element:
+//   1. Add a new key to DEFAULT_ICONS below
+//   2. Use ICONS.key in JS, or a data-icon="key" span in static HTML
+//   3. Run validateIconConsistency() to confirm nothing's stray
+// ============================================================
+const DEFAULT_ICONS = {
+  // Navigace (tab bar)
+  nav_rozpis: '📅', nav_pobocky: '🏠', nav_zamestnanci: '👤', nav_mezery: '📋',
+  nav_statistiky: '📊', nav_zadosti: '🗓️', nav_pravidla: '⚖️',
+
+  // Toolbar tlačítka (rozpis)
+  btn_auto: '⚡', btn_publikovat: '📢', btn_kde_doplnit: '🔍',
+  btn_pobocky_prehled: '🏠', btn_zamestnanci_prehled: '👤',
+  btn_smazat_auto: '🗑️', btn_smazat_vse: '🗑️', btn_vice: '···',
+  btn_import_json: '⬆️', btn_export_json: '⬇️', btn_export_excel: '📊',
+  btn_export_ics: '📅', btn_sablony: '📋', btn_opakujici_volno: '🔁',
+  btn_tisk: '🖨️', btn_mzdy: '💰', btn_vymeny: '🔄', btn_otevrene_smeny: '📋',
+  btn_zaloha: '💾',
+
+  // Akce (obecná tlačítka napříč aplikací)
+  btn_pridat: '➕', btn_ulozit: '💾', btn_zrusit: '✕', btn_upravit: '✏️',
+  btn_smazat: '🗑️', btn_export_pdf: '🖨️', btn_zpet: '←', btn_dalsi: '→',
+  btn_hotovo: '✅', btn_pozvanka: '🔑', btn_kopirovat: '📋', btn_odeslat: '📨',
+  btn_kontrolovat: '🔄', btn_odhlasit: '🚪', btn_hledat: '🔍', btn_napoveda: '❓',
+  btn_zobrazit: '👁️', btn_skryt: '⊙', btn_zastavit: '⏹️',
+
+  // Stavy a indikátory
+  status_ok: '✅', status_warning: '⚠️', status_error: '❌', status_info: 'ℹ️',
+  status_pending: '⏳', status_locked: '🔴', status_claimed: '✋',
+
+  // Tutoriál
+  tut_uvod: '👋', tut_rozpis: '📅', tut_pobocky: '🏠', tut_zamestnanci: '👤',
+  tut_mezery: '📋', 'tut_pravidla_tvrdá': '🔴', tut_pravidla_mekka: '🟡',
+  tut_pravidla_vaha: '⚖️', tut_pravidla_pary: '⚖️', tut_pravidla_vikendy: '🗓️',
+  tut_ulozit: '💾', tut_navigace_mesic: '◀▶', tut_skore: '📊', tut_legenda: '🎨',
+  tut_sirka_sloupce: '↔️', tut_klik: '👆', tut_dalsi_krok: '▶', tut_kod_firmy: '🏷️',
+  tut_smerovani: '👉',
+
+  // Help center
+  help_rozpis: '📅', help_zamestnanci: '👥', help_pobocky: '🏠', help_pravidla: '📋',
+  help_notifikace: '🔔', help_nastaveni: '⚙️', help_search: '🔍',
+  help_thumbs_up: '👍', help_thumbs_down: '👎', help_home: '🏠',
+
+  // Notifikace
+  notif_bell: '🔔', notif_rozpis: '📢', notif_pozvanka: '📨',
+
+  // Nastavení
+  set_profil: '👤', set_vzhled: '🎨', set_notifikace: '🔔', set_jazyk: '🌐',
+  set_org: '🏢', set_ikony: '🎨',
+
+  // Různé
+  archiv: '📦', admin_badge: '👑', audit_log: '🕵️', logo_upload: '📎',
+  kod_zamestnance: '🔢', odkaz: '🔗', poznamka: '💬', tpl_rovnomerne: '📐',
+  tpl_weekend_peak: '🍺', tpl_workweek: '💼', dash_prehled: '📊',
+  icon_klavesy: '⌨️', icon_import: '📂', sec_podminky: '📋', empty_inbox: '📭',
+  icon_font: '📝', icon_density: '📐', set_dark_mode: '🌙',
+};
+
+const ICONS_STORAGE_KEY = 'smeny_icon_overrides';
+function loadIconOverrides(){
+  try { return JSON.parse(localStorage.getItem(ICONS_STORAGE_KEY) || '{}'); } catch(e){ return {}; }
+}
+const ICONS = { ...DEFAULT_ICONS, ...loadIconOverrides() };
+
+function saveIconOverrides(overrides){
+  localStorage.setItem(ICONS_STORAGE_KEY, JSON.stringify(overrides));
+}
+
+// Refreshes every static DOM node marked with data-icon. Safe to call before
+// the rest of the app state (employees/branches/etc.) exists.
+function applyIconSpans(){
+  document.querySelectorAll('[data-icon]').forEach(el=>{
+    const key = el.dataset.icon;
+    if(ICONS[key] !== undefined) el.textContent = ICONS[key];
+  });
+}
+
+// Full refresh: static spans plus the dynamic views that embed icons
+// directly in their template strings. Only safe once the app has booted.
+function applyIcons(){
+  applyIconSpans();
+  if(employees.length && document.getElementById('employees-table-wrap')) renderEmployees();
+  if(branches.length && document.getElementById('branches-table-wrap')) renderBranches();
+  if(document.getElementById('pane-stats')?.style.display==='block') renderStats?.();
+  if(document.getElementById('pane-leaves')?.style.display==='block') renderLeaves?.();
+  if(document.getElementById('help-panel')?.classList.contains('open')) renderHelpCenter?.();
+}
+
+function resetIconsToDefault(){
+  Object.keys(ICONS).forEach(k=>{ ICONS[k] = DEFAULT_ICONS[k]; });
+  localStorage.removeItem(ICONS_STORAGE_KEY);
+  applyIcons();
+}
+
+// Known same-concept pairs that must always share an icon, plus a basic
+// sanity pass over the registry. Logs a report to the console on startup.
+function validateIconConsistency(){
+  const problems = [];
+  Object.entries(DEFAULT_ICONS).forEach(([k,v])=>{
+    if(!ICONS[k]) problems.push(`Chybí hodnota pro klíč "${k}"`);
+  });
+  const pairs = [
+    ['nav_pobocky','btn_pobocky_prehled','Pobočky (tab) / Pobočkový přehled (tlačítko)'],
+    ['nav_zamestnanci','btn_zamestnanci_prehled','Zaměstnanci (tab) / Zaměstnanecký přehled (tlačítko)'],
+    ['nav_mezery','btn_otevrene_smeny','Mezery (tab) / Otevřené směny (tlačítko)'],
+    ['nav_statistiky','dash_prehled','Statistiky (tab) / Přehled organizace'],
+  ];
+  pairs.forEach(([a,b,label])=>{
+    if(ICONS[a] !== ICONS[b]) problems.push(`Nekonzistentní ikony: ${label} — "${ICONS[a]}" vs "${ICONS[b]}"`);
+  });
+  if(problems.length){
+    console.warn('[validateIconConsistency] Nalezené problémy:', problems);
+  } else {
+    console.log('[validateIconConsistency] OK — všechny ikony konzistentní (' + Object.keys(ICONS).length + ' klíčů).');
+  }
+  return problems;
+}
+
+// Apply any saved icon overrides to the static markup as soon as the DOM for
+// it exists (this script tag runs after the body above it has been parsed).
+// employees/branches/etc. aren't declared yet, so only the static spans run here —
+// smeny:afterBootstrap calls the full applyIcons() once app state is loaded.
+applyIconSpans();
 
 // ============================================================
 // i18n
@@ -2080,7 +2227,7 @@ function toast(msg, type){
   clearTimeout(toast._timer);
   toast._timer = setTimeout(()=>t.classList.remove('show'), type === 'error' ? 4000 : 2600);
 }
-function toastError(msg){ toast('⚠ ' + msg, 'error'); }
+function toastError(msg){ toast(ICONS.status_warning + ' ' + msg, 'error'); }
 function toastOk(msg){ toast('✓ ' + msg, 'ok'); }
 
 // (unhandledrejection handler is registered at top of script)
@@ -2344,7 +2491,7 @@ async function joinByOrgCodeFromWaiting(){
 async function checkMembershipAndReload(){
   if(!currentUser) return;
   const btn = document.querySelector('#onboard-waiting-section .btn-primary');
-  if(btn){ btn.textContent = '⏳ Kontroluji…'; btn.disabled = true; }
+  if(btn){ btn.textContent = ICONS.status_pending + ' Kontroluji…'; btn.disabled = true; }
 
   try {
     const { data: memberRows } = await sb
@@ -2356,11 +2503,11 @@ async function checkMembershipAndReload(){
       toast('✓ Přiřazení nalezeno! Načítám…');
       setTimeout(()=>location.reload(), 800);
     } else {
-      if(btn){ btn.textContent = '🔄 Zkontrolovat znovu'; btn.disabled = false; }
+      if(btn){ btn.textContent = ICONS.btn_kontrolovat + ' Zkontrolovat znovu'; btn.disabled = false; }
       toast('Zatím žádné přiřazení. Počkej až tě vedoucí propojí.');
     }
   } catch(e) {
-    if(btn){ btn.textContent = '🔄 Zkontrolovat znovu'; btn.disabled = false; }
+    if(btn){ btn.textContent = ICONS.btn_kontrolovat + ' Zkontrolovat znovu'; btn.disabled = false; }
     toast('Chyba: '+e.message);
   }
 }
@@ -2548,7 +2695,7 @@ async function bootstrapAfterAuth(){
       await loadOrgCode();
       const badge = document.getElementById('org-code-badge');
       if(badge && currentOrg?.invite_code){
-        badge.textContent = `🏢 ${currentOrg.invite_code}`;
+        badge.textContent = `${ICONS.set_org} ${currentOrg.invite_code}`;
         badge.title = `Kód firmy: ${currentOrg.invite_code} — zaměstnanci ho zadají při registraci`;
         badge.style.display = 'inline-block';
       }
@@ -2644,7 +2791,7 @@ function renderOnboardingStep() {
   if (obStep === 0) {
     html = `
       <div style="text-align:center;padding:16px 0 24px">
-        <div style="font-size:36px;margin-bottom:12px">📅</div>
+        <div style="font-size:36px;margin-bottom:12px">${ICONS.nav_rozpis}</div>
         <h2 style="font-size:22px;font-weight:700;margin:0 0 8px">Vítejte v aplikaci Směny!</h2>
         <p style="color:var(--ink-soft);margin:0 0 24px">Tento průvodce vám pomůže nastavit aplikaci za pár minut.</p>
         <ul style="text-align:left;list-style:none;padding:0;margin:0 0 8px;display:flex;flex-direction:column;gap:10px">
@@ -2776,7 +2923,7 @@ function renderEmployees(){
 
   if(!employees.length){
     wrap.innerHTML = `<div class="empty-state">
-      <div style="font-size:40px;margin-bottom:12px">👥</div>
+      <div style="font-size:40px;margin-bottom:12px">${ICONS.help_zamestnanci}</div>
       <p style="font-size:16px;font-weight:700;margin-bottom:6px">Zatím žádní zaměstnanci</p>
       <p style="font-size:13px;color:var(--ink-soft);margin-bottom:20px">Přidej první zaměstnance a začni stavět tým.<br>Každý dostane pozvánkový odkaz pro přístup do appky.</p>
       <button class="btn-accent" onclick="openEmployeeModal()">+ Přidat prvního zaměstnance</button>
@@ -2795,7 +2942,7 @@ function renderEmployees(){
     const isAdmin = orgMembers.find(m=>m.role==='admin' && m.employee_id===e.id);
     let accessBadge;
     if(isAdmin){
-      accessBadge = `<span style="font-size:11px;color:var(--accent);font-weight:600">👑 admin</span>`;
+      accessBadge = `<span style="font-size:11px;color:var(--accent);font-weight:600">${ICONS.admin_badge} admin</span>`;
     } else if(member){
       accessBadge = `<span style="font-size:11px;color:var(--accent);font-weight:600">✓ má přístup</span>`;
     } else {
@@ -2814,8 +2961,8 @@ function renderEmployees(){
       <td>${accessBadge}</td>
       <td>
         <div class="row-actions">
-          <button class="icon-btn" title="Přístup / pozvánka" onclick="openAccessModal('${e.id}')" aria-label="Přístup / pozvánka pro ${escapeHtml(e.name)}">🔑</button>
-          <button class="icon-btn" title="Upravit" onclick="openEmployeeModal('${e.id}')" aria-label="Upravit ${escapeHtml(e.name)}">✎</button>
+          <button class="icon-btn" title="Přístup / pozvánka" onclick="openAccessModal('${e.id}')" aria-label="Přístup / pozvánka pro ${escapeHtml(e.name)}">${ICONS.btn_pozvanka}</button>
+          <button class="icon-btn" title="Upravit" onclick="openEmployeeModal('${e.id}')" aria-label="Upravit ${escapeHtml(e.name)}">${ICONS.btn_upravit}</button>
           <button class="icon-btn danger" title="Smazat" onclick="deleteEmployee('${e.id}')" aria-label="Smazat ${escapeHtml(e.name)}">✕</button>
         </div>
       </td>
@@ -3051,7 +3198,7 @@ function renderBranches(){
   const wrap = document.getElementById('branches-table-wrap');
   if(!branches.length){
     wrap.innerHTML = `<div class="empty-state">
-      <div style="font-size:40px;margin-bottom:12px">🏢</div>
+      <div style="font-size:40px;margin-bottom:12px">${ICONS.nav_pobocky}</div>
       <p style="font-size:16px;font-weight:700;margin-bottom:6px">Zatím žádné pobočky</p>
       <p style="font-size:13px;color:var(--ink-soft);margin-bottom:20px">Přidej místa kde se pracuje — Karolína, Ungelt, Majestic…<br>Bez poboček nelze generovat rozvrh.</p>
       <button class="btn-accent" onclick="openBranchModal()">+ Přidat první pobočku</button>
@@ -3074,7 +3221,7 @@ function renderBranches(){
       <td><span class="code-pill">${b.month_min}–${b.month_max}</span></td>
       <td>
         <div class="row-actions">
-          <button class="icon-btn" title="Upravit" onclick="openBranchModal('${b.id}')" aria-label="Upravit pobočku ${escapeHtml(b.name)}">✎</button>
+          <button class="icon-btn" title="Upravit" onclick="openBranchModal('${b.id}')" aria-label="Upravit pobočku ${escapeHtml(b.name)}">${ICONS.btn_upravit}</button>
           <button class="icon-btn danger" title="Smazat" onclick="deleteBranch('${b.id}')" aria-label="Smazat pobočku ${escapeHtml(b.name)}">✕</button>
         </div>
       </td>
@@ -3259,7 +3406,7 @@ function renderBalancePairsList(){
       <span style="flex:1"></span>
       <button class="btn-ghost" style="padding:4px 10px;font-size:11px" onclick="toggleBalancePair(${i})"
         title="${hidden?'Zobrazit sloupec v rozpisu':'Skrýt sloupec v rozpisu'}">
-        ${hidden ? '👁 Zobrazit' : '⊙ Skrýt'}
+        ${hidden ? ICONS.btn_zobrazit+' Zobrazit' : ICONS.btn_skryt+' Skrýt'}
       </button>
       <button class="icon-btn danger" onclick="removeBalancePair(${i})" title="Smazat">✕</button>
     </div>`;
@@ -3601,7 +3748,7 @@ function toggleSchedView(){
   const btn = document.getElementById('branch-view-btn');
   if(btn){
     btn.classList.toggle('active', schedViewMode === 'branch');
-    btn.textContent = schedViewMode === 'branch' ? '👤 Zaměstnanecký' : '🏠 Pobočkový přehled';
+    btn.textContent = schedViewMode === 'branch' ? `${ICONS.btn_zamestnanci_prehled} Zaměstnanecký` : `${ICONS.btn_pobocky_prehled} Pobočkový přehled`;
   }
   // Fill mode is incompatible with branch view — turn it off
   if(schedViewMode === 'branch' && fillMode){
@@ -3620,7 +3767,7 @@ function toggleFillMode(){
   if(fillMode && schedViewMode === 'branch'){
     schedViewMode = 'employee';
     const bvBtn = document.getElementById('branch-view-btn');
-    if(bvBtn){ bvBtn.classList.remove('active'); bvBtn.textContent = '🏠 Pobočkový přehled'; }
+    if(bvBtn){ bvBtn.classList.remove('active'); bvBtn.textContent = `${ICONS.btn_pobocky_prehled} Pobočkový přehled`; }
   }
   const btn  = document.getElementById('fill-mode-btn');
   const wrap = document.getElementById('fill-mode-slot-wrap');
@@ -3632,7 +3779,7 @@ function toggleFillMode(){
     // First option: Mezery overview
     const gapsOpt = document.createElement('option');
     gapsOpt.value = '__gaps__';
-    gapsOpt.textContent = '📋 Mezery — přehled chybějících';
+    gapsOpt.textContent = `${ICONS.nav_mezery} Mezery — přehled chybějících`;
     sel.appendChild(gapsOpt);
 
     // Separator-like disabled option
@@ -3816,7 +3963,7 @@ function renderCalendar(){
     }
   }
 
-  let hRow = `<tr><th class="sched-name-col" id="sched-name-th" style="position:sticky;left:0;z-index:3">${(fillMode && !isGapsMode) ? `🔍 ${selectedSlot||''}` : 'Jméno'}<div class="sched-name-col-resize" id="name-col-resize-handle"></div></th>`;
+  let hRow = `<tr><th class="sched-name-col" id="sched-name-th" style="position:sticky;left:0;z-index:3">${(fillMode && !isGapsMode) ? `${ICONS.btn_kde_doplnit} ${selectedSlot||''}` : 'Jméno'}<div class="sched-name-col-resize" id="name-col-resize-handle"></div></th>`;
   for(let d=1; d<=daysInMonth; d++){
     const date = new Date(schedYear, schedMonth, d);
     const dow  = date.getDay();
@@ -3996,7 +4143,7 @@ function renderCalendar(){
     // Display: current/max — so user sees how much room is left
     // Tooltip shows the full picture: current, min, max
     const shiftDisplay = `${shiftCount}/${emp.max_shifts}`;
-    const shiftTitle = `Směny: ${shiftCount} aktuálně | min ${emp.min_shifts} | max ${emp.max_shifts}${!minOk?' ⚠ pod minimem':''}${!maxOk?' ⚠ nad maximem':''}`;
+    const shiftTitle = `Směny: ${shiftCount} aktuálně | min ${emp.min_shifts} | max ${emp.max_shifts}${!minOk?' '+ICONS.status_warning+' pod minimem':''}${!maxOk?' '+ICONS.status_warning+' nad maximem':''}`;
 
     const defaultMinWE = parseInt(orgSettings['default_min_free_weekends'])||0;
     const minWE = emp.min_free_weekends || defaultMinWE;
@@ -4239,7 +4386,7 @@ function openPicker(cell){
           s.employee_id !== (isOverwrite ? empId : null)
         ).length;
         if(dayCount >= 1 && !isOverwrite)
-          return { allowed: true, warn: `⚠ Slot ${code} je obsazen — kliknutím nahradíš`, warnLevel: 'warn' };
+          return { allowed: true, warn: `${ICONS.status_warning} Slot ${code} je obsazen — kliknutím nahradíš`, warnLevel: 'warn' };
       } else {
         // Branch-code: count total on this branch today
         dayCount = Object.values(shifts).filter(s=>{
@@ -4250,7 +4397,7 @@ function openPicker(cell){
           return xbc===bCode;
         }).length;
         if(dayCount >= b.max_per_day && !isOverwrite)
-          return { allowed: true, warn: `⚠ ${bCode} plná — kliknutím nahradíš`, warnLevel: 'warn' };
+          return { allowed: true, warn: `${ICONS.status_warning} ${bCode} plná — kliknutím nahradíš`, warnLevel: 'warn' };
       }
     }
 
@@ -4261,11 +4408,11 @@ function openPicker(cell){
 
     // Would exceed branch monthly max?
     if(!isOverwrite && effectiveCnt >= maxAllowed)
-      return { allowed: true, warn: `⚠ Překročí limit ${bCode} (${effectiveCnt+1}/${maxAllowed})`, warnLevel: 'error' };
+      return { allowed: true, warn: `${ICONS.status_warning} Překročí limit ${bCode} (${effectiveCnt+1}/${maxAllowed})`, warnLevel: 'error' };
 
     // Would exceed total max shifts (only if not overwriting)?
     if(!isOverwrite && currentTotal >= emp.max_shifts)
-      return { allowed: true, warn: `⚠ Překročí max směn (${currentTotal+1}/${emp.max_shifts})`, warnLevel: 'error' };
+      return { allowed: true, warn: `${ICONS.status_warning} Překročí max směn (${currentTotal+1}/${emp.max_shifts})`, warnLevel: 'error' };
 
     // Approaching branch monthly max?
     if(!isOverwrite && effectiveCnt + 1 === maxAllowed)
@@ -4321,7 +4468,7 @@ function openPicker(cell){
             ${titleAttr}>
             ${escapeHtml(st.code)}
           </button>
-          ${info.warn ? `<div style="font-size:9px;color:${warnColor};margin-top:2px;text-align:center;line-height:1.2">${info.warn.replace('⚠ ','')}</div>` : ''}
+          ${info.warn ? `<div style="font-size:9px;color:${warnColor};margin-top:2px;text-align:center;line-height:1.2">${info.warn.replace(ICONS.status_warning+' ','')}</div>` : ''}
         </div>`;
       });
     }
@@ -4664,7 +4811,7 @@ function renderScoreBar(){
   const color = pct>=85?'var(--accent)':pct>=65?'var(--amber)':'var(--red)';
   const hardWarn = hardFailed.length
     ? `<div style="background:var(--red-soft);color:var(--red);border-radius:6px;padding:7px 10px;font-size:12px;margin-bottom:8px">
-        🔴 <strong>Tvrdá podmínka nesplněna:</strong> ${hardFailed.join(' · ')}
+        ${ICONS.status_locked} <strong>Tvrdá podmínka nesplněna:</strong> ${hardFailed.join(' · ')}
        </div>` : '';
   document.getElementById('score-bar-wrap').innerHTML = `<div class="score-bar">
     ${hardWarn}
@@ -4770,7 +4917,7 @@ async function runAutoSchedule(){
 
   autoRunning=true; autoCancel=false;
   const btn = document.querySelector('[onclick="runAutoSchedule()"]');
-  btn.textContent='⏹ Zastavit';
+  btn.textContent=`${ICONS.btn_zastavit} Zastavit`;
 
   const progressWrap = document.getElementById('auto-progress-wrap');
   const MAX_RUNS=80, TARGET_PCT=95, STAGNATION=20;
@@ -4828,7 +4975,7 @@ async function runAutoSchedule(){
 
   progressWrap.innerHTML='';
   autoRunning=false; autoCancel=false;
-  btn.textContent='⚡ Automaticky doplnit';
+  btn.textContent=`${ICONS.btn_auto} Automaticky doplnit`;
 }
 
 // ============================================================
@@ -5185,7 +5332,7 @@ function showImportPreview(data){
 
   prev.innerHTML = [
     `<div style="background:var(--amber-soft);border:1px solid #f0c080;border-radius:7px;padding:8px 10px;margin-bottom:8px;font-size:12px">
-      📅 <strong>Měsíc v datech: ${monthsStr}</strong> — vyber kam importovat:
+      ${ICONS.nav_rozpis} <strong>Měsíc v datech: ${monthsStr}</strong> — vyber kam importovat:
       <select id="import-target-month" style="margin-left:6px;padding:3px 6px;border:1px solid var(--line);border-radius:5px;font-size:12px">
         ${monthOptions}
       </select>
@@ -5509,7 +5656,7 @@ function openDayDetail(day, replaceEmpId=null){
     const willBeUnder = (replacedCount - 1) < replaceEmp.min_shifts;
     const warning = willBeUnder
       ? `<div style="background:var(--amber-soft);border:1px solid #f0c080;border-radius:7px;padding:8px 10px;font-size:12px;margin:10px 0">
-          ⚠ <strong>${escapeHtml(replaceEmp.name)}</strong> bude mít po odebrání ${replacedCount-1} směn (minimum je ${replaceEmp.min_shifts}) — bude potřeba doplnit.
+          ${ICONS.status_warning} <strong>${escapeHtml(replaceEmp.name)}</strong> bude mít po odebrání ${replacedCount-1} směn (minimum je ${replaceEmp.min_shifts}) — bude potřeba doplnit.
         </div>` : '';
 
     // Replacements = people who can work AND are allowed on this slot AND within branch limits
@@ -5561,11 +5708,11 @@ function openDayDetail(day, replaceEmpId=null){
         <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
           <button onclick="dayDetailRemove('${replaceEmpId}','${dateStr}',${day})"
             style="background:var(--red);color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer">
-            🗑 Odebrat bez náhrady
+            ${ICONS.btn_smazat} Odebrat bez náhrady
           </button>
           <button onclick="document.getElementById('day-detail-overlay').classList.remove('open');openPickerByIds('${replaceEmpId}','${dateStr}')"
             style="background:var(--ink-soft);color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer">
-            ✏ Změnit slot
+            ${ICONS.btn_upravit} Změnit slot
           </button>
         </div>
       </div>`;
@@ -5602,7 +5749,7 @@ function openDayDetail(day, replaceEmpId=null){
           return `<div style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-bottom:1px solid var(--line);border-radius:6px;background:transparent">
             <span style="background:${color};color:#fff;font-family:var(--font-mono);font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;flex-shrink:0">${myCode}</span>
             <span style="font-size:13px;font-weight:600;flex:1">${escapeHtml(emp.name)}</span>
-            ${swapWarning ? `<span style="font-size:10px;color:var(--amber)" title="${swapWarning}">⚠</span>` : ''}
+            ${swapWarning ? `<span style="font-size:10px;color:var(--amber)" title="${swapWarning}">${ICONS.status_warning}</span>` : ''}
             <button onclick="swapShifts('${replaceEmpId}','${emp.id}','${dateStr}',${day})"
               style="background:${canSwap?'var(--accent)':'var(--ink-faint)'};color:#fff;border:none;border-radius:6px;
                 padding:4px 10px;font-size:11.5px;font-weight:600;cursor:pointer;white-space:nowrap"
@@ -5774,7 +5921,7 @@ async function dayDetailReplace(oldEmpId, newEmpId, dateStr, slotCode, day){
   const oldEmp = employees.find(e=>e.id===oldEmpId);
   const newEmp = employees.find(e=>e.id===newEmpId);
   const oldCount = empCurrentShiftCount(oldEmpId);
-  const warn = oldCount < (oldEmp?.min_shifts||0) ? ` ⚠ ${oldEmp?.name} má pod minimem!` : '';
+  const warn = oldCount < (oldEmp?.min_shifts||0) ? ` ${ICONS.status_warning} ${oldEmp?.name} má pod minimem!` : '';
   renderCalendar();
   openDayDetail(day);
   toast(`✓ Nahrazeno: ${newEmp?.name} místo ${oldEmp?.name}${warn}`);
@@ -5821,7 +5968,7 @@ function renderGapsInline(){
   }
 
   if(!days.length){
-    container.innerHTML = `<div style="text-align:center;padding:24px;color:var(--accent);font-weight:600">✅ Pokrytí splněno — žádné mezery!</div>`;
+    container.innerHTML = `<div style="text-align:center;padding:24px;color:var(--accent);font-weight:600">${ICONS.status_ok} Pokrytí splněno — žádné mezery!</div>`;
     return;
   }
 
@@ -5923,7 +6070,7 @@ function renderGaps(){
 
   if(!days.length){
     container.innerHTML = `<div style="text-align:center;padding:40px;color:var(--ink-soft)">
-      ${filterMode==='missing' ? '✅ Pokrytí je splněné každý den! Žádné mezery.' : '📭 Žádné volné sloty tento měsíc.'}
+      ${filterMode==='missing' ? ICONS.status_ok+' Pokrytí je splněné každý den! Žádné mezery.' : ICONS.empty_inbox+' Žádné volné sloty tento měsíc.'}
     </div>`;
     return;
   }
@@ -5968,7 +6115,7 @@ function renderGaps(){
               </span>`;
             }).join('')}
           </div>
-          ${missingSlots.length ? `<div style="font-size:11px;color:var(--red);font-weight:600">❌ Chybí: ${missingSlots.map(s=>s.code).join(', ')}</div>` : ''}
+          ${missingSlots.length ? `<div style="font-size:11px;color:var(--red);font-weight:600">${ICONS.status_error} Chybí: ${missingSlots.map(s=>s.code).join(', ')}</div>` : ''}
           ${freeSlots.length && !missingSlots.length ? `<div style="font-size:11px;color:var(--amber)">○ Volné: ${freeSlots.map(s=>s.code).join(', ')}</div>` : ''}
           <div style="font-size:10.5px;color:var(--ink-faint);margin-top:6px">Klikni pro doplnění →</div>
         </div>`;
@@ -6034,7 +6181,7 @@ async function regenerateInviteCode(){
   currentOrg.invite_code = newCode;
   currentOrg.invite_expires_at = expiresAt;
   const badge = document.getElementById('org-code-badge');
-  if(badge) badge.textContent = `🏢 ${newCode}`;
+  if(badge) badge.textContent = `${ICONS.set_org} ${newCode}`;
   toast('Nový kód vygenerován: ' + newCode, 'ok');
   logActivity('Pozvánkový kód organizace obnoven');
 }
@@ -6068,7 +6215,7 @@ async function openEmployeeSettings(){
               placeholder="+420 777 123 456"
               style="padding:7px 9px;border:1.5px solid var(--line);border-radius:7px;font-size:13px;width:100%;box-sizing:border-box"></div>
         </div>
-        <button onclick="saveProfile()" class="btn-primary" style="width:100%;padding:8px">💾 Uložit údaje</button>
+        <button onclick="saveProfile()" class="btn-primary" style="width:100%;padding:8px">${ICONS.btn_ulozit} Uložit údaje</button>
         <div id="prof-save-result" style="font-size:12px;margin-top:6px;display:none"></div>
       </div>
       <div style="border-top:1px solid var(--line);padding-top:16px">
@@ -6079,11 +6226,11 @@ async function openEmployeeSettings(){
           <input type="password" id="prof-pass2" placeholder="Potvrzení nového hesla"
             style="padding:7px 9px;border:1.5px solid var(--line);border-radius:7px;font-size:13px">
         </div>
-        <button onclick="changePassword()" class="btn-outline" style="width:100%;padding:8px">🔑 Změnit heslo</button>
+        <button onclick="changePassword()" class="btn-outline" style="width:100%;padding:8px">${ICONS.btn_pozvanka} Změnit heslo</button>
         <div id="prof-pass-result" style="font-size:12px;margin-top:6px;display:none"></div>
       </div>
       <div style="border-top:1px solid var(--line);padding-top:16px">
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--ink-soft);margin-bottom:10px">🔔 Notifikace</div>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--ink-soft);margin-bottom:10px">${ICONS.notif_bell} Notifikace</div>
         ${myEmp ? `
         <label style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line)">
           <div>
@@ -6099,7 +6246,7 @@ async function openEmployeeSettings(){
           </div>
           <input type="checkbox" id="notif-email" ${(orgSettings['emp_notify']?.[myEmp.id]?.email)!==false?'checked':''} style="width:16px;height:16px;cursor:pointer">
         </label>
-        <button onclick="saveNotifPrefs('${myEmp.id}')" class="btn-outline" style="width:100%;margin-top:6px;padding:7px">💾 Uložit nastavení notifikací</button>
+        <button onclick="saveNotifPrefs('${myEmp.id}')" class="btn-outline" style="width:100%;margin-top:6px;padding:7px">${ICONS.btn_ulozit} Uložit nastavení notifikací</button>
         ` : `<div style="font-size:13px;color:var(--ink-soft)">Notifikace nejsou pro administrátory bez zaměstnaneckého záznamu k dispozici.</div>`}
       </div>
       <div style="border-top:1px solid var(--line);padding-top:16px">
@@ -6325,7 +6472,7 @@ function renderAppearSettings(){
 
       <!-- Font size -->
       <div>
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--ink-soft);margin-bottom:10px;letter-spacing:.04em">📝 Velikost písma</div>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--ink-soft);margin-bottom:10px;letter-spacing:.04em">${ICONS.icon_font} Velikost písma</div>
         <div style="display:flex;gap:8px">
           ${Object.entries(fsSizes).map(([val,px])=>`
             <button onclick="previewAppear('fontSize','${val}')"
@@ -6339,7 +6486,7 @@ function renderAppearSettings(){
 
       <!-- Density -->
       <div>
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--ink-soft);margin-bottom:10px;letter-spacing:.04em">📐 Hustota tabulky</div>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--ink-soft);margin-bottom:10px;letter-spacing:.04em">${ICONS.icon_density} Hustota tabulky</div>
         <div style="display:flex;gap:8px">
           ${Object.entries(densInfo).map(([val,[h,label]])=>`
             <button onclick="previewAppear('density','${val}')"
@@ -6352,7 +6499,7 @@ function renderAppearSettings(){
 
       <!-- Themes -->
       <div style="border-top:1px solid var(--line);padding-top:16px">
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--ink-soft);margin-bottom:10px;letter-spacing:.04em">🎨 Motiv aplikace</div>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--ink-soft);margin-bottom:10px;letter-spacing:.04em">${ICONS.set_vzhled} Motiv aplikace</div>
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px">
           ${Object.entries(THEME_PRESETS).filter(([k])=>k!=='custom').map(([k,t])=>`
             <button onclick="previewAppear('theme','${k}')"
@@ -6391,7 +6538,7 @@ function renderAppearSettings(){
       <!-- Dark mode toggle -->
       <div style="border-top:1px solid var(--line);padding-top:16px;display:flex;align-items:center;justify-content:space-between">
         <div>
-          <div style="font-size:14px;font-weight:600">🌙 Tmavý režim</div>
+          <div style="font-size:14px;font-weight:600">${ICONS.set_dark_mode} Tmavý režim</div>
           <div style="font-size:12px;color:var(--ink-soft);margin-top:2px">Ztmaví celou aplikaci — panely, tabulku, modaly</div>
         </div>
         <label style="position:relative;display:inline-block;width:48px;height:26px;cursor:pointer;flex-shrink:0">
@@ -6405,7 +6552,7 @@ function renderAppearSettings(){
       <!-- Language selector -->
       <div style="border-top:1px solid var(--line);padding-top:16px;display:flex;align-items:center;justify-content:space-between">
         <div>
-          <div style="font-size:14px;font-weight:600">🌐 Jazyk</div>
+          <div style="font-size:14px;font-weight:600">${ICONS.set_jazyk} Jazyk</div>
           <div style="font-size:12px;color:var(--ink-soft);margin-top:2px">Jazyk rozhraní aplikace</div>
         </div>
         <select id="lang-select" onchange="setLanguage(this.value)" style="padding:7px 10px;border:1.5px solid var(--line);border-radius:8px;font-size:13px;background:var(--surface);color:var(--ink);cursor:pointer">
@@ -6451,17 +6598,17 @@ function openDashboard(){
     <div style="margin-bottom:16px">
       <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--ink-soft);margin-bottom:8px">Rychlé akce</div>
       <div style="display:flex;flex-direction:column;gap:6px">
-        <button onclick="document.getElementById('dashboard-overlay').classList.remove('open');switchAppTab('employees')" class="btn-outline" style="width:100%;text-align:left">➕ Přidat zaměstnance</button>
-        <button onclick="document.getElementById('dashboard-overlay').classList.remove('open');runAutoSchedule()" class="btn-accent" style="width:100%;text-align:left">⚡ Generovat rozvrh</button>
-        <button onclick="document.getElementById('dashboard-overlay').classList.remove('open');switchAppTab('rules')" class="btn-outline" style="width:100%;text-align:left">⚖️ Nastavit pravidla</button>
-        <button onclick="document.getElementById('dashboard-overlay').classList.remove('open');publishSchedule()" class="btn-outline" style="width:100%;text-align:left">📢 Publikovat rozpis</button>
+        <button onclick="document.getElementById('dashboard-overlay').classList.remove('open');switchAppTab('employees')" class="btn-outline" style="width:100%;text-align:left">${ICONS.btn_pridat} Přidat zaměstnance</button>
+        <button onclick="document.getElementById('dashboard-overlay').classList.remove('open');runAutoSchedule()" class="btn-accent" style="width:100%;text-align:left">${ICONS.btn_auto} Generovat rozvrh</button>
+        <button onclick="document.getElementById('dashboard-overlay').classList.remove('open');switchAppTab('rules')" class="btn-outline" style="width:100%;text-align:left">${ICONS.nav_pravidla} Nastavit pravidla</button>
+        <button onclick="document.getElementById('dashboard-overlay').classList.remove('open');publishSchedule()" class="btn-outline" style="width:100%;text-align:left">${ICONS.btn_publikovat} Publikovat rozpis</button>
       </div>
     </div>` : `
     <div style="margin-bottom:16px">
       <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--ink-soft);margin-bottom:8px">Rychlé akce</div>
       <div style="display:flex;flex-direction:column;gap:6px">
-        <button onclick="document.getElementById('dashboard-overlay').classList.remove('open');toggleEmpXMode()" class="btn-accent" style="width:100%;text-align:left">✏ Zadat volno (X)</button>
-        <button onclick="document.getElementById('dashboard-overlay').classList.remove('open');openEmployeeSettings()" class="btn-outline" style="width:100%;text-align:left">⚙ Otevřít nastavení</button>
+        <button onclick="document.getElementById('dashboard-overlay').classList.remove('open');toggleEmpXMode()" class="btn-accent" style="width:100%;text-align:left">${ICONS.btn_upravit} Zadat volno (X)</button>
+        <button onclick="document.getElementById('dashboard-overlay').classList.remove('open');openEmployeeSettings()" class="btn-outline" style="width:100%;text-align:left">${ICONS.help_nastaveni} Otevřít nastavení</button>
       </div>
     </div>`;
 
@@ -6626,7 +6773,7 @@ async function doPublishSchedule(){
     .map(emp => ({
       org_id: currentOrg.id,
       user_id: emp.user_id,
-      message: `📢 Byl publikován nový rozpis na ${monthLabel}.`,
+      message: `${ICONS.btn_publikovat} Byl publikován nový rozpis na ${monthLabel}.`,
       type: 'publish',
       read: false,
     }));
@@ -6645,7 +6792,7 @@ async function doPublishSchedule(){
     }).catch(()=>{});
   }
 
-  toast(`📢 Rozpis ${monthLabel} publikován`, 'ok');
+  toast(`${ICONS.btn_publikovat} Rozpis ${monthLabel} publikován`, 'ok');
   logActivity(`Rozpis ${monthLabel} byl publikován`);
   updatePublishBtn();
 }
@@ -6758,12 +6905,12 @@ async function openAccessModal(empId){
     </div>
     <button onclick="revokeAccess('${member.id}','${empId}')"
       style="background:var(--red);color:#fff;border:none;border-radius:7px;padding:7px 14px;font-size:13px;font-weight:600;cursor:pointer;width:100%">
-      🗑 Odebrat přístup
+      ${ICONS.btn_smazat} Odebrat přístup
     </button>`;
   } else {
     html = `
     <div style="background:var(--paper);border-radius:10px;padding:14px;margin-bottom:12px;border:1.5px solid var(--accent)55">
-      <div style="font-size:13px;font-weight:600;margin-bottom:6px">📨 Pozvánkový odkaz <span style="font-size:11px;font-weight:400;color:var(--ink-soft)">(doporučeno)</span></div>
+      <div style="font-size:13px;font-weight:600;margin-bottom:6px">${ICONS.notif_pozvanka} Pozvánkový odkaz <span style="font-size:11px;font-weight:400;color:var(--ink-soft)">(doporučeno)</span></div>
       <div style="font-size:12px;color:var(--ink-soft);margin-bottom:10px">
         Pošli zaměstnanci odkaz. Po registraci se <strong>automaticky</strong> spáruje s <strong>${escapeHtml(emp.name)}</strong>.
       </div>
@@ -6773,25 +6920,25 @@ async function openAccessModal(empId){
             style="flex:1;padding:7px 9px;border:1.5px solid var(--line);border-radius:6px;font-size:11px;font-family:var(--font-mono);color:var(--ink-soft);background:var(--paper)">
           <button onclick="copyInviteLink()"
             style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:7px 12px;font-size:12px;font-weight:600;cursor:pointer">
-            📋 Kopírovat
+            ${ICONS.btn_kopirovat} Kopírovat
           </button>
         </div>
         <button onclick="generateInviteLink('${empId}')"
           style="font-size:11px;background:none;border:1px solid var(--line);border-radius:5px;padding:4px 8px;cursor:pointer;color:var(--ink-soft)">
-          🔄 Vygenerovat nový
+          ${ICONS.btn_kontrolovat} Vygenerovat nový
         </button>
       ` : `
         <button onclick="generateInviteLink('${empId}')"
           style="background:var(--accent);color:#fff;border:none;border-radius:7px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;width:100%">
-          🔗 Vygenerovat pozvánkový odkaz
+          ${ICONS.odkaz} Vygenerovat pozvánkový odkaz
         </button>
       `}
     </div>
 
     <div style="background:var(--paper);border-radius:10px;padding:14px;border:1.5px solid var(--line)">
-      <div style="font-size:13px;font-weight:600;margin-bottom:6px">🔢 Propojit podle kódu zaměstnance</div>
+      <div style="font-size:13px;font-weight:600;margin-bottom:6px">${ICONS.kod_zamestnance} Propojit podle kódu zaměstnance</div>
       <div style="font-size:12px;color:var(--ink-soft);margin-bottom:10px">
-        Zaměstnanec najde svůj 7-místný kód v appce v <strong>⚙ Nastavení</strong>. Zadej ho sem:
+        Zaměstnanec najde svůj 7-místný kód v appce v <strong>${ICONS.help_nastaveni} Nastavení</strong>. Zadej ho sem:
       </div>
       <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px">
         <input type="text" id="emp-code-input" placeholder="zadej 7-místný kód" maxlength="7"
@@ -6868,7 +7015,7 @@ function toggleEmpXMode(){
   document.body.classList.toggle('xmode-active', empXMode);
   const btn = document.getElementById('emp-x-toggle-btn');
   if(btn){
-    btn.textContent = empXMode ? '✕ Ukončit zadávání' : '✏ Zadat volno (X)';
+    btn.textContent = empXMode ? '✕ Ukončit zadávání' : `${ICONS.btn_upravit} Zadat volno (X)`;
     btn.style.background = empXMode ? 'var(--red)' : 'var(--accent)';
   }
   renderCalendar();
@@ -6926,7 +7073,7 @@ async function swapShifts(empAId, empBId, dateStr, day){
   if(!herCanMine) warnings.push(`${empA.name} nemůže pracovat na ${codeB}`);
 
   const warnText = warnings.length
-    ? `\n\n⚠ Upozornění:\n${warnings.join('\n')}\n\nPřesto vyměnit?`
+    ? `\n\n${ICONS.status_warning} Upozornění:\n${warnings.join('\n')}\n\nPřesto vyměnit?`
     : '';
 
   if(!confirm(`Vyměnit směny:\n• ${empA.name}: ${codeA} → ${codeB}\n• ${empB.name}: ${codeB} → ${codeA}${warnText}`)) return;
@@ -7315,18 +7462,18 @@ function openTutorialMenu(){
   menu.id = 'tut-menu';
   menu.style.cssText = `position:fixed;top:${rect.bottom+6}px;right:${window.innerWidth-rect.right}px;background:var(--surface);border:1.5px solid var(--line);border-radius:10px;box-shadow:0 6px 24px rgba(30,34,48,.15);z-index:8000;min-width:200px;overflow:hidden`;
   const items = currentRole==='admin' ? [
-    ['welcome',   '👋', 'Úvodní přehled'],
-    ['schedule',  '📅', 'Průvodce Rozpis'],
-    ['branches',  '🏠', 'Průvodce Pobočky'],
-    ['employees', '👥', 'Průvodce Zaměstnanci'],
-    ['gaps',      '📋', 'Průvodce Mezery'],
-    ['rules',     '⚖️', 'Průvodce Pravidla'],
-    ['emp_modal', '📝', 'Průvodce formulářem', ()=>{
+    ['welcome',   ICONS.tut_uvod, 'Úvodní přehled'],
+    ['schedule',  ICONS.tut_rozpis, 'Průvodce Rozpis'],
+    ['branches',  ICONS.tut_pobocky, 'Průvodce Pobočky'],
+    ['employees', ICONS.tut_zamestnanci, 'Průvodce Zaměstnanci'],
+    ['gaps',      ICONS.tut_mezery, 'Průvodce Mezery'],
+    ['rules',     ICONS.tut_pravidla_vaha, 'Průvodce Pravidla'],
+    ['emp_modal', ICONS.icon_font, 'Průvodce formulářem', ()=>{
       if(!document.getElementById('employee-modal-overlay').classList.contains('open')) openEmployeeModal();
       setTimeout(startEmpTutorial, 220);
     }],
   ] : [
-    ['employee',  '👋', 'Průvodce pro zaměstnance'],
+    ['employee',  ICONS.tut_uvod, 'Průvodce pro zaměstnance'],
   ];
   items.forEach(([phase, icon, label, action]) => {
     const div = document.createElement('div');
@@ -7344,23 +7491,23 @@ function openTutorialMenu(){
 // ── Kroky průvodců ────────────────────────────────────────────
 
 const WELCOME_STEPS = [
-  { target:'.topbar', icon:'👋', title:'Vítej v Směnách!', position:'bottom',
+  { target:'.topbar', icon:ICONS.tut_uvod, title:'Vítej v Směnách!', position:'bottom',
     body:'Rychlý přehled záložek a co v každé najdeš. Každá záložka má vlastní podrobný průvodce — spustí se automaticky při prvním vstupu, nebo přes tlačítko <strong>?</strong> vpravo nahoře.' },
-  { target:'[data-tab="schedule"]', icon:'📅', title:'Rozpis — tvůj dashboard', position:'bottom',
+  { target:'[data-tab="schedule"]', icon:ICONS.tut_rozpis, title:'Rozpis — tvůj dashboard', position:'bottom',
     body:'Hlavní pohled na celý měsíc. Odtud spouštíš automatické plánování, vidíš kvalitu rozpisu a upravuješ jednotlivé směny.' },
-  { target:'[data-tab="branches"]', icon:'🏢', title:'Pobočky — začni tady', position:'bottom',
+  { target:'[data-tab="branches"]', icon:ICONS.tut_pobocky, title:'Pobočky — začni tady', position:'bottom',
     body:'Nejdřív přidej místa kde se pracuje. Bez poboček nelze plánovat — jsou základem celého systému. Každá má barvu, kód a minimální obsazení.' },
-  { target:'[data-tab="employees"]', icon:'👥', title:'Zaměstnanci — tvůj tým', position:'bottom',
+  { target:'[data-tab="employees"]', icon:ICONS.tut_zamestnanci, title:'Zaměstnanci — tvůj tým', position:'bottom',
     body:'Po pobočkách přidej zaměstnance, nastav jim limity směn a pošli jim pozvánkový odkaz pro přístup do appky.' },
-  { target:'[data-tab="gaps"]', icon:'📋', title:'Mezery — kde chybí pokrytí', position:'bottom',
+  { target:'[data-tab="gaps"]', icon:ICONS.tut_mezery, title:'Mezery — kde chybí pokrytí', position:'bottom',
     body:'Zobrazuje dny seřazené od nejhoršího pokrytí. Po vygenerování rozpisu sem koukni pro rychlé doplnění.' },
-  { target:'[data-tab="rules"]', icon:'⚖️', title:'Pravidla — pokročilé nastavení', position:'bottom',
+  { target:'[data-tab="rules"]', icon:ICONS.tut_pravidla_vaha, title:'Pravidla — pokročilé nastavení', position:'bottom',
     body:'Váhy a pravidla ovlivňují algoritmus. Řeš až po základním nastavení poboček a zaměstnanců.' },
-  { target:'.tabnav', icon:'👉', title:'Kam chceš jít jako první?', position:'bottom', isLast:true,
+  { target:'.tabnav', icon:ICONS.tut_smerovani, title:'Kam chceš jít jako první?', position:'bottom', isLast:true,
     body:`<div style="margin-top:4px;display:flex;flex-direction:column;gap:6px">
-      <button onclick="endTutorial();switchAppTab('branches')" style="background:var(--paper);border:1.5px solid var(--line);border-radius:8px;padding:8px 12px;text-align:left;cursor:pointer;font-family:inherit;font-size:12px;width:100%"><strong>🏢 Pobočky</strong> — přidat místa kde se pracuje</button>
-      <button onclick="endTutorial();switchAppTab('employees')" style="background:var(--paper);border:1.5px solid var(--line);border-radius:8px;padding:8px 12px;text-align:left;cursor:pointer;font-family:inherit;font-size:12px;width:100%"><strong>👥 Zaměstnanci</strong> — přidat tým</button>
-      <button onclick="endTutorial();switchAppTab('schedule')" style="background:var(--paper);border:1.5px solid var(--line);border-radius:8px;padding:8px 12px;text-align:left;cursor:pointer;font-family:inherit;font-size:12px;width:100%"><strong>📅 Rozpis</strong> — podívat se na kalendář</button>
+      <button onclick="endTutorial();switchAppTab('branches')" style="background:var(--paper);border:1.5px solid var(--line);border-radius:8px;padding:8px 12px;text-align:left;cursor:pointer;font-family:inherit;font-size:12px;width:100%"><strong>${ICONS.tut_pobocky} Pobočky</strong> — přidat místa kde se pracuje</button>
+      <button onclick="endTutorial();switchAppTab('employees')" style="background:var(--paper);border:1.5px solid var(--line);border-radius:8px;padding:8px 12px;text-align:left;cursor:pointer;font-family:inherit;font-size:12px;width:100%"><strong>${ICONS.tut_zamestnanci} Zaměstnanci</strong> — přidat tým</button>
+      <button onclick="endTutorial();switchAppTab('schedule')" style="background:var(--paper);border:1.5px solid var(--line);border-radius:8px;padding:8px 12px;text-align:left;cursor:pointer;font-family:inherit;font-size:12px;width:100%"><strong>${ICONS.tut_rozpis} Rozpis</strong> — podívat se na kalendář</button>
       <button onclick="endTutorial()" style="background:none;border:none;font-size:12px;color:var(--ink-faint);cursor:pointer;padding:4px 0;font-family:inherit;text-align:left">Zavřít bez výběru</button>
     </div>` },
 ];
@@ -7374,95 +7521,95 @@ function buildSchedTutSteps(){
     const id = el.id;
     btnSteps.push({
       target: id ? '#' + id : null,
-      icon: el.getAttribute('data-tut-icon') || '▶',
+      icon: el.getAttribute('data-tut-icon') || ICONS.tut_dalsi_krok,
       title: el.getAttribute('data-tut-title'),
       position: el.getAttribute('data-tut-pos') || 'bottom',
       body: el.getAttribute('data-tut-body') || '',
     });
   });
   return [
-    { target:'.month-nav', icon:'◀▶', title:'Navigace měsíců', position:'bottom',
+    { target:'.month-nav', icon:ICONS.tut_navigace_mesic, title:'Navigace měsíců', position:'bottom',
       body:'Šipkami přepínáš mezi měsíci. Každý měsíc je samostatný rozvrh uložený v databázi — přístupný pro celý tým odkudkoli. Fungují také klávesy <strong>← →</strong>.' },
     ...btnSteps,
-    { target:'#score-bar-wrap', icon:'📊', title:'Kvalita rozpisu', position:'bottom',
+    { target:'#score-bar-wrap', icon:ICONS.tut_skore, title:'Kvalita rozpisu', position:'bottom',
       body:'Procento ukazuje jak dobrý je aktuální rozvrh. Klikni na lištu pro podrobný přehled — skóre po pobočkách i zaměstnancích. Červené číslo = pod minimem, oranžové = pod cílem.' },
-    { target:'#sched-info-box', icon:'🎨', title:'Legenda barev', position:'bottom',
+    { target:'#sched-info-box', icon:ICONS.tut_legenda, title:'Legenda barev', position:'bottom',
       body:'Každá pobočka má svou barvu viditelnou v legendě. Písmeno nebo číslo v buňce říká přesně na které místo je zaměstnanec zařazen. <strong>X</strong> = zadané volno, bílá buňka = volný den.' },
-    { target:'#sched-name-th', icon:'↔️', title:'Šířka sloupce jmen', position:'right',
+    { target:'#sched-name-th', icon:ICONS.tut_sirka_sloupce, title:'Šířka sloupce jmen', position:'right',
       body:'Najeď myší na <strong>pravý okraj</strong> záhlaví "Jméno" — kurzor se změní na šipku pro změnu šířky. Táhnutím nastavíš šířku sloupce. Nastavení se pamatuje v prohlížeči.' },
-    { target:'.sched-scroll', icon:'👆', title:'Práce s kalendářem', position:'top', isLast:true,
+    { target:'.sched-scroll', icon:ICONS.tut_klik, title:'Práce s kalendářem', position:'top', isLast:true,
       body:'Klikni na <strong>číslo dne</strong> v záhlaví → detail dne s přehledem pokrytí a možností přiřadit zaměstnance. Klikni na <strong>buňku v řádku zaměstnance</strong> → otevře výběr pro přiřazení nebo odebrání směny ručně.' },
   ];
 }
 
 const BRANCHES_STEPS = [
-  { target:null, icon:'🏠', title:'Správa poboček', position:'center',
+  { target:null, icon:ICONS.tut_pobocky, title:'Správa poboček', position:'center',
     body:'Pobočky jsou místa kde se pracuje — prodejna, sklad, pobočka A, pobočka B… Každá má vlastní barvu v rozpisu a minimální počty obsazení. Bez poboček nelze generovat rozvrh.' },
-  { target:'[onclick="openBranchModal()"]', icon:'🏠', title:'Přidat pobočku', position:'bottom',
+  { target:'[onclick="openBranchModal()"]', icon:ICONS.tut_pobocky, title:'Přidat pobočku', position:'bottom',
     body:'Klikni na toto zelené tlačítko <strong>+ Přidat pobočku</strong>. Vyplníš název, kód (1–4 písmena — zobrazuje se v každé buňce kalendáře) a barvu.' },
-  { target:'#weekly-pattern-tbl', icon:'📅', title:'Týdenní vzor obsazení', position:'top',
+  { target:'#weekly-pattern-tbl', icon:ICONS.tut_rozpis, title:'Týdenní vzor obsazení', position:'top',
     body:'Místo jednoho čísla pro všední/víkend nastavuješ <strong>Min / Cíl / Max</strong> pro každý den v týdnu zvlášť. Příklad: pátek večer potřebuješ 3 lidi, úterý ráno jen 1 — tohle ti pomůže to nastavit přesně. Algoritmus se snaží trefit <em>Cíl</em> pro každý den.' },
-  { target:'.pattern-templates', icon:'📐', title:'Šablony vzoru', position:'bottom',
+  { target:'.pattern-templates', icon:ICONS.tpl_rovnomerne, title:'Šablony vzoru', position:'bottom',
     body:'Jedním klikem použiješ přednastavený vzor: <strong>Rovnoměrné</strong>, <strong>Víkendová špička</strong> (typické pro restaurace/bary), <strong>Pracovní týden</strong> (kanceláře/služby), nebo <strong>Vlastní</strong> pro ruční nastavení.' },
-  { target:'#pane-branches table', icon:'📋', title:'Co vidíš v tabulce', position:'top',
+  { target:'#pane-branches table', icon:ICONS.tut_mezery, title:'Co vidíš v tabulce', position:'top',
     body:'Každý řádek = jedna pobočka. Sloupce ukazují <strong>Min/Cíl/Max</strong> pro všední den a víkend (zástupné hodnoty). Sloupcový graf <strong>Vzor týdne</strong> ukazuje cílové obsazení pro každý den.' },
-  { target:null, icon:'✎', title:'Úprava a mazání', position:'center',
-    body:'Po přidání pobočky se v každém řádku tabulky zobrazí tlačítko <strong>✎</strong> = upravit nastavení a <strong>✕</strong> = smazat. Mazání odstraní i všechny přiřazené směny.', isLast:true },
+  { target:null, icon:ICONS.btn_upravit, title:'Úprava a mazání', position:'center',
+    body:`Po přidání pobočky se v každém řádku tabulky zobrazí tlačítko <strong>${ICONS.btn_upravit}</strong> = upravit nastavení a <strong>✕</strong> = smazat. Mazání odstraní i všechny přiřazené směny.`, isLast:true },
 ];
 
 const EMPLOYEES_STEPS = [
-  { target:null, icon:'👤', title:'Správa zaměstnanců', position:'center',
+  { target:null, icon:ICONS.tut_zamestnanci, title:'Správa zaměstnanců', position:'center',
     body:'Tady spravuješ celý tým. Každý zaměstnanec má nastavené limity směn za měsíc, limity pro každou pobočku zvlášť a může mít přístupový odkaz do appky pro zobrazení vlastního rozvrhu.' },
-  { target:'[onclick="openEmployeeModal()"]', icon:'➕', title:'Přidat zaměstnance', position:'left',
+  { target:'[onclick="openEmployeeModal()"]', icon:ICONS.btn_pridat, title:'Přidat zaměstnance', position:'left',
     body:'Klikni na toto zelené tlačítko vpravo nahoře. Zadáš jméno, minimální, cílový a maximální počet směn za měsíc a maximální počet dní v řadě. Pak nastavíš limity poboček.' },
-  { target:'#pane-employees table', icon:'📊', title:'Co vidíš v tabulce', position:'top',
+  { target:'#pane-employees table', icon:ICONS.tut_skore, title:'Co vidíš v tabulce', position:'top',
     body:'<strong>MIN–CÍL</strong> = min a cílový počet směn. <strong>MAX</strong> = absolutní maximum. <strong>MAX SÉRIE</strong> = max dní v řadě. <strong>PŘÍSTUP</strong> = má zaměstnanec účet v appce pro sledování rozvrhu?' },
-  { target:'[onclick="openEmployeeModal()"]', icon:'✎', title:'Limity poboček', position:'bottom',
-    body:'Po přidání zaměstnance klikni na tlačítko <strong>✎</strong> v jeho řádku. V editačním formuláři najdeš sekci Limity poboček — nastavíš kolik směn max dostane na každé pobočce. 0 nebo prázdno = na tuto pobočku se neplánuje.' },
-  { target:'[onclick="openEmployeeModal()"]', icon:'🔑', title:'Pozvánkový odkaz — klíček', position:'bottom',
-    body:'V řádku každého zaměstnance najdeš ikonu <strong>🔑</strong> — vygeneruje jedinečný odkaz. Zaměstnanec ho otevře, zaregistruje se a je automaticky přiřazen k jeho profilu. Sdílej odkaz přes email nebo WhatsApp.' },
-  { target:'#org-code-badge', icon:'🏷️', title:'Kód firmy', position:'bottom',
+  { target:'[onclick="openEmployeeModal()"]', icon:ICONS.btn_upravit, title:'Limity poboček', position:'bottom',
+    body:`Po přidání zaměstnance klikni na tlačítko <strong>${ICONS.btn_upravit}</strong> v jeho řádku. V editačním formuláři najdeš sekci Limity poboček — nastavíš kolik směn max dostane na každé pobočce. 0 nebo prázdno = na tuto pobočku se neplánuje.` },
+  { target:'[onclick="openEmployeeModal()"]', icon:ICONS.btn_pozvanka, title:'Pozvánkový odkaz — klíček', position:'bottom',
+    body:`V řádku každého zaměstnance najdeš ikonu <strong>${ICONS.btn_pozvanka}</strong> — vygeneruje jedinečný odkaz. Zaměstnanec ho otevře, zaregistruje se a je automaticky přiřazen k jeho profilu. Sdílej odkaz přes email nebo WhatsApp.` },
+  { target:'#org-code-badge', icon:ICONS.tut_kod_firmy, title:'Kód firmy', position:'bottom',
     body:'Kód firmy vpravo nahoře je alternativa k osobnímu odkazu. Zaměstnanec ho zadá při registraci, propojí se s firmou a čeká na přiřazení konkrétního profilu adminem.', isLast:true },
 ];
 
 const GAPS_STEPS = [
-  { target:null, icon:'📋', title:'Mezery v pokrytí', position:'center',
+  { target:null, icon:ICONS.tut_mezery, title:'Mezery v pokrytí', position:'center',
     body:'Tato záložka zobrazuje dny aktuálního měsíce seřazené od nejhoršího pokrytí poboček. Okamžitě vidíš kde "hoří" — kde chybí zaměstnanci na minimálním počtu. Šipkami ‹ › vlevo/vpravo přepínáš měsíce.' },
-  { target:null, icon:'🎨', title:'Barevné označení dnů', position:'center',
+  { target:null, icon:ICONS.tut_legenda, title:'Barevné označení dnů', position:'center',
     body:'<strong>Červený rámeček</strong> = den je pod minimem obsazení (kritické — priorita). <strong>Oranžový</strong> = obsazení na minimu ale pod cílem. V každém dni vidíš přesně které sloty a pobočky chybí.' },
-  { target:null, icon:'👆', title:'Rychlé doplnění', position:'center',
+  { target:null, icon:ICONS.tut_klik, title:'Rychlé doplnění', position:'center',
     body:'Klikni na libovolný den v přehledu → přepne tě přímo do kalendáře na ten konkrétní den a otevře detail s možností okamžitého přiřazení dostupného zaměstnance. Ušetří zdlouhavé hledání v tabulce.', isLast:true },
 ];
 
 const RULES_STEPS = [
-  { target:'#conditions-section', icon:'🔴', title:'Podmínky plánování', position:'right',
+  { target:'#conditions-section', icon:ICONS.tut_pravidla_tvrdá, title:'Podmínky plánování', position:'right',
     body:'Každou podmínku lze přepnout na <strong>Neporušitelné</strong> — algoritmus pak výsledky kde podmínka není splněna zahodí a zkusí znovu (tvrdá). Podmínky bez tohoto přepínače jsou měkké — mohou být porušeny, ale snižují celkové skóre rozpisu. Doporučujeme max. 1 neporušitelnou podmínku.' },
-  { target:'#conditions-list', icon:'🟡', title:'Váhy podmínek', position:'right',
+  { target:'#conditions-list', icon:ICONS.tut_pravidla_mekka, title:'Váhy podmínek', position:'right',
     body:'Posuvník <strong>Váha</strong> u každé podmínky určuje jak silně ovlivňuje celkové skóre. Vyšší váha = větší vliv. Součet všech vah musí být 100 %. Podmínka s váhou 0 se do skóre nezapočítá, ale pokud je označena jako neporušitelná, stále platí.' },
-  { target:'#rules-intro-panel', icon:'🗓️', title:'Víkendy a cílení', position:'right',
+  { target:'#rules-intro-panel', icon:ICONS.tut_pravidla_vikendy, title:'Víkendy a cílení', position:'right',
     body:'Nastav jak algoritmus přistupuje k víkendům. <strong>Přednostní víkendy</strong> = celý víkend (Pá–Ne) dostane jeden člověk najednou — méně rozbitých víkendů v rozpisu. <strong>Výchozí minimum volných víkendů</strong> = kolik volných víkendů musí mít zaměstnanec bez vlastního nastavení.' },
-  { target:'#balance-pairs-section', icon:'⚖️', title:'Páry pro vyváženost směn', position:'right',
+  { target:'#balance-pairs-section', icon:ICONS.tut_pravidla_pary, title:'Páry pro vyváženost směn', position:'right',
     body:'Definuj dvojice typů směn které chceš porovnávat — např. M1 vs M4. Algoritmus sleduje kolik směn každého typu dostane každý zaměstnanec a v rozpisu zobrazí poměr. <strong>Zelená</strong> = rozdíl max 2 směny (vyvážené), <strong>oranžová</strong> = větší nerovnováha.' },
-  { target:'#save-all-rules-btn', icon:'💾', title:'Uložit vše', position:'top',
+  { target:'#save-all-rules-btn', icon:ICONS.tut_ulozit, title:'Uložit vše', position:'top',
     body:'Po změně čehokoliv v pravidlech klikni na <strong>Uložit všechna pravidla</strong>. Jedno tlačítko uloží vše najednou. Změny se projeví při příštím spuštění algoritmu.', isLast:true },
 ];
 
 const EMPLOYEE_STEPS = [
-  { target:'.topbar', icon:'👋', title:'Vítej v Směnách!', position:'bottom',
+  { target:'.topbar', icon:ICONS.tut_uvod, title:'Vítej v Směnách!', position:'bottom',
     body:'Tady najdeš svůj pracovní rozvrh. Krátký průvodce tě provede základními funkcemi.' },
-  { target:'.sched-table', icon:'📅', title:'Tvůj rozvrh', position:'top',
+  { target:'.sched-table', icon:ICONS.tut_rozpis, title:'Tvůj rozvrh', position:'top',
     body:'V tabulce vidíš celý měsíc. Tvůj řádek je <strong>zvýrazněný zeleně</strong> — hned ho najdeš. Barevné buňky jsou směny, bílé jsou volné dny.' },
-  { target:'.sched-legend', icon:'🎨', title:'Co znamenají barvy', position:'bottom',
+  { target:'.sched-legend', icon:ICONS.tut_legenda, title:'Co znamenají barvy', position:'bottom',
     body:'Každá pobočka má svou barvu viditelnou v legendě nahoře. Písmeno v buňce říká přesně na které místo jsi zařazen. <strong>X</strong> = tvoje zadané volno.' },
-  { target:'.month-nav', icon:'◀▶', title:'Přepínání měsíců', position:'bottom',
+  { target:'.month-nav', icon:ICONS.tut_navigace_mesic, title:'Přepínání měsíců', position:'bottom',
     body:'Šipkami vlevo a vpravo se pohybuješ mezi měsíci. Vždy vidíš aktuálně zveřejněný rozvrh.' },
-  { target:'.sched-table', icon:'👆', title:'Detail směny', position:'top',
+  { target:'.sched-table', icon:ICONS.tut_klik, title:'Detail směny', position:'top',
     body:'Klikni na libovolnou barevnou buňku ve svém řádku → zobrazí se detail směny s informacemi o pobočce a dni.' },
-  { target:'#emp-x-toggle-btn', icon:'✏️', title:'Zadat volno (X)', position:'bottom',
+  { target:'#emp-x-toggle-btn', icon:ICONS.btn_upravit, title:'Zadat volno (X)', position:'bottom',
     body:'Potřebuješ volno? Klikni na toto tlačítko — zapne se editační mód. Klikni na dny ve svém řádku kdy nemůžeš přijít. Kliknutím znovu X odebereš. <strong>Vedoucí se pokusí toto volno zajistit.</strong>' },
-  { target:'#emp-settings-btn', icon:'⚙️', title:'Tvůj profil', position:'bottom',
-    body:'Přes ⚙ Profil si změníš jméno, telefonní číslo nebo heslo. Najdeš tam i svůj osobní kód zaměstnance pro případ propojení účtu.' },
-  { target:'#tutorial-btn', icon:'✅', title:'Hotovo!', position:'bottom', isLast:true,
+  { target:'#emp-settings-btn', icon:ICONS.help_nastaveni, title:'Tvůj profil', position:'bottom',
+    body:`Přes ${ICONS.help_nastaveni} Profil si změníš jméno, telefonní číslo nebo heslo. Najdeš tam i svůj osobní kód zaměstnance pro případ propojení účtu.` },
+  { target:'#tutorial-btn', icon:ICONS.status_ok, title:'Hotovo!', position:'bottom', isLast:true,
     body:'Průvodce kdykoli znovu spustíš přes tlačítko <strong>?</strong> vpravo nahoře. Pokud máš otázku, obrať se na svého vedoucího.' },
 ];
 
@@ -8010,7 +8157,7 @@ function openNoteModal(empId, dateStr){
   const noteKey = `${empId}_${dateStr}`;
   const d = new Date(dateStr+'T00:00:00');
   document.getElementById('note-modal-title').textContent =
-    `💬 ${d.toLocaleDateString('cs-CZ',{day:'numeric',month:'long'})}`;
+    `${ICONS.poznamka} ${d.toLocaleDateString('cs-CZ',{day:'numeric',month:'long'})}`;
   document.getElementById('note-text').value = shiftNotes[noteKey]||'';
   document.getElementById('note-date-input').value = dateStr;
   document.getElementById('note-emp-input').value = empId;
@@ -8262,7 +8409,7 @@ function renderLeaves(){
   if(!el) return;
   const leaves = loadLeaves();
   if(!leaves.length){
-    el.innerHTML='<div class="empty-state"><div style="font-size:40px;margin-bottom:12px">🗓</div><p style="font-size:15px;font-weight:700;margin-bottom:6px">Žádné žádosti</p><p style="font-size:13px;color:var(--ink-soft)">Zaměstnanci mohou požádat o volno tlačítkem nahoře.</p></div>';
+    el.innerHTML=`<div class="empty-state"><div style="font-size:40px;margin-bottom:12px">${ICONS.nav_zadosti}</div><p style="font-size:15px;font-weight:700;margin-bottom:6px">Žádné žádosti</p><p style="font-size:13px;color:var(--ink-soft)">Zaměstnanci mohou požádat o volno tlačítkem nahoře.</p></div>`;
     return;
   }
   // For employee: show only own requests
@@ -8274,7 +8421,7 @@ function renderLeaves(){
         <div style="font-weight:600">${escapeHtml(l.employee_name)}</div>
         <div style="color:var(--ink-soft);font-size:12px">${l.from_date} – ${l.to_date}${l.note?' • '+escapeHtml(l.note):''}</div>
       </div>
-      <span class="leave-status ${l.status}">${l.status==='pending'?'⏳ čeká':l.status==='approved'?'✓ schváleno':'✕ zamítnuto'}</span>
+      <span class="leave-status ${l.status}">${l.status==='pending'?ICONS.status_pending+' čeká':l.status==='approved'?'✓ schváleno':'✕ zamítnuto'}</span>
       ${currentRole==='admin'&&l.status==='pending'?`
         <button class="btn-accent" style="padding:4px 10px;font-size:12px;margin-left:8px" onclick="approveLeave('${l.id}')">Schválit</button>
         <button class="btn-ghost" style="padding:4px 10px;font-size:12px;color:var(--red);border-color:var(--red)" onclick="rejectLeave('${l.id}')">Zamítnout</button>
@@ -8451,10 +8598,10 @@ function renderOrgSettings(){
       <div class="field">
         <label>Logo organizace</label>
         <div style="display:flex;align-items:center;gap:12px">
-          ${logo ? `<img src="${logo}" style="width:48px;height:48px;border-radius:8px;object-fit:contain;border:1px solid var(--line)">` : '<div style="width:48px;height:48px;border-radius:8px;background:var(--paper);border:1.5px dashed var(--line);display:flex;align-items:center;justify-content:center;font-size:22px">🏢</div>'}
+          ${logo ? `<img src="${logo}" style="width:48px;height:48px;border-radius:8px;object-fit:contain;border:1px solid var(--line)">` : `<div style="width:48px;height:48px;border-radius:8px;background:var(--paper);border:1.5px dashed var(--line);display:flex;align-items:center;justify-content:center;font-size:22px">${ICONS.set_org}</div>`}
           <div>
             <input type="file" id="org-logo-input" accept="image/*" style="display:none" onchange="handleOrgLogoUpload(this)">
-            <button class="btn-outline" onclick="document.getElementById('org-logo-input').click()" style="font-size:12.5px;padding:6px 12px">📎 Nahrát logo</button>
+            <button class="btn-outline" onclick="document.getElementById('org-logo-input').click()" style="font-size:12.5px;padding:6px 12px">${ICONS.logo_upload} Nahrát logo</button>
             ${logo?'<button class="btn-ghost" onclick="removeOrgLogo()" style="font-size:12px;padding:5px 10px;margin-left:6px;color:var(--red);border-color:var(--red)">Odebrat</button>':''}
           </div>
         </div>
@@ -8468,11 +8615,11 @@ function renderOrgSettings(){
           <option value="UTC" ${tz==='UTC'?'selected':''}>UTC</option>
         </select>
       </div>
-      <button class="btn-accent" onclick="saveOrgSettings()">💾 Uložit nastavení organizace</button>
-      <button class="btn-ghost" onclick="openAuditLog()" style="margin-top:4px">🕵 Historie změn</button>
+      <button class="btn-accent" onclick="saveOrgSettings()">${ICONS.btn_ulozit} Uložit nastavení organizace</button>
+      <button class="btn-ghost" onclick="openAuditLog()" style="margin-top:4px">${ICONS.audit_log} Historie změn</button>
       <div style="margin-top:8px;padding-top:14px;border-top:1px solid var(--line)">
-        <p style="font-size:12.5px;color:var(--ink-soft);margin:0 0 10px">⚠ Smazání organizace je nevratné. Smažou se všechna data.</p>
-        <button onclick="confirmDeleteOrg()" style="background:none;border:1.5px solid var(--red);color:var(--red);border-radius:8px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">🗑 Smazat organizaci</button>
+        <p style="font-size:12.5px;color:var(--ink-soft);margin:0 0 10px">${ICONS.status_warning} Smazání organizace je nevratné. Smažou se všechna data.</p>
+        <button onclick="confirmDeleteOrg()" style="background:none;border:1.5px solid var(--red);color:var(--red);border-radius:8px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">${ICONS.btn_smazat} Smazat organizaci</button>
       </div>
     </div>`;
 }
@@ -8591,25 +8738,25 @@ function renderSearchResults(query){
 
   // Search employees
   employees.filter(e=>e.name.toLowerCase().includes(q)).forEach(e=>{
-    results.push({ type:'emp', icon:'👤', main: e.name, sub:'Zaměstnanec', action: ()=>{ closeSearch(); switchAppTab('employees'); } });
+    results.push({ type:'emp', icon:ICONS.nav_zamestnanci, main: e.name, sub:'Zaměstnanec', action: ()=>{ closeSearch(); switchAppTab('employees'); } });
   });
 
   // Search branches
   branches.filter(b=>b.name.toLowerCase().includes(q)).forEach(b=>{
-    results.push({ type:'branch', icon:'🏠', main: b.name, sub:'Pobočka', action: ()=>{ closeSearch(); switchAppTab('branches'); } });
+    results.push({ type:'branch', icon:ICONS.nav_pobocky, main: b.name, sub:'Pobočka', action: ()=>{ closeSearch(); switchAppTab('branches'); } });
   });
 
   // Static feature shortcuts
   const features = [
-    { label:'Statistiky', tab:'stats', icon:'📊' },
-    { label:'Pravidla', tab:'rules', icon:'📋' },
-    { label:'Žádosti o volno', tab:'leaves', icon:'🗓' },
-    { label:'Generovat rozpis', action: ()=>document.getElementById('auto-schedule-btn')?.click(), icon:'⚡' },
-    { label:'Export Excel', action: exportToExcel, icon:'📊' },
-    { label:'Export ICS', action: exportICS, icon:'📅' },
-    { label:'Šablony', action: openTemplatesModal, icon:'📋' },
-    { label:'Mzdové podklady', action: openPayrollModal, icon:'💰' },
-    { label:'Audit log', action: openAuditLog, icon:'🕵' },
+    { label:'Statistiky', tab:'stats', icon:ICONS.nav_statistiky },
+    { label:'Pravidla', tab:'rules', icon:ICONS.nav_pravidla },
+    { label:'Žádosti o volno', tab:'leaves', icon:ICONS.nav_zadosti },
+    { label:'Generovat rozpis', action: ()=>document.getElementById('auto-schedule-btn')?.click(), icon:ICONS.btn_auto },
+    { label:'Export Excel', action: exportToExcel, icon:ICONS.btn_export_excel },
+    { label:'Export ICS', action: exportICS, icon:ICONS.btn_export_ics },
+    { label:'Šablony', action: openTemplatesModal, icon:ICONS.btn_sablony },
+    { label:'Mzdové podklady', action: openPayrollModal, icon:ICONS.btn_mzdy },
+    { label:'Audit log', action: openAuditLog, icon:ICONS.audit_log },
   ];
   features.filter(f=>f.label.toLowerCase().includes(q)).forEach(f=>{
     results.push({ type:'feature', icon:f.icon, main:f.label, sub:'Funkce', action: f.action||(()=>{ closeSearch(); switchAppTab(f.tab); }) });
@@ -8845,27 +8992,237 @@ function exportICS(){
 // the browser with an exposed API key, which is unsafe in this public repo and would
 // incur per-query cost. Revisit once there's a backend to hold the key server-side.
 
-// ── Feature 19: HELP CENTER ──────────────────────────────────
+// ── Feature 19: HELP CENTER — tree-based, no AI, no API ───────
+// Replaces the old AI chatbot: a fixed FAQ tree, no external calls, no cost.
+
+const HELP_TOPICS = {
+  rozpis: { icon:'help_rozpis', label:'Rozpis a generování', items:[
+    { q:'Jak vygenerovat rozpis?', a:['Klikni na "Automaticky doplnit"','Algoritmus zkouší stovky kombinací a vybere nejlepší','Skóre v liště ukazuje kvalitu — cíl je 90%+'] },
+    { q:'Proč je skóre nízké?', a:['Zkontroluj pravidla — možná jsou příliš přísná','Zkontroluj obsazení poboček — min počty mohou být nedosažitelné','Zkus snížit počet neporušitelných podmínek na max 1'] },
+    { q:'Co je pobočkový přehled?', a:['Přepínač v toolbaru — zobrazí rozpis seřazený podle poboček místo zaměstnanců'] },
+    { q:'Jak funguje "Kde doplnit"?', a:['Zobrazí které dny a pobočky ještě nemají dostatek lidí'] },
+    { q:'Jak smazat rozpis?', a:['Smazat auto — odstraní jen automaticky přiřazené směny','Smazat vše — smaže celý měsíc včetně ručních úprav ⚠️'] },
+    { q:'Jak exportovat rozpis?', a:['Excel — v menu "Více"','PDF / Tisk — v menu "Více"','JSON záloha — v menu "Více"'] },
+  ]},
+  zamestnanci: { icon:'help_zamestnanci', label:'Zaměstnanci', items:[
+    { q:'Jak přidat zaměstnance?', a:['Záložka Zaměstnanci → "+ Přidat zaměstnance"'] },
+    { q:'Jak pozvat zaměstnance do appky?', a:['Klikni na ikonu 🔑 u zaměstnance','Zkopíruj odkaz a pošli přes email nebo WhatsApp','Zaměstnanec si vytvoří účet a automaticky se přiřadí'] },
+    { q:'Co znamenají Min / Cíl / Max směn?', a:['Min = nejméně směn které musí dostat','Cíl = ideální počet který algoritmus cílí','Max = absolutní strop který nelze překročit'] },
+    { q:'Co je fixní rozvrh?', a:['Zaměstnanec se neúčastní automatického generování — směny zadáváš ručně'] },
+    { q:'Jak nastavit limity na pobočkách?', a:['V editaci zaměstnance → sekce "Limity na pobočkách" — min/max směn na konkrétní pobočku za měsíc'] },
+  ]},
+  pobocky: { icon:'help_pobocky', label:'Pobočky', items:[
+    { q:'Jak přidat pobočku?', a:['Záložka Pobočky → "+ Přidat pobočku" → vyplň název, kód, barvu a minimální obsazení'] },
+    { q:'Co je týdenní vzor obsazení?', a:['Nastavíš ideální počet lidí pro každý den v týdnu zvlášť','Pátek večer potřebuješ víc lidí než úterý ráno — tohle to řeší','Algoritmus se snaží cílové hodnoty dodržet'] },
+    { q:'Co jsou typy směn?', a:['Např. M1/M2/M3/M4 pro různé pozice nebo časy — nastavíš v editaci pobočky'] },
+    { q:'Jak smazat pobočku?', a:['Ikona X v řádku pobočky ⚠️ — smaže i všechny přiřazené směny té pobočky!'] },
+  ]},
+  pravidla: { icon:'help_pravidla', label:'Pravidla', items:[
+    { q:'Rozdíl mezi tvrdými a měkkými podmínkami?', a:['Tvrdá (neporušitelná) = algoritmus výsledek zahodí pokud podmínka není splněna','Měkká = ovlivňuje skóre ale může být porušena','Doporučujeme max 1 neporušitelnou podmínku — víc může znemožnit nalezení řešení'] },
+    { q:'Co jsou váhy u měkkých podmínek?', a:['Vyšší váha = algoritmus upřednostňuje splnění té podmínky. Součet musí být 100%.'] },
+    { q:'Co jsou páry pro vyváženost?', a:['Např. M1 vs M4 — hlídá aby zaměstnanci měli rovnoměrný poměr těchto typů směn'] },
+    { q:'Kdy uložit pravidla?', a:['Vždy klikni "Uložit všechna pravidla" jinak se změny ztratí při odchodu ze záložky'] },
+  ]},
+  notifikace: { icon:'help_notifikace', label:'Notifikace a publikování', items:[
+    { q:'Jak publikovat rozpis?', a:['Tlačítko "Publikovat" v toolbaru rozpisu','Zobrazí se potvrzovací dialog','Po potvrzení se rozešlou notifikace zaměstnancům'] },
+    { q:'Dostanou zaměstnanci email?', a:['Ano pokud mají zapnuté email notifikace v nastavení profilu'] },
+    { q:'Kde vidím notifikace?', a:['Ikona zvonku 🔔 v hlavičce — červená tečka = nepřečtená notifikace'] },
+    { q:'Jak žádat o volno?', a:['Záložka "Žádosti" → "+ Požádat o volno"','Admin schválí nebo zamítne žádost'] },
+  ]},
+  nastaveni: { icon:'help_nastaveni', label:'Nastavení a účet', items:[
+    { q:'Jak změnit velikost písma nebo motiv?', a:['Profil → záložka "Vzhled"'] },
+    { q:'Jak změnit heslo?', a:['Profil → záložka "Profil" → sekce "Změna hesla"'] },
+    { q:'Co je organizační kód?', a:['Unikátní kód vaší firmy — zaměstnanec ho použije při registraci pro přiřazení k vaší organizaci'] },
+    { q:'Jak odhlásit?', a:['Tlačítko "Odhlásit" vpravo nahoře — nebo zkratku... ne, zkratku na odhlášení ti neprozradíme 😄'] },
+  ]},
+};
+
+let helpState = { screen:'home', catKey:null, itemIdx:null, query:'' };
 
 function openHelpCenter(){
   document.getElementById('help-panel').classList.add('open');
+  helpGoHome();
 }
 
 function closeHelpCenter(){
   document.getElementById('help-panel').classList.remove('open');
 }
 
-function toggleFaq(item){
-  item.classList.toggle('open');
+function helpGoHome(){
+  helpState = { screen:'home', catKey:null, itemIdx:null, query:'' };
+  renderHelpCenter();
+}
+function helpOpenCategory(key){
+  helpState = { screen:'category', catKey:key, itemIdx:null, query:'' };
+  renderHelpCenter();
+}
+function helpOpenItem(key, idx){
+  helpState = { screen:'answer', catKey:key, itemIdx:idx, query:'' };
+  renderHelpCenter();
+}
+function helpGoBack(){
+  if(helpState.screen==='answer') helpOpenCategory(helpState.catKey);
+  else helpGoHome();
+}
+
+const HELP_EASTER_STUCK = ['pomoc','nevím','nevim','wtf','proč','proc','nefunguje','🆘'];
+function helpSearchInput(val){
+  helpState.query = val;
+  const q = val.trim().toLowerCase();
+  if(!q){ renderHelpCenter(); return; }
+  if(HELP_EASTER_STUCK.some(k=>q===k || q.includes(k))){
+    renderHelpEaster('😅','Hele, chápeme tě. Zkus tutoriál — tlačítko ? nahoře. Nebo prostě klikej dokud to nepůjde, to taky funguje.');
+    return;
+  }
+  if(q==='ai' || q==='claude'){
+    renderHelpEaster('🤖❌','AI tu není. Ale máme něco lepšího — odpovědi které jsou vždy správně a nikdy nehalucinují.');
+    return;
+  }
+  if(q==='beer' || q==='pivo'){
+    renderHelpEaster('🍺','Tohle není Beer Spa. Ale směny si naplánuj a pak si jdi dát!');
+    return;
+  }
+  renderHelpCenter();
+}
+
+function renderHelpEaster(emoji, msg){
+  document.getElementById('help-body').innerHTML = `<div class="help-easter"><span class="help-easter-emoji">${emoji}</span>${escapeHtml(msg)}</div>`;
+}
+
+function helpFeedback(positive){
+  const el = document.getElementById('help-feedback-result');
+  if(!el) return;
+  el.innerHTML = positive
+    ? `<div class="help-feedback-msg">Super, díky za zpětnou vazbu! 🎉</div>`
+    : `<div class="help-feedback-msg">Omlouváme se! Zkus tutoriál v záložce ? nebo nás kontaktuj.</div>`;
+}
+
+function helpMatchesQuery(item, q){
+  return item.q.toLowerCase().includes(q) || item.a.some(line=>line.toLowerCase().includes(q));
+}
+
+function renderHelpCenter(){
+  const crumb = document.getElementById('help-breadcrumb');
+  const backBtn = document.getElementById('help-back-btn');
+  const body = document.getElementById('help-body');
+  const q = (helpState.query||'').trim().toLowerCase();
+
+  if(helpState.screen==='home'){
+    backBtn.style.display = 'none';
+    crumb.textContent = 'Pomoc';
+    const searchResults = q ? Object.entries(HELP_TOPICS).flatMap(([key,cat])=>
+      cat.items.map((item,idx)=>({key,cat,item,idx})).filter(r=>helpMatchesQuery(r.item,q))
+    ) : null;
+    body.innerHTML = `
+      <p class="help-welcome">Vítej v nápovědě Směny 👋 Nejsme AI, jsme chytřejší — víme přesně co chceš vědět.</p>
+      <input type="text" class="help-search-input" id="help-search-input" placeholder="Hledat téma…" value="${escapeHtml(helpState.query||'')}" oninput="helpSearchInput(this.value)">
+      ${searchResults ? (
+        searchResults.length
+          ? searchResults.map(r=>`<div class="help-item-row" onclick="helpOpenItem('${r.key}',${r.idx})"><span>${escapeHtml(r.item.q)}</span><span style="color:var(--ink-faint)">›</span></div>`).join('')
+          : `<p style="font-size:13px;color:var(--ink-soft);text-align:center;padding:16px 0">Nic jsme nenašli. Zkus jiné slovo.</p>`
+      ) : `<div class="help-cat-grid">
+        ${Object.entries(HELP_TOPICS).map(([key,cat])=>`
+          <div class="help-cat-card" onclick="helpOpenCategory('${key}')">
+            <div class="help-cat-icon">${ICONS[cat.icon]}</div>
+            <div class="help-cat-label">${escapeHtml(cat.label)}</div>
+          </div>`).join('')}
+      </div>`}
+      <span class="help-contact-link" onclick="sendHelpRequest()">Nenašel jsi odpověď? Napiš nám →</span>
+    `;
+    return;
+  }
+
+  if(helpState.screen==='category'){
+    const cat = HELP_TOPICS[helpState.catKey];
+    backBtn.style.display = '';
+    crumb.textContent = `Pomoc › ${cat.label}`;
+    body.innerHTML = cat.items.map((item,idx)=>`
+      <div class="help-item-row" onclick="helpOpenItem('${helpState.catKey}',${idx})">
+        <span>${escapeHtml(item.q)}</span><span style="color:var(--ink-faint)">›</span>
+      </div>`).join('');
+    return;
+  }
+
+  if(helpState.screen==='answer'){
+    const cat = HELP_TOPICS[helpState.catKey];
+    const item = cat.items[helpState.itemIdx];
+    backBtn.style.display = '';
+    crumb.textContent = `Pomoc › ${cat.label} › ${item.q}`;
+    body.innerHTML = `
+      <p style="font-size:14px;font-weight:700;margin:0 0 12px">${escapeHtml(item.q)}</p>
+      <ul class="help-answer-list">${item.a.map(line=>`<li>${escapeHtml(line)}</li>`).join('')}</ul>
+      <div class="help-feedback">
+        Pomohlo ti to?
+        <button class="help-feedback-btn" onclick="helpFeedback(true)">${ICONS.help_thumbs_up}</button>
+        <button class="help-feedback-btn" onclick="helpFeedback(false)">${ICONS.help_thumbs_down}</button>
+      </div>
+      <div id="help-feedback-result"></div>
+    `;
+  }
 }
 
 function sendHelpRequest(){
-  const subject = document.getElementById('help-subject')?.value.trim();
-  const message = document.getElementById('help-message')?.value.trim();
-  if(!subject||!message){ toast('Vyplň předmět i zprávu','error'); return; }
-  const mailto = `mailto:vavra@dp-partners.cz?subject=${encodeURIComponent('[Směny Support] '+subject)}&body=${encodeURIComponent(message)}`;
+  const mailto = `mailto:vavra@dp-partners.cz?subject=${encodeURIComponent('[Směny Support] Dotaz z nápovědy')}`;
   window.open(mailto,'_blank');
   toast('Otevírám e-mailového klienta…');
+}
+
+// ── Icon editor (Nastavení → 🎨 Ikony) ────────────────────────
+
+const ICON_GROUPS = [
+  { label:'Navigace', keys:['nav_rozpis','nav_pobocky','nav_zamestnanci','nav_mezery','nav_statistiky','nav_zadosti','nav_pravidla'] },
+  { label:'Toolbar tlačítka', keys:['btn_auto','btn_publikovat','btn_kde_doplnit','btn_pobocky_prehled','btn_zamestnanci_prehled','btn_smazat_auto','btn_smazat_vse','btn_vice','btn_import_json','btn_export_json','btn_export_excel','btn_export_ics','btn_sablony','btn_opakujici_volno','btn_tisk','btn_mzdy','btn_vymeny','btn_otevrene_smeny','btn_zaloha'] },
+  { label:'Akce', keys:['btn_pridat','btn_ulozit','btn_zrusit','btn_upravit','btn_smazat','btn_export_pdf','btn_zpet','btn_dalsi','btn_hotovo','btn_pozvanka','btn_kopirovat','btn_odeslat','btn_kontrolovat','btn_odhlasit','btn_hledat','btn_napoveda','btn_zobrazit','btn_skryt','btn_zastavit'] },
+  { label:'Stavy a indikátory', keys:['status_ok','status_warning','status_error','status_info','status_pending','status_locked','status_claimed'] },
+  { label:'Tutoriál', keys:['tut_uvod','tut_rozpis','tut_pobocky','tut_zamestnanci','tut_mezery','tut_pravidla_tvrdá','tut_pravidla_mekka','tut_pravidla_vaha','tut_pravidla_pary','tut_pravidla_vikendy','tut_ulozit','tut_navigace_mesic','tut_skore','tut_legenda','tut_sirka_sloupce','tut_klik','tut_dalsi_krok','tut_kod_firmy','tut_smerovani'] },
+  { label:'Help center', keys:['help_rozpis','help_zamestnanci','help_pobocky','help_pravidla','help_notifikace','help_nastaveni','help_search','help_thumbs_up','help_thumbs_down','help_home'] },
+  { label:'Notifikace', keys:['notif_bell','notif_rozpis','notif_pozvanka'] },
+  { label:'Nastavení', keys:['set_profil','set_vzhled','set_notifikace','set_jazyk','set_org','set_ikony'] },
+  { label:'Různé', keys:['archiv','admin_badge','audit_log','logo_upload','kod_zamestnance','odkaz','poznamka','tpl_rovnomerne','tpl_weekend_peak','tpl_workweek','dash_prehled','icon_klavesy','icon_import','sec_podminky','empty_inbox','icon_font','icon_density','set_dark_mode'] },
+];
+
+function renderIconSettings(){
+  const el = document.getElementById('icons-settings-body');
+  if(!el) return;
+  el.innerHTML = `
+    <p style="font-size:12.5px;color:var(--ink-soft);margin:0 0 14px">Uprav libovolnou ikonu v aplikaci. Ulož a projeví se okamžitě v celé appce (uloženo v tomto prohlížeči).</p>
+    ${ICON_GROUPS.map(g=>`
+      <div style="margin-bottom:16px">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--ink-soft);letter-spacing:.04em;margin-bottom:8px">${escapeHtml(g.label)}</div>
+        ${g.keys.map(k=>`
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+            <span style="width:34px;height:34px;border-radius:8px;background:var(--paper);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0" id="icon-preview-${k}">${ICONS[k]}</span>
+            <span style="flex:1;font-size:12px;color:var(--ink-soft);font-family:var(--font-mono)">${k}</span>
+            <input type="text" data-icon-key="${k}" value="${escapeHtml(ICONS[k])}" oninput="document.getElementById('icon-preview-${k}').textContent=this.value||${JSON.stringify(DEFAULT_ICONS[k])}" style="width:64px;padding:6px 8px;border:1.5px solid var(--line);border-radius:7px;font-size:14px;text-align:center;font-family:inherit;background:var(--surface);color:var(--ink)">
+          </div>
+        `).join('')}
+      </div>
+    `).join('')}
+    <div style="display:flex;gap:10px;margin-top:8px;position:sticky;bottom:0;background:var(--surface);padding-top:10px">
+      <button class="btn-outline" style="flex:1" onclick="resetIconsToDefaultUI()">Obnovit výchozí</button>
+      <button class="btn-accent" style="flex:1" onclick="saveIconSettingsUI()"><span data-icon="btn_ulozit">💾</span> Uložit ikony</button>
+    </div>
+  `;
+}
+
+function saveIconSettingsUI(){
+  const overrides = {};
+  document.querySelectorAll('#icons-settings-body input[data-icon-key]').forEach(input=>{
+    const key = input.dataset.iconKey;
+    const val = input.value.trim() || DEFAULT_ICONS[key];
+    ICONS[key] = val;
+    if(val !== DEFAULT_ICONS[key]) overrides[key] = val;
+  });
+  saveIconOverrides(overrides);
+  applyIcons();
+  validateIconConsistency();
+  toast('Ikony uloženy a aplikovány');
+}
+
+function resetIconsToDefaultUI(){
+  resetIconsToDefault();
+  renderIconSettings();
+  toast('Ikony obnoveny na výchozí');
 }
 
 // ── SETTINGS TAB PATCH ───────────────────────────────────────
@@ -8875,18 +9232,21 @@ function switchSettingsTab(tab){
   const org = document.getElementById('org-settings-body');
   const profile = document.getElementById('emp-settings-body');
   const appear  = document.getElementById('appear-settings-body');
+  const icons   = document.getElementById('icons-settings-body');
   const tProfile = document.getElementById('stab-profile');
   const tAppear  = document.getElementById('stab-appear');
+  const tIcons   = document.getElementById('stab-icons');
   const tOrg     = document.getElementById('stab-org');
   if(!profile||!appear) return;
 
   profile.style.display = tab==='profile' ? '' : 'none';
   appear.style.display  = tab==='appear'  ? '' : 'none';
+  if(icons) icons.style.display = tab==='icons' ? '' : 'none';
   if(org) org.style.display = tab==='org' ? '' : 'none';
 
-  [tProfile,tAppear,tOrg].forEach((btn,i)=>{
+  [tProfile,tAppear,tIcons,tOrg].forEach((btn,i)=>{
     if(!btn) return;
-    const active = (i===0&&tab==='profile')||(i===1&&tab==='appear')||(i===2&&tab==='org');
+    const active = (i===0&&tab==='profile')||(i===1&&tab==='appear')||(i===2&&tab==='icons')||(i===3&&tab==='org');
     btn.style.background = active?'var(--surface)':'none';
     btn.style.color      = active?'var(--ink)':'var(--ink-soft)';
     btn.style.boxShadow  = active?'var(--shadow)':'none';
@@ -8894,6 +9254,7 @@ function switchSettingsTab(tab){
   });
 
   if(tab==='appear'){ tempAppear={...appearSettings}; renderAppearSettings(); }
+  if(tab==='icons') renderIconSettings();
   if(tab==='org' && currentRole==='admin') renderOrgSettings();
 }
 
@@ -8945,6 +9306,8 @@ document.addEventListener('smeny:afterBootstrap', ()=>{
   if(orgTab) orgTab.style.display = currentRole==='admin' ? '' : 'none';
   updateArchiveBadge();
   resetSessionTimer();
+  applyIcons();
+  validateIconConsistency();
   // Load managed_branches for branch_manager role
   if(currentRole === 'branch_manager'){
     sb.from('org_members').select('managed_branches').eq('org_id', currentOrg?.id).eq('user_id', window._supabaseUser?.id||'').single()
@@ -9304,14 +9667,14 @@ function renderOpenShiftsAdmin(items){
   const claimedCount = items.filter(i=>i.status==='claimed').length;
   const approvedCount= items.filter(i=>i.status==='approved').length;
   list.innerHTML = `<div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">
-    <span class="open-shift-badge">📋 Otevřené: ${openCount}</span>
-    <span class="open-shift-badge" style="background:#f0fdf4;color:var(--accent);border-color:#86efac">✋ Nárokováno: ${claimedCount}</span>
+    <span class="open-shift-badge">${ICONS.btn_otevrene_smeny} Otevřené: ${openCount}</span>
+    <span class="open-shift-badge" style="background:#f0fdf4;color:var(--accent);border-color:#86efac">${ICONS.status_claimed} Nárokováno: ${claimedCount}</span>
     <span class="open-shift-badge" style="background:var(--accent-soft);color:var(--accent)">✓ Schváleno: ${approvedCount}</span>
   </div>` + items.map(item=>{
     const d = new Date(item.shift_date+'T00:00:00');
     const label = d.toLocaleDateString('cs-CZ',{weekday:'short',day:'numeric',month:'short'});
     const claimedEmp = item.claimed_by ? employees.find(e=>e.id===item.claimed_by) : null;
-    const statusIcon = {open:'📋', claimed:'✋', approved:'✓', rejected:'✕'}[item.status]||'?';
+    const statusIcon = {open:ICONS.btn_otevrene_smeny, claimed:ICONS.status_claimed, approved:'✓', rejected:'✕'}[item.status]||'?';
     const statusColor = {open:'var(--ink-soft)', claimed:'var(--amber)', approved:'var(--accent)', rejected:'var(--red)'}[item.status]||'var(--ink)';
     return `<div class="swap-item" style="border-color:${statusColor}33">
       <span style="color:${statusColor};font-size:16px">${statusIcon}</span>
@@ -9602,7 +9965,7 @@ function renderLaborCost(){
     return c > 0 ? `<span style="font-size:11px;color:var(--ink-soft)">${escapeHtml(b.code)}: ${fmt(c)}</span>` : '';
   }).filter(Boolean).join(' · ');
   wrap.innerHTML = `<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap">
-    <span class="cost-tag">💰 Odhadované náklady: ${fmt(totalCost)}</span>
+    <span class="cost-tag">${ICONS.btn_mzdy} Odhadované náklady: ${fmt(totalCost)}</span>
     ${branchCosts ? `<span style="font-size:12px;color:var(--ink-soft)">${branchCosts}</span>` : ''}
     <span style="font-size:11px;color:var(--ink-faint)">(${HOURS_PER_SHIFT}h/směna)</span>
   </div>`;
@@ -9736,7 +10099,7 @@ function applyAccessibilityAttributes(){
 
 <!-- ── F7: Session timeout banner ─────────────────────────────── -->
 <div id="session-timeout-banner" role="alert" aria-live="assertive">
-  ⏳ Relace brzy vyprší — <button onclick="window.location.reload()" style="background:rgba(255,255,255,.2);border:none;color:#fff;font-weight:700;padding:2px 8px;border-radius:5px;cursor:pointer;font-family:inherit">Obnovit</button>
+  <span data-icon="status_pending">⏳</span> Relace brzy vyprší — <button onclick="window.location.reload()" style="background:rgba(255,255,255,.2);border:none;color:#fff;font-weight:700;padding:2px 8px;border-radius:5px;cursor:pointer;font-family:inherit">Obnovit</button>
 </div>
 
 <!-- ── F2/F5: Open shifts modal ─────────────────────────────────── -->
@@ -9760,7 +10123,7 @@ function applyAccessibilityAttributes(){
     <div id="swap-modal-body"></div>
     <div style="display:flex;gap:10px;margin-top:16px">
       <button class="btn-outline" style="flex:1" onclick="document.getElementById('swap-modal-overlay').classList.remove('open')">✕ Zrušit</button>
-      <button class="btn-accent" style="flex:1" id="swap-confirm-btn" onclick="submitShiftSwap()">🔄 Nabídnout výměnu</button>
+      <button class="btn-accent" style="flex:1" id="swap-confirm-btn" onclick="submitShiftSwap()"><span data-icon="btn_vymeny">🔄</span> Nabídnout výměnu</button>
     </div>
   </div>
 </div>
