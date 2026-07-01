@@ -9295,7 +9295,7 @@ async function generateOpenSlots(){
   for(let d=1; d<=daysInMonth; d++){
     const dateStr = isoDate(schedYear, schedMonth+1, d);
     const dow = new Date(dateStr+'T00:00:00').getDay();
-    branches.forEach(b=>{
+    for(const b of branches){
       const sts = shiftTypes.filter(s=>s.branch_id===b.id);
       const minReq = getBranchDayMin(b, dow);
       if(!sts.length){
@@ -9308,7 +9308,7 @@ async function generateOpenSlots(){
           toInsert.push({ org_id: currentOrg.id, shift_date: dateStr, shift_type_code: st.code, status:'open' });
         });
       }
-    });
+    }
   }
   if(!toInsert.length){ toast('Žádné sloty ke generování'); return; }
 
