@@ -128,17 +128,18 @@ body.dark .auth-shell{
 }
 .auth-ring{
   position:absolute;
-  width:560px;height:560px;
+  inset:0;
   pointer-events:none;
-  opacity:.9;
+  overflow:hidden;
 }
-.auth-ring svg{width:100%;height:100%}
-.auth-ring .dot{animation:orbit 36s linear infinite}
-.auth-ring .dot:nth-child(2n){animation-duration:48s;animation-direction:reverse}
-.auth-ring .dot:nth-child(3n){animation-duration:60s}
-@keyframes orbit{
-  from{transform:rotate(0deg) translateX(0) rotate(0deg)}
-  to{transform:rotate(360deg) translateX(0) rotate(-360deg)}
+.auth-ring .dot{position:absolute;border-radius:50%;animation:dot-float 9s ease-in-out infinite}
+.auth-ring .dot:nth-child(2n){animation-duration:12s;animation-direction:reverse}
+.auth-ring .dot:nth-child(3n){animation-duration:15s}
+.auth-ring .dot:nth-child(5n){animation-delay:-4s}
+.auth-ring .dot:nth-child(7n){animation-delay:-2s}
+@keyframes dot-float{
+  0%,100%{transform:translateY(0)}
+  50%{transform:translateY(-14px)}
 }
 @media (prefers-reduced-motion: reduce){
   .auth-ring .dot{animation:none}
@@ -656,21 +657,7 @@ body.dark .search-input{color:var(--ink)}
 /* Shift note icon in cell */
 .cell-note-dot{position:absolute;top:2px;right:2px;width:6px;height:6px;border-radius:50%;background:var(--amber);pointer-events:none}
 
-/* Chat assistant */
-.chat-fab{position:fixed;bottom:24px;right:24px;z-index:400;width:52px;height:52px;border-radius:50%;background:var(--accent);color:#fff;border:none;cursor:pointer;display:none;align-items:center;justify-content:center;font-size:22px;box-shadow:0 4px 16px rgba(43,110,79,.4);transition:transform .15s}
-.chat-fab:hover{transform:scale(1.08)}
-.chat-panel{position:fixed;bottom:88px;right:24px;z-index:400;width:340px;background:var(--surface);border-radius:16px;box-shadow:var(--shadow-lg);border:1.5px solid var(--line);display:none;flex-direction:column;overflow:hidden;max-height:480px}
-.chat-panel.open{display:flex}
-.chat-header{padding:12px 14px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px;font-weight:700;font-size:14px}
-.chat-messages{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px}
-.chat-msg{max-width:85%;padding:8px 11px;border-radius:10px;font-size:13px;line-height:1.45}
-.chat-msg.user{background:var(--accent);color:#fff;align-self:flex-end;border-bottom-right-radius:3px}
-.chat-msg.ai{background:var(--paper);color:var(--ink);align-self:flex-start;border-bottom-left-radius:3px}
-.chat-input-row{display:flex;gap:6px;padding:10px;border-top:1px solid var(--line)}
-.chat-input{flex:1;border:1.5px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13px;font-family:inherit;color:var(--ink);background:var(--surface);outline:none;resize:none}
-.chat-input:focus{border-color:var(--accent)}
-.chat-send{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 12px;cursor:pointer;font-size:14px}
-body.dark .chat-msg.ai{background:var(--paper)}
+/* AI chat assistant removed — required a client-exposed Claude API key, which is unsafe in this public repo */
 
 /* Org switcher */
 .org-switcher-wrap{position:relative}
@@ -792,16 +779,24 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
      ============================================================ -->
 <div class="auth-shell" id="auth-shell" style="display:none">
   <div class="auth-ring" aria-hidden="true">
-    <svg viewBox="0 0 560 560">
-      <g transform="translate(280,280)">
-        <circle class="dot" cx="220" cy="0" r="5" fill="#2B6E4F" opacity=".55"/>
-        <circle class="dot" cx="-180" cy="90" r="4" fill="#D97A34" opacity=".5"/>
-        <circle class="dot" cx="120" cy="-190" r="3.5" fill="#2B6E4F" opacity=".4"/>
-        <circle class="dot" cx="-90" cy="-200" r="4.5" fill="#D97A34" opacity=".45"/>
-        <circle class="dot" cx="200" cy="120" r="3" fill="#2B6E4F" opacity=".35"/>
-        <circle class="dot" cx="-220" cy="-40" r="4" fill="#2B6E4F" opacity=".4"/>
-      </g>
-    </svg>
+    <span class="dot" style="left:6%;top:12%;width:10px;height:10px;background:#2B6E4F;opacity:.5"></span>
+    <span class="dot" style="left:18%;top:78%;width:8px;height:8px;background:#D97A34;opacity:.4"></span>
+    <span class="dot" style="left:28%;top:30%;width:14px;height:14px;background:#2B6E4F;opacity:.3"></span>
+    <span class="dot" style="left:35%;top:88%;width:7px;height:7px;background:#D97A34;opacity:.45"></span>
+    <span class="dot" style="left:42%;top:8%;width:9px;height:9px;background:#2B6E4F;opacity:.4"></span>
+    <span class="dot" style="left:48%;top:55%;width:6px;height:6px;background:#D97A34;opacity:.35"></span>
+    <span class="dot" style="left:55%;top:20%;width:11px;height:11px;background:#2B6E4F;opacity:.3"></span>
+    <span class="dot" style="left:62%;top:70%;width:8px;height:8px;background:#D97A34;opacity:.5"></span>
+    <span class="dot" style="left:70%;top:12%;width:6px;height:6px;background:#2B6E4F;opacity:.4"></span>
+    <span class="dot" style="left:75%;top:45%;width:13px;height:13px;background:#D97A34;opacity:.3"></span>
+    <span class="dot" style="left:82%;top:82%;width:9px;height:9px;background:#2B6E4F;opacity:.45"></span>
+    <span class="dot" style="left:88%;top:25%;width:7px;height:7px;background:#D97A34;opacity:.4"></span>
+    <span class="dot" style="left:92%;top:60%;width:10px;height:10px;background:#2B6E4F;opacity:.35"></span>
+    <span class="dot" style="left:12%;top:50%;width:8px;height:8px;background:#D97A34;opacity:.3"></span>
+    <span class="dot" style="left:24%;top:6%;width:6px;height:6px;background:#2B6E4F;opacity:.5"></span>
+    <span class="dot" style="left:58%;top:90%;width:9px;height:9px;background:#D97A34;opacity:.4"></span>
+    <span class="dot" style="left:8%;top:90%;width:7px;height:7px;background:#2B6E4F;opacity:.35"></span>
+    <span class="dot" style="left:95%;top:8%;width:8px;height:8px;background:#D97A34;opacity:.4"></span>
   </div>
 
   <div class="auth-card">
@@ -1753,24 +1748,6 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
       <button class="btn-accent" onclick="sendHelpRequest()" style="width:100%">📨 Odeslat</button>
     </div>
     <p style="font-size:12px;color:var(--ink-faint);margin-top:14px;text-align:center">Podpora: <a href="mailto:vavra@dp-partners.cz">vavra@dp-partners.cz</a></p>
-  </div>
-</div>
-
-<!-- ============================================================
-     CHAT AI ASSISTANT
-     ============================================================ -->
-<button class="chat-fab" id="chat-fab" onclick="toggleChat()" title="AI Asistent">💬</button>
-<div class="chat-panel" id="chat-panel">
-  <div class="chat-header">
-    <span>🤖</span> AI Asistent
-    <button onclick="toggleChat()" style="margin-left:auto;background:none;border:none;cursor:pointer;font-size:16px;color:var(--ink-soft)">✕</button>
-  </div>
-  <div class="chat-messages" id="chat-messages">
-    <div class="chat-msg ai">Ahoj! Jsem AI asistent Směny. Mohu ti pomoci s otázkami jako „Kolik směn má Linda tento měsíc?" nebo „Přidej Martinovi volno příští pátek". Jak ti mohu pomoct?</div>
-  </div>
-  <div class="chat-input-row">
-    <textarea class="chat-input" id="chat-input" rows="1" placeholder="Napiš otázku nebo příkaz…" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChatMessage()}"></textarea>
-    <button class="chat-send" onclick="sendChatMessage()">↑</button>
   </div>
 </div>
 
@@ -8232,7 +8209,12 @@ function saveLeaves(arr){ localStorage.setItem(getLeavesKey(), JSON.stringify(ar
 function openLeaveRequestModal(){
   const sel = document.getElementById('leave-emp-select');
   if(currentRole === 'admin'){
-    sel.innerHTML = employees.map(e=>`<option value="${e.id}">${escapeHtml(e.name)}</option>`).join('');
+    const ownEmp = currentEmployeeId ? employees.find(e=>e.id===currentEmployeeId) : null;
+    const rest = ownEmp ? employees.filter(e=>e.id!==ownEmp.id) : employees;
+    const ownOption = ownEmp
+      ? `<option value="${ownEmp.id}">${escapeHtml(ownEmp.name)} (já)</option>`
+      : `<option value="__admin__">Já (admin)</option>`;
+    sel.innerHTML = ownOption + rest.map(e=>`<option value="${e.id}">${escapeHtml(e.name)}</option>`).join('');
     sel.parentElement.style.display='';
   } else {
     if(currentEmployeeId){
@@ -8255,12 +8237,13 @@ function saveLeaveRequest(){
   const note = document.getElementById('leave-note').value.trim();
   if(!empId||!from||!to){ toast('Vyplň zaměstnance a data','error'); return; }
   if(from > to){ toast('Od musí být před Do','error'); return; }
-  const emp = employees.find(x=>x.id===empId);
+  const emp = empId === '__admin__' ? null : employees.find(x=>x.id===empId);
+  const empName = empId === '__admin__' ? (currentUser?.email ? `Já — ${currentUser.email}` : 'Já (admin)') : (emp?.name||'');
   const leaves = loadLeaves();
   leaves.push({
     id: Date.now().toString(),
     employee_id: empId,
-    employee_name: emp?.name||'',
+    employee_name: empName,
     from_date: from,
     to_date: to,
     note,
@@ -8305,23 +8288,25 @@ async function approveLeave(id){
   if(!l) return;
   l.status = 'approved';
   saveLeaves(leaves);
-  // Apply as X in schedule for all days in range
-  const from = new Date(l.from_date+'T00:00:00');
-  const to = new Date(l.to_date+'T00:00:00');
-  const toInsert = [];
-  for(let d = new Date(from); d <= to; d.setDate(d.getDate()+1)){
-    toInsert.push({
-      org_id: currentOrg.id, employee_id: l.employee_id,
-      shift_date: d.toISOString().split('T')[0],
-      shift_type_code: 'X', branch_id: null, is_auto: false
-    });
-  }
-  if(toInsert.length){
-    await sb.from('shifts').upsert(toInsert, { onConflict: 'org_id,employee_id,shift_date' });
-    await loadShiftsForMonth();
+  // Apply as X in schedule for all days in range (skip if not tied to a real employee record, e.g. admin-only request)
+  if(l.employee_id && l.employee_id !== '__admin__'){
+    const from = new Date(l.from_date+'T00:00:00');
+    const to = new Date(l.to_date+'T00:00:00');
+    const toInsert = [];
+    for(let d = new Date(from); d <= to; d.setDate(d.getDate()+1)){
+      toInsert.push({
+        org_id: currentOrg.id, employee_id: l.employee_id,
+        shift_date: d.toISOString().split('T')[0],
+        shift_type_code: 'X', branch_id: null, is_auto: false
+      });
+    }
+    if(toInsert.length){
+      await sb.from('shifts').upsert(toInsert, { onConflict: 'org_id,employee_id,shift_date' });
+      await loadShiftsForMonth();
+    }
   }
   renderLeaves();
-  toast('Žádost schválena, volno přidáno do rozpisu');
+  toast(l.employee_id === '__admin__' ? 'Žádost schválena' : 'Žádost schválena, volno přidáno do rozpisu');
   logAudit(`Žádost schválena: ${l.employee_name} ${l.from_date}–${l.to_date}`);
 }
 
@@ -8856,64 +8841,9 @@ function exportICS(){
   toast('ICS soubor exportován — importuj do kalendáře');
 }
 
-// ── Feature 18: AI CHATBOT ───────────────────────────────────
-
-let chatHistory = [];
-const CLAUDE_API_KEY = ''; // Set via org settings or env — placeholder
-
-function toggleChat(){
-  const panel = document.getElementById('chat-panel');
-  panel.classList.toggle('open');
-}
-
-async function sendChatMessage(){
-  const input = document.getElementById('chat-input');
-  const msg = input.value.trim();
-  if(!msg) return;
-  input.value = '';
-
-  addChatMsg('user', msg);
-  chatHistory.push({ role:'user', content: msg });
-
-  // Build context
-  const monthLabel = new Date(schedYear, schedMonth, 1).toLocaleDateString('cs-CZ',{month:'long',year:'numeric'});
-  const empSummary = employees.map(e=>{
-    const monthKey = isoDate(schedYear, schedMonth+1, 1).slice(0,7);
-    const count = shifts.filter(s=>s.employee_id===e.id&&s.shift_date.startsWith(monthKey)&&s.shift_type_code&&s.shift_type_code!=='X').length;
-    return `${e.name}: ${count} směn (min ${e.min_shifts}, max ${e.max_shifts})`;
-  }).join(', ');
-
-  const systemPrompt = `Jsi AI asistent pro aplikaci Směny — plánovač rozpisu směn. Aktuálně zobrazuješ ${monthLabel}. Zaměstnanci: ${empSummary}. Odpovídej stručně v češtině. Pokud tě někdo požádá o změnu v rozpisu, vysvětli že musí použít interface aplikace.`;
-
-  if(!CLAUDE_API_KEY){
-    addChatMsg('ai', `Funkce AI asistenta vyžaduje nastavení API klíče Claude v konfiguraci organizace. Kontaktujte správce.`);
-    return;
-  }
-
-  try{
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method:'POST',
-      headers:{ 'x-api-key': CLAUDE_API_KEY, 'anthropic-version':'2023-06-01', 'content-type':'application/json', 'anthropic-dangerous-direct-browser-access':'true' },
-      body: JSON.stringify({ model:'claude-haiku-4-5-20251001', max_tokens:400, system: systemPrompt, messages: chatHistory })
-    });
-    const data = await res.json();
-    const reply = data.content?.[0]?.text || 'Omlouvám se, nastala chyba.';
-    addChatMsg('ai', reply);
-    chatHistory.push({ role:'assistant', content: reply });
-    if(chatHistory.length > 20) chatHistory = chatHistory.slice(-20);
-  } catch(err){
-    addChatMsg('ai','Chyba připojení k AI. Zkus to znovu.');
-  }
-}
-
-function addChatMsg(role, text){
-  const msgs = document.getElementById('chat-messages');
-  const div = document.createElement('div');
-  div.className = `chat-msg ${role}`;
-  div.textContent = text;
-  msgs.appendChild(div);
-  msgs.scrollTop = msgs.scrollHeight;
-}
+// Feature 18 (AI chatbot) removed: it required calling api.anthropic.com directly from
+// the browser with an exposed API key, which is unsafe in this public repo and would
+// incur per-query cost. Revisit once there's a backend to hold the key server-side.
 
 // ── Feature 19: HELP CENTER ──────────────────────────────────
 
@@ -9010,9 +8940,6 @@ document.addEventListener('smeny:afterBootstrap', ()=>{
   loadShiftNotes();
   loadUserOrgs();
   registerServiceWorker();
-  // Show chat FAB for admin
-  const fab = document.getElementById('chat-fab');
-  if(fab && currentRole==='admin') fab.style.display='flex';
   // Hide org settings tab for non-admins
   const orgTab = document.getElementById('stab-org');
   if(orgTab) orgTab.style.display = currentRole==='admin' ? '' : 'none';
