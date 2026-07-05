@@ -786,7 +786,8 @@ body.dark .search-input{color:var(--ink)}
 .emp-type-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px;text-transform:uppercase;font-family:var(--font-mono)}
 .emp-type-badge.full{background:#dcfce7;color:#15803d}
 .emp-type-badge.part{background:#fef3c7;color:#b45309}
-.emp-type-badge.casual{background:#e0e7ff;color:#4338ca}
+.emp-type-badge.ico{background:#e0e7ff;color:#4338ca}
+.emp-type-badge.other{background:#f1f5f9;color:#475569}
 
 /* ── F10: Branch manager ─────────────────────────────────────── */
 .role-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px;text-transform:uppercase;font-family:var(--font-mono)}
@@ -1065,7 +1066,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
       <button class="btn-ghost" id="emp-settings-btn" onclick="openEmployeeSettings()" style="display:none"><span data-icon="set_profil">👤</span> Profil</button>
       <button class="btn-ghost" id="admin-settings-btn" onclick="openEmployeeSettings()" style="display:none"><span data-icon="set_profil">👤</span> Profil</button>
       <span id="org-code-badge" style="display:none;font-family:var(--font-mono);font-size:12px;font-weight:700;letter-spacing:1.5px;background:var(--paper);border:1.5px solid var(--line);padding:4px 10px;border-radius:6px;color:var(--ink-soft)" title="Kód firmy"></span>
-      <span id="app-version-label" title="Verze aplikace" onclick="handleVersionClick()" style="font-size:10px;color:var(--ink-faint);font-family:var(--font-mono);padding:0 4px;user-select:none;cursor:pointer">v0.7.0</span>
+      <span id="app-version-label" title="Verze aplikace" onclick="handleVersionClick()" style="font-size:10px;color:var(--ink-faint);font-family:var(--font-mono);padding:0 4px;user-select:none;cursor:pointer">v0.7.1</span>
       <button class="btn-ghost" onclick="openSearch()" title="Vyhledat (Ctrl+K)" style="padding:6px 10px;font-size:14px"><span data-icon="btn_hledat">🔍</span></button>
       <button class="btn-ghost" onclick="openHelpCenter()" title="Nápověda" style="padding:6px 10px;font-size:14px"><span data-icon="btn_napoveda">❓</span></button>
       <button class="btn-ghost" id="notif-btn" onclick="toggleNotifPanel()" title="Notifikace" style="position:relative;padding:6px 10px;font-size:16px;display:none;align-items:center;justify-content:center">
@@ -1318,7 +1319,8 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
             <option value="">Všechny typy úvazků</option>
             <option value="full">Plný úvazek</option>
             <option value="part">Částečný úvazek</option>
-            <option value="casual">Brigáda / DPP</option>
+            <option value="ico">IČO / Externista</option>
+            <option value="other">Ostatní</option>
           </select>
         </div>
         <div id="employees-table-wrap"></div>
@@ -1428,7 +1430,8 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
       <select id="employee-employment-type" style="padding:8px 10px;border:1.5px solid var(--line);border-radius:8px;font-size:14px;font-family:inherit;color:var(--ink)">
         <option value="full">Plný úvazek</option>
         <option value="part">Částečný úvazek</option>
-        <option value="casual">Brigáda / DPP</option>
+        <option value="ico">IČO / Externista</option>
+        <option value="other">Ostatní</option>
       </select>
     </div>
 
@@ -1768,7 +1771,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
       <span data-icon="btn_zpet">←</span>
     </button>
     <div class="help-breadcrumb" id="help-breadcrumb">Pomoc</div>
-    <button class="help-nav-btn" onclick="helpGoHome()" title="Domů">
+    <button class="help-nav-btn" onclick="handleHelpHomeClick()" title="Domů">
       <span data-icon="help_home">🏠</span>
     </button>
     <button class="help-nav-btn" onclick="closeHelpCenter()" title="Zavřít">
@@ -2054,7 +2057,7 @@ const DEFAULT_ICONS = {
   help_thumbs_up: '👍', help_thumbs_down: '👎', help_home: '🏠',
 
   // Notifikace
-  notif_bell: '🔔', notif_rozpis: '📢', notif_pozvanka: '📨',
+  notif_bell: '🔔', notif_rozpis: '📢', notif_pozvanka: '📨', notif_zadost_volno: '🙋',
 
   // Nastavení
   set_profil: '👤', set_vzhled: '🎨', set_notifikace: '🔔', set_jazyk: '🌐',
@@ -2264,11 +2267,44 @@ function hideAuthError(which){
 // ============================================================
 // AUTH ACTIONS
 // ============================================================
+// ── Login rate limiting: 5 failed attempts → 15 min lockout ──────────────
+// Client-side only (per browser/localStorage) since this is a static-file
+// app with no custom backend in front of Supabase Auth — it deters casual
+// brute-forcing and stops repeated form re-submits, but a determined
+// attacker could clear storage or hit the Supabase API directly (Supabase's
+// own platform-level auth throttling still applies underneath this).
+const LOGIN_LOCKOUT_KEY = 'smeny_login_attempts';
+const LOGIN_MAX_ATTEMPTS = 5;
+const LOGIN_LOCKOUT_MS = 15*60*1000;
+
+function getLoginAttemptState(email){
+  const all = JSON.parse(localStorage.getItem(LOGIN_LOCKOUT_KEY) || '{}');
+  return all[email.toLowerCase()] || { count: 0, lockedUntil: 0 };
+}
+function setLoginAttemptState(email, state){
+  const all = JSON.parse(localStorage.getItem(LOGIN_LOCKOUT_KEY) || '{}');
+  all[email.toLowerCase()] = state;
+  localStorage.setItem(LOGIN_LOCKOUT_KEY, JSON.stringify(all));
+}
+// Best-effort insert into a Supabase `login_attempts` table so failed logins
+// are visible server-side too, not just in this browser's localStorage. See
+// the schema note near the audit_log comment for the table/RLS policy needed.
+function logFailedLogin(email, reason){
+  sb.from('login_attempts').insert({ email, success: false, reason, created_at: new Date().toISOString() }).catch(()=>{});
+}
+
 async function doLogin(){
   hideAuthError('login');
   const email = document.getElementById('login-email').value.trim();
   const password = document.getElementById('login-pass').value;
   if(!email || !password){ showAuthError('login','Vyplň e-mail i heslo.'); return; }
+
+  const attemptState = getLoginAttemptState(email);
+  if(attemptState.lockedUntil && Date.now() < attemptState.lockedUntil){
+    const minsLeft = Math.ceil((attemptState.lockedUntil - Date.now()) / 60000);
+    showAuthError('login', `Příliš mnoho neúspěšných pokusů. Zkus to znovu za ${minsLeft} min.`);
+    return;
+  }
 
   const btn = document.getElementById('login-btn');
   btn.disabled = true; btn.textContent = 'Přihlašuji…';
@@ -2277,10 +2313,16 @@ async function doLogin(){
   btn.disabled = false; btn.textContent = 'Přihlásit se';
 
   if(error){
-    showAuthError('login', error.message === 'Invalid login credentials'
-      ? 'Nesprávný e-mail nebo heslo.' : error.message);
+    const nextCount = (attemptState.count||0) + 1;
+    const locked = nextCount >= LOGIN_MAX_ATTEMPTS;
+    setLoginAttemptState(email, { count: locked ? 0 : nextCount, lockedUntil: locked ? Date.now()+LOGIN_LOCKOUT_MS : 0 });
+    logFailedLogin(email, error.message);
+    showAuthError('login', locked
+      ? 'Příliš mnoho neúspěšných pokusů. Přihlášení je na 15 minut zablokováno.'
+      : error.message === 'Invalid login credentials' ? 'Nesprávný e-mail nebo heslo.' : error.message);
     return;
   }
+  setLoginAttemptState(email, { count: 0, lockedUntil: 0 });
   await bootstrapAfterAuth();
   logActivity('Přihlášení uživatele ' + email);
 }
@@ -2409,6 +2451,10 @@ async function joinOrgByCode(orgCode){
 }
 
 async function doLogout(){
+  clearTimeout(_sessionWarnTimer);
+  clearTimeout(_sessionLogoutTimer);
+  const banner = document.getElementById('session-timeout-banner');
+  if(banner) banner.style.display = 'none';
   await sb.auth.signOut();
   currentUser = null; currentOrg = null; currentRole = null;
   document.getElementById('app-shell').style.display = 'none';
@@ -3003,7 +3049,7 @@ function openEmployeeModal(id){
     document.getElementById('employee-notes').value = e.notes || '';
     document.getElementById('employee-fixed').checked = !!e.is_fixed;
     const etEl = document.getElementById('employee-employment-type');
-    if(etEl) etEl.value = e.employment_type || 'full';
+    if(etEl) etEl.value = ['full','part','ico','other'].includes(e.employment_type) ? e.employment_type : 'full';
     const notifyEl = document.getElementById('employee-notify-email');
     if(notifyEl) notifyEl.checked = (orgSettings['emp_notify']?.[e.id]?.email) !== false;
   } else {
@@ -6706,6 +6752,8 @@ function closeNotifOnOutside(e){
   }
 }
 
+const NOTIF_LEAVE_TYPES = ['leave_request', 'leave_approved', 'leave_rejected'];
+
 function renderNotifPanel(){
   const list = document.getElementById('notif-list');
   if(!list) return;
@@ -6713,9 +6761,10 @@ function renderNotifPanel(){
     list.innerHTML = '<div style="padding:20px 16px;text-align:center;color:var(--ink-faint);font-size:13px">Žádné notifikace</div>';
     return;
   }
-  list.innerHTML = _notifications.map(n=>{
+  list.innerHTML = _notifications.map((n,i)=>{
     const date = new Date(n.created_at).toLocaleDateString('cs-CZ',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
-    return `<div style="padding:10px 16px;border-bottom:1px solid var(--line);display:flex;gap:10px;align-items:flex-start;background:${n.read?'none':'var(--accent-soft)'}">
+    const clickable = NOTIF_LEAVE_TYPES.includes(n.type);
+    return `<div onclick="handleNotifClick(${i})" style="padding:10px 16px;border-bottom:1px solid var(--line);display:flex;gap:10px;align-items:flex-start;background:${n.read?'none':'var(--accent-soft)'};${clickable?'cursor:pointer':''}">
       <div style="flex:1">
         <div style="font-size:13px;color:var(--ink);line-height:1.4">${escapeHtml(n.message)}</div>
         <div style="font-size:11px;color:var(--ink-faint);margin-top:3px">${date}</div>
@@ -6723,6 +6772,20 @@ function renderNotifPanel(){
       ${!n.read?`<div style="width:7px;height:7px;border-radius:50%;background:var(--red);flex-shrink:0;margin-top:5px"></div>`:''}
     </div>`;
   }).join('');
+}
+
+async function handleNotifClick(i){
+  const n = _notifications[i];
+  if(!n) return;
+  if(NOTIF_LEAVE_TYPES.includes(n.type)){
+    toggleNotifPanel();
+    switchAppTab('leaves');
+  }
+  if(!n.read){
+    n.read = true;
+    updateNotifBadge();
+    await sb.from('notifications').update({ read: true }).eq('id', n.id);
+  }
 }
 
 async function markAllNotifsRead(){
@@ -6777,34 +6840,111 @@ async function doPublishSchedule(){
   if(error){ toast('Chyba: ' + error.message, 'error'); return; }
   orgSettings = newSettings;
 
-  // Insert in-app notifications for all org employees
-  const notifRows = employees
-    .filter(emp => emp.user_id)
-    .map(emp => ({
-      org_id: currentOrg.id,
-      user_id: emp.user_id,
-      message: `${ICONS.btn_publikovat} Byl publikován nový rozpis na ${monthLabel}.`,
-      type: 'publish',
-      read: false,
-    }));
+  // Insert in-app notifications for all org employees (the publishing admin gets a separate summary below)
+  const notifiedEmployees = employees.filter(emp => emp.user_id && emp.user_id !== currentUser.id);
+  const notifRows = notifiedEmployees.map(emp => ({
+    org_id: currentOrg.id,
+    user_id: emp.user_id,
+    message: `${ICONS.btn_publikovat} Byl publikován nový rozpis na ${monthLabel}.`,
+    type: 'publish',
+    read: false,
+  }));
   if(notifRows.length > 0){
     await sb.from('notifications').insert(notifRows);
   }
 
-  // Send email notifications (best-effort via Edge Function)
-  const emailRecipients = employees.filter(emp => {
+  // Confirm to the admin who published that it went through
+  await sb.from('notifications').insert({
+    org_id: currentOrg.id,
+    user_id: currentUser.id,
+    message: `${ICONS.status_ok} Rozpis ${monthLabel} byl úspěšně publikován. ${notifiedEmployees.length > 0 ? `Zaměstnanci (${notifiedEmployees.length}) byli upozorněni.` : 'Žádní zaměstnanci s propojeným účtem nebyli upozorněni.'}`,
+    type: 'publish_admin',
+    read: false,
+  });
+  loadNotifications();
+
+  // Send email notifications (best-effort via Edge Function), including a confirmation email to the admin
+  const emailRecipients = notifiedEmployees.filter(emp => {
     const pref = orgSettings['emp_notify']?.[emp.id];
-    return emp.user_id && (pref === undefined || pref?.email !== false);
-  }).map(emp => emp.user_id);
+    return pref === undefined || pref?.email !== false;
+  });
+  const notifLog = {
+    ts: new Date().toISOString(),
+    monthLabel,
+    inapp_recipients: notifiedEmployees.map(emp => ({ name: emp.name, user_id: emp.user_id })),
+    email_recipients: emailRecipients.map(emp => ({ name: emp.name, user_id: emp.user_id })),
+    admin_email: currentUser.email,
+    email_invoked: emailRecipients.length > 0,
+    email_result: null,
+    email_error: null,
+  };
   if(emailRecipients.length > 0){
-    sb.functions.invoke('smeny-notify', {
-      body: { org_id: currentOrg.id, month: key, user_ids: emailRecipients, month_label: monthLabel }
-    }).catch(()=>{});
+    try {
+      const { data, error } = await sb.functions.invoke('smeny-notify', {
+        body: {
+          org_id: currentOrg.id, month: key, month_label: monthLabel,
+          user_ids: emailRecipients.map(emp => emp.user_id),
+          admin_user_id: currentUser.id,
+        }
+      });
+      if(error) notifLog.email_error = error.message || String(error);
+      else notifLog.email_result = data;
+    } catch(e){
+      notifLog.email_error = String(e);
+    }
   }
+  saveNotifLog(notifLog);
 
   toast(`${ICONS.btn_publikovat} Rozpis ${monthLabel} publikován`, 'ok');
   logActivity(`Rozpis ${monthLabel} byl publikován`);
   updatePublishBtn();
+}
+
+function getNotifLogKey(){ return `notif_log_${currentOrg?.id}`; }
+function saveNotifLog(entry){
+  localStorage.setItem(getNotifLogKey(), JSON.stringify(entry));
+}
+function loadNotifLog(){
+  const raw = localStorage.getItem(getNotifLogKey());
+  return raw ? JSON.parse(raw) : null;
+}
+
+async function testNotifications(){
+  if(!currentUser || !currentOrg) return;
+  const { error } = await sb.from('notifications').insert({
+    org_id: currentOrg.id,
+    user_id: currentUser.id,
+    message: `${ICONS.notif_bell} Testovací notifikace (${new Date().toLocaleTimeString('cs-CZ')})`,
+    type: 'test',
+    read: false,
+  });
+  await loadNotifications();
+  toast(error ? 'Chyba: ' + error.message : '✓ Testovací notifikace odeslána sama sobě', error ? 'error' : 'ok');
+  renderNotifTestLog();
+}
+
+function renderNotifTestLog(){
+  const el = document.getElementById('notif-test-log');
+  if(!el) return;
+  const log = loadNotifLog();
+  if(!log){
+    el.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);margin:8px 0 0">Zatím žádné publikování k zobrazení.</p>';
+    return;
+  }
+  const emailRows = (log.email_recipients||[]).map(r=>`<div>${escapeHtml(r.name)}</div>`).join('') || '<div>—</div>';
+  const emailStatus = log.email_error
+    ? `<span style="color:var(--red)">selhalo (${escapeHtml(log.email_error)})</span>`
+    : log.email_invoked
+      ? `<span style="color:var(--accent-ink)">odesláno (viz odpověď funkce níže)</span>`
+      : '<span>nebylo potřeba odesílat</span>';
+  el.innerHTML = `
+    <div style="font-size:12.5px;color:var(--ink);margin-top:8px;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--paper)">
+      <div><strong>Poslední publikování:</strong> ${escapeHtml(log.monthLabel)} — ${new Date(log.ts).toLocaleString('cs-CZ')}</div>
+      <div style="margin-top:6px"><strong>In-app notifikace poslány (${(log.inapp_recipients||[]).length}):</strong> ${(log.inapp_recipients||[]).map(r=>escapeHtml(r.name)).join(', ') || '—'}</div>
+      <div style="margin-top:6px"><strong>Email zaměstnancům (${(log.email_recipients||[]).length}):</strong>${emailRows}</div>
+      <div style="margin-top:6px"><strong>Email adminovi (${escapeHtml(log.admin_email||'—')}):</strong> ${emailStatus}</div>
+      ${log.email_result ? `<div style="margin-top:6px"><strong>Odpověď funkce:</strong> <code style="font-size:11px">${escapeHtml(JSON.stringify(log.email_result))}</code></div>` : ''}
+    </div>`;
 }
 
 async function saveProfile(){
@@ -8037,6 +8177,27 @@ function positionEmpBubble(){
 
 // ── Feature 1 & 2: STATISTIKY + ARCHIV ──────────────────────
 
+// Days in the current stats month where a branch's minimum staffing was met vs
+// total days that branch actually required staffing (days with min=0, e.g. closed, don't count).
+function computeBranchDayCoverage(shiftList, daysInMonth){
+  return branches.map(b=>{
+    const sts = shiftTypes.filter(st=>st.branch_id===b.id);
+    let daysMet = 0, daysTotal = 0;
+    for(let d=1; d<=daysInMonth; d++){
+      const dow = new Date(schedYear, schedMonth, d).getDay();
+      const minReq = getBranchDayMin(b, dow);
+      if(!minReq) continue;
+      daysTotal++;
+      const dateStr = isoDate(schedYear, schedMonth+1, d);
+      const met = sts.length
+        ? sts.every(st => shiftList.some(s => s.shift_date===dateStr && s.shift_type_code===st.code))
+        : shiftList.filter(s => s.shift_date===dateStr && s.shift_type_code===b.code).length >= minReq;
+      if(met) daysMet++;
+    }
+    return { branch: b, daysMet, daysTotal };
+  });
+}
+
 function renderStats(){
   const el = document.getElementById('stats-content');
   if(!el) return;
@@ -8046,25 +8207,35 @@ function renderStats(){
 
   const daysInMonth = new Date(schedYear, schedMonth+1, 0).getDate();
   const monthKey = isoDate(schedYear, schedMonth+1, 1).slice(0,7);
+  const shiftList = Object.values(shifts).filter(s => s.shift_date && s.shift_date.startsWith(monthKey));
 
-  // Count shifts per employee this month
+  // Count shifts per employee + per shift type this month
   const empCounts = {};
-  const branchCounts = {};
+  const typeCounts = {};
   employees.forEach(e => { empCounts[e.id] = 0; });
-  branches.forEach(b => { branchCounts[b.id] = 0; });
 
-  shifts.forEach(s => {
-    if(!s.shift_date.startsWith(monthKey)) return;
+  shiftList.forEach(s => {
     if(s.shift_type_code && s.shift_type_code !== 'X'){
       if(empCounts[s.employee_id] !== undefined) empCounts[s.employee_id]++;
-      if(s.branch_id && branchCounts[s.branch_id] !== undefined) branchCounts[s.branch_id]++;
+      typeCounts[s.shift_type_code] = (typeCounts[s.shift_type_code]||0) + 1;
     }
   });
 
   const totalShifts = Object.values(empCounts).reduce((a,b)=>a+b,0);
+
+  if(totalShifts === 0){
+    el.innerHTML = `<div class="empty-state"><div style="font-size:40px;margin-bottom:12px">${ICONS.nav_statistiky}</div>
+      <p style="font-size:15px;font-weight:700;margin-bottom:6px">Nejsou k dispozici žádná data</p>
+      <p style="font-size:13px;color:var(--ink-soft)">Vygeneruj nebo ručně zadej směny pro zobrazení statistik.</p></div>`;
+    return;
+  }
+
   const avgShifts = employees.length ? (totalShifts/employees.length).toFixed(1) : 0;
-  const maxBranchName = branches.length ? branches.reduce((a,b)=>branchCounts[a.id]>=branchCounts[b.id]?a:b,branches[0]) : null;
-  const minBranchName = branches.length ? branches.reduce((a,b)=>branchCounts[a.id]<=branchCounts[b.id]?a:b,branches[0]) : null;
+  const empRanking = employees.map(e=>({ e, count: empCounts[e.id]||0 })).sort((a,b)=>b.count-a.count);
+  const topEmp = empRanking[0];
+  const bottomEmp = empRanking[empRanking.length-1];
+
+  const branchCoverage = computeBranchDayCoverage(shiftList, daysInMonth);
 
   // Quality history (last 6 months from localStorage)
   const key = `sched_quality_${currentOrg?.id}`;
@@ -8074,8 +8245,8 @@ function renderStats(){
     <div class="stats-grid">
       <div class="stats-card"><div class="stats-card-title">Celkem směn</div><div class="stats-card-val">${totalShifts}</div><div class="stats-card-sub">za ${d.toLocaleDateString('cs-CZ',{month:'long'})}</div></div>
       <div class="stats-card"><div class="stats-card-title">Průměr / zaměstnanec</div><div class="stats-card-val">${avgShifts}</div><div class="stats-card-sub">ze ${daysInMonth} dní</div></div>
-      <div class="stats-card"><div class="stats-card-title">Nejvytíženější pobočka</div><div class="stats-card-val" style="font-size:18px">${maxBranchName?escapeHtml(maxBranchName.name):'—'}</div><div class="stats-card-sub">${maxBranchName?branchCounts[maxBranchName.id]+' směn':''}</div></div>
-      <div class="stats-card"><div class="stats-card-title">Nejméně obsazená</div><div class="stats-card-val" style="font-size:18px">${minBranchName&&minBranchName.id!==maxBranchName?.id?escapeHtml(minBranchName.name):'—'}</div><div class="stats-card-sub">${minBranchName&&minBranchName.id!==maxBranchName?.id?branchCounts[minBranchName.id]+' směn':''}</div></div>
+      <div class="stats-card"><div class="stats-card-title">Nejvíc směn</div><div class="stats-card-val" style="font-size:18px">${topEmp?escapeHtml(topEmp.e.name):'—'}</div><div class="stats-card-sub">${topEmp?topEmp.count+' směn':''}</div></div>
+      <div class="stats-card"><div class="stats-card-title">Nejméně směn</div><div class="stats-card-val" style="font-size:18px">${bottomEmp&&bottomEmp.e.id!==topEmp?.e.id?escapeHtml(bottomEmp.e.name):'—'}</div><div class="stats-card-sub">${bottomEmp&&bottomEmp.e.id!==topEmp?.e.id?bottomEmp.count+' směn':''}</div></div>
     </div>
 
     <h3 style="font-family:var(--font-display);font-size:15px;margin:0 0 14px">Směny dle zaměstnance — min / cíl / max</h3>
@@ -8099,18 +8270,29 @@ function renderStats(){
       }).join('')}
     </div>
 
-    <h3 style="font-family:var(--font-display);font-size:15px;margin:0 0 14px">Obsazenost poboček</h3>
+    <h3 style="font-family:var(--font-display);font-size:15px;margin:0 0 14px">Pokrytí poboček — dní se splněným minimem</h3>
     <div style="margin-bottom:24px">
-      ${branches.map(b=>{
-        const count = branchCounts[b.id]||0;
-        const maxCount = Math.max(...Object.values(branchCounts),1);
-        const pct = Math.round((count/maxCount)*100);
+      ${branchCoverage.length ? branchCoverage.map(({branch:b, daysMet, daysTotal})=>{
+        const pct = daysTotal ? Math.round((daysMet/daysTotal)*100) : 100;
         return `<div class="stats-bar-row">
           <span class="stats-bar-label" title="${escapeHtml(b.name)}">${escapeHtml(b.name)}</span>
           <div class="stats-bar-track"><div class="stats-bar-fill" style="width:${pct}%;background:${b.color||'var(--accent)'}"></div></div>
-          <span class="stats-bar-num">${count}</span>
+          <span class="stats-bar-num">${daysMet}/${daysTotal}</span>
         </div>`;
-      }).join('')}
+      }).join('') : '<p style="font-size:13px;color:var(--ink-soft)">Žádné pobočky.</p>'}
+    </div>
+
+    <h3 style="font-family:var(--font-display);font-size:15px;margin:0 0 14px">Přehled typů směn</h3>
+    <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:24px">
+      ${Object.keys(typeCounts).length ? Object.entries(typeCounts).sort((a,b)=>b[1]-a[1]).map(([code,cnt])=>{
+        const st = shiftTypes.find(s=>s.code===code);
+        return `<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border:1.5px solid var(--line);border-radius:8px">
+          <span style="width:10px;height:10px;border-radius:3px;background:${st?.color||'var(--accent)'}"></span>
+          <span style="font-weight:600;font-size:13px">${escapeHtml(st?.label||code)}</span>
+          <span style="font-size:12px;color:var(--ink-faint)">(${escapeHtml(code)})</span>
+          <span style="font-weight:700;font-size:14px;margin-left:4px">${cnt}</span>
+        </div>`;
+      }).join('') : '<p style="font-size:13px;color:var(--ink-soft)">Žádné směny.</p>'}
     </div>
 
     ${qualityHistory.length ? `
@@ -8133,7 +8315,7 @@ function exportStatsExcel(){
   const monthKey = isoDate(schedYear, schedMonth+1, 1).slice(0,7);
   const rows = [['Zaměstnanec','Min','Cíl','Max','Skutečně','Status']];
   employees.forEach(e=>{
-    const count = shifts.filter(s=>s.employee_id===e.id&&s.shift_date.startsWith(monthKey)&&s.shift_type_code&&s.shift_type_code!=='X').length;
+    const count = Object.values(shifts).filter(s=>s.employee_id===e.id&&s.shift_date.startsWith(monthKey)&&s.shift_type_code&&s.shift_type_code!=='X').length;
     const status = count<e.min_shifts?'Pod minimum':count>e.max_shifts?'Překročen max':'OK';
     rows.push([e.name,e.min_shifts,e.target_shifts,e.max_shifts,count,status]);
   });
@@ -8277,7 +8459,7 @@ async function saveCurrentAsTemplate(){
   const name = prompt('Název šablony (např. "Letní provoz"):','');
   if(!name) return;
   const monthKey = isoDate(schedYear, schedMonth+1, 1).slice(0,7);
-  const monthShifts = shifts.filter(s=>s.shift_date.startsWith(monthKey));
+  const monthShifts = Object.values(shifts).filter(s=>s.shift_date.startsWith(monthKey));
   try {
     const { error } = await sb.from('schedule_templates').insert({
       org_id: currentOrg.id,
@@ -8376,6 +8558,22 @@ function getLeavesKey(){ return `leave_requests_${currentOrg?.id}`; }
 function loadLeaves(){ return JSON.parse(localStorage.getItem(getLeavesKey())||'[]'); }
 function saveLeaves(arr){ localStorage.setItem(getLeavesKey(), JSON.stringify(arr)); }
 
+function fmtLeaveRange(from, to){
+  const dFrom = new Date(from+'T00:00:00');
+  const dTo = new Date(to+'T00:00:00');
+  return `${dFrom.getDate()}.${dFrom.getMonth()+1}. – ${dTo.getDate()}.${dTo.getMonth()+1}.${dTo.getFullYear()}`;
+}
+function fmtLeaveRangeShort(from, to){
+  const dFrom = new Date(from+'T00:00:00');
+  const dTo = new Date(to+'T00:00:00');
+  return `${dFrom.getDate()}.${dFrom.getMonth()+1}. – ${dTo.getDate()}.${dTo.getMonth()+1}.`;
+}
+function leaveDayCount(from, to){
+  const dFrom = new Date(from+'T00:00:00');
+  const dTo = new Date(to+'T00:00:00');
+  return Math.round((dTo - dFrom) / 86400000) + 1;
+}
+
 function openLeaveRequestModal(){
   const sel = document.getElementById('leave-emp-select');
   if(currentRole === 'admin'){
@@ -8425,6 +8623,21 @@ function saveLeaveRequest(){
   toast('Žádost odeslána');
   logAudit(`Žádost o volno: ${emp?.name} ${from}–${to}`);
   if(document.getElementById('pane-leaves').style.display !== 'none') renderLeaves();
+
+  // Notify org admins in-app so they know a request is waiting for them
+  if(currentOrg){
+    const admins = orgMembers.filter(m => m.role === 'admin' && m.user_id && m.user_id !== currentUser?.id);
+    if(admins.length){
+      const rows = admins.map(m => ({
+        org_id: currentOrg.id,
+        user_id: m.user_id,
+        message: `${ICONS.notif_zadost_volno} ${empName} žádá o volno ${fmtLeaveRange(from, to)}. Ke schválení →`,
+        type: 'leave_request',
+        read: false,
+      }));
+      sb.from('notifications').insert(rows).catch(()=>{});
+    }
+  }
 }
 
 function renderLeaves(){
@@ -8442,9 +8655,10 @@ function renderLeaves(){
     <div class="leave-request-row">
       <div style="flex:1">
         <div style="font-weight:600">${escapeHtml(l.employee_name)}</div>
-        <div style="color:var(--ink-soft);font-size:12px">${l.from_date} – ${l.to_date}${l.note?' • '+escapeHtml(l.note):''}</div>
+        <div style="color:var(--ink-soft);font-size:12px">${l.from_date} – ${l.to_date} (${leaveDayLabel(leaveDayCount(l.from_date,l.to_date))})${l.note?' • '+escapeHtml(l.note):''}</div>
+        ${l.status==='rejected'&&l.reject_reason?`<div style="color:var(--red);font-size:12px;margin-top:2px">Důvod zamítnutí: ${escapeHtml(l.reject_reason)}</div>`:''}
       </div>
-      <span class="leave-status ${l.status}">${l.status==='pending'?ICONS.status_pending+' čeká':l.status==='approved'?'✓ schváleno':'✕ zamítnuto'}</span>
+      <span class="leave-status ${l.status}">${l.status==='pending'?ICONS.status_pending+' čeká':l.status==='approved'?ICONS.status_ok+' schváleno':ICONS.status_error+' zamítnuto'}</span>
       ${currentRole==='admin'&&l.status==='pending'?`
         <button class="btn-accent" style="padding:4px 10px;font-size:12px;margin-left:8px" onclick="approveLeave('${l.id}')">Schválit</button>
         <button class="btn-ghost" style="padding:4px 10px;font-size:12px;color:var(--red);border-color:var(--red)" onclick="rejectLeave('${l.id}')">Zamítnout</button>
@@ -8478,17 +8692,46 @@ async function approveLeave(id){
   renderLeaves();
   toast(l.employee_id === '__admin__' ? 'Žádost schválena' : 'Žádost schválena, volno přidáno do rozpisu');
   logAudit(`Žádost schválena: ${l.employee_name} ${l.from_date}–${l.to_date}`);
+  notifyLeaveDecision(l, 'approved');
 }
 
 function rejectLeave(id){
   const leaves = loadLeaves();
   const l = leaves.find(x=>x.id===id);
   if(!l) return;
+  const reason = (prompt('Důvod zamítnutí (nepovinné, uvidí ho zaměstnanec):', '') || '').trim();
   l.status = 'rejected';
+  l.reject_reason = reason;
   saveLeaves(leaves);
   renderLeaves();
   toast('Žádost zamítnuta');
   logAudit(`Žádost zamítnuta: ${l.employee_name} ${l.from_date}–${l.to_date}`);
+  notifyLeaveDecision(l, 'rejected');
+}
+
+function leaveDayLabel(days){
+  return `${days} ${days===1?'den':days<5?'dny':'dní'}`;
+}
+
+// Notifies the requesting employee in-app once their leave request is approved/rejected.
+// No-op for the admin's own request (employee_id==='__admin__') since there's no separate
+// account to notify, or if the employee has no linked user account yet.
+function notifyLeaveDecision(l, decision){
+  if(!currentOrg || !l.employee_id || l.employee_id === '__admin__') return;
+  const emp = employees.find(e=>e.id===l.employee_id);
+  if(!emp?.user_id) return;
+  const range = fmtLeaveRangeShort(l.from_date, l.to_date);
+  const days = leaveDayLabel(leaveDayCount(l.from_date, l.to_date));
+  const message = decision === 'approved'
+    ? `${ICONS.status_ok} Tvoje žádost o volno ${range} (${days}) byla schválena.`
+    : `${ICONS.status_error} Tvoje žádost o volno ${range} (${days}) byla zamítnuta.${l.reject_reason ? ` Důvod: ${l.reject_reason}` : ''}`;
+  sb.from('notifications').insert({
+    org_id: currentOrg.id,
+    user_id: emp.user_id,
+    message,
+    type: decision === 'approved' ? 'leave_approved' : 'leave_rejected',
+    read: false,
+  }).catch(()=>{});
 }
 
 // ── Feature 7: TISK VYLEPŠENÍ ────────────────────────────────
@@ -8641,10 +8884,16 @@ function renderOrgSettings(){
       <button class="btn-accent" onclick="saveOrgSettings()">${ICONS.btn_ulozit} Uložit nastavení organizace</button>
       <button class="btn-ghost" onclick="openAuditLog()" style="margin-top:4px">${ICONS.audit_log} Historie změn</button>
       <div style="margin-top:8px;padding-top:14px;border-top:1px solid var(--line)">
+        <label style="font-weight:600">${ICONS.notif_bell} Test notifikací <span style="font-weight:400;color:var(--ink-faint);font-size:11.5px">(dočasný debug nástroj)</span></label>
+        <button class="btn-outline" onclick="testNotifications()" style="margin-top:8px">${ICONS.notif_bell} Test notifikací</button>
+        <div id="notif-test-log"></div>
+      </div>
+      <div style="margin-top:8px;padding-top:14px;border-top:1px solid var(--line)">
         <p style="font-size:12.5px;color:var(--ink-soft);margin:0 0 10px">${ICONS.status_warning} Smazání organizace je nevratné. Smažou se všechna data.</p>
         <button onclick="confirmDeleteOrg()" style="background:none;border:1.5px solid var(--red);color:var(--red);border-radius:8px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">${ICONS.btn_smazat} Smazat organizaci</button>
       </div>
     </div>`;
+  renderNotifTestLog();
 }
 
 async function handleOrgLogoUpload(input){
@@ -8859,8 +9108,8 @@ async function onCellDrop(e, empId, dateStr){
   e.currentTarget.classList.remove('drag-over');
   if(!_dragEmpId || !_dragDate || (_dragEmpId===empId && _dragDate===dateStr)) return;
 
-  const srcShift = shifts.find(s=>s.employee_id===_dragEmpId && s.shift_date===_dragDate);
-  const dstShift = shifts.find(s=>s.employee_id===empId && s.shift_date===dateStr);
+  const srcShift = Object.values(shifts).find(s=>s.employee_id===_dragEmpId && s.shift_date===_dragDate);
+  const dstShift = Object.values(shifts).find(s=>s.employee_id===empId && s.shift_date===dateStr);
 
   if(!srcShift){ _dragEmpId=null; _dragDate=null; return; }
   if(!confirm(`Přesunout směnu ${srcShift.shift_type_code||''} z ${_dragDate} na ${dateStr}${_dragEmpId!==empId?' (jiný zaměstnanec)':''}?`)){ _dragEmpId=null; _dragDate=null; return; }
@@ -9004,7 +9253,7 @@ async function exportPayrollExcel(){
 function exportICS(){
   // Export current employee's (or all) shifts as ICS
   const monthKey = isoDate(schedYear, schedMonth+1, 1).slice(0,7);
-  let targetShifts = shifts.filter(s=>s.shift_date.startsWith(monthKey)&&s.shift_type_code&&s.shift_type_code!=='X');
+  let targetShifts = Object.values(shifts).filter(s=>s.shift_date.startsWith(monthKey)&&s.shift_type_code&&s.shift_type_code!=='X');
 
   if(currentRole!=='admin' && currentEmployeeId){
     targetShifts = targetShifts.filter(s=>s.employee_id===currentEmployeeId);
@@ -9113,6 +9362,20 @@ function handleHelpFabClick(){
 
 function handleVersionClick(){
   toast('🎉 Gratuluju, odemkl jsi... nic. Ale díky že jsi zvědavý!', 'ok');
+}
+
+// Easter egg: 5 clicks on the help panel's home icon within 3s, same trick as the help fab.
+let _helpHomeClicks = [];
+function handleHelpHomeClick(){
+  const now = Date.now();
+  _helpHomeClicks = _helpHomeClicks.filter(t => now - t < 3000);
+  _helpHomeClicks.push(now);
+  if(_helpHomeClicks.length >= 5){
+    _helpHomeClicks = [];
+    toast('🎉 Zase ty! Zkus ještě kliknout na verzi aplikace v hlavičce...', 'ok');
+    return;
+  }
+  helpGoHome();
 }
 
 function closeHelpCenter(){
@@ -9496,16 +9759,25 @@ window.addEventListener('beforeunload', e => {
   }
 });
 
-// ── F7: Session timeout warning ───────────────────────────────
-let _sessionTimer = null;
+// ── F7: Session timeout — auto sign-out after 8h idle, warn 5 min before ──
+const SESSION_TIMEOUT_MS = 8*60*60*1000;
+const SESSION_WARN_MS = SESSION_TIMEOUT_MS - 5*60*1000;
+let _sessionWarnTimer = null;
+let _sessionLogoutTimer = null;
 function resetSessionTimer(){
-  clearTimeout(_sessionTimer);
+  clearTimeout(_sessionWarnTimer);
+  clearTimeout(_sessionLogoutTimer);
   const banner = document.getElementById('session-timeout-banner');
   if(banner) banner.style.display = 'none';
-  _sessionTimer = setTimeout(()=>{
-    const banner = document.getElementById('session-timeout-banner');
-    if(banner) banner.style.display = 'block';
-  }, 25*60*1000); // warn 5 min before 30min timeout
+  if(!currentUser) return;
+  _sessionWarnTimer = setTimeout(()=>{
+    const b = document.getElementById('session-timeout-banner');
+    if(b) b.style.display = 'block';
+  }, SESSION_WARN_MS);
+  _sessionLogoutTimer = setTimeout(async ()=>{
+    await doLogout();
+    toast('Byl jsi odhlášen kvůli neaktivitě (8 hodin).', 'error');
+  }, SESSION_TIMEOUT_MS);
 }
 ['click','keydown','touchstart'].forEach(ev=>document.addEventListener(ev, resetSessionTimer, {passive:true}));
 
@@ -10128,8 +10400,9 @@ function renderLaborCost(){
 // ════════════════════════════════════════════════════════════════
 
 function getEmploymentTypeBadge(type){
-  const labels = { full:'Plný', part:'Částečný', casual:'Brigáda' };
-  return `<span class="emp-type-badge ${type||'full'}">${labels[type||'full']}</span>`;
+  const labels = { full:'Plný', part:'Částečný', ico:'IČO', other:'Ostatní' };
+  const t = labels[type] ? type : 'other'; // legacy values (e.g. removed "Brigáda/DPP") fall back to Ostatní
+  return `<span class="emp-type-badge ${t}">${labels[t]}</span>`;
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -10137,6 +10410,26 @@ function getEmploymentTypeBadge(type){
 // Uses existing org_members table. No migration needed for role column.
 // SQL migration for managed_branches:
 //   ALTER TABLE org_members ADD COLUMN IF NOT EXISTS managed_branches TEXT[] DEFAULT '{}';
+// ════════════════════════════════════════════════════════════════
+
+// ════════════════════════════════════════════════════════════════
+// SECURITY HARDENING — failed login audit table
+// logFailedLogin() (see doLogin) best-effort-inserts here; the app works
+// fine without the table (insert errors are swallowed), but attempts won't
+// be recorded server-side until it exists. Needs an RLS policy allowing
+// anonymous inserts, since failed logins happen before authentication:
+//   CREATE TABLE IF NOT EXISTS login_attempts (
+//     id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+//     email text NOT NULL,
+//     success boolean NOT NULL DEFAULT false,
+//     reason text,
+//     created_at timestamptz DEFAULT now()
+//   );
+//   ALTER TABLE login_attempts ENABLE ROW LEVEL SECURITY;
+//   CREATE POLICY "anon can log failed logins" ON login_attempts
+//     FOR INSERT TO anon WITH CHECK (success = false);
+//   -- Reading attempts back should stay admin-only (e.g. via a service-role
+//   -- Edge Function or a dashboard query) — no SELECT policy is added here.
 // ════════════════════════════════════════════════════════════════
 
 function getRoleBadge(role){
@@ -10249,7 +10542,7 @@ function applyAccessibilityAttributes(){
 
 <!-- ── F7: Session timeout banner ─────────────────────────────── -->
 <div id="session-timeout-banner" role="alert" aria-live="assertive">
-  <span data-icon="status_pending">⏳</span> Relace brzy vyprší — <button onclick="window.location.reload()" style="background:rgba(255,255,255,.2);border:none;color:#fff;font-weight:700;padding:2px 8px;border-radius:5px;cursor:pointer;font-family:inherit">Obnovit</button>
+  <span data-icon="status_pending">⏳</span> Za 5 minut budeš kvůli neaktivitě odhlášen — <button onclick="resetSessionTimer()" style="background:rgba(255,255,255,.2);border:none;color:#fff;font-weight:700;padding:2px 8px;border-radius:5px;cursor:pointer;font-family:inherit">Zůstat přihlášen</button>
 </div>
 
 <!-- ── F2/F5: Open shifts modal ─────────────────────────────────── -->
