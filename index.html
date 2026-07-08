@@ -5203,14 +5203,14 @@ async function runAutoSchedule(){
   btn.textContent=`${ICONS.btn_zastavit} Zastavit`;
 
   const progressWrap = document.getElementById('auto-progress-wrap');
-  const MAX_RUNS=80, TARGET_PCT=95, STAGNATION=20, STAGNATION_MIN_PCT=70;
+  const MAX_RUNS=150, TARGET_PCT=95, STAGNATION=30, STAGNATION_MIN_PCT=70;
   let run=0, sinceImprove=0;
-  // Track the best HARD-CONSTRAINT-COMPLIANT candidate separately from the best candidate
-  // overall. A "neporušitelná" (hard) condition must never be silently published just
-  // because it scored well on other metrics — that was the bug. bestAny is only a
-  // last-resort fallback if literally no compliant candidate is ever found.
-  let bestCompliant=null, bestCompliantPct=-1;
-  let bestAny=null, bestAnyPct=-1;
+  // Only ever track the best HARD-CONSTRAINT-COMPLIANT candidate. A "neporušitelná"
+  // condition must NEVER reach the database — any candidate that fails one (e.g. a
+  // branch under its minimum coverage on any single day) is discarded outright and the
+  // search just keeps trying fresh random builds. If none of MAX_RUNS attempts ever
+  // produces a compliant candidate, nothing is published — see the no-`best` branch below.
+  let best=null, bestPct=-1;
 
   progressWrap.innerHTML = `<div class="auto-progress-box">
     <span id="auto-prog-label">Hledám nejlepší rozvrh…</span>
@@ -5225,30 +5225,23 @@ async function runAutoSchedule(){
     const candidate = buildSchedule(daysInMonth, prevMonthShifts);
     const { pct, hardFailed } = computeQuality(candidate, unavail);
 
-    if(pct > bestAnyPct){ bestAnyPct = pct; bestAny = candidate; }
-
-    if(hardFailed.length === 0){
-      if(pct > bestCompliantPct){ bestCompliantPct = pct; bestCompliant = candidate; sinceImprove = 0; }
-      else sinceImprove++;
+    if(hardFailed.length > 0){
+      sinceImprove++; // discarded — never becomes `best`, regardless of its score
+    } else if(pct > bestPct){
+      bestPct = pct; best = candidate; sinceImprove = 0;
     } else {
       sinceImprove++;
     }
 
-    const shownPct = bestCompliant ? bestCompliantPct : bestAnyPct;
     document.getElementById('auto-prog-fill').style.width = Math.round(run/MAX_RUNS*100)+'%';
     document.getElementById('auto-prog-label').textContent =
-      'Pokus '+run+'/'+MAX_RUNS+' — nejlepší '+shownPct+'%'+(sinceImprove>0?' (bez zlepšení: '+sinceImprove+')':'');
+      'Pokus '+run+'/'+MAX_RUNS+' — nejlepší '+(best?bestPct+'%':'zatím žádný vyhovující')+(sinceImprove>0?' (bez zlepšení: '+sinceImprove+')':'');
 
-    // Only let stagnation cut the search short once we already have a decent COMPLIANT
-    // schedule — below STAGNATION_MIN_PCT (or with no compliant candidate yet at all)
-    // keep trying fresh random builds up to MAX_RUNS.
-    if(bestCompliantPct>=TARGET_PCT || (sinceImprove>=STAGNATION && bestCompliantPct>=STAGNATION_MIN_PCT)) break;
+    // Stagnation only ends the search early once we already HAVE a compliant, decent
+    // schedule. With no compliant candidate yet, keep trying all the way to MAX_RUNS.
+    if(bestPct>=TARGET_PCT || (best && sinceImprove>=STAGNATION && bestPct>=STAGNATION_MIN_PCT)) break;
     await new Promise(r=>setTimeout(r,0));
   }
-
-  const best = bestCompliant || bestAny;
-  const bestPct = bestCompliant ? bestCompliantPct : bestAnyPct;
-  const usedNonCompliantFallback = !bestCompliant && !!bestAny;
 
   if(best){
     const from = isoDate(schedYear, schedMonth+1, 1);
@@ -5271,12 +5264,11 @@ async function runAutoSchedule(){
     }
     await loadShiftsForMonth();
     const monthLabel2 = new Date(schedYear, schedMonth, 1).toLocaleDateString('cs-CZ',{month:'long',year:'numeric'});
-    if(usedNonCompliantFallback){
-      toast(`${ICONS.status_warning} Nepodařilo se za ${MAX_RUNS} pokusů najít rozpis splňující všechny neporušitelné podmínky — použit nejlepší nalezený (${bestPct}%), zkontroluj skóre.`, 'error');
-    } else {
-      toast('Hotovo — '+bestPct+'% ('+run+' pokusů, '+toInsert.length+' směn)');
-    }
-    logActivity(`Rozpis ${monthLabel2} vygenerován (${bestPct}%, ${toInsert.length} směn)${usedNonCompliantFallback?' — POZOR: neporušitelná podmínka nesplněna':''}`);
+    toast('Hotovo — '+bestPct+'% ('+run+' pokusů, '+toInsert.length+' směn)');
+    logActivity(`Rozpis ${monthLabel2} vygenerován (${bestPct}%, ${toInsert.length} směn)`);
+  } else {
+    toast(`${ICONS.status_warning} Za ${run} pokusů se nepodařilo najít rozpis splňující všechny neporušitelné podmínky — nic nebylo publikováno. Zkontroluj pokrytí poboček (dost personálu?) nebo zvaž zmírnění některé podmínky v Pravidlech.`, 'error');
+    logActivity(`Rozpis ${new Date(schedYear, schedMonth, 1).toLocaleDateString('cs-CZ',{month:'long',year:'numeric'})} — generování selhalo, žádný pokus nesplnil neporušitelné podmínky (${run} pokusů)`);
   }
 
   progressWrap.innerHTML='';
@@ -5426,6 +5418,25 @@ function buildSchedule(daysInMonth, prevMonthShifts){
     return shiftTypeLimitAllows(emp, code);
   }
 
+  // branchLimitAllows()/shiftTypeLimitAllows() only ever check the count BEFORE this
+  // call, one day at a time — fine for every other pass, but PASS 0 assigns a whole
+  // multi-day weekend block to one employee atomically, so checking each of the 3 days
+  // against the SAME pre-block count lets a block push someone over a max that isn't an
+  // exact multiple of the block length (e.g. max:5 with a 3-day block: 3 fits, and a
+  // second 3-day block still looks fine against the stale count of 3, landing on 6).
+  // This checks the count AFTER adding all of `extraDays` at once, for both levels.
+  function blockRespectsLimits(emp, extraDays, code){
+    const branchCode = slotBranchCode(code);
+    const bl = branchCode && (emp.branch_limits||{})[branchCode];
+    if(bl && bl.max !== undefined && empBranchCountS(emp.id, branchCode) + extraDays > bl.max) return false;
+    const st = shiftTypes.find(s=>s.code===code);
+    if(st){
+      const stLim = bl && bl.shiftTypes && bl.shiftTypes[code];
+      if(stLim && stLim.max !== undefined && empShiftTypeCountS(emp.id, code) + extraDays > stLim.max) return false;
+    }
+    return true;
+  }
+
   function canWork(emp, dateStr, code){
     if(S[emp.id+':'+dateStr]) return false;
     if(empShiftCount(emp.id) >= emp.max_shifts) return false;
@@ -5477,35 +5488,44 @@ function buildSchedule(daysInMonth, prevMonthShifts){
   // required slot "lane" at a time, so nobody ends up working e.g. just Friday+Sunday.
   // Each lane (one per required branch/shift-type slot) is filled independently —
   // different lanes (different branches, or the 2nd/3rd person needed on the same
-  // branch) can go to different employees, but each lane's own 3 days always go
+  // branch) can go to different employees, but each lane's own days always go
   // together or not at all.
+  //
+  // A lane doesn't have to span all 3 days: when a branch needs MORE people on Sat+Sun
+  // than on Friday (the common case — weekends are busier), the extra Sat+Sun-only
+  // positions get their own 2-day lane instead of falling through to PASS 1's day-by-day
+  // fill, which has no concept of "keep this person on both days" and would routinely
+  // hand Saturday and Sunday to two different people.
   if(weekendPriority){
     weekendBlocks.forEach(wb=>{
       if(wb.length < 3) return; // partial block at month edge — no whole weekend to offer, leave to PASS 1
+      const [friDs, satDs, sunDs] = wb;
 
-      const lanes = [];
+      const lanes = []; // { code, days }
       branches.forEach(b=>{
         const sts = shiftTypes.filter(s=>s.branch_id===b.id);
         if(sts.length){
-          sts.forEach(st=>lanes.push(st.code)); // each subtype needed every day
+          sts.forEach(st=>lanes.push({ code:st.code, days:wb })); // each subtype needed every day
         } else {
-          // Use the smallest daily requirement across the block's 3 days — any extra
-          // above that on individual days is filled later by PASS 1.
-          const minAcrossDays = Math.min(...wb.map(ds=>{
-            const dow = new Date(ds+'T00:00:00').getDay();
-            return getBranchDayMin(b, dow);
-          }));
-          for(let i=0;i<minAcrossDays;i++) lanes.push(b.code);
+          const friMin = getBranchDayMin(b, new Date(friDs+'T00:00:00').getDay());
+          const satMin = getBranchDayMin(b, new Date(satDs+'T00:00:00').getDay());
+          const sunMin = getBranchDayMin(b, new Date(sunDs+'T00:00:00').getDay());
+          const minAcrossDays = Math.min(friMin, satMin, sunMin);
+          for(let i=0;i<minAcrossDays;i++) lanes.push({ code:b.code, days:wb });
+          // Extra Sat+Sun-only demand beyond the whole-block baseline — its own 2-day lane.
+          const weekendExtra = Math.min(satMin, sunMin) - minAcrossDays;
+          for(let i=0;i<weekendExtra;i++) lanes.push({ code:b.code, days:[satDs, sunDs] });
         }
       });
       if(!lanes.length) return;
 
-      lanes.forEach(code=>{
+      lanes.forEach(lane=>{
+        const { code, days } = lane;
         // Round 1: only offer the block to employees who still have free-weekend slack
         // to spare. Round 2 (only if round 1 found nobody): assign it anyway — an
         // unfilled required slot is worse than one employee dipping into their free
         // weekends, and canWork() below still guarantees this only happens when the
-        // employee can physically work all 3 days.
+        // employee can physically work all of this lane's days.
         for(const strict of [true, false]){
           const empsSorted = shuffle([...nonFixed]);
           let assigned = false;
@@ -5517,9 +5537,10 @@ function buildSchedule(daysInMonth, prevMonthShifts){
               ).length;
               if(freeWEs <= minWE) continue;
             }
-            if(!wb.every(ds=>canWork(emp, ds, code))) continue;
+            if(!days.every(ds=>canWork(emp, ds, code))) continue;
+            if(!blockRespectsLimits(emp, days.length, code)) continue;
 
-            wb.forEach(ds=>{
+            days.forEach(ds=>{
               S[emp.id+':'+ds] = { employee_id:emp.id, shift_date:ds, shift_type_code:code, is_auto:true };
             });
             assigned = true;
@@ -5531,23 +5552,31 @@ function buildSchedule(daysInMonth, prevMonthShifts){
     });
   }
 
-  // PASS 1: Fill remaining slots day by day
+  // PASS 1: Fill remaining slots day by day. buildDaySlots() repeats a bare branch code
+  // once per required person that day (e.g. "M" four times if Majestic needs 4) — so this
+  // must fill UP TO that count per code, not stop the instant ONE person has that code.
+  // (slotFilled() alone is a plain "does anyone have this code today" boolean and would
+  // silently cap every multi-person branch at 1 person/day forever — that was the bug.)
   const dayOrder = shuffle(Array.from({length:daysInMonth},(_,i)=>i+1));
   dayOrder.forEach(d=>{
     const dateStr = isoDate(schedYear,schedMonth+1,d);
-    buildDaySlots(dateStr).forEach(code=>{
-      if(slotFilled(dateStr, code)) return;
-      const eligible = shuffle([...nonFixed]).filter(emp=>
-        !S[emp.id+':'+dateStr] && canWork(emp, dateStr, code)
-      );
-      eligible.sort((a,b)=>{
-        const rA = a.target_shifts - empShiftCount(a.id) + shiftTypeNeedBonus(a, code) + weekendContinuationBonus(a, dateStr, code) + Math.random()*1.5;
-        const rB = b.target_shifts - empShiftCount(b.id) + shiftTypeNeedBonus(b, code) + weekendContinuationBonus(b, dateStr, code) + Math.random()*1.5;
-        return rB - rA;
-      });
-      if(eligible.length){
+    const neededCounts = {};
+    buildDaySlots(dateStr).forEach(code=>{ neededCounts[code] = (neededCounts[code]||0) + 1; });
+    Object.entries(neededCounts).forEach(([code, neededCount])=>{
+      let haveCount = Object.values(S).filter(s=>s.shift_date===dateStr && s.shift_type_code===code).length;
+      while(haveCount < neededCount){
+        const eligible = shuffle([...nonFixed]).filter(emp=>
+          !S[emp.id+':'+dateStr] && canWork(emp, dateStr, code)
+        );
+        if(!eligible.length) break; // nobody left who can take this slot today
+        eligible.sort((a,b)=>{
+          const rA = a.target_shifts - empShiftCount(a.id) + shiftTypeNeedBonus(a, code) + weekendContinuationBonus(a, dateStr, code) + Math.random()*1.5;
+          const rB = b.target_shifts - empShiftCount(b.id) + shiftTypeNeedBonus(b, code) + weekendContinuationBonus(b, dateStr, code) + Math.random()*1.5;
+          return rB - rA;
+        });
         const emp = eligible[0];
         S[emp.id+':'+dateStr] = { employee_id:emp.id, shift_date:dateStr, shift_type_code:code, is_auto:true };
+        haveCount++;
       }
     });
   });
