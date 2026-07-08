@@ -5015,9 +5015,39 @@ function buildSchedule(daysInMonth){
     return c;
   }
 
-  function canWork(emp, dateStr){
+  // Resolve a shift_type_code (e.g. "M1") or bare branch code (e.g. "K") to its branch code
+  function slotBranchCode(code){
+    const st = shiftTypes.find(s=>s.code===code);
+    return st ? branches.find(b=>b.id===st.branch_id)?.code : code;
+  }
+
+  // Count how many shifts the employee already has on a given branch, in the working copy S
+  function empBranchCountS(empId, branchCode){
+    let cnt=0;
+    for(let d=1;d<=daysInMonth;d++){
+      const s = S[empId+':'+isoDate(schedYear,schedMonth+1,d)];
+      if(!s || !s.shift_type_code || s.shift_type_code==='X') continue;
+      if(slotBranchCode(s.shift_type_code)===branchCode) cnt++;
+    }
+    return cnt;
+  }
+
+  // Check the employee's per-branch monthly limit (max=0 forbids the branch entirely)
+  function branchLimitAllows(emp, code){
+    if(!code) return true;
+    const branchCode = slotBranchCode(code);
+    if(!branchCode) return true;
+    const bl = (emp.branch_limits||{})[branchCode];
+    if(!bl) return true;
+    const maxAllowed = bl.max !== undefined ? bl.max : 31;
+    if(maxAllowed <= 0) return false;
+    return empBranchCountS(emp.id, branchCode) < maxAllowed;
+  }
+
+  function canWork(emp, dateStr, code){
     if(S[emp.id+':'+dateStr]) return false;
     if(empShiftCount(emp.id) >= emp.max_shifts) return false;
+    if(code && !branchLimitAllows(emp, code)) return false;
     const dayIdx = parseInt(dateStr.split('-')[2]);
     let cb=0;
     for(let i=dayIdx-1;i>=1;i--){ if(isWorking(emp.id+':'+isoDate(schedYear,schedMonth+1,i))) cb++; else break; }
@@ -5072,7 +5102,7 @@ function buildSchedule(daysInMonth){
           w2.every(ds=>!isWorking(emp.id+':'+ds))
         ).length;
         if(freeWEs <= minWE) continue;
-        if(!wbSlots.every(sl=>canWork(emp, sl.dateStr))) continue;
+        if(!wbSlots.every(sl=>canWork(emp, sl.dateStr, sl.code))) continue;
 
         wbSlots.forEach(sl=>{
           S[emp.id+':'+sl.dateStr] = {
@@ -5092,7 +5122,7 @@ function buildSchedule(daysInMonth){
     buildDaySlots(dateStr).forEach(code=>{
       if(slotFilled(dateStr, code)) return;
       const eligible = shuffle([...nonFixed]).filter(emp=>
-        !S[emp.id+':'+dateStr] && canWork(emp, dateStr)
+        !S[emp.id+':'+dateStr] && canWork(emp, dateStr, code)
       );
       eligible.sort((a,b)=>{
         const rA = a.target_shifts - empShiftCount(a.id) + Math.random()*1.5;
@@ -5121,7 +5151,7 @@ function buildSchedule(daysInMonth){
       const avail = buildDaySlots(dateStr).filter(code=>{
         const curCnt = Object.values(S).filter(s=>s.shift_date===dateStr&&s.shift_type_code===code).length;
         const b = branches.find(b=>b.code===code);
-        return curCnt < (b ? getBranchDayMax(b, dow2) : 1);
+        return curCnt < (b ? getBranchDayMax(b, dow2) : 1) && branchLimitAllows(emp, code);
       });
       if(!avail.length) continue;
       const code = avail[Math.floor(Math.random()*avail.length)];
@@ -5130,18 +5160,48 @@ function buildSchedule(daysInMonth){
     }
   });
 
+  // PASS 2b: Pursue employee per-branch monthly minimums (branch_limits.min)
+  shuffle([...nonFixed]).forEach(emp=>{
+    const limits = emp.branch_limits || {};
+    Object.entries(limits).forEach(([branchCode, bl])=>{
+      const minReq = bl && bl.min || 0;
+      if(!minReq) return;
+      let need = minReq - empBranchCountS(emp.id, branchCode);
+      if(need <= 0) return;
+      for(const d of shuffle(Array.from({length:daysInMonth},(_,i)=>i+1))){
+        if(need<=0) break;
+        const dateStr = isoDate(schedYear,schedMonth+1,d);
+        if(S[emp.id+':'+dateStr] || !canWork(emp, dateStr)) continue;
+        const dowB = new Date(dateStr+'T00:00:00').getDay();
+        const avail = buildDaySlots(dateStr).filter(code=>{
+          if(slotBranchCode(code) !== branchCode) return false;
+          const curCnt = Object.values(S).filter(s=>s.shift_date===dateStr&&s.shift_type_code===code).length;
+          const b = branches.find(b=>b.code===slotBranchCode(code));
+          return curCnt < (b ? getBranchDayMax(b, dowB) : 1) && branchLimitAllows(emp, code);
+        });
+        if(!avail.length) continue;
+        const code = avail[Math.floor(Math.random()*avail.length)];
+        S[emp.id+':'+dateStr] = { employee_id:emp.id, shift_date:dateStr, shift_type_code:code, is_auto:true };
+        need--;
+      }
+    });
+  });
+
   // PASS 3: Fill branches toward day TARGET (soft goal from weekly_pattern)
+  // Only applies to branches without shift subtypes — subtype branches (M1/M2/...) are
+  // already fully seeded per-slot in PASS 1 and have no separate branch-level code to fill.
   const dayOrder2 = shuffle(Array.from({length:daysInMonth},(_,i)=>i+1));
   dayOrder2.forEach(d=>{
     const dateStr = isoDate(schedYear,schedMonth+1,d);
     const dow3 = new Date(dateStr+'T00:00:00').getDay();
     branches.forEach(b=>{
+      if(shiftTypes.some(s=>s.branch_id===b.id)) return;
       const tgt = getBranchDayTarget(b, dow3);
       const curCnt = Object.values(S).filter(s=>s.shift_date===dateStr&&s.shift_type_code===b.code&&s.shift_type_code!=='X').length;
       if(curCnt >= tgt) return;
       const need = tgt - curCnt;
       const eligible = shuffle([...nonFixed]).filter(emp=>
-        !S[emp.id+':'+dateStr] && canWork(emp, dateStr) && empShiftCount(emp.id) < emp.max_shifts
+        !S[emp.id+':'+dateStr] && canWork(emp, dateStr, b.code) && empShiftCount(emp.id) < emp.max_shifts
       );
       eligible.sort((a,bEmp)=>{ // prefer employees below their target
         return (bEmp.target_shifts - empShiftCount(bEmp.id)) - (a.target_shifts - empShiftCount(a.id));
