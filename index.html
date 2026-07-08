@@ -1065,7 +1065,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
       <button class="btn-ghost" id="emp-settings-btn" onclick="openEmployeeSettings()" style="display:none"><span data-icon="set_profil">👤</span> Profil</button>
       <button class="btn-ghost" id="admin-settings-btn" onclick="openEmployeeSettings()" style="display:none"><span data-icon="set_profil">👤</span> Profil</button>
       <span id="org-code-badge" style="display:none;font-family:var(--font-mono);font-size:12px;font-weight:700;letter-spacing:1.5px;background:var(--paper);border:1.5px solid var(--line);padding:4px 10px;border-radius:6px;color:var(--ink-soft)" title="Kód firmy"></span>
-      <span id="app-version-label" title="Verze aplikace" onclick="handleVersionClick()" style="font-size:10px;color:var(--ink-faint);font-family:var(--font-mono);padding:0 4px;user-select:none;cursor:pointer">v0.7.3</span>
+      <span id="app-version-label" title="Verze aplikace" onclick="handleVersionClick()" style="font-size:10px;color:var(--ink-faint);font-family:var(--font-mono);padding:0 4px;user-select:none;cursor:pointer">v0.7.4</span>
       <button class="btn-ghost" onclick="openSearch()" title="Vyhledat (Ctrl+K)" style="padding:6px 10px;font-size:14px"><span data-icon="btn_hledat">🔍</span></button>
       <button class="btn-ghost" onclick="openHelpCenter()" title="Nápověda" style="padding:6px 10px;font-size:14px"><span data-icon="btn_napoveda">❓</span></button>
       <button class="btn-ghost" id="notif-btn" onclick="toggleNotifPanel()" title="Notifikace" style="position:relative;padding:6px 10px;font-size:16px;display:none;align-items:center;justify-content:center">
@@ -4884,10 +4884,15 @@ function computeQuality(shiftsMap, unavailMap){
 
   // ── Compute raw scores for each metric ──────────────────────
 
-  // 1. Coverage — track per branch
+  // 1. Coverage — track per branch. score/max stay SLOT-level (every required position
+  // counted individually) since that's the finer-grained signal the overall % and the
+  // hard-constraint check want. daysOk/daysTotal are DAY-level (a day counts as "ok" only
+  // if the branch's full requirement was met that day) — that's what the drill-down table
+  // shows the admin, since "28/31 days" is what they actually need to act on, not a raw
+  // slot count that's meaningless without knowing how many slots/day this branch has.
   let covScore=0, covMax=0;
-  const covBranchDetails = {}; // branchCode → { score, max, slots: [{date,slot,filled}] }
-  branches.forEach(b=>{ covBranchDetails[b.code] = { name:b.name, score:0, max:0, missedDays:[] }; });
+  const covBranchDetails = {}; // branchCode → { score, max, daysOk, daysTotal, missedDays }
+  branches.forEach(b=>{ covBranchDetails[b.code] = { name:b.name, score:0, max:0, daysOk:0, daysTotal:0, missedDays:[] }; });
   for(let d=1;d<=daysInMonth;d++){
     const dateStr = isoDate(schedYear,schedMonth+1,d);
     const _dow = new Date(schedYear,schedMonth,d).getDay();
@@ -4898,11 +4903,13 @@ function computeQuality(shiftsMap, unavailMap){
       if(!minReq) return;
       covMax += minReq;
       covBranchDetails[b.code].max += minReq;
+      covBranchDetails[b.code].daysTotal++;
       if(!sts.length){
         const cnt = employees.filter(emp=>{ const s=shiftsMap[emp.id+':'+dateStr]; return s&&s.shift_type_code===b.code; }).length;
         const got = Math.min(cnt, minReq);
         covScore += got; covBranchDetails[b.code].score += got;
         if(cnt < minReq) covBranchDetails[b.code].missedDays.push(`${d}. (${cnt}/${minReq})`);
+        else covBranchDetails[b.code].daysOk++;
       } else {
         // Each required slot type counts as 1 point
         let dayMissed = [];
@@ -4912,6 +4919,7 @@ function computeQuality(shiftsMap, unavailMap){
           else dayMissed.push(st.code);
         });
         if(dayMissed.length) covBranchDetails[b.code].missedDays.push(`${d}. (chybí: ${dayMissed.join(',')})`);
+        else covBranchDetails[b.code].daysOk++;
       }
     });
   }
@@ -5105,23 +5113,22 @@ function showMetricDetail(idx){
     html += `<table style="width:100%;border-collapse:collapse;font-size:12.5px">
       <thead><tr style="border-bottom:2px solid var(--line)">
         <th style="text-align:left;padding:5px 8px;font-size:11px;color:var(--ink-soft);text-transform:uppercase">Pobočka</th>
-        <th style="text-align:center;padding:5px 8px;font-size:11px;color:var(--ink-soft);text-transform:uppercase">Splněno</th>
-        <th style="text-align:center;padding:5px 8px;font-size:11px;color:var(--ink-soft);text-transform:uppercase">Celkem</th>
+        <th style="text-align:center;padding:5px 8px;font-size:11px;color:var(--ink-soft);text-transform:uppercase">Splněno dní</th>
+        <th style="text-align:center;padding:5px 8px;font-size:11px;color:var(--ink-soft);text-transform:uppercase">Celkem dní</th>
         <th style="text-align:center;padding:5px 8px;font-size:11px;color:var(--ink-soft);text-transform:uppercase">%</th>
         <th style="text-align:left;padding:5px 8px;font-size:11px;color:var(--ink-soft);text-transform:uppercase">Chybí v dnech</th>
       </tr></thead><tbody>`;
     Object.entries(d.branches).forEach(([code, b])=>{
-      if(!b.max) return;
-      const displayScore = Math.min(b.score, b.max); // clamp — never show > 100%
-      const bp = Math.round(displayScore/b.max*100);
+      if(!b.daysTotal) return;
+      const bp = Math.round(b.daysOk/b.daysTotal*100);
       const bc = bp>=100?'var(--accent)':bp>=80?'var(--amber)':'var(--red)';
       const missed = bp < 100
         ? (b.missedDays.slice(0,8).join(', ')+(b.missedDays.length>8?` a dalších ${b.missedDays.length-8}`:''))
         : '—';
       html += `<tr style="border-bottom:1px solid var(--line)">
         <td style="padding:8px 8px;font-weight:600">${escapeHtml(b.name)} <span class="code-pill">${escapeHtml(code)}</span></td>
-        <td style="text-align:center;padding:8px">${displayScore}</td>
-        <td style="text-align:center;padding:8px">${b.max}</td>
+        <td style="text-align:center;padding:8px">${b.daysOk}</td>
+        <td style="text-align:center;padding:8px">${b.daysTotal}</td>
         <td style="text-align:center;padding:8px;color:${bc};font-weight:600">${bp}%</td>
         <td style="padding:8px;font-size:11px;color:var(--ink-soft)">${missed}</td>
       </tr>`;
@@ -5193,6 +5200,30 @@ async function loadPrevMonthTailShifts(){
   return map;
 }
 
+// Direct, independent day-by-day/branch-by-branch coverage scan — used both as a final
+// safety check right before publishing (belt-and-suspenders alongside computeQuality's
+// aggregate hardFailed flag) and to build a concrete list of problem days for the error
+// message when nothing compliant could be found. daysInMonth/branches/shiftTypes are the
+// same module-level globals buildSchedule()/computeQuality() already use.
+function findCoverageShortfalls(scheduleMap, daysInMonth){
+  const shortfalls = [];
+  const dowLabels = ['Ne','Po','Út','St','Čt','Pá','So'];
+  for(let d=1; d<=daysInMonth; d++){
+    const dateStr = isoDate(schedYear, schedMonth+1, d);
+    const dow = new Date(dateStr+'T00:00:00').getDay();
+    branches.forEach(b=>{
+      const minReq = getBranchDayMin(b, dow);
+      if(!minReq) return;
+      const sts = shiftTypes.filter(s=>s.branch_id===b.id);
+      const got = sts.length
+        ? sts.filter(st=>Object.values(scheduleMap).some(s=>s.shift_date===dateStr && s.shift_type_code===st.code)).length
+        : Object.values(scheduleMap).filter(s=>s.shift_date===dateStr && s.shift_type_code===b.code).length;
+      if(got < minReq) shortfalls.push(`${d}. ${b.code} (${got}/${minReq})`);
+    });
+  }
+  return shortfalls;
+}
+
 async function runAutoSchedule(){
   if(autoRunning){ autoCancel=true; return; }
   if(!employees.length){ toast('Nejsou zaměstnanci'); return; }
@@ -5211,6 +5242,10 @@ async function runAutoSchedule(){
   // search just keeps trying fresh random builds. If none of MAX_RUNS attempts ever
   // produces a compliant candidate, nothing is published — see the no-`best` branch below.
   let best=null, bestPct=-1;
+  // Purely diagnostic — the closest-scoring REJECTED candidate's shortfall list, shown to
+  // the admin only if the whole search ultimately fails, so the error message names the
+  // actual problem days instead of just saying "something didn't fit".
+  let lastRejectedShortfalls=[], lastRejectedPct=-1;
 
   progressWrap.innerHTML = `<div class="auto-progress-box">
     <span id="auto-prog-label">Hledám nejlepší rozvrh…</span>
@@ -5227,6 +5262,7 @@ async function runAutoSchedule(){
 
     if(hardFailed.length > 0){
       sinceImprove++; // discarded — never becomes `best`, regardless of its score
+      if(pct > lastRejectedPct){ lastRejectedPct = pct; lastRejectedShortfalls = findCoverageShortfalls(candidate, daysInMonth); }
     } else if(pct > bestPct){
       bestPct = pct; best = candidate; sinceImprove = 0;
     } else {
@@ -5241,6 +5277,17 @@ async function runAutoSchedule(){
     // schedule. With no compliant candidate yet, keep trying all the way to MAX_RUNS.
     if(bestPct>=TARGET_PCT || (best && sinceImprove>=STAGNATION && bestPct>=STAGNATION_MIN_PCT)) break;
     await new Promise(r=>setTimeout(r,0));
+  }
+
+  // Final safety net: independently re-verify the chosen candidate's coverage day-by-day
+  // right before it touches the database, in case computeQuality's aggregate score ever
+  // masked a per-day gap. If this ever disagrees with computeQuality, treat it as failed.
+  if(best){
+    const finalShortfalls = findCoverageShortfalls(best, daysInMonth);
+    if(finalShortfalls.length){
+      lastRejectedShortfalls = finalShortfalls;
+      best = null;
+    }
   }
 
   if(best){
@@ -5267,8 +5314,11 @@ async function runAutoSchedule(){
     toast('Hotovo — '+bestPct+'% ('+run+' pokusů, '+toInsert.length+' směn)');
     logActivity(`Rozpis ${monthLabel2} vygenerován (${bestPct}%, ${toInsert.length} směn)`);
   } else {
-    toast(`${ICONS.status_warning} Za ${run} pokusů se nepodařilo najít rozpis splňující všechny neporušitelné podmínky — nic nebylo publikováno. Zkontroluj pokrytí poboček (dost personálu?) nebo zvaž zmírnění některé podmínky v Pravidlech.`, 'error');
-    logActivity(`Rozpis ${new Date(schedYear, schedMonth, 1).toLocaleDateString('cs-CZ',{month:'long',year:'numeric'})} — generování selhalo, žádný pokus nesplnil neporušitelné podmínky (${run} pokusů)`);
+    const daysList = lastRejectedShortfalls.length
+      ? ' Nejblíže byl pokus s chybějícím pokrytím: ' + lastRejectedShortfalls.slice(0,10).join(', ') + (lastRejectedShortfalls.length>10?` a dalších ${lastRejectedShortfalls.length-10}`:'') + '.'
+      : '';
+    toast(`${ICONS.status_warning} Za ${run} pokusů se nepodařilo najít rozpis splňující všechny neporušitelné podmínky — nic nebylo publikováno.${daysList} Zkontroluj počet zaměstnanců přiřazených na tuto pobočku a jejich měsíční limity.`, 'error');
+    logActivity(`Rozpis ${new Date(schedYear, schedMonth, 1).toLocaleDateString('cs-CZ',{month:'long',year:'numeric'})} — generování selhalo, žádný pokus nesplnil neporušitelné podmínky (${run} pokusů)${lastRejectedShortfalls.length?': '+lastRejectedShortfalls.slice(0,10).join(', '):''}`);
   }
 
   progressWrap.innerHTML='';
