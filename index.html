@@ -4930,7 +4930,7 @@ async function runAutoSchedule(){
   btn.textContent=`${ICONS.btn_zastavit} Zastavit`;
 
   const progressWrap = document.getElementById('auto-progress-wrap');
-  const MAX_RUNS=80, TARGET_PCT=95, STAGNATION=20;
+  const MAX_RUNS=80, TARGET_PCT=95, STAGNATION=20, STAGNATION_MIN_PCT=70;
   let best=null, bestPct=-1, run=0, sinceImprove=0;
 
   progressWrap.innerHTML = `<div class="auto-progress-box">
@@ -4954,7 +4954,9 @@ async function runAutoSchedule(){
     document.getElementById('auto-prog-label').textContent =
       'Pokus '+run+'/'+MAX_RUNS+' — nejlepší '+bestPct+'%'+(sinceImprove>0?' (bez zlepšení: '+sinceImprove+')':'');
 
-    if(bestPct>=TARGET_PCT || sinceImprove>=STAGNATION) break;
+    // Only let stagnation cut the search short once we already have a decent schedule —
+    // below STAGNATION_MIN_PCT keep trying fresh random builds up to MAX_RUNS.
+    if(bestPct>=TARGET_PCT || (sinceImprove>=STAGNATION && bestPct>=STAGNATION_MIN_PCT)) break;
     await new Promise(r=>setTimeout(r,0));
   }
 
@@ -5004,6 +5006,14 @@ function buildSchedule(daysInMonth){
   const nonFixed = employees.filter(e=>!e.is_fixed);
   const defaultMinWE = parseInt(orgSettings['default_min_free_weekends'])||0;
   const weekendPriority = orgSettings['weekend_priority'] !== false && orgSettings['weekend_priority'] !== 'false';
+  const weekendBlocks = collectWeekendBlocks(daysInMonth);
+  // Days that belong to a full (Fri+Sat+Sun) weekend block, reserved for PASS 0 to own —
+  // later passes must not sneak in single-day "extra" shifts here, or a block that PASS 0
+  // gave whole to one employee (or deliberately left whole-free) ends up half-worked.
+  const fullWeekendDays = new Set();
+  if(weekendPriority){
+    weekendBlocks.forEach(wb=>{ if(wb.length===3) wb.forEach(ds=>fullWeekendDays.add(ds)); });
+  }
 
   function isWorking(key){
     const s=S[key]; return s && s.shift_type_code && s.shift_type_code!=='X';
@@ -5087,31 +5097,61 @@ function buildSchedule(daysInMonth){
     return Object.values(S).some(s=>s.shift_date===dateStr && s.shift_type_code===code);
   }
 
-  // PASS 0: Weekend blocks
+  // PASS 0: Weekend blocks — reserve the whole Fri+Sat+Sun block to ONE employee per
+  // required slot "lane" at a time, so nobody ends up working e.g. just Friday+Sunday.
+  // Each lane (one per required branch/shift-type slot) is filled independently —
+  // different lanes (different branches, or the 2nd/3rd person needed on the same
+  // branch) can go to different employees, but each lane's own 3 days always go
+  // together or not at all.
   if(weekendPriority){
-    const weekendBlocks = collectWeekendBlocks(daysInMonth);
-    const empsSorted = shuffle([...nonFixed]);
     weekendBlocks.forEach(wb=>{
-      const wbSlots = [];
-      wb.forEach(dateStr=>buildDaySlots(dateStr).forEach(code=>wbSlots.push({dateStr,code})));
-      if(!wbSlots.length) return;
+      if(wb.length < 3) return; // partial block at month edge — no whole weekend to offer, leave to PASS 1
 
-      for(const emp of empsSorted){
-        const minWE = emp.min_free_weekends||defaultMinWE;
-        const freeWEs = weekendBlocks.filter(w2=>
-          w2.every(ds=>!isWorking(emp.id+':'+ds))
-        ).length;
-        if(freeWEs <= minWE) continue;
-        if(!wbSlots.every(sl=>canWork(emp, sl.dateStr, sl.code))) continue;
+      const lanes = [];
+      branches.forEach(b=>{
+        const sts = shiftTypes.filter(s=>s.branch_id===b.id);
+        if(sts.length){
+          sts.forEach(st=>lanes.push(st.code)); // each subtype needed every day
+        } else {
+          // Use the smallest daily requirement across the block's 3 days — any extra
+          // above that on individual days is filled later by PASS 1.
+          const minAcrossDays = Math.min(...wb.map(ds=>{
+            const dow = new Date(ds+'T00:00:00').getDay();
+            return getBranchDayMin(b, dow);
+          }));
+          for(let i=0;i<minAcrossDays;i++) lanes.push(b.code);
+        }
+      });
+      if(!lanes.length) return;
 
-        wbSlots.forEach(sl=>{
-          S[emp.id+':'+sl.dateStr] = {
-            employee_id:emp.id, shift_date:sl.dateStr,
-            shift_type_code:sl.code, is_auto:true
-          };
-        });
-        break;
-      }
+      lanes.forEach(code=>{
+        // Round 1: only offer the block to employees who still have free-weekend slack
+        // to spare. Round 2 (only if round 1 found nobody): assign it anyway — an
+        // unfilled required slot is worse than one employee dipping into their free
+        // weekends, and canWork() below still guarantees this only happens when the
+        // employee can physically work all 3 days.
+        for(const strict of [true, false]){
+          const empsSorted = shuffle([...nonFixed]);
+          let assigned = false;
+          for(const emp of empsSorted){
+            if(strict){
+              const minWE = emp.min_free_weekends||defaultMinWE;
+              const freeWEs = weekendBlocks.filter(w2=>
+                w2.length===3 && w2.every(ds=>!isWorking(emp.id+':'+ds))
+              ).length;
+              if(freeWEs <= minWE) continue;
+            }
+            if(!wb.every(ds=>canWork(emp, ds, code))) continue;
+
+            wb.forEach(ds=>{
+              S[emp.id+':'+ds] = { employee_id:emp.id, shift_date:ds, shift_type_code:code, is_auto:true };
+            });
+            assigned = true;
+            break;
+          }
+          if(assigned) break;
+        }
+      });
     });
   }
 
@@ -5145,6 +5185,7 @@ function buildSchedule(daysInMonth){
     for(const d of shuffle(Array.from({length:daysInMonth},(_,i)=>i+1))){
       if(added>=need) break;
       const dateStr = isoDate(schedYear,schedMonth+1,d);
+      if(fullWeekendDays.has(dateStr)) continue; // don't sneak an extra day into a reserved weekend block
       if(S[emp.id+':'+dateStr] || !canWork(emp, dateStr)) continue;
       // Find any available slot on this day below branch max (use getBranchDayMax)
       const dow2 = new Date(dateStr+'T00:00:00').getDay();
@@ -5171,6 +5212,7 @@ function buildSchedule(daysInMonth){
       for(const d of shuffle(Array.from({length:daysInMonth},(_,i)=>i+1))){
         if(need<=0) break;
         const dateStr = isoDate(schedYear,schedMonth+1,d);
+        if(fullWeekendDays.has(dateStr)) continue; // don't sneak an extra day into a reserved weekend block
         if(S[emp.id+':'+dateStr] || !canWork(emp, dateStr)) continue;
         const dowB = new Date(dateStr+'T00:00:00').getDay();
         const avail = buildDaySlots(dateStr).filter(code=>{
@@ -5193,6 +5235,7 @@ function buildSchedule(daysInMonth){
   const dayOrder2 = shuffle(Array.from({length:daysInMonth},(_,i)=>i+1));
   dayOrder2.forEach(d=>{
     const dateStr = isoDate(schedYear,schedMonth+1,d);
+    if(fullWeekendDays.has(dateStr)) return; // don't sneak an extra day into a reserved weekend block
     const dow3 = new Date(dateStr+'T00:00:00').getDay();
     branches.forEach(b=>{
       if(shiftTypes.some(s=>s.branch_id===b.id)) return;
