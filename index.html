@@ -1488,7 +1488,8 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
     </div>
 
     <div id="employee-branch-limits-section" style="display:none">
-      <div class="sub-title">Limity na pobočkách / měsíc</div>
+      <div class="sub-title">Přiřazené pobočky a limity / měsíc</div>
+      <div class="field-hint" style="margin:-4px 0 10px">Algoritmus přiřazuje směny jen na pobočky uvedené níže. Bez pobočky se zaměstnanec do automatického rozpisu nezahrne.</div>
       <div id="employee-branch-limits-list"></div>
     </div>
 
@@ -2243,6 +2244,7 @@ let currentRole = null;  // 'admin' | 'employee'
 let currentEmployeeId = null; // employee row id for non-admin users
 let employees = [];
 let branches = [];
+let editingEmployeeBranchLimits = {}; // working copy of the open employee's branch_limits while the modal is open
 let pendingOrgName = '';
 
 // ============================================================
@@ -2720,6 +2722,7 @@ async function bootstrapAfterAuth(){
     await loadEmployees();
     await loadBranches();
     await loadOrgSettings();
+    if(currentRole === 'admin') await migrateEmployeeBranchLimitsV2();
 
     if(currentRole !== 'admin'){
       if(!currentEmployeeId && currentRole !== 'branch_manager'){
@@ -3020,11 +3023,16 @@ function renderEmployees(){
       accessBadge = `<span style="font-size:11px;color:var(--ink-faint)">bez přístupu</span>`;
     }
 
+    const hasNoBranches = Object.keys(e.branch_limits||{}).length === 0;
+    const noBranchBadge = hasNoBranches
+      ? `<span title="Nemá přiřazenou žádnou pobočku — nebude zahrnut do automatického generování" style="color:var(--amber);margin-left:4px">${ICONS.status_warning}</span>`
+      : '';
+
     return `
     <tr data-emp-id="${e.id}">
       <td>
         <strong>${escapeHtml(e.name)}</strong>
-        ${getEmploymentTypeBadge(e.employment_type)}
+        ${getEmploymentTypeBadge(e.employment_type)}${noBranchBadge}
       </td>
       <td><span class="code-pill">${e.min_shifts}–${e.target_shifts}</span></td>
       <td>${e.max_shifts}</td>
@@ -3040,7 +3048,14 @@ function renderEmployees(){
     </tr>`;
   }).join('');
 
-  wrap.innerHTML = `<table class="data-table" role="table" aria-label="Seznam zaměstnanců">
+  const noBranchEmployees = filtered.filter(e=>Object.keys(e.branch_limits||{}).length === 0);
+  const noBranchWarning = noBranchEmployees.length
+    ? `<div style="background:var(--amber-soft);border:1px solid #f0c080;border-radius:7px;padding:10px 12px;margin-bottom:12px;font-size:12.5px">
+        ${noBranchEmployees.map(e=>`<div>${ICONS.status_warning} <strong>${escapeHtml(e.name)}</strong> nemá přiřazenou žádnou pobočku — nebude zahrnut do automatického generování</div>`).join('')}
+      </div>`
+    : '';
+
+  wrap.innerHTML = noBranchWarning + `<table class="data-table" role="table" aria-label="Seznam zaměstnanců">
     <thead><tr><th>Jméno</th><th>Min–cíl</th><th>Max</th><th>Max série</th><th>Přístup</th><th></th></tr></thead>
     <tbody>${rows}</tbody>
   </table>`;
@@ -3048,7 +3063,10 @@ function renderEmployees(){
 
 function openEmployeeModal(id){
   document.getElementById('employee-edit-id').value = id || '';
-  renderEmployeeBranchLimits(id ? employees.find(x=>x.id===id) : null);
+  const editingEmp = id ? employees.find(x=>x.id===id) : null;
+  // Deep-clone so edits inside the modal don't mutate the live employees array until Save
+  editingEmployeeBranchLimits = editingEmp && editingEmp.branch_limits ? JSON.parse(JSON.stringify(editingEmp.branch_limits)) : {};
+  renderEmployeeBranchLimits();
   if(id){
     const e = employees.find(x=>x.id===id);
     document.getElementById('employee-modal-title').textContent = 'Upravit zaměstnance';
@@ -3099,7 +3117,11 @@ function toggleEmployeeFixedFields(){
   // Placeholder hook — fixed-schedule pattern editor will be added alongside the calendar
 }
 
-function renderEmployeeBranchLimits(emp){
+// Employee ↔ branch assignment model (branch_limits jsonb column, no schema change):
+//   branch_limits = { [branchCode]: { min?, max?, shiftTypes: { [shiftTypeCode]: { min?, max? } } } }
+// A branchCode key present ⇒ employee is assigned to that branch. Removing the key
+// unassigns it. buildSchedule() only ever assigns shifts on branches present here.
+function renderEmployeeBranchLimits(){
   const section = document.getElementById('employee-branch-limits-section');
   const list = document.getElementById('employee-branch-limits-list');
   if(!branches.length){
@@ -3107,15 +3129,75 @@ function renderEmployeeBranchLimits(emp){
     return;
   }
   section.style.display = 'block';
-  const limits = (emp && emp.branch_limits) || {};
-  list.innerHTML = branches.map(b => {
-    const lim = limits[b.code] || {};
-    return `<div style="display:grid;grid-template-columns:90px 1fr 1fr;gap:10px;align-items:center;margin-bottom:8px">
-      <span class="code-pill" style="background:${b.color}22;border-color:${b.color}55;color:${b.color}">${escapeHtml(b.code)}</span>
-      <input type="number" min="0" placeholder="min" value="${lim.min ?? ''}" data-branch-limit-min="${b.code}" style="padding:7px 9px;border:1.5px solid var(--line);border-radius:7px;font-size:13px">
-      <input type="number" min="0" placeholder="max" value="${lim.max ?? ''}" data-branch-limit-max="${b.code}" style="padding:7px 9px;border:1.5px solid var(--line);border-radius:7px;font-size:13px">
+
+  const assignedCodes = Object.keys(editingEmployeeBranchLimits).filter(c=>branches.some(b=>b.code===c));
+  const availableBranches = branches.filter(b=>!assignedCodes.includes(b.code));
+
+  const rows = assignedCodes.map(bCode=>{
+    const b = branches.find(x=>x.code===bCode);
+    const lim = editingEmployeeBranchLimits[bCode] || {};
+    const sts = shiftTypes.filter(s=>s.branch_id===b.id);
+    const stRows = sts.map(st=>{
+      const stLim = (lim.shiftTypes||{})[st.code] || {};
+      return `<div style="display:grid;grid-template-columns:64px 1fr 1fr;gap:8px;align-items:center;margin:4px 0 4px 22px">
+        <span class="code-pill" style="font-size:10px;background:${(st.color||b.color)}22;border-color:${(st.color||b.color)}55;color:${st.color||b.color}">${escapeHtml(st.code)}</span>
+        <input type="number" min="0" placeholder="min" value="${stLim.min ?? ''}" onchange="updateEmpShiftTypeLimitField('${bCode}','${st.code}','min',this.value)" style="padding:5px 8px;border:1.5px solid var(--line);border-radius:6px;font-size:12px">
+        <input type="number" min="0" placeholder="max" value="${stLim.max ?? ''}" onchange="updateEmpShiftTypeLimitField('${bCode}','${st.code}','max',this.value)" style="padding:5px 8px;border:1.5px solid var(--line);border-radius:6px;font-size:12px">
+      </div>`;
+    }).join('');
+    return `<div style="border:1.5px solid var(--line);border-radius:9px;padding:10px;margin-bottom:8px">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 28px;gap:10px;align-items:center">
+        <span class="code-pill" style="background:${b.color}22;border-color:${b.color}55;color:${b.color}">${escapeHtml(b.code)} – ${escapeHtml(b.name)}</span>
+        <input type="number" min="0" placeholder="min" value="${lim.min ?? ''}" onchange="updateEmpBranchLimitField('${bCode}','min',this.value)" style="padding:7px 9px;border:1.5px solid var(--line);border-radius:7px;font-size:13px">
+        <input type="number" min="0" placeholder="max" value="${lim.max ?? ''}" onchange="updateEmpBranchLimitField('${bCode}','max',this.value)" style="padding:7px 9px;border:1.5px solid var(--line);border-radius:7px;font-size:13px">
+        <button type="button" class="icon-btn danger" onclick="removeEmployeeBranch('${bCode}')" title="Odebrat pobočku">${ICONS.btn_zrusit}</button>
+      </div>
+      ${stRows}
     </div>`;
   }).join('');
+
+  const emptyState = `<div style="background:var(--amber-soft);border:1px solid #f0c080;border-radius:7px;padding:8px 10px;margin-bottom:8px;font-size:12.5px">
+    ${ICONS.status_warning} Zatím žádná pobočka — bez pobočky se zaměstnanec nezahrne do automatického rozpisu.
+  </div>`;
+
+  const addPicker = availableBranches.length
+    ? `<div style="display:flex;gap:8px;align-items:center;margin-top:4px">
+        <select id="employee-add-branch-select" style="flex:1;padding:7px 9px;border:1.5px solid var(--line);border-radius:7px;font-size:13px">
+          ${availableBranches.map(b=>`<option value="${escapeHtml(b.code)}">${escapeHtml(b.code)} – ${escapeHtml(b.name)}</option>`).join('')}
+        </select>
+        <button type="button" class="btn-outline" onclick="addEmployeeBranch()" style="white-space:nowrap">${ICONS.btn_pridat} Přidat pobočku</button>
+      </div>`
+    : `<p class="field-hint">Všechny pobočky jsou už přiřazené.</p>`;
+
+  list.innerHTML = (assignedCodes.length ? rows : emptyState) + addPicker;
+}
+
+function addEmployeeBranch(){
+  const sel = document.getElementById('employee-add-branch-select');
+  if(!sel || !sel.value) return;
+  editingEmployeeBranchLimits[sel.value] = { shiftTypes: {} };
+  renderEmployeeBranchLimits();
+}
+
+function removeEmployeeBranch(bCode){
+  delete editingEmployeeBranchLimits[bCode];
+  renderEmployeeBranchLimits();
+}
+
+function updateEmpBranchLimitField(bCode, field, value){
+  if(!editingEmployeeBranchLimits[bCode]) editingEmployeeBranchLimits[bCode] = { shiftTypes:{} };
+  const v = value === '' ? undefined : parseInt(value);
+  if(v === undefined) delete editingEmployeeBranchLimits[bCode][field];
+  else editingEmployeeBranchLimits[bCode][field] = v;
+}
+
+function updateEmpShiftTypeLimitField(bCode, stCode, field, value){
+  if(!editingEmployeeBranchLimits[bCode]) editingEmployeeBranchLimits[bCode] = { shiftTypes:{} };
+  if(!editingEmployeeBranchLimits[bCode].shiftTypes) editingEmployeeBranchLimits[bCode].shiftTypes = {};
+  const stLim = editingEmployeeBranchLimits[bCode].shiftTypes[stCode] || {};
+  const v = value === '' ? undefined : parseInt(value);
+  if(v === undefined) delete stLim[field]; else stLim[field] = v;
+  editingEmployeeBranchLimits[bCode].shiftTypes[stCode] = stLim;
 }
 
 async function saveEmployee(){
@@ -3123,14 +3205,9 @@ async function saveEmployee(){
   const name = document.getElementById('employee-name').value.trim();
   if(!name){ toast('Zadej jméno zaměstnance'); return; }
 
-  const branchLimits = {};
-  branches.forEach(b=>{
-    const minEl = document.querySelector(`[data-branch-limit-min="${b.code}"]`);
-    const maxEl = document.querySelector(`[data-branch-limit-max="${b.code}"]`);
-    const min = minEl && minEl.value !== '' ? parseInt(minEl.value) : undefined;
-    const max = maxEl && maxEl.value !== '' ? parseInt(maxEl.value) : undefined;
-    if(min !== undefined || max !== undefined) branchLimits[b.code] = { min: min||0, max: max ?? 31 };
-  });
+  // editingEmployeeBranchLimits is kept live by addEmployeeBranch/removeEmployeeBranch
+  // and the per-field onchange handlers — it's already the canonical value to save.
+  const branchLimits = editingEmployeeBranchLimits;
 
   const payload = {
     name,
@@ -3367,15 +3444,63 @@ function renderShiftTypesList(){
     </div>`).join('');
 }
 
+// Keep every employee's per-shift-type limits (branch_limits[branchCode].shiftTypes)
+// in sync with the shift types actually defined on a branch — see FEATURE 13 below.
+async function syncShiftTypeAddedToEmployees(branchCode, stCode){
+  const affected = employees.filter(e=>{
+    const bl = (e.branch_limits||{})[branchCode];
+    return bl && !(bl.shiftTypes && bl.shiftTypes[stCode]);
+  });
+  if(!affected.length) return;
+  await Promise.all(affected.map(e=>{
+    const bl = e.branch_limits[branchCode];
+    if(!bl.shiftTypes) bl.shiftTypes = {};
+    bl.shiftTypes[stCode] = {}; // empty = bez omezení
+    return sb.from('employees').update({ branch_limits: e.branch_limits }).eq('id', e.id);
+  }));
+}
+
+async function syncShiftTypeRemovedFromEmployees(branchCode, stCode){
+  const affected = employees.filter(e=>{
+    const bl = (e.branch_limits||{})[branchCode];
+    return bl && bl.shiftTypes && bl.shiftTypes[stCode];
+  });
+  if(!affected.length) return;
+  await Promise.all(affected.map(e=>{
+    delete e.branch_limits[branchCode].shiftTypes[stCode];
+    return sb.from('employees').update({ branch_limits: e.branch_limits }).eq('id', e.id);
+  }));
+}
+
+async function syncShiftTypeRenamedForEmployees(branchCode, oldCode, newCode){
+  if(oldCode === newCode) return;
+  const affected = employees.filter(e=>{
+    const bl = (e.branch_limits||{})[branchCode];
+    return bl && bl.shiftTypes && bl.shiftTypes[oldCode];
+  });
+  if(!affected.length) return;
+  await Promise.all(affected.map(e=>{
+    const sts = e.branch_limits[branchCode].shiftTypes;
+    sts[newCode] = sts[oldCode];
+    delete sts[oldCode];
+    return sb.from('employees').update({ branch_limits: e.branch_limits }).eq('id', e.id);
+  }));
+}
+
 async function updateShiftTypeField(id, field, value){
   if(!value) return;
+  const st = editingBranchShiftTypes.find(s=>s.id===id);
+  const oldCode = st ? st.code : null;
   const { error } = await sb.from('shift_types').update({ [field]: value }).eq('id', id);
   if(error){ toast('Uložení se nezdařilo: '+error.message); return; }
   // Update in-memory so calendar updates immediately without page reload
-  const st = editingBranchShiftTypes.find(s=>s.id===id);
   if(st) st[field] = value;
   const gst = shiftTypes.find(s=>s.id===id);
   if(gst){ gst[field] = value; renderCalendar(); } // re-render calendar with new color
+  if(field === 'code' && oldCode && oldCode !== value){
+    const branch = branches.find(b=>b.id===(st?.branch_id||gst?.branch_id));
+    if(branch) await syncShiftTypeRenamedForEmployees(branch.code, oldCode, value);
+  }
 }
 
 async function addShiftType(){
@@ -3393,16 +3518,25 @@ async function addShiftType(){
   if(error){ toast('Přidání typu směny se nezdařilo: ' + error.message); return; }
   editingBranchShiftTypes.push(data);
   shiftTypes.push(data); // also update global list
+  const branch = branches.find(b=>b.id===branchId);
+  if(branch) await syncShiftTypeAddedToEmployees(branch.code, code);
   document.getElementById('new-shifttype-code').value = '';
   document.getElementById('new-shifttype-label').value = '';
   renderShiftTypesList();
 }
 
 async function removeShiftType(id){
+  const st = editingBranchShiftTypes.find(s=>s.id===id) || shiftTypes.find(s=>s.id===id);
   const { error } = await sb.from('shift_types').delete().eq('id', id);
   if(error){ toast('Smazání se nezdařilo'); return; }
   editingBranchShiftTypes = editingBranchShiftTypes.filter(s=>s.id!==id);
+  shiftTypes = shiftTypes.filter(s=>s.id!==id); // purge stale global entry so the calendar can't show a deleted type
+  if(st){
+    const branch = branches.find(b=>b.id===st.branch_id);
+    if(branch) await syncShiftTypeRemovedFromEmployees(branch.code, st.code);
+  }
   renderShiftTypesList();
+  renderCalendar();
 }
 
 async function saveBranch(){
@@ -3455,6 +3589,12 @@ async function deleteBranch(id){
   if(!confirm(`Opravdu chcete smazat pobočku "${b.name}"?\n\nPozor: Tímto se smažou i všechny směny této pobočky v rozpisu. Tato akce je nevratná.`)) return;
   const { error } = await sb.from('branches').delete().eq('id', id);
   if(error){ toast('Smazání se nezdařilo'); return; }
+  // Unassign the deleted branch from every employee who had it
+  const affected = employees.filter(e=>(e.branch_limits||{})[b.code]);
+  await Promise.all(affected.map(e=>{
+    delete e.branch_limits[b.code];
+    return sb.from('employees').update({ branch_limits: e.branch_limits }).eq('id', e.id);
+  }));
   toast('Pobočka smazána');
   await loadBranches();
 }
@@ -3528,12 +3668,13 @@ const SCORE_METRICS_DEF = [
   { id: 'weekends',   label: 'Volné víkendy',         hint: 'Zaměstnanci mají min. počet volných víkendů' },
   { id: 'idealrest',  label: 'Ideální volno po sérii',hint: 'Po sérii směn následuje ideální počet dní volna' },
   { id: 'typebalance',label: 'Vyváženost typů směn',  hint: 'Rovnoměrné rozložení M1/M2/M3/M4 apod.' },
+  { id: 'shifttypemin',label:'Min. na typech směn',   hint: 'Zaměstnanci mají min. počet směn u přiřazených typů směn (M1, M2…) — max limity jsou vynuceny vždy, tohle je jen měkký cíl' },
 ];
 
 // Maps scoringWeights key → hardConstraints key (only the 3 hardenable conditions)
 const HARDENABLE_MAP = { coverage:'coverage', counts:'minshifts', weekends:'weekends' };
 
-const DEFAULT_WEIGHTS = { coverage:40, counts:30, weekends:20, idealrest:5, typebalance:5 };
+const DEFAULT_WEIGHTS = { coverage:40, counts:25, weekends:20, idealrest:5, typebalance:5, shifttypemin:5 };
 const DEFAULT_HARD    = { coverage:true, minshifts:false, weekends:false };
 
 let scoringWeights = { ...DEFAULT_WEIGHTS };
@@ -3650,6 +3791,49 @@ async function loadOrgSettings(){
   document.getElementById('rule-weekend-priority').checked = orgSettings['weekend_priority'] !== false && orgSettings['weekend_priority'] !== 'false';
   document.getElementById('rule-default-minwe').value = parseInt(orgSettings['default_min_free_weekends'])||0;
   loadScoringUI(); // load scoring weights and hard constraints
+}
+
+// ════════════════════════════════════════════════════════════════
+// FEATURE 13 — POBOČKY A TYPY SMĚN JAKO EXPLICITNÍ PŘIŘAZENÍ
+// branch_limits (existing jsonb column on employees) now means:
+//   { [branchCode]: { min?, max?, shiftTypes: { [stCode]: { min?, max? } } } }
+// A branchCode key present = employee assigned to that branch. No schema change
+// needed — this is a one-time, idempotent client-side data migration below, gated
+// by org_settings.branch_limits_migrated_v2 so it only ever runs once per org.
+// Employees who previously had an EMPTY branch_limits (= could work anywhere,
+// unrestricted) are backfilled to all current branches with no limits, to preserve
+// their exact previous scheduling behavior. Employees who already had specific
+// branch_limits entries keep exactly those branches as their assigned set.
+// ════════════════════════════════════════════════════════════════
+async function migrateEmployeeBranchLimitsV2(){
+  if(orgSettings['branch_limits_migrated_v2']) return;
+  if(!branches.length) return; // nothing to backfill yet — retried on next load
+
+  const updates = [];
+  employees.forEach(emp=>{
+    const bl = emp.branch_limits || {};
+    if(Object.keys(bl).length === 0){
+      const newBl = {};
+      branches.forEach(b=>{ newBl[b.code] = { shiftTypes: {} }; });
+      emp.branch_limits = newBl;
+      updates.push(emp);
+    } else {
+      let changed = false;
+      Object.keys(bl).forEach(bCode=>{
+        if(!bl[bCode].shiftTypes){ bl[bCode].shiftTypes = {}; changed = true; }
+      });
+      if(changed) updates.push(emp);
+    }
+  });
+
+  if(updates.length){
+    await Promise.all(updates.map(e=>sb.from('employees').update({ branch_limits: e.branch_limits }).eq('id', e.id)));
+    renderEmployees();
+  }
+
+  const newSettings = { ...orgSettings, branch_limits_migrated_v2: true };
+  const { error } = await sb.from('org_settings').update({ settings: newSettings }).eq('org_id', currentOrg.id);
+  if(!error) orgSettings = newSettings;
 }
 
 async function saveRules(){
@@ -4199,14 +4383,28 @@ function renderCalendar(){
       }
     }
 
-    // Count free weekends
+    // Count free weekends. A day is free if it's genuinely empty, marked X in the shifts
+    // table, OR has an approved/pending unavailability (žádanka) entry — X almost always
+    // lives in `unavail`, not `shifts`, so this must be an OR, not an AND-with-negation
+    // (the previous `!unavail[key] && (...)` required unavail to be UNSET to count as
+    // free, which is backwards — it made every žádanka-covered weekend look "worked").
     weekendBlocks.forEach(wb => {
       const allFree = wb.every(ds=>{
         const key = emp.id+':'+ds;
+        if(unavail[key]) return true;
         const s = shifts[key];
-        return !unavail[key] && (!s || s.shift_type_code==='X');
+        return !s || s.shift_type_code==='X';
       });
       if(allFree) freeWeekendCount++;
+      if(window.SMENY_DEBUG_WEEKENDS){
+        console.log(`[smeny] ${emp.name} blok [${wb.join(', ')}]: ${allFree?'VOLNÝ':'pracovní'} — `+
+          wb.map(ds=>{
+            const key = emp.id+':'+ds;
+            const s = shifts[key];
+            const state = unavail[key] ? 'unavail(X)' : (!s ? 'prázdno' : s.shift_type_code);
+            return `${ds}=${state}`;
+          }).join(', '));
+      }
     });
 
     const minOk = shiftCount >= emp.min_shifts;
@@ -4437,10 +4635,20 @@ function openPicker(cell){
     if(!emp) return { allowed: true, warn: null };
     const bCode = slotBranchCode(code);
     const bl = (emp.branch_limits||{})[bCode];
-    const maxAllowed = bl?.max !== undefined ? bl.max : 31;
+
+    // Not assigned to this branch at all → forbidden (see FEATURE 13)
+    if(!bl) return { allowed: false, warn: `${bCode}: zaměstnanec nemá přiřazenou tuto pobočku` };
+
+    const maxAllowed = bl.max !== undefined ? bl.max : 31;
 
     // Forbidden by branch limits (max=0)?
     if(maxAllowed === 0) return { allowed: false, warn: `${bCode}: zakázáno (max 0)` };
+
+    // Forbidden by shift-type-level limits (max=0)?
+    const stForLimit = shiftTypes.find(s=>s.code===code);
+    const stLim = stForLimit && bl.shiftTypes && bl.shiftTypes[code];
+    if(stLim && stLim.max !== undefined && stLim.max <= 0)
+      return { allowed: false, warn: `${code}: zakázáno (max 0)` };
 
     // Check if this employee already has a shift today (would be overwriting it)
     const existingShift = shifts[empId+':'+dateStr];
@@ -4482,6 +4690,13 @@ function openPicker(cell){
     // Would exceed branch monthly max?
     if(!isOverwrite && effectiveCnt >= maxAllowed)
       return { allowed: true, warn: `${ICONS.status_warning} Překročí limit ${bCode} (${effectiveCnt+1}/${maxAllowed})`, warnLevel: 'error' };
+
+    // Would exceed shift-type-level monthly max?
+    if(!isOverwrite && stLim && stLim.max !== undefined){
+      const stCnt = empShiftTypeCount(emp, code);
+      if(stCnt >= stLim.max)
+        return { allowed: true, warn: `${ICONS.status_warning} Překročí limit ${code} (${stCnt+1}/${stLim.max})`, warnLevel: 'error' };
+    }
 
     // Would exceed total max shifts (only if not overwriting)?
     if(!isOverwrite && currentTotal >= emp.max_shifts)
@@ -4738,24 +4953,6 @@ function requiredSlotsForDay(dateStr){
   return slots;
 }
 
-// Resolve a shift code (K, M1, …) to its branch code
-function branchCodeOfCode(code){
-  const st = shiftTypes.find(s=>s.code===code);
-  return st ? (branches.find(b=>b.id===st.branch_id)?.code || code) : code;
-}
-
-// Count employee's shifts for a branch inside a working copy S
-// (unlike empBranchCount which reads the global `shifts` state)
-function empBranchCountIn(S, empId, branchCode, daysInMonth){
-  let cnt = 0;
-  for(let d=1;d<=daysInMonth;d++){
-    const s = S[empId+':'+isoDate(schedYear,schedMonth+1,d)];
-    if(!s || s.shift_type_code==='X') continue;
-    if(branchCodeOfCode(s.shift_type_code)===branchCode) cnt++;
-  }
-  return cnt;
-}
-
 // ============================================================
 // SCORE BAR
 // ============================================================
@@ -4774,11 +4971,17 @@ function computeQuality(shiftsMap, unavailMap){
 
   // ── Compute raw scores for each metric ──────────────────────
 
-  // 1. Coverage — track per branch; demand comes from requiredSlotsForDay
-  // (same source as buildSchedule) so builder and scorer always agree
+  // 1. Coverage — demand comes from requiredSlotsForDay (same source as
+  // buildSchedule) so builder and scorer always agree. score/max stay
+  // SLOT-level (every required position counted individually) since that's
+  // the finer-grained signal the overall % and the hard-constraint check
+  // want. daysOk/daysTotal are DAY-level (a day counts as "ok" only if the
+  // branch's full requirement was met that day) — that's what the drill-down
+  // table shows the admin, since "28/31 days" is what they actually need to
+  // act on, not a raw slot count.
   let covScore=0, covMax=0;
-  const covBranchDetails = {}; // branchCode → { score, max, missedDays }
-  branches.forEach(b=>{ covBranchDetails[b.code] = { name:b.name, score:0, max:0, missedDays:[] }; });
+  const covBranchDetails = {}; // branchCode → { score, max, daysOk, daysTotal, missedDays }
+  branches.forEach(b=>{ covBranchDetails[b.code] = { name:b.name, score:0, max:0, daysOk:0, daysTotal:0, missedDays:[] }; });
   for(let d=1;d<=daysInMonth;d++){
     const dateStr = isoDate(schedYear,schedMonth+1,d);
     // Group required slots by code: code → { branchCode, need }
@@ -4787,21 +4990,24 @@ function computeQuality(shiftsMap, unavailMap){
       if(!byCode[sl.code]) byCode[sl.code] = { branchCode:sl.branchCode, need:0 };
       byCode[sl.code].need++;
     });
-    const dayMissedByBranch = {}; // branchCode → [labels]
+    const dayStat = {}; // branchCode → { need, got, missed:[] }
     Object.entries(byCode).forEach(([code, info])=>{
       covMax += info.need;
       covBranchDetails[info.branchCode].max += info.need;
       const cnt = employees.filter(emp=>{ const s=shiftsMap[emp.id+':'+dateStr]; return s&&s.shift_type_code===code; }).length;
       const got = Math.min(cnt, info.need);
       covScore += got; covBranchDetails[info.branchCode].score += got;
-      if(cnt < info.need){
-        (dayMissedByBranch[info.branchCode] = dayMissedByBranch[info.branchCode]||[])
-          .push(code===info.branchCode ? `${cnt}/${info.need}` : code);
-      }
+      const st = dayStat[info.branchCode] = dayStat[info.branchCode] || { need:0, got:0, missed:[] };
+      st.need += info.need; st.got += got;
+      if(cnt < info.need) st.missed.push(code===info.branchCode ? `${cnt}/${info.need}` : code);
     });
-    Object.entries(dayMissedByBranch).forEach(([bc, labels])=>{
-      const isCount = /^\d+\/\d+$/.test(labels[0]);
-      covBranchDetails[bc].missedDays.push(isCount ? `${d}. (${labels[0]})` : `${d}. (chybí: ${labels.join(',')})`);
+    Object.entries(dayStat).forEach(([bc, st])=>{
+      covBranchDetails[bc].daysTotal++;
+      if(st.got >= st.need) covBranchDetails[bc].daysOk++;
+      else {
+        const isCount = /^\d+\/\d+$/.test(st.missed[0]);
+        covBranchDetails[bc].missedDays.push(isCount ? `${d}. (${st.missed[0]})` : `${d}. (chybí: ${st.missed.join(',')})`);
+      }
     });
   }
 
@@ -4880,6 +5086,28 @@ function computeQuality(shiftsMap, unavailMap){
     });
   }
 
+  // 6. Shift-type minimums — per (employee, shiftType) with a configured branch_limits.shiftTypes min
+  let stMinScore=0, stMinMax=0;
+  const stMinDetails = [];
+  nonFixed.forEach(emp=>{
+    const limits = emp.branch_limits || {};
+    Object.values(limits).forEach(bl=>{
+      Object.entries((bl && bl.shiftTypes) || {}).forEach(([stCode, stLim])=>{
+        const minReq = (stLim && stLim.min) || 0;
+        if(!minReq) return;
+        stMinMax++;
+        let cnt=0;
+        for(let d=1;d<=daysInMonth;d++){
+          const s = shiftsMap[emp.id+':'+isoDate(schedYear,schedMonth+1,d)];
+          if(s && s.shift_type_code===stCode) cnt++;
+        }
+        const ok = cnt >= minReq;
+        if(ok) stMinScore++;
+        stMinDetails.push({ name:`${emp.name} (${stCode})`, cnt, min:minReq, minOk:ok, maxOk:true });
+      });
+    });
+  });
+
   // ── Apply weights — clamp each metric to max ────────────────
   const w = scoringWeights;
   const totalWeight = Object.values(w).reduce((a,b)=>a+b,0) || 100;
@@ -4905,6 +5133,10 @@ function computeQuality(shiftsMap, unavailMap){
       desc: balancePairs.length ? `${balScore}/${balMax} lidí má vyvážené typy` : 'Nenastaveny páry — viz Pravidla',
       details: { type:'employees', rows: balDetails },
       score:balScore, max:balMax||1, weight:w.typebalance||0 },
+    { id:'shifttypemin', label:'Min. na typech směn',
+      desc: stMinMax ? `${stMinScore}/${stMinMax} limitů typů směn splněno` : 'Nenastaveny žádné min. limity typů směn',
+      details: { type:'employees', rows: stMinDetails },
+      score:stMinScore, max:stMinMax||1, weight:w.shifttypemin||0 },
   ].filter(m=>m.weight>0);
 
   const pct = scored.length
@@ -4968,23 +5200,22 @@ function showMetricDetail(idx){
     html += `<table style="width:100%;border-collapse:collapse;font-size:12.5px">
       <thead><tr style="border-bottom:2px solid var(--line)">
         <th style="text-align:left;padding:5px 8px;font-size:11px;color:var(--ink-soft);text-transform:uppercase">Pobočka</th>
-        <th style="text-align:center;padding:5px 8px;font-size:11px;color:var(--ink-soft);text-transform:uppercase">Splněno</th>
-        <th style="text-align:center;padding:5px 8px;font-size:11px;color:var(--ink-soft);text-transform:uppercase">Celkem</th>
+        <th style="text-align:center;padding:5px 8px;font-size:11px;color:var(--ink-soft);text-transform:uppercase">Splněno dní</th>
+        <th style="text-align:center;padding:5px 8px;font-size:11px;color:var(--ink-soft);text-transform:uppercase">Celkem dní</th>
         <th style="text-align:center;padding:5px 8px;font-size:11px;color:var(--ink-soft);text-transform:uppercase">%</th>
         <th style="text-align:left;padding:5px 8px;font-size:11px;color:var(--ink-soft);text-transform:uppercase">Chybí v dnech</th>
       </tr></thead><tbody>`;
     Object.entries(d.branches).forEach(([code, b])=>{
-      if(!b.max) return;
-      const displayScore = Math.min(b.score, b.max); // clamp — never show > 100%
-      const bp = Math.round(displayScore/b.max*100);
+      if(!b.daysTotal) return;
+      const bp = Math.round(b.daysOk/b.daysTotal*100);
       const bc = bp>=100?'var(--accent)':bp>=80?'var(--amber)':'var(--red)';
       const missed = bp < 100
         ? (b.missedDays.slice(0,8).join(', ')+(b.missedDays.length>8?` a dalších ${b.missedDays.length-8}`:''))
         : '—';
       html += `<tr style="border-bottom:1px solid var(--line)">
         <td style="padding:8px 8px;font-weight:600">${escapeHtml(b.name)} <span class="code-pill">${escapeHtml(code)}</span></td>
-        <td style="text-align:center;padding:8px">${displayScore}</td>
-        <td style="text-align:center;padding:8px">${b.max}</td>
+        <td style="text-align:center;padding:8px">${b.daysOk}</td>
+        <td style="text-align:center;padding:8px">${b.daysTotal}</td>
         <td style="text-align:center;padding:8px;color:${bc};font-weight:600">${bp}%</td>
         <td style="padding:8px;font-size:11px;color:var(--ink-soft)">${missed}</td>
       </tr>`;
@@ -5024,6 +5255,60 @@ function showMetricDetail(idx){
 // ============================================================
 // AUTO-SCHEDULE
 // ============================================================
+// ════════════════════════════════════════════════════════════════
+// FEATURE 14 — NÁVAZNOST ROZPISU NA PŘEDCHOZÍ MĚSÍC
+// No schema change — reads the existing `shifts` table for the previous month's last
+// 7 days and passes it into buildSchedule(daysInMonth, prevMonthShifts) as plain data,
+// same shape as the `shifts` global (key `employeeId:shiftDate`). Used for:
+//   - max_consec / min_rest checks in canWork() carrying a streak across day 1
+//   - a SOFT preference (not a hard rule) to keep the same person on a weekend block
+//     whose Friday falls on the previous month's last day
+// Missing/empty data (first month ever) is handled gracefully — buildSchedule() just
+// behaves as before.
+// ════════════════════════════════════════════════════════════════
+// Load the last 7 days of the PREVIOUS month's shifts, so buildSchedule() can carry
+// consecutive-day streaks and weekend-block continuation across the month boundary.
+// Returns {} (not an error) if nothing exists yet — e.g. this is the very first month.
+async function loadPrevMonthTailShifts(){
+  const prevMonth0 = schedMonth === 0 ? 11 : schedMonth - 1; // 0-based
+  const prevYear   = schedMonth === 0 ? schedYear - 1 : schedYear;
+  const prevMonthLastDay = new Date(prevYear, prevMonth0+1, 0).getDate();
+  const toDate   = isoDate(prevYear, prevMonth0+1, prevMonthLastDay);
+  const fromDay  = Math.max(1, prevMonthLastDay - 6);
+  const fromDate = isoDate(prevYear, prevMonth0+1, fromDay);
+
+  const map = {};
+  try{
+    const { data, error } = await sb.from('shifts').select('*').eq('org_id', currentOrg.id)
+      .gte('shift_date', fromDate).lte('shift_date', toDate);
+    if(error || !data) return map;
+    data.forEach(s=>{ map[s.employee_id+':'+s.shift_date] = s; });
+  } catch(e){ /* first month ever, or offline — just proceed without history */ }
+  return map;
+}
+
+// Direct, independent day-by-day/branch-by-branch coverage scan — used both as a final
+// safety check right before publishing (belt-and-suspenders alongside computeQuality's
+// aggregate hardFailed flag) and to build a concrete list of problem days for the error
+// message when nothing compliant could be found. daysInMonth/branches/shiftTypes are the
+// same module-level globals buildSchedule()/computeQuality() already use.
+function findCoverageShortfalls(scheduleMap, daysInMonth){
+  const shortfalls = [];
+  for(let d=1; d<=daysInMonth; d++){
+    const dateStr = isoDate(schedYear, schedMonth+1, d);
+    // Demand per code from requiredSlotsForDay — the same single source of truth the
+    // builder and scorer use, so this check can never disagree with them about WHAT
+    // is required, only independently re-verify HOW MUCH of it got filled.
+    const byCode = {};
+    requiredSlotsForDay(dateStr).forEach(sl=>{ byCode[sl.code]=(byCode[sl.code]||0)+1; });
+    Object.entries(byCode).forEach(([code, need])=>{
+      const got = Object.values(scheduleMap).filter(s=>s.shift_date===dateStr && s.shift_type_code===code).length;
+      if(got < need) shortfalls.push(`${d}. ${code} (${got}/${need})`);
+    });
+  }
+  return shortfalls;
+}
+
 async function runAutoSchedule(){
   if(autoRunning){ autoCancel=true; return; }
   if(!employees.length){ toast('Nejsou zaměstnanci'); return; }
@@ -5033,7 +5318,7 @@ async function runAutoSchedule(){
   const feasibility = analyzeFeasibility();
   window._lastFeasibility = feasibility;
   if(feasibility.nonFixedCount === 0){
-    toast('Všichni zaměstnanci mají fixní rozvrh — algoritmus nemá koho přiřazovat', 'error');
+    toast('Algoritmus nemá koho přiřazovat — všichni zaměstnanci mají fixní rozvrh, nebo nemají přiřazenou žádnou pobočku', 'error');
     return;
   }
 
@@ -5043,12 +5328,17 @@ async function runAutoSchedule(){
   document.getElementById('auto-result-wrap').innerHTML='';
 
   const progressWrap = document.getElementById('auto-progress-wrap');
-  const MAX_RUNS=80, TARGET_PCT=95, STAGNATION=20;
-  // Two-level best: bestFeasible = best % without hard fails,
-  // bestOverall = best % regardless (ties → fewer hard fails)
+  const MAX_RUNS=150, TARGET_PCT=95, STAGNATION=30, STAGNATION_MIN_PCT=70;
+  // Two-level best: bestFeasible = best % without hard fails (preferred for saving),
+  // bestOverall = best % regardless of hard fails (ties → fewer hard fails).
+  // A candidate violating hard constraints is never SILENTLY published: when no
+  // feasible candidate exists at all, bestOverall is saved as best effort and the
+  // orange result panel + diagnostic modal explain exactly which constraints failed
+  // and why they can't be met with the current setup.
   let bestFeasible=null, bestFeasiblePct=-1,
       bestOverall=null, bestOverallPct=-1, bestOverallHardFails=Infinity,
       run=0, sinceImprove=0;
+  window._lastCoverageShortfalls = [];
 
   progressWrap.innerHTML = `<div class="auto-progress-box">
     <span id="auto-prog-label">Hledám nejlepší rozvrh…</span>
@@ -5056,10 +5346,11 @@ async function runAutoSchedule(){
   </div>`;
 
   const daysInMonth = new Date(schedYear, schedMonth+1, 0).getDate();
+  const prevMonthShifts = await loadPrevMonthTailShifts();
 
   while(run<MAX_RUNS && !autoCancel){
     run++;
-    const candidate = buildSchedule(daysInMonth);
+    const candidate = buildSchedule(daysInMonth, prevMonthShifts);
     const { pct, hardFailed } = computeQuality(candidate, unavail);
 
     let improved = false;
@@ -5080,18 +5371,35 @@ async function runAutoSchedule(){
         ? 'nejlepší se splněnými podmínkami: '+bestFeasiblePct+' % · celkově nejlepší: '+bestOverallPct+' %'
         : 'zatím žádný nesplňuje tvrdé podmínky · celkově nejlepší: '+bestOverallPct+' %');
 
-    // Break check runs every iteration; stagnation only once a feasible candidate exists
-    if(bestFeasible !== null && (bestFeasiblePct>=TARGET_PCT || sinceImprove>=STAGNATION)) break;
+    // Break check runs every iteration. Stagnation only ends the search early once
+    // a feasible, decent candidate exists; otherwise keep trying up to MAX_RUNS.
+    if(bestFeasible !== null && (bestFeasiblePct>=TARGET_PCT || (sinceImprove>=STAGNATION && bestFeasiblePct>=STAGNATION_MIN_PCT))) break;
     await new Promise(r=>setTimeout(r,0));
   }
 
-  // Always save the best result found — feasible preferred, otherwise best overall
-  const chosen  = bestFeasible !== null ? bestFeasible : bestOverall;
-  const feasibleFound = bestFeasible !== null;
+  // Final safety net: independently re-verify the feasible candidate's coverage
+  // day-by-day, in case computeQuality's aggregate score ever masked a per-day gap.
+  // On disagreement the candidate is demoted to "infeasible" — it still gets saved
+  // as best effort, but with the orange warning panel instead of a green all-clear.
+  let feasibleFound = bestFeasible !== null;
+  if(bestFeasible){
+    const finalShortfalls = findCoverageShortfalls(bestFeasible, daysInMonth);
+    if(finalShortfalls.length){
+      feasibleFound = false;
+      window._lastCoverageShortfalls = finalShortfalls;
+    }
+  }
+
+  // Always save the best result found — feasible preferred, otherwise best overall.
+  // bestOverall dominates bestFeasible in (pct, hard fails), so it's the right fallback.
+  const chosen = feasibleFound ? bestFeasible : bestOverall;
   const chosenPct = feasibleFound ? bestFeasiblePct : bestOverallPct;
 
   if(chosen){
     window._lastAutoHardFails = feasibleFound ? [] : computeQuality(chosen, unavail).hardFailed;
+    if(!feasibleFound && !window._lastCoverageShortfalls.length){
+      window._lastCoverageShortfalls = findCoverageShortfalls(chosen, daysInMonth);
+    }
     const from = isoDate(schedYear, schedMonth+1, 1);
     const to   = isoDate(schedYear, schedMonth+1, daysInMonth);
     await sb.from('shifts').delete().eq('org_id', currentOrg.id).eq('is_auto', true)
@@ -5126,7 +5434,9 @@ async function runAutoSchedule(){
 // ============================================================
 function analyzeFeasibility(){
   const daysInMonth = new Date(schedYear, schedMonth+1, 0).getDate();
-  const nonFixed = employees.filter(e=>!e.is_fixed);
+  // Same eligibility rule as buildSchedule: fixed-schedule employees and employees
+  // with zero assigned branches (FEATURE 13) can't be given anything by the algorithm
+  const nonFixed = employees.filter(e=>!e.is_fixed && Object.keys(e.branch_limits||{}).length>0);
   const result = {
     nonFixedCount: nonFixed.length,
     demand: 0,            // total required slots this month
@@ -5204,7 +5514,7 @@ function showFeasibilityModal(){
   const problems = [];
 
   if(f.nonFixedCount === 0){
-    problems.push('Všichni zaměstnanci mají fixní rozvrh — algoritmus nemá koho přiřazovat.');
+    problems.push('Algoritmus nemá koho přiřazovat — všichni zaměstnanci mají fixní rozvrh, nebo nemají přiřazenou žádnou pobočku.');
   }
   if(f.demand > f.supply){
     problems.push(`Potřeba <strong>${f.demand} slotů</strong>, kapacita týmu <strong>${f.supply}</strong> (chybí ${f.demand - f.supply}) — ${f.nonFixedCount} lidí má dohromady max. ${f.maxShiftsTotal} směn, ale zadaná volna (X) blokují ${f.blockedPersonDays} osobo-dnů z ${f.nonFixedCount * daysInMonth}.`);
@@ -5233,6 +5543,11 @@ function showFeasibilityModal(){
     html += `<div style="font-size:12px;font-weight:700;color:var(--ink-soft);text-transform:uppercase;margin:14px 0 6px">Nesplněné tvrdé podmínky finálního rozpisu</div>`;
     html += hardFails.map(hf=>`<div style="background:var(--amber-soft);color:var(--amber);border-radius:7px;padding:8px 12px;margin-bottom:6px;font-size:13px">${escapeHtml(hf)}</div>`).join('');
   }
+  const shortfalls = window._lastCoverageShortfalls || [];
+  if(shortfalls.length){
+    html += `<div style="font-size:12px;font-weight:700;color:var(--ink-soft);text-transform:uppercase;margin:14px 0 6px">Chybějící pokrytí v uloženém rozpisu (den, pobočka, obsazeno/potřeba)</div>`;
+    html += `<div style="background:var(--amber-soft);color:var(--amber);border-radius:7px;padding:8px 12px;font-size:13px;line-height:1.5">${escapeHtml(shortfalls.slice(0,15).join(', '))}${shortfalls.length>15?` a dalších ${shortfalls.length-15}`:''}</div>`;
+  }
   document.getElementById('feasibility-body').innerHTML = html;
   document.getElementById('feasibility-overlay').classList.add('open');
 }
@@ -5240,7 +5555,8 @@ function showFeasibilityModal(){
 // ============================================================
 // SCHEDULE BUILDER (single run)
 // ============================================================
-function buildSchedule(daysInMonth){
+function buildSchedule(daysInMonth, prevMonthShifts){
+  prevMonthShifts = prevMonthShifts || {}; // no previous-month data (e.g. first month ever) → just proceed normally
   // Working copy — preserve manual shifts; key → {employee_id, shift_date, shift_type_code, is_auto}
   const S = {};
   Object.entries(shifts).forEach(([key, s])=>{ if(!s.is_auto) S[key] = {...s}; });
@@ -5250,12 +5566,39 @@ function buildSchedule(daysInMonth){
     S[key] = { employee_id:empId, shift_date:dateStr, shift_type_code:'X', is_auto:false };
   });
 
-  const nonFixed = employees.filter(e=>!e.is_fixed);
+  // Employees with zero assigned branches are excluded entirely from auto-generation —
+  // there's nowhere the algorithm is allowed to put them. See FEATURE 13.
+  const nonFixed = employees.filter(e=>!e.is_fixed && Object.keys(e.branch_limits||{}).length>0);
   const defaultMinWE = parseInt(orgSettings['default_min_free_weekends'])||0;
   const weekendPriority = orgSettings['weekend_priority'] !== false && orgSettings['weekend_priority'] !== 'false';
+  const weekendBlocks = collectWeekendBlocks(daysInMonth);
+  // Days that belong to a full (Fri+Sat+Sun) weekend block, reserved for PASS 0 to own —
+  // later passes must not sneak in single-day "extra" shifts here, or a block that PASS 0
+  // gave whole to one employee (or deliberately left whole-free) ends up half-worked.
+  const fullWeekendDays = new Set();
+  if(weekendPriority){
+    weekendBlocks.forEach(wb=>{ if(wb.length===3) wb.forEach(ds=>fullWeekendDays.add(ds)); });
+  }
+
+  // Previous-month bookkeeping — lets consecutive-day/rest checks and the weekend-block
+  // continuation preference see across the 1st-of-the-month boundary. See FEATURE 14.
+  const prevMonthNum0    = schedMonth === 0 ? 11 : schedMonth - 1; // 0-based
+  const prevMonthYearNum = schedMonth === 0 ? schedYear - 1 : schedYear;
+  const prevMonthLastDayNum = new Date(prevMonthYearNum, prevMonthNum0+1, 0).getDate();
 
   function isWorking(key){
     const s=S[key]; return s && s.shift_type_code && s.shift_type_code!=='X';
+  }
+
+  // Like isWorking(), but dayIdx may be <= 0 to reach back into the previous month's
+  // loaded tail (dayIdx=0 → previous month's last day, dayIdx=-1 → the day before that…).
+  // Beyond the loaded 7-day window it just returns false — same as "no data, stop looking".
+  function isWorkingAt(empId, dayIdx){
+    if(dayIdx >= 1) return isWorking(empId+':'+isoDate(schedYear,schedMonth+1,dayIdx));
+    const prevDay = prevMonthLastDayNum + dayIdx;
+    if(prevDay < 1) return false;
+    const s = prevMonthShifts[empId+':'+isoDate(prevMonthYearNum, prevMonthNum0+1, prevDay)];
+    return !!(s && s.shift_type_code && s.shift_type_code !== 'X');
   }
 
   function empShiftCount(empId){
@@ -5264,35 +5607,134 @@ function buildSchedule(daysInMonth){
     return c;
   }
 
-  function canWork(emp, dateStr){
+  // Resolve a shift_type_code (e.g. "M1") or bare branch code (e.g. "K") to its branch code
+  function slotBranchCode(code){
+    const st = shiftTypes.find(s=>s.code===code);
+    return st ? branches.find(b=>b.id===st.branch_id)?.code : code;
+  }
+
+  // Count how many shifts the employee already has on a given branch, in the working copy S
+  function empBranchCountS(empId, branchCode){
+    let cnt=0;
+    for(let d=1;d<=daysInMonth;d++){
+      const s = S[empId+':'+isoDate(schedYear,schedMonth+1,d)];
+      if(!s || !s.shift_type_code || s.shift_type_code==='X') continue;
+      if(slotBranchCode(s.shift_type_code)===branchCode) cnt++;
+    }
+    return cnt;
+  }
+
+  // Count how many shifts the employee already has on this exact shift-type code (not branch-wide)
+  function empShiftTypeCountS(empId, code){
+    let cnt=0;
+    for(let d=1;d<=daysInMonth;d++){
+      const s = S[empId+':'+isoDate(schedYear,schedMonth+1,d)];
+      if(s && s.shift_type_code===code) cnt++;
+    }
+    return cnt;
+  }
+
+  // Check the employee's per-shift-type monthly max (branch_limits[branch].shiftTypes[code].max)
+  function shiftTypeLimitAllows(emp, code){
+    const st = shiftTypes.find(s=>s.code===code);
+    if(!st) return true; // bare branch code — no shift-type-level limits apply
+    const branchCode = branches.find(b=>b.id===st.branch_id)?.code;
+    if(!branchCode) return true;
+    const bl = (emp.branch_limits||{})[branchCode];
+    const stLim = bl && bl.shiftTypes && bl.shiftTypes[code];
+    if(!stLim || stLim.max === undefined) return true;
+    if(stLim.max <= 0) return false;
+    return empShiftTypeCountS(emp.id, code) < stLim.max;
+  }
+
+  // How strongly to prefer this employee for `code` while filling required slots in PASS 1,
+  // because they still haven't reached their own shift-type-level minimum for it. Required
+  // subtype slots (M1/M2/…) get claimed the moment they're seen in PASS 1 — waiting for a
+  // later best-effort pass to redirect them toward a specific employee's min is too late,
+  // since by then almost nothing is left unfilled to redirect.
+  function shiftTypeNeedBonus(emp, code){
+    const st = shiftTypes.find(s=>s.code===code);
+    if(!st) return 0;
+    const branchCode = branches.find(b=>b.id===st.branch_id)?.code;
+    const bl = branchCode && (emp.branch_limits||{})[branchCode];
+    const stLim = bl && bl.shiftTypes && bl.shiftTypes[code];
+    const minReq = (stLim && stLim.min) || 0;
+    if(!minReq) return 0;
+    return empShiftTypeCountS(emp.id, code) < minReq ? 6 : 0;
+  }
+
+  // Soft preference (not a hard rule) for continuing a weekend block that started in the
+  // previous month: if the 1st of this month is a Saturday, day 1+2 are the Sat+Sun tail
+  // of a Fri-Sat-Sun block whose Friday was the previous month's last day. Prefer whoever
+  // worked that Friday on this same branch/code — see FEATURE 14.
+  function weekendContinuationBonus(emp, dateStr, code){
+    const d = parseInt(dateStr.split('-')[2]);
+    if(d > 2) return 0; // only the first 1-2 days of the month can be a cross-month tail
+    const dow = new Date(dateStr+'T00:00:00').getDay();
+    if(dow !== 6 && dow !== 0) return 0; // only Saturday/Sunday
+    const firstDow = new Date(isoDate(schedYear,schedMonth+1,1)+'T00:00:00').getDay();
+    if(firstDow !== 6) return 0; // month doesn't open on a Saturday → no Fri tail to continue
+    const fridayKey = emp.id+':'+isoDate(prevMonthYearNum, prevMonthNum0+1, prevMonthLastDayNum);
+    const s = prevMonthShifts[fridayKey];
+    return (s && s.shift_type_code === code) ? 4 : 0;
+  }
+
+  // Check the employee's per-branch monthly limit. A branch the employee isn't assigned
+  // to at all is always forbidden (see FEATURE 13); max=0 explicitly forbids an assigned
+  // branch; shift-type-level max (M1/M2/…) is enforced here too since it's also hard.
+  function branchLimitAllows(emp, code){
+    if(!code) return true;
+    const branchCode = slotBranchCode(code);
+    if(!branchCode) return true;
+    const bl = (emp.branch_limits||{})[branchCode];
+    if(!bl) return false; // not assigned to this branch → forbidden
+    const maxAllowed = bl.max !== undefined ? bl.max : 31;
+    if(maxAllowed <= 0) return false;
+    if(empBranchCountS(emp.id, branchCode) >= maxAllowed) return false;
+    return shiftTypeLimitAllows(emp, code);
+  }
+
+  // branchLimitAllows()/shiftTypeLimitAllows() only ever check the count BEFORE this
+  // call, one day at a time — fine for every other pass, but PASS 0 assigns a whole
+  // multi-day weekend block to one employee atomically, so checking each of the 3 days
+  // against the SAME pre-block count lets a block push someone over a max that isn't an
+  // exact multiple of the block length (e.g. max:5 with a 3-day block: 3 fits, and a
+  // second 3-day block still looks fine against the stale count of 3, landing on 6).
+  // This checks the count AFTER adding all of `extraDays` at once, for both levels.
+  function blockRespectsLimits(emp, extraDays, code){
+    const branchCode = slotBranchCode(code);
+    const bl = branchCode && (emp.branch_limits||{})[branchCode];
+    if(bl && bl.max !== undefined && empBranchCountS(emp.id, branchCode) + extraDays > bl.max) return false;
+    const st = shiftTypes.find(s=>s.code===code);
+    if(st){
+      const stLim = bl && bl.shiftTypes && bl.shiftTypes[code];
+      if(stLim && stLim.max !== undefined && empShiftTypeCountS(emp.id, code) + extraDays > stLim.max) return false;
+    }
+    return true;
+  }
+
+  function canWork(emp, dateStr, code){
     if(S[emp.id+':'+dateStr]) return false;
     if(empShiftCount(emp.id) >= emp.max_shifts) return false;
+    if(code && !branchLimitAllows(emp, code)) return false;
     const dayIdx = parseInt(dateStr.split('-')[2]);
+    // LOOKBACK_LIMIT bounds how far into the previous month's loaded tail (7 days) we'll
+    // ever scan — without a bound the "rest" loop below could spin forever once it runs
+    // past the loaded window (isWorkingAt keeps returning false there, never breaking).
+    const LOOKBACK_LIMIT = 1 - 7;
     let cb=0;
-    for(let i=dayIdx-1;i>=1;i--){ if(isWorking(emp.id+':'+isoDate(schedYear,schedMonth+1,i))) cb++; else break; }
+    for(let i=dayIdx-1;i>=LOOKBACK_LIMIT;i--){ if(isWorkingAt(emp.id, i)) cb++; else break; }
     let ca=0;
     for(let i=dayIdx+1;i<=daysInMonth;i++){ if(isWorking(emp.id+':'+isoDate(schedYear,schedMonth+1,i))) ca++; else break; }
     if(cb+1+ca > emp.max_consec) return false;
     if(cb===0){
       let rest=0;
-      for(let i=dayIdx-1;i>=1;i--){ if(!isWorking(emp.id+':'+isoDate(schedYear,schedMonth+1,i))) rest++; else break; }
+      for(let i=dayIdx-1;i>=LOOKBACK_LIMIT;i--){ if(!isWorkingAt(emp.id, i)) rest++; else break; }
       let prev=0;
-      for(let i=dayIdx-1-rest;i>=1;i--){ if(isWorking(emp.id+':'+isoDate(schedYear,schedMonth+1,i))) prev++; else break; }
+      for(let i=dayIdx-1-rest;i>=LOOKBACK_LIMIT;i--){ if(isWorkingAt(emp.id, i)) prev++; else break; }
       if(prev>0 && rest < emp.min_rest) return false;
     }
     return true;
-  }
-
-  // canWork + branch limits computed over the working copy S
-  // (empWithinBranchLimits reads the global `shifts` — not usable here)
-  function canWorkSlot(emp, dateStr, code){
-    if(!canWork(emp, dateStr)) return false;
-    const bc = branchCodeOfCode(code);
-    const bl = (emp.branch_limits||{})[bc];
-    if(!bl) return true;
-    const maxAllowed = bl.max !== undefined ? bl.max : 31;
-    if(maxAllowed === 0) return false; // branch explicitly forbidden
-    return empBranchCountIn(S, emp.id, bc, daysInMonth) < maxAllowed;
   }
 
   // How many shifts with this code already exist on the given date
@@ -5302,73 +5744,98 @@ function buildSchedule(daysInMonth){
     return c;
   }
 
-  // PASS 0: Weekend blocks
+  // PASS 0: Weekend blocks — reserve the whole Fri+Sat+Sun block to ONE employee per
+  // required slot "lane" at a time, so nobody ends up working e.g. just Friday+Sunday.
+  // Each lane (one per required branch/shift-type slot) is filled independently —
+  // different lanes (different branches, or the 2nd/3rd person needed on the same
+  // branch) can go to different employees, but each lane's own days always go
+  // together or not at all.
+  //
+  // A lane doesn't have to span all 3 days: when a branch needs MORE people on Sat+Sun
+  // than on Friday (the common case — weekends are busier), the extra Sat+Sun-only
+  // positions get their own 2-day lane instead of falling through to PASS 1's day-by-day
+  // fill, which has no concept of "keep this person on both days" and would routinely
+  // hand Saturday and Sunday to two different people.
   if(weekendPriority){
-    const weekendBlocks = collectWeekendBlocks(daysInMonth);
-    const empsSorted = shuffle([...nonFixed]);
     weekendBlocks.forEach(wb=>{
-      const wbSlots = [];
-      wb.forEach(dateStr=>requiredSlotsForDay(dateStr).forEach(sl=>wbSlots.push({dateStr, code:sl.code})));
-      if(!wbSlots.length) return;
+      if(wb.length < 3) return; // partial block at month edge — no whole weekend to offer, leave to PASS 1
+      const [friDs, satDs, sunDs] = wb;
 
-      for(const emp of empsSorted){
-        const minWE = emp.min_free_weekends||defaultMinWE;
-        const freeWEs = weekendBlocks.filter(w2=>
-          w2.every(ds=>!isWorking(emp.id+':'+ds))
-        ).length;
-        if(freeWEs <= minWE) continue;
-        if(!wbSlots.every(sl=>canWorkSlot(emp, sl.dateStr, sl.code))) continue;
+      const lanes = []; // { code, days }
+      branches.forEach(b=>{
+        const sts = shiftTypes.filter(s=>s.branch_id===b.id);
+        if(sts.length){
+          sts.forEach(st=>lanes.push({ code:st.code, days:wb })); // each subtype needed every day
+        } else {
+          const friMin = getBranchDayMin(b, new Date(friDs+'T00:00:00').getDay());
+          const satMin = getBranchDayMin(b, new Date(satDs+'T00:00:00').getDay());
+          const sunMin = getBranchDayMin(b, new Date(sunDs+'T00:00:00').getDay());
+          const minAcrossDays = Math.min(friMin, satMin, sunMin);
+          for(let i=0;i<minAcrossDays;i++) lanes.push({ code:b.code, days:wb });
+          // Extra Sat+Sun-only demand beyond the whole-block baseline — its own 2-day lane.
+          const weekendExtra = Math.min(satMin, sunMin) - minAcrossDays;
+          for(let i=0;i<weekendExtra;i++) lanes.push({ code:b.code, days:[satDs, sunDs] });
+        }
+      });
+      if(!lanes.length) return;
 
-        // The block assigns one shift per day (last slot code per day wins) —
-        // check branch limits cumulatively over the whole block, not per slot
-        const effective = {};
-        wbSlots.forEach(sl=>{ effective[sl.dateStr]=sl.code; });
-        const addPerBranch = {};
-        Object.values(effective).forEach(code=>{
-          const bc = branchCodeOfCode(code);
-          addPerBranch[bc]=(addPerBranch[bc]||0)+1;
-        });
-        const blOk = Object.entries(addPerBranch).every(([bc, add])=>{
-          const bl = (emp.branch_limits||{})[bc];
-          if(!bl) return true;
-          const maxAllowed = bl.max !== undefined ? bl.max : 31;
-          return maxAllowed>0 && empBranchCountIn(S, emp.id, bc, daysInMonth)+add <= maxAllowed;
-        });
-        if(!blOk) continue;
+      lanes.forEach(lane=>{
+        const { code, days } = lane;
+        // Round 1: only offer the block to employees who still have free-weekend slack
+        // to spare. Round 2 (only if round 1 found nobody): assign it anyway — an
+        // unfilled required slot is worse than one employee dipping into their free
+        // weekends, and canWork() below still guarantees this only happens when the
+        // employee can physically work all of this lane's days.
+        for(const strict of [true, false]){
+          const empsSorted = shuffle([...nonFixed]);
+          let assigned = false;
+          for(const emp of empsSorted){
+            if(strict){
+              const minWE = emp.min_free_weekends||defaultMinWE;
+              const freeWEs = weekendBlocks.filter(w2=>
+                w2.length===3 && w2.every(ds=>!isWorking(emp.id+':'+ds))
+              ).length;
+              if(freeWEs <= minWE) continue;
+            }
+            if(!days.every(ds=>canWork(emp, ds, code))) continue;
+            if(!blockRespectsLimits(emp, days.length, code)) continue;
 
-        Object.entries(effective).forEach(([dateStr, code])=>{
-          S[emp.id+':'+dateStr] = {
-            employee_id:emp.id, shift_date:dateStr,
-            shift_type_code:code, is_auto:true
-          };
-        });
-        break;
-      }
+            days.forEach(ds=>{
+              S[emp.id+':'+ds] = { employee_id:emp.id, shift_date:ds, shift_type_code:code, is_auto:true };
+            });
+            assigned = true;
+            break;
+          }
+          if(assigned) break;
+        }
+      });
     });
   }
 
-  // PASS 1: Fill remaining slots day by day — count-based, so branches
-  // with a daily minimum > 1 get all their required copies filled
+  // PASS 1: Fill remaining slots day by day. requiredSlotsForDay() repeats a bare branch
+  // code once per required person that day (e.g. "M" four times if Majestic needs 4) — so
+  // this must fill UP TO that count per code, not stop the instant ONE person has that
+  // code, or every multi-person branch would silently cap at 1 person/day forever.
   const dayOrder = shuffle(Array.from({length:daysInMonth},(_,i)=>i+1));
   dayOrder.forEach(d=>{
     const dateStr = isoDate(schedYear,schedMonth+1,d);
-    const needByCode = {};
-    requiredSlotsForDay(dateStr).forEach(sl=>{ needByCode[sl.code]=(needByCode[sl.code]||0)+1; });
-    Object.entries(needByCode).forEach(([code, need])=>{
-      let have = countFilled(dateStr, code);
-      while(have < need){
+    const neededCounts = {};
+    requiredSlotsForDay(dateStr).forEach(sl=>{ neededCounts[sl.code] = (neededCounts[sl.code]||0) + 1; });
+    Object.entries(neededCounts).forEach(([code, neededCount])=>{
+      let haveCount = countFilled(dateStr, code);
+      while(haveCount < neededCount){
         const eligible = shuffle([...nonFixed]).filter(emp=>
-          !S[emp.id+':'+dateStr] && canWorkSlot(emp, dateStr, code)
+          !S[emp.id+':'+dateStr] && canWork(emp, dateStr, code)
         );
-        if(!eligible.length) break;
+        if(!eligible.length) break; // nobody left who can take this slot today
         eligible.sort((a,b)=>{
-          const rA = a.target_shifts - empShiftCount(a.id) + Math.random()*1.5;
-          const rB = b.target_shifts - empShiftCount(b.id) + Math.random()*1.5;
+          const rA = a.target_shifts - empShiftCount(a.id) + shiftTypeNeedBonus(a, code) + weekendContinuationBonus(a, dateStr, code) + Math.random()*1.5;
+          const rB = b.target_shifts - empShiftCount(b.id) + shiftTypeNeedBonus(b, code) + weekendContinuationBonus(b, dateStr, code) + Math.random()*1.5;
           return rB - rA;
         });
         const emp = eligible[0];
         S[emp.id+':'+dateStr] = { employee_id:emp.id, shift_date:dateStr, shift_type_code:code, is_auto:true };
-        have++;
+        haveCount++;
       }
     });
   });
@@ -5382,15 +5849,15 @@ function buildSchedule(daysInMonth){
     for(const d of shuffle(Array.from({length:daysInMonth},(_,i)=>i+1))){
       if(added>=need) break;
       const dateStr = isoDate(schedYear,schedMonth+1,d);
-      if(S[emp.id+':'+dateStr]) continue;
+      if(fullWeekendDays.has(dateStr)) continue; // don't sneak an extra day into a reserved weekend block
+      if(S[emp.id+':'+dateStr] || !canWork(emp, dateStr)) continue;
       // Find any available slot on this day below branch max (use getBranchDayMax)
       const dow2 = new Date(dateStr+'T00:00:00').getDay();
       const dayCodes = [...new Set(requiredSlotsForDay(dateStr).map(sl=>sl.code))];
       const avail = dayCodes.filter(code=>{
-        if(!canWorkSlot(emp, dateStr, code)) return false;
         const curCnt = countFilled(dateStr, code);
         const b = branches.find(b=>b.code===code);
-        return curCnt < (b ? getBranchDayMax(b, dow2) : 1);
+        return curCnt < (b ? getBranchDayMax(b, dow2) : 1) && branchLimitAllows(emp, code);
       });
       if(!avail.length) continue;
       const code = avail[Math.floor(Math.random()*avail.length)];
@@ -5399,18 +5866,73 @@ function buildSchedule(daysInMonth){
     }
   });
 
+  // PASS 2b: Pursue employee per-branch monthly minimums (branch_limits.min)
+  shuffle([...nonFixed]).forEach(emp=>{
+    const limits = emp.branch_limits || {};
+    Object.entries(limits).forEach(([branchCode, bl])=>{
+      const minReq = bl && bl.min || 0;
+      if(!minReq) return;
+      let need = minReq - empBranchCountS(emp.id, branchCode);
+      if(need <= 0) return;
+      for(const d of shuffle(Array.from({length:daysInMonth},(_,i)=>i+1))){
+        if(need<=0) break;
+        const dateStr = isoDate(schedYear,schedMonth+1,d);
+        if(fullWeekendDays.has(dateStr)) continue; // don't sneak an extra day into a reserved weekend block
+        if(S[emp.id+':'+dateStr] || !canWork(emp, dateStr)) continue;
+        const dowB = new Date(dateStr+'T00:00:00').getDay();
+        const avail = [...new Set(requiredSlotsForDay(dateStr).map(sl=>sl.code))].filter(code=>{
+          if(slotBranchCode(code) !== branchCode) return false;
+          const curCnt = countFilled(dateStr, code);
+          const b = branches.find(b=>b.code===slotBranchCode(code));
+          return curCnt < (b ? getBranchDayMax(b, dowB) : 1) && branchLimitAllows(emp, code);
+        });
+        if(!avail.length) continue;
+        const code = avail[Math.floor(Math.random()*avail.length)];
+        S[emp.id+':'+dateStr] = { employee_id:emp.id, shift_date:dateStr, shift_type_code:code, is_auto:true };
+        need--;
+      }
+    });
+  });
+
+  // PASS 2c: Pursue employee per-shift-type monthly minimums (branch_limits[branch].shiftTypes[code].min)
+  shuffle([...nonFixed]).forEach(emp=>{
+    const limits = emp.branch_limits || {};
+    Object.values(limits).forEach(bl=>{
+      Object.entries((bl && bl.shiftTypes) || {}).forEach(([stCode, stLim])=>{
+        const minReq = (stLim && stLim.min) || 0;
+        if(!minReq) return;
+        let need = minReq - empShiftTypeCountS(emp.id, stCode);
+        if(need <= 0) return;
+        for(const d of shuffle(Array.from({length:daysInMonth},(_,i)=>i+1))){
+          if(need<=0) break;
+          const dateStr = isoDate(schedYear,schedMonth+1,d);
+          if(fullWeekendDays.has(dateStr)) continue; // don't sneak an extra day into a reserved weekend block
+          if(S[emp.id+':'+dateStr] || !canWork(emp, dateStr, stCode)) continue;
+          if(!requiredSlotsForDay(dateStr).some(sl=>sl.code===stCode)) continue; // this shift type isn't even required today
+          if(countFilled(dateStr, stCode) > 0) continue; // this exact slot is already taken today
+          S[emp.id+':'+dateStr] = { employee_id:emp.id, shift_date:dateStr, shift_type_code:stCode, is_auto:true };
+          need--;
+        }
+      });
+    });
+  });
+
   // PASS 3: Fill branches toward day TARGET (soft goal from weekly_pattern)
+  // Only applies to branches without shift subtypes — subtype branches (M1/M2/...) are
+  // already fully seeded per-slot in PASS 1 and have no separate branch-level code to fill.
   const dayOrder2 = shuffle(Array.from({length:daysInMonth},(_,i)=>i+1));
   dayOrder2.forEach(d=>{
     const dateStr = isoDate(schedYear,schedMonth+1,d);
+    if(fullWeekendDays.has(dateStr)) return; // don't sneak an extra day into a reserved weekend block
     const dow3 = new Date(dateStr+'T00:00:00').getDay();
     branches.forEach(b=>{
+      if(shiftTypes.some(s=>s.branch_id===b.id)) return;
       const tgt = getBranchDayTarget(b, dow3);
       const curCnt = Object.values(S).filter(s=>s.shift_date===dateStr&&s.shift_type_code===b.code&&s.shift_type_code!=='X').length;
       if(curCnt >= tgt) return;
       const need = tgt - curCnt;
       const eligible = shuffle([...nonFixed]).filter(emp=>
-        !S[emp.id+':'+dateStr] && canWorkSlot(emp, dateStr, b.code) && empShiftCount(emp.id) < emp.max_shifts
+        !S[emp.id+':'+dateStr] && canWork(emp, dateStr, b.code) && empShiftCount(emp.id) < emp.max_shifts
       );
       eligible.sort((a,bEmp)=>{ // prefer employees below their target
         return (bEmp.target_shifts - empShiftCount(bEmp.id)) - (a.target_shifts - empShiftCount(a.id));
@@ -5421,6 +5943,33 @@ function buildSchedule(daysInMonth){
       }
     });
   });
+
+  // Debug log: per-day branch coverage vs. minimum requirement. Off by default (would
+  // spam the console on every one of the up-to-80 candidate builds) — enable from the
+  // browser console with `window.SMENY_DEBUG_COVERAGE = true` (or `'full'` to also log
+  // days that DO meet minimum, not just the violations) before running "Automaticky
+  // doplnit". See FEATURE 14 / bug report on Majestic under-coverage.
+  if(typeof window !== 'undefined' && window.SMENY_DEBUG_COVERAGE){
+    const dowLabels = ['Ne','Po','Út','St','Čt','Pá','So'];
+    console.group('[smeny] Pokrytí poboček po vygenerování rozpisu');
+    for(let d=1; d<=daysInMonth; d++){
+      const dateStr = isoDate(schedYear,schedMonth+1,d);
+      const dow = new Date(dateStr+'T00:00:00').getDay();
+      branches.forEach(b=>{
+        const minReq = getBranchDayMin(b, dow);
+        if(!minReq) return;
+        const sts = shiftTypes.filter(s=>s.branch_id===b.id);
+        const got = sts.length
+          ? sts.filter(st=>Object.values(S).some(s=>s.shift_date===dateStr && s.shift_type_code===st.code)).length
+          : Object.values(S).filter(s=>s.shift_date===dateStr && s.shift_type_code===b.code).length;
+        const ok = got >= minReq;
+        if(!ok || window.SMENY_DEBUG_COVERAGE === 'full'){
+          console.log(`%c${dateStr} (${dowLabels[dow]}) ${b.code}: ${got}/${minReq}${ok?'':'  ⚠ POD MINIMEM'}`, ok?'color:#2a2':'color:#c22;font-weight:bold');
+        }
+      });
+    }
+    console.groupEnd();
+  }
 
   return S;
 }
@@ -5826,6 +6375,8 @@ function onShiftDragStart(e, empId, dateStr, code){
 // DAY DETAIL — click on day number to see who works + who can
 // ============================================================
 // Check if employee is allowed to work a given slot code based on branch_limits
+// Employee must be assigned to the slot's branch at all (see FEATURE 13); max=0 forbids
+// an assigned branch explicitly, and a per-shift-type max (M1/M2/…) is also enforced.
 function empCanWorkSlot(emp, slotCode){
   if(!slotCode) return true;
   const limits = emp.branch_limits || {};
@@ -5834,10 +6385,12 @@ function empCanWorkSlot(emp, slotCode){
   const branchCode = st ? branches.find(b=>b.id===st.branch_id)?.code : slotCode;
   if(!branchCode) return true;
   const bl = limits[branchCode];
-  if(!bl) return true; // no limit set = allowed
-  // max=0 means explicitly forbidden
+  if(!bl) return false; // not assigned to this branch → forbidden
   const maxAllowed = bl.max !== undefined ? bl.max : 31;
-  return maxAllowed > 0;
+  if(maxAllowed <= 0) return false;
+  const stLim = st && bl.shiftTypes && bl.shiftTypes[slotCode];
+  if(stLim && stLim.max !== undefined && stLim.max <= 0) return false;
+  return true;
 }
 
 // Count how many times employee has worked a given branch this month
@@ -5855,7 +6408,18 @@ function empBranchCount(emp, branchCode){
   return cnt;
 }
 
-// Check if employee is within monthly branch limits for a slot
+// Count how many times employee has worked this exact shift-type code this month
+function empShiftTypeCount(emp, slotCode){
+  const daysInMonth = new Date(schedYear, schedMonth+1, 0).getDate();
+  let cnt = 0;
+  for(let d=1;d<=daysInMonth;d++){
+    const s = shifts[emp.id+':'+isoDate(schedYear,schedMonth+1,d)];
+    if(s && s.shift_type_code===slotCode) cnt++;
+  }
+  return cnt;
+}
+
+// Check if employee is within monthly branch AND shift-type limits for a slot
 function empWithinBranchLimits(emp, slotCode){
   if(!slotCode) return true;
   const limits = emp.branch_limits || {};
@@ -5863,11 +6427,17 @@ function empWithinBranchLimits(emp, slotCode){
   const branchCode = st ? branches.find(b=>b.id===st.branch_id)?.code : slotCode;
   if(!branchCode) return true;
   const bl = limits[branchCode];
-  if(!bl) return true;
+  if(!bl) return false; // not assigned to this branch → forbidden
   const maxAllowed = bl.max !== undefined ? bl.max : 31;
   if(maxAllowed === 0) return false; // explicitly forbidden
   const current = empBranchCount(emp, branchCode);
-  return current < maxAllowed;
+  if(current >= maxAllowed) return false;
+  const stLim = st && bl.shiftTypes && bl.shiftTypes[slotCode];
+  if(stLim && stLim.max !== undefined){
+    if(stLim.max <= 0) return false;
+    if(empShiftTypeCount(emp, slotCode) >= stLim.max) return false;
+  }
+  return true;
 }
 
 // Helper: count current shifts for an employee this month
@@ -8276,8 +8846,8 @@ const EMP_TUT_STEPS = [
     title:'Min. volných víkendů',
     body:'Přepisuje globální nastavení z Pravidel pro tohoto konkrétního zaměstnance. <strong>0</strong> = použije se výchozí hodnota nastavená v záložce Pravidla.' },
   { target:'#employee-branch-limits-section',
-    title:'Limity na pobočkách',
-    body:'Nastav kolik směn může zaměstnanec odpracovat na každé pobočce za měsíc. <strong>Min.</strong> = garantovaný počet, <strong>Max.</strong> = strop. Prázdné nebo nula = bez omezení na dané pobočce.' },
+    title:'Pobočky a limity',
+    body:'Tlačítkem <strong>+ Přidat pobočku</strong> zaměstnanci přiřaď pobočky, na kterých smí pracovat — algoritmus mu jinam směnu nedá. U každé pobočky lze nastavit <strong>Min./Max.</strong> směn za měsíc a totéž i pro jednotlivé typy směn (M1, M2…), pokud je pobočka má. Prázdné = bez omezení.' },
   { target:'#employee-fixed-section',
     title:'Fixní rozvrh',
     body:'Zaměstnanec s fixním rozvrhem se <strong>neúčastní automatického doplnění</strong> — jeho směny se zadávají ručně podle pevného vzoru. Vhodné pro vedoucí nebo zaměstnance s neměnným harmonogramem.',
