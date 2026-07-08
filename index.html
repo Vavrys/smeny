@@ -451,6 +451,7 @@ tr.dragging{opacity:.4}
   .sched-toolbar { display: none !important; }
   .score-bar { display: none !important; }
   #score-bar-wrap { display: none !important; }
+  #auto-result-wrap { display: none !important; }
   #auto-progress-wrap { display: none !important; }
   #sched-info-box { margin-bottom: 8px !important; }
   #gaps-inline { display: none !important; }
@@ -511,6 +512,7 @@ body.employee-view .drag-handle { display: none !important; }
 body.employee-view .employee-hidden { display: none !important; }
 body.employee-view #employee-banner { display: flex !important; }
 body.employee-view #score-bar-wrap { display: none !important; }
+body.employee-view #auto-result-wrap { display: none !important; }
 body.employee-view #fill-mode-slot-wrap { display: none !important; }
 
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -1066,7 +1068,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
       <button class="btn-ghost" id="emp-settings-btn" onclick="openEmployeeSettings()" style="display:none"><span data-icon="set_profil">👤</span> Profil</button>
       <button class="btn-ghost" id="admin-settings-btn" onclick="openEmployeeSettings()" style="display:none"><span data-icon="set_profil">👤</span> Profil</button>
       <span id="org-code-badge" style="display:none;font-family:var(--font-mono);font-size:12px;font-weight:700;letter-spacing:1.5px;background:var(--paper);border:1.5px solid var(--line);padding:4px 10px;border-radius:6px;color:var(--ink-soft)" title="Kód firmy"></span>
-      <span id="app-version-label" title="Verze aplikace" onclick="handleVersionClick()" style="font-size:10px;color:var(--ink-faint);font-family:var(--font-mono);padding:0 4px;user-select:none;cursor:pointer">v0.7.1</span>
+      <span id="app-version-label" title="Verze aplikace" onclick="handleVersionClick()" style="font-size:10px;color:var(--ink-faint);font-family:var(--font-mono);padding:0 4px;user-select:none;cursor:pointer">v0.7.4</span>
       <button class="btn-ghost" onclick="openSearch()" title="Vyhledat (Ctrl+K)" style="padding:6px 10px;font-size:14px"><span data-icon="btn_hledat">🔍</span></button>
       <button class="btn-ghost" onclick="openHelpCenter()" title="Nápověda" style="padding:6px 10px;font-size:14px"><span data-icon="btn_napoveda">❓</span></button>
       <button class="btn-ghost" id="notif-btn" onclick="toggleNotifPanel()" title="Notifikace" style="position:relative;padding:6px 10px;font-size:16px;display:none;align-items:center;justify-content:center">
@@ -1168,6 +1170,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
           <div style="font-size:18px;font-weight:700" id="print-title">Rozpis směn</div>
           <div style="font-size:12px;color:#666" id="print-subtitle"></div>
         </div>
+        <div id="auto-result-wrap"></div>
         <div id="score-bar-wrap"></div>
         <div id="labor-cost-wrap" style="margin-bottom:8px"></div>
         <div id="auto-progress-wrap"></div>
@@ -1696,6 +1699,18 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
 </div>
 
 <!-- ============================================================
+     FEASIBILITY DIAGNOSTIC MODAL — „Proč to nejde na 100 %"
+     ============================================================ -->
+<div class="modal-overlay" id="feasibility-overlay" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal" style="max-width:620px">
+    <div id="feasibility-body"></div>
+    <div style="margin-top:18px;text-align:right">
+      <button class="btn-outline" onclick="document.getElementById('feasibility-overlay').classList.remove('open')">Zavřít</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
      IMPORT MODAL
      ============================================================ -->
 <div class="modal-overlay" id="import-modal-overlay" onclick="if(event.target===this)closeImportModal()">
@@ -2037,7 +2052,7 @@ const DEFAULT_ICONS = {
   btn_smazat: '🗑️', btn_export_pdf: '🖨️', btn_zpet: '←', btn_dalsi: '→',
   btn_hotovo: '✅', btn_pozvanka: '🔑', btn_kopirovat: '📋', btn_odeslat: '📨',
   btn_kontrolovat: '🔄', btn_odhlasit: '🚪', btn_hledat: '🔍', btn_napoveda: '❓',
-  btn_zobrazit: '👁️', btn_skryt: '⊙', btn_zastavit: '⏹️',
+  btn_zobrazit: '👁️', btn_skryt: '⊙', btn_zastavit: '⏹️', btn_proc: '❓',
 
   // Stavy a indikátory
   status_ok: '✅', status_warning: '⚠️', status_error: '❌', status_info: 'ℹ️',
@@ -3691,6 +3706,8 @@ function changeMonth(dir){
   if(schedMonth > 11){ schedMonth=0; schedYear++; }
   if(schedMonth < 0 ){ schedMonth=11; schedYear--; }
   localStorage.setItem('sched_last_month', schedYear+'-'+schedMonth);
+  const resultWrap = document.getElementById('auto-result-wrap');
+  if(resultWrap) resultWrap.innerHTML='';
   renderMonthLabel();
   loadShiftsForMonth();
 }
@@ -4698,6 +4715,48 @@ async function clearAllShifts(){
 }
 
 // ============================================================
+// REQUIRED SLOTS — single source of truth for daily demand
+// Used by buildSchedule, computeQuality and analyzeFeasibility,
+// so the builder and the scorer always count identical slots.
+// ============================================================
+// Returns [{code, branchCode}] — exact list of slots that must be
+// filled on the given day. Branch without shift types → min_weekend/
+// min_weekday (or weekly_pattern) copies of the branch code; branch
+// with shift types → each type once.
+function requiredSlotsForDay(dateStr){
+  const dow = new Date(dateStr+'T00:00:00').getDay();
+  const slots = [];
+  branches.forEach(b=>{
+    const sts = shiftTypes.filter(s=>s.branch_id===b.id);
+    if(!sts.length){
+      const minReq = getBranchDayMin(b, dow);
+      for(let i=0;i<minReq;i++) slots.push({ code:b.code, branchCode:b.code });
+    } else {
+      sts.forEach(st=>slots.push({ code:st.code, branchCode:b.code }));
+    }
+  });
+  return slots;
+}
+
+// Resolve a shift code (K, M1, …) to its branch code
+function branchCodeOfCode(code){
+  const st = shiftTypes.find(s=>s.code===code);
+  return st ? (branches.find(b=>b.id===st.branch_id)?.code || code) : code;
+}
+
+// Count employee's shifts for a branch inside a working copy S
+// (unlike empBranchCount which reads the global `shifts` state)
+function empBranchCountIn(S, empId, branchCode, daysInMonth){
+  let cnt = 0;
+  for(let d=1;d<=daysInMonth;d++){
+    const s = S[empId+':'+isoDate(schedYear,schedMonth+1,d)];
+    if(!s || s.shift_type_code==='X') continue;
+    if(branchCodeOfCode(s.shift_type_code)===branchCode) cnt++;
+  }
+  return cnt;
+}
+
+// ============================================================
 // SCORE BAR
 // ============================================================
 function computeQuality(shiftsMap, unavailMap){
@@ -4715,35 +4774,34 @@ function computeQuality(shiftsMap, unavailMap){
 
   // ── Compute raw scores for each metric ──────────────────────
 
-  // 1. Coverage — track per branch
+  // 1. Coverage — track per branch; demand comes from requiredSlotsForDay
+  // (same source as buildSchedule) so builder and scorer always agree
   let covScore=0, covMax=0;
-  const covBranchDetails = {}; // branchCode → { score, max, slots: [{date,slot,filled}] }
+  const covBranchDetails = {}; // branchCode → { score, max, missedDays }
   branches.forEach(b=>{ covBranchDetails[b.code] = { name:b.name, score:0, max:0, missedDays:[] }; });
   for(let d=1;d<=daysInMonth;d++){
     const dateStr = isoDate(schedYear,schedMonth+1,d);
-    const _dow = new Date(schedYear,schedMonth,d).getDay();
-    const isWE = _dow===0||_dow===6;
-    branches.forEach(b=>{
-      const sts = shiftTypes.filter(s=>s.branch_id===b.id);
-      const minReq = getBranchDayMin(b, _dow);
-      if(!minReq) return;
-      covMax += minReq;
-      covBranchDetails[b.code].max += minReq;
-      if(!sts.length){
-        const cnt = employees.filter(emp=>{ const s=shiftsMap[emp.id+':'+dateStr]; return s&&s.shift_type_code===b.code; }).length;
-        const got = Math.min(cnt, minReq);
-        covScore += got; covBranchDetails[b.code].score += got;
-        if(cnt < minReq) covBranchDetails[b.code].missedDays.push(`${d}. (${cnt}/${minReq})`);
-      } else {
-        // Each required slot type counts as 1 point
-        let dayMissed = [];
-        sts.forEach(st=>{
-          const filled = employees.some(emp=>{ const s=shiftsMap[emp.id+':'+dateStr]; return s&&s.shift_type_code===st.code; });
-          if(filled){ covScore++; covBranchDetails[b.code].score++; }
-          else dayMissed.push(st.code);
-        });
-        if(dayMissed.length) covBranchDetails[b.code].missedDays.push(`${d}. (chybí: ${dayMissed.join(',')})`);
+    // Group required slots by code: code → { branchCode, need }
+    const byCode = {};
+    requiredSlotsForDay(dateStr).forEach(sl=>{
+      if(!byCode[sl.code]) byCode[sl.code] = { branchCode:sl.branchCode, need:0 };
+      byCode[sl.code].need++;
+    });
+    const dayMissedByBranch = {}; // branchCode → [labels]
+    Object.entries(byCode).forEach(([code, info])=>{
+      covMax += info.need;
+      covBranchDetails[info.branchCode].max += info.need;
+      const cnt = employees.filter(emp=>{ const s=shiftsMap[emp.id+':'+dateStr]; return s&&s.shift_type_code===code; }).length;
+      const got = Math.min(cnt, info.need);
+      covScore += got; covBranchDetails[info.branchCode].score += got;
+      if(cnt < info.need){
+        (dayMissedByBranch[info.branchCode] = dayMissedByBranch[info.branchCode]||[])
+          .push(code===info.branchCode ? `${cnt}/${info.need}` : code);
       }
+    });
+    Object.entries(dayMissedByBranch).forEach(([bc, labels])=>{
+      const isCount = /^\d+\/\d+$/.test(labels[0]);
+      covBranchDetails[bc].missedDays.push(isCount ? `${d}. (${labels[0]})` : `${d}. (chybí: ${labels.join(',')})`);
     });
   }
 
@@ -4971,13 +5029,26 @@ async function runAutoSchedule(){
   if(!employees.length){ toast('Nejsou zaměstnanci'); return; }
   if(!branches.length){ toast('Nejsou pobočky'); return; }
 
+  // Pre-flight: deterministic feasibility analysis before any attempt
+  const feasibility = analyzeFeasibility();
+  window._lastFeasibility = feasibility;
+  if(feasibility.nonFixedCount === 0){
+    toast('Všichni zaměstnanci mají fixní rozvrh — algoritmus nemá koho přiřazovat', 'error');
+    return;
+  }
+
   autoRunning=true; autoCancel=false;
   const btn = document.querySelector('[onclick="runAutoSchedule()"]');
   btn.textContent=`${ICONS.btn_zastavit} Zastavit`;
+  document.getElementById('auto-result-wrap').innerHTML='';
 
   const progressWrap = document.getElementById('auto-progress-wrap');
   const MAX_RUNS=80, TARGET_PCT=95, STAGNATION=20;
-  let best=null, bestPct=-1, run=0, sinceImprove=0;
+  // Two-level best: bestFeasible = best % without hard fails,
+  // bestOverall = best % regardless (ties → fewer hard fails)
+  let bestFeasible=null, bestFeasiblePct=-1,
+      bestOverall=null, bestOverallPct=-1, bestOverallHardFails=Infinity,
+      run=0, sinceImprove=0;
 
   progressWrap.innerHTML = `<div class="auto-progress-box">
     <span id="auto-prog-label">Hledám nejlepší rozvrh…</span>
@@ -4990,27 +5061,43 @@ async function runAutoSchedule(){
     run++;
     const candidate = buildSchedule(daysInMonth);
     const { pct, hardFailed } = computeQuality(candidate, unavail);
-    // Skip candidates that violate hard constraints
-    if(hardFailed.length > 0 && run < MAX_RUNS - 5) { sinceImprove++; continue; }
 
-    if(pct>bestPct){ bestPct=pct; best=candidate; sinceImprove=0; }
-    else sinceImprove++;
+    let improved = false;
+    if(hardFailed.length === 0 && pct > bestFeasiblePct){
+      if(bestFeasible === null) improved = true; // first feasible candidate resets stagnation
+      bestFeasible = candidate; bestFeasiblePct = pct;
+    }
+    if(pct > bestOverallPct || (pct === bestOverallPct && hardFailed.length < bestOverallHardFails)){
+      bestOverall = candidate; bestOverallPct = pct; bestOverallHardFails = hardFailed.length;
+      improved = true;
+    }
+    sinceImprove = improved ? 0 : sinceImprove+1;
 
     document.getElementById('auto-prog-fill').style.width = Math.round(run/MAX_RUNS*100)+'%';
     document.getElementById('auto-prog-label').textContent =
-      'Pokus '+run+'/'+MAX_RUNS+' — nejlepší '+bestPct+'%'+(sinceImprove>0?' (bez zlepšení: '+sinceImprove+')':'');
+      'Pokus '+run+'/'+MAX_RUNS+' — '+
+      (bestFeasible !== null
+        ? 'nejlepší se splněnými podmínkami: '+bestFeasiblePct+' % · celkově nejlepší: '+bestOverallPct+' %'
+        : 'zatím žádný nesplňuje tvrdé podmínky · celkově nejlepší: '+bestOverallPct+' %');
 
-    if(bestPct>=TARGET_PCT || sinceImprove>=STAGNATION) break;
+    // Break check runs every iteration; stagnation only once a feasible candidate exists
+    if(bestFeasible !== null && (bestFeasiblePct>=TARGET_PCT || sinceImprove>=STAGNATION)) break;
     await new Promise(r=>setTimeout(r,0));
   }
 
-  if(best){
+  // Always save the best result found — feasible preferred, otherwise best overall
+  const chosen  = bestFeasible !== null ? bestFeasible : bestOverall;
+  const feasibleFound = bestFeasible !== null;
+  const chosenPct = feasibleFound ? bestFeasiblePct : bestOverallPct;
+
+  if(chosen){
+    window._lastAutoHardFails = feasibleFound ? [] : computeQuality(chosen, unavail).hardFailed;
     const from = isoDate(schedYear, schedMonth+1, 1);
     const to   = isoDate(schedYear, schedMonth+1, daysInMonth);
     await sb.from('shifts').delete().eq('org_id', currentOrg.id).eq('is_auto', true)
       .gte('shift_date', from).lte('shift_date', to);
 
-    const toInsert = Object.values(best).filter(s=>s && s.is_auto).map(s=>({
+    const toInsert = Object.values(chosen).filter(s=>s && s.is_auto).map(s=>({
       org_id: currentOrg.id,
       employee_id: s.employee_id,
       shift_date: s.shift_date,
@@ -5025,13 +5112,129 @@ async function runAutoSchedule(){
     }
     await loadShiftsForMonth();
     const monthLabel2 = new Date(schedYear, schedMonth, 1).toLocaleDateString('cs-CZ',{month:'long',year:'numeric'});
-    toast('Hotovo — '+bestPct+'% ('+run+' pokusů, '+toInsert.length+' směn)');
-    logActivity(`Rozpis ${monthLabel2} vygenerován (${bestPct}%, ${toInsert.length} směn)`);
+    showAutoResultPanel(feasibleFound, chosenPct, run);
+    logActivity(`Rozpis ${monthLabel2} vygenerován (${chosenPct}%, ${toInsert.length} směn${feasibleFound?'':', tvrdé podmínky nesplněny'})`);
   }
 
   progressWrap.innerHTML='';
   autoRunning=false; autoCancel=false;
   btn.textContent=`${ICONS.btn_auto} Automaticky doplnit`;
+}
+
+// ============================================================
+// FEASIBILITY ANALYSIS — deterministic pre-flight check
+// ============================================================
+function analyzeFeasibility(){
+  const daysInMonth = new Date(schedYear, schedMonth+1, 0).getDate();
+  const nonFixed = employees.filter(e=>!e.is_fixed);
+  const result = {
+    nonFixedCount: nonFixed.length,
+    demand: 0,            // total required slots this month
+    supply: 0,            // Σ min(max_shifts, available days) over non-fixed
+    maxShiftsTotal: 0,    // Σ max_shifts (capacity before X-days)
+    blockedPersonDays: 0, // person-days blocked by X
+    unfillableSlots: [],  // [{day, code}] — no eligible employee at all
+    minShiftsIssues: [],  // [{name, min, available}]
+    feasible: true,
+  };
+
+  // Day is unavailable = X in unavailability, or a manual X shift
+  function hasX(empId, dateStr){
+    if(unavail[empId+':'+dateStr]) return true;
+    const s = shifts[empId+':'+dateStr];
+    return !!(s && !s.is_auto && s.shift_type_code==='X');
+  }
+
+  nonFixed.forEach(emp=>{
+    let availDays = 0;
+    for(let d=1;d<=daysInMonth;d++){
+      if(!hasX(emp.id, isoDate(schedYear,schedMonth+1,d))) availDays++;
+    }
+    result.blockedPersonDays += daysInMonth - availDays;
+    result.maxShiftsTotal += emp.max_shifts||0;
+    result.supply += Math.min(emp.max_shifts||0, availDays);
+    if(availDays < (emp.min_shifts||0)){
+      result.minShiftsIssues.push({ name: emp.name, min: emp.min_shifts, available: availDays });
+    }
+  });
+
+  for(let d=1;d<=daysInMonth;d++){
+    const dateStr = isoDate(schedYear,schedMonth+1,d);
+    const req = requiredSlotsForDay(dateStr);
+    result.demand += req.length;
+    [...new Set(req.map(sl=>sl.code))].forEach(code=>{
+      const someoneCan = nonFixed.some(emp=> !hasX(emp.id, dateStr) && empCanWorkSlot(emp, code));
+      if(!someoneCan) result.unfillableSlots.push({ day:d, code });
+    });
+  }
+
+  result.feasible = result.nonFixedCount>0
+    && result.demand <= result.supply
+    && !result.unfillableSlots.length
+    && !result.minShiftsIssues.length;
+  return result;
+}
+
+// ============================================================
+// RESULT PANEL + DIAGNOSTIC MODAL „Proč to nejde na 100 %"
+// ============================================================
+function showAutoResultPanel(feasibleFound, pct, runs){
+  const wrap = document.getElementById('auto-result-wrap');
+  if(!wrap) return;
+  const closeBtn = `<button onclick="document.getElementById('auto-result-wrap').innerHTML=''"
+    style="background:none;border:none;cursor:pointer;font-size:15px;color:inherit;padding:0 2px;margin-left:auto" title="Zavřít">${ICONS.btn_zrusit}</button>`;
+  if(feasibleFound){
+    wrap.innerHTML = `<div style="display:flex;align-items:center;gap:8px;background:var(--accent-soft);color:var(--accent-ink);border:1px solid var(--accent);border-radius:8px;padding:9px 12px;margin-bottom:10px;font-size:13px">
+      <span>${ICONS.status_ok} <strong>Hotovo — ${pct} %</strong>, tvrdé podmínky splněny (${runs} pokusů)</span>
+      ${closeBtn}
+    </div>`;
+  } else {
+    wrap.innerHTML = `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--amber-soft);color:var(--amber);border:1px solid var(--amber);border-radius:8px;padding:9px 12px;margin-bottom:10px;font-size:13px">
+      <span>${ICONS.status_warning} <strong>Uložen nejlepší možný rozpis (${pct} %)</strong> — tvrdé podmínky nelze při aktuálním nastavení splnit</span>
+      <button class="btn-outline" style="padding:3px 10px;font-size:12px" onclick="showFeasibilityModal()">${ICONS.btn_proc} Proč?</button>
+      ${closeBtn}
+    </div>`;
+  }
+}
+
+function showFeasibilityModal(){
+  const f = window._lastFeasibility || analyzeFeasibility();
+  const hardFails = window._lastAutoHardFails || [];
+  const daysInMonth = new Date(schedYear, schedMonth+1, 0).getDate();
+  const problems = [];
+
+  if(f.nonFixedCount === 0){
+    problems.push('Všichni zaměstnanci mají fixní rozvrh — algoritmus nemá koho přiřazovat.');
+  }
+  if(f.demand > f.supply){
+    problems.push(`Potřeba <strong>${f.demand} slotů</strong>, kapacita týmu <strong>${f.supply}</strong> (chybí ${f.demand - f.supply}) — ${f.nonFixedCount} lidí má dohromady max. ${f.maxShiftsTotal} směn, ale zadaná volna (X) blokují ${f.blockedPersonDays} osobo-dnů z ${f.nonFixedCount * daysInMonth}.`);
+  }
+  if(f.unfillableSlots.length){
+    // Group by slot code: "Dny 5., 12., 19.: slot M3 nemá žádného dostupného zaměstnance"
+    const byCode = {};
+    f.unfillableSlots.forEach(u=>{ (byCode[u.code]=byCode[u.code]||[]).push(u.day); });
+    Object.entries(byCode).forEach(([code, days])=>{
+      const dayList = days.slice(0,10).map(d=>d+'.').join(', ') + (days.length>10?` a dalších ${days.length-10}`:'');
+      problems.push(`Dny ${dayList}: slot <strong>${escapeHtml(code)}</strong> nemá žádného dostupného zaměstnance (všichni mají volno X nebo zákaz pobočky).`);
+    });
+  }
+  f.minShiftsIssues.forEach(mi=>{
+    problems.push(`<strong>${escapeHtml(mi.name)}</strong>: min. ${mi.min} směn, ale jen ${mi.available} dostupných dní.`);
+  });
+
+  let html = `<h3 style="margin:0 0 14px">Proč to nejde na 100 %</h3>`;
+  if(problems.length){
+    html += `<div style="font-size:13px;color:var(--ink-soft);margin-bottom:12px">Rozbor proveditelnosti pro tento měsíc — tyto překážky platí pro každý pokus algoritmu, bez ohledu na náhodu:</div>`;
+    html += problems.map(p=>`<div style="background:var(--red-soft);color:var(--red);border-radius:7px;padding:9px 12px;margin-bottom:8px;font-size:13px;line-height:1.45">${p}</div>`).join('');
+  } else {
+    html += `<div style="font-size:13px;color:var(--ink-soft);margin-bottom:12px">Kapacita týmu na pokrytí stačí (potřeba ${f.demand} slotů, kapacita ${f.supply}) — tvrdé podmínky se ale nepodařilo splnit kvůli kombinaci pravidel (série po sobě, odpočinek, volné víkendy, limity poboček). Zkus upravit pravidla nebo spustit generování znovu.</div>`;
+  }
+  if(hardFails.length){
+    html += `<div style="font-size:12px;font-weight:700;color:var(--ink-soft);text-transform:uppercase;margin:14px 0 6px">Nesplněné tvrdé podmínky finálního rozpisu</div>`;
+    html += hardFails.map(hf=>`<div style="background:var(--amber-soft);color:var(--amber);border-radius:7px;padding:8px 12px;margin-bottom:6px;font-size:13px">${escapeHtml(hf)}</div>`).join('');
+  }
+  document.getElementById('feasibility-body').innerHTML = html;
+  document.getElementById('feasibility-overlay').classList.add('open');
 }
 
 // ============================================================
@@ -5080,27 +5283,23 @@ function buildSchedule(daysInMonth){
     return true;
   }
 
-  // Build required slots for a given day
-  // Returns array of shift_type_code strings (K, U, M1, M2, ...)
-  function buildDaySlots(dateStr){
-    const dow = new Date(dateStr+'T00:00:00').getDay();
-    const isWE = dow===0||dow===6;
-    const slots = [];
-    branches.forEach(b=>{
-      const sts = shiftTypes.filter(s=>s.branch_id===b.id);
-      const minReq = getBranchDayMin(b, dow);
-      if(!sts.length){
-        for(let i=0;i<minReq;i++) slots.push(b.code); // e.g. "K"
-      } else {
-        sts.forEach(st=>slots.push(st.code)); // e.g. "M1", "M2"
-      }
-    });
-    return slots;
+  // canWork + branch limits computed over the working copy S
+  // (empWithinBranchLimits reads the global `shifts` — not usable here)
+  function canWorkSlot(emp, dateStr, code){
+    if(!canWork(emp, dateStr)) return false;
+    const bc = branchCodeOfCode(code);
+    const bl = (emp.branch_limits||{})[bc];
+    if(!bl) return true;
+    const maxAllowed = bl.max !== undefined ? bl.max : 31;
+    if(maxAllowed === 0) return false; // branch explicitly forbidden
+    return empBranchCountIn(S, emp.id, bc, daysInMonth) < maxAllowed;
   }
 
-  // Check if a slot (code) is already filled on a given date
-  function slotFilled(dateStr, code){
-    return Object.values(S).some(s=>s.shift_date===dateStr && s.shift_type_code===code);
+  // How many shifts with this code already exist on the given date
+  function countFilled(dateStr, code){
+    let c=0;
+    Object.values(S).forEach(s=>{ if(s.shift_date===dateStr && s.shift_type_code===code) c++; });
+    return c;
   }
 
   // PASS 0: Weekend blocks
@@ -5109,7 +5308,7 @@ function buildSchedule(daysInMonth){
     const empsSorted = shuffle([...nonFixed]);
     weekendBlocks.forEach(wb=>{
       const wbSlots = [];
-      wb.forEach(dateStr=>buildDaySlots(dateStr).forEach(code=>wbSlots.push({dateStr,code})));
+      wb.forEach(dateStr=>requiredSlotsForDay(dateStr).forEach(sl=>wbSlots.push({dateStr, code:sl.code})));
       if(!wbSlots.length) return;
 
       for(const emp of empsSorted){
@@ -5118,12 +5317,29 @@ function buildSchedule(daysInMonth){
           w2.every(ds=>!isWorking(emp.id+':'+ds))
         ).length;
         if(freeWEs <= minWE) continue;
-        if(!wbSlots.every(sl=>canWork(emp, sl.dateStr))) continue;
+        if(!wbSlots.every(sl=>canWorkSlot(emp, sl.dateStr, sl.code))) continue;
 
-        wbSlots.forEach(sl=>{
-          S[emp.id+':'+sl.dateStr] = {
-            employee_id:emp.id, shift_date:sl.dateStr,
-            shift_type_code:sl.code, is_auto:true
+        // The block assigns one shift per day (last slot code per day wins) —
+        // check branch limits cumulatively over the whole block, not per slot
+        const effective = {};
+        wbSlots.forEach(sl=>{ effective[sl.dateStr]=sl.code; });
+        const addPerBranch = {};
+        Object.values(effective).forEach(code=>{
+          const bc = branchCodeOfCode(code);
+          addPerBranch[bc]=(addPerBranch[bc]||0)+1;
+        });
+        const blOk = Object.entries(addPerBranch).every(([bc, add])=>{
+          const bl = (emp.branch_limits||{})[bc];
+          if(!bl) return true;
+          const maxAllowed = bl.max !== undefined ? bl.max : 31;
+          return maxAllowed>0 && empBranchCountIn(S, emp.id, bc, daysInMonth)+add <= maxAllowed;
+        });
+        if(!blOk) continue;
+
+        Object.entries(effective).forEach(([dateStr, code])=>{
+          S[emp.id+':'+dateStr] = {
+            employee_id:emp.id, shift_date:dateStr,
+            shift_type_code:code, is_auto:true
           };
         });
         break;
@@ -5131,23 +5347,28 @@ function buildSchedule(daysInMonth){
     });
   }
 
-  // PASS 1: Fill remaining slots day by day
+  // PASS 1: Fill remaining slots day by day — count-based, so branches
+  // with a daily minimum > 1 get all their required copies filled
   const dayOrder = shuffle(Array.from({length:daysInMonth},(_,i)=>i+1));
   dayOrder.forEach(d=>{
     const dateStr = isoDate(schedYear,schedMonth+1,d);
-    buildDaySlots(dateStr).forEach(code=>{
-      if(slotFilled(dateStr, code)) return;
-      const eligible = shuffle([...nonFixed]).filter(emp=>
-        !S[emp.id+':'+dateStr] && canWork(emp, dateStr)
-      );
-      eligible.sort((a,b)=>{
-        const rA = a.target_shifts - empShiftCount(a.id) + Math.random()*1.5;
-        const rB = b.target_shifts - empShiftCount(b.id) + Math.random()*1.5;
-        return rB - rA;
-      });
-      if(eligible.length){
+    const needByCode = {};
+    requiredSlotsForDay(dateStr).forEach(sl=>{ needByCode[sl.code]=(needByCode[sl.code]||0)+1; });
+    Object.entries(needByCode).forEach(([code, need])=>{
+      let have = countFilled(dateStr, code);
+      while(have < need){
+        const eligible = shuffle([...nonFixed]).filter(emp=>
+          !S[emp.id+':'+dateStr] && canWorkSlot(emp, dateStr, code)
+        );
+        if(!eligible.length) break;
+        eligible.sort((a,b)=>{
+          const rA = a.target_shifts - empShiftCount(a.id) + Math.random()*1.5;
+          const rB = b.target_shifts - empShiftCount(b.id) + Math.random()*1.5;
+          return rB - rA;
+        });
         const emp = eligible[0];
         S[emp.id+':'+dateStr] = { employee_id:emp.id, shift_date:dateStr, shift_type_code:code, is_auto:true };
+        have++;
       }
     });
   });
@@ -5161,11 +5382,13 @@ function buildSchedule(daysInMonth){
     for(const d of shuffle(Array.from({length:daysInMonth},(_,i)=>i+1))){
       if(added>=need) break;
       const dateStr = isoDate(schedYear,schedMonth+1,d);
-      if(S[emp.id+':'+dateStr] || !canWork(emp, dateStr)) continue;
+      if(S[emp.id+':'+dateStr]) continue;
       // Find any available slot on this day below branch max (use getBranchDayMax)
       const dow2 = new Date(dateStr+'T00:00:00').getDay();
-      const avail = buildDaySlots(dateStr).filter(code=>{
-        const curCnt = Object.values(S).filter(s=>s.shift_date===dateStr&&s.shift_type_code===code).length;
+      const dayCodes = [...new Set(requiredSlotsForDay(dateStr).map(sl=>sl.code))];
+      const avail = dayCodes.filter(code=>{
+        if(!canWorkSlot(emp, dateStr, code)) return false;
+        const curCnt = countFilled(dateStr, code);
         const b = branches.find(b=>b.code===code);
         return curCnt < (b ? getBranchDayMax(b, dow2) : 1);
       });
@@ -5187,7 +5410,7 @@ function buildSchedule(daysInMonth){
       if(curCnt >= tgt) return;
       const need = tgt - curCnt;
       const eligible = shuffle([...nonFixed]).filter(emp=>
-        !S[emp.id+':'+dateStr] && canWork(emp, dateStr) && empShiftCount(emp.id) < emp.max_shifts
+        !S[emp.id+':'+dateStr] && canWorkSlot(emp, dateStr, b.code) && empShiftCount(emp.id) < emp.max_shifts
       );
       eligible.sort((a,bEmp)=>{ // prefer employees below their target
         return (bEmp.target_shifts - empShiftCount(bEmp.id)) - (a.target_shifts - empShiftCount(a.id));
@@ -9585,7 +9808,7 @@ async function submitSupportRequest(){
 const ICON_GROUPS = [
   { label:'Navigace', keys:['nav_rozpis','nav_pobocky','nav_zamestnanci','nav_mezery','nav_statistiky','nav_zadosti','nav_pravidla'] },
   { label:'Toolbar tlačítka', keys:['btn_auto','btn_publikovat','btn_kde_doplnit','btn_pobocky_prehled','btn_zamestnanci_prehled','btn_smazat_auto','btn_smazat_vse','btn_vice','btn_import_json','btn_export_json','btn_export_excel','btn_export_ics','btn_sablony','btn_opakujici_volno','btn_tisk','btn_mzdy','btn_vymeny','btn_otevrene_smeny','btn_zaloha'] },
-  { label:'Akce', keys:['btn_pridat','btn_ulozit','btn_zrusit','btn_upravit','btn_smazat','btn_export_pdf','btn_zpet','btn_dalsi','btn_hotovo','btn_pozvanka','btn_kopirovat','btn_odeslat','btn_kontrolovat','btn_odhlasit','btn_hledat','btn_napoveda','btn_zobrazit','btn_skryt','btn_zastavit'] },
+  { label:'Akce', keys:['btn_pridat','btn_ulozit','btn_zrusit','btn_upravit','btn_smazat','btn_export_pdf','btn_zpet','btn_dalsi','btn_hotovo','btn_pozvanka','btn_kopirovat','btn_odeslat','btn_kontrolovat','btn_odhlasit','btn_hledat','btn_napoveda','btn_zobrazit','btn_skryt','btn_zastavit','btn_proc'] },
   { label:'Stavy a indikátory', keys:['status_ok','status_warning','status_error','status_info','status_pending','status_locked','status_claimed'] },
   { label:'Tutoriál', keys:['tut_uvod','tut_rozpis','tut_pobocky','tut_zamestnanci','tut_mezery','tut_pravidla_tvrdá','tut_pravidla_mekka','tut_pravidla_vaha','tut_pravidla_pary','tut_pravidla_vikendy','tut_ulozit','tut_navigace_mesic','tut_skore','tut_legenda','tut_sirka_sloupce','tut_klik','tut_dalsi_krok','tut_kod_firmy','tut_smerovani'] },
   { label:'Help center', keys:['help_rozpis','help_zamestnanci','help_pobocky','help_pravidla','help_notifikace','help_nastaveni','help_search','help_thumbs_up','help_thumbs_down','help_home'] },
