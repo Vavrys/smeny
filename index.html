@@ -1065,7 +1065,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
       <button class="btn-ghost" id="emp-settings-btn" onclick="openEmployeeSettings()" style="display:none"><span data-icon="set_profil">👤</span> Profil</button>
       <button class="btn-ghost" id="admin-settings-btn" onclick="openEmployeeSettings()" style="display:none"><span data-icon="set_profil">👤</span> Profil</button>
       <span id="org-code-badge" style="display:none;font-family:var(--font-mono);font-size:12px;font-weight:700;letter-spacing:1.5px;background:var(--paper);border:1.5px solid var(--line);padding:4px 10px;border-radius:6px;color:var(--ink-soft)" title="Kód firmy"></span>
-      <span id="app-version-label" title="Verze aplikace" onclick="handleVersionClick()" style="font-size:10px;color:var(--ink-faint);font-family:var(--font-mono);padding:0 4px;user-select:none;cursor:pointer">v0.7.2</span>
+      <span id="app-version-label" title="Verze aplikace" onclick="handleVersionClick()" style="font-size:10px;color:var(--ink-faint);font-family:var(--font-mono);padding:0 4px;user-select:none;cursor:pointer">v0.7.3</span>
       <button class="btn-ghost" onclick="openSearch()" title="Vyhledat (Ctrl+K)" style="padding:6px 10px;font-size:14px"><span data-icon="btn_hledat">🔍</span></button>
       <button class="btn-ghost" onclick="openHelpCenter()" title="Nápověda" style="padding:6px 10px;font-size:14px"><span data-icon="btn_napoveda">❓</span></button>
       <button class="btn-ghost" id="notif-btn" onclick="toggleNotifPanel()" title="Notifikace" style="position:relative;padding:6px 10px;font-size:16px;display:none;align-items:center;justify-content:center">
@@ -4084,18 +4084,6 @@ function slotMaxOnDay(dateStr, slotCode, isWE){
   return 1;
 }
 
-// Small colored dots (one per assigned branch) shown next to an employee's name so
-// admins can see at a glance who works where — see FEATURE 13.
-function employeeBranchDots(emp){
-  const codes = Object.keys(emp.branch_limits||{});
-  if(!codes.length) return '';
-  return codes.map(code=>{
-    const b = branches.find(x=>x.code===code);
-    if(!b) return '';
-    return `<span title="${escapeHtml(b.name)}" style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${b.color};margin-left:3px;flex-shrink:0"></span>`;
-  }).join('');
-}
-
 function renderCalendar(){
   const thead = document.getElementById('sched-thead');
   const tbody = document.getElementById('sched-tbody');
@@ -4235,7 +4223,7 @@ function renderCalendar(){
     tr.addEventListener('dragend',   onRowDragEnd);
 
     const dragHandle = (fillMode || isEmployee) ? '' : `<span class="drag-handle" title="Přetáhni pro změnu pořadí">⠿</span>`;
-    let nameCell = `<td class="sched-name-col" title="${escapeHtml(emp.name)}">${dragHandle}${escapeHtml(emp.name)}${employeeBranchDots(emp)}</td>`;
+    let nameCell = `<td class="sched-name-col" title="${escapeHtml(emp.name)}">${dragHandle}${escapeHtml(emp.name)}</td>`;
     let cells = '';
     let shiftCount=0, xCount=0, freeWeekendCount=0;
     const typeCounts = {};
@@ -4332,14 +4320,28 @@ function renderCalendar(){
       }
     }
 
-    // Count free weekends
+    // Count free weekends. A day is free if it's genuinely empty, marked X in the shifts
+    // table, OR has an approved/pending unavailability (žádanka) entry — X almost always
+    // lives in `unavail`, not `shifts`, so this must be an OR, not an AND-with-negation
+    // (the previous `!unavail[key] && (...)` required unavail to be UNSET to count as
+    // free, which is backwards — it made every žádanka-covered weekend look "worked").
     weekendBlocks.forEach(wb => {
       const allFree = wb.every(ds=>{
         const key = emp.id+':'+ds;
+        if(unavail[key]) return true;
         const s = shifts[key];
-        return !unavail[key] && (!s || s.shift_type_code==='X');
+        return !s || s.shift_type_code==='X';
       });
       if(allFree) freeWeekendCount++;
+      if(window.SMENY_DEBUG_WEEKENDS){
+        console.log(`[smeny] ${emp.name} blok [${wb.join(', ')}]: ${allFree?'VOLNÝ':'pracovní'} — `+
+          wb.map(ds=>{
+            const key = emp.id+':'+ds;
+            const s = shifts[key];
+            const state = unavail[key] ? 'unavail(X)' : (!s ? 'prázdno' : s.shift_type_code);
+            return `${ds}=${state}`;
+          }).join(', '));
+      }
     });
 
     const minOk = shiftCount >= emp.min_shifts;
@@ -4461,7 +4463,7 @@ function renderCalendarBranch(thead, tbody, daysInMonth, DOW_SHORT){
       const tr = document.createElement('tr');
       tr.dataset.empId = emp.id;
 
-      let cells = `<td class="sched-name-col" title="${escapeHtml(emp.name)}">${escapeHtml(emp.name)}${employeeBranchDots(emp)}</td>`;
+      let cells = `<td class="sched-name-col" title="${escapeHtml(emp.name)}">${escapeHtml(emp.name)}</td>`;
 
       for(let d=1; d<=daysInMonth; d++){
         const dateStr = isoDate(schedYear, schedMonth+1, d);
