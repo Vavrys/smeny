@@ -1065,7 +1065,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
       <button class="btn-ghost" id="emp-settings-btn" onclick="openEmployeeSettings()" style="display:none"><span data-icon="set_profil">👤</span> Profil</button>
       <button class="btn-ghost" id="admin-settings-btn" onclick="openEmployeeSettings()" style="display:none"><span data-icon="set_profil">👤</span> Profil</button>
       <span id="org-code-badge" style="display:none;font-family:var(--font-mono);font-size:12px;font-weight:700;letter-spacing:1.5px;background:var(--paper);border:1.5px solid var(--line);padding:4px 10px;border-radius:6px;color:var(--ink-soft)" title="Kód firmy"></span>
-      <span id="app-version-label" title="Verze aplikace" onclick="handleVersionClick()" style="font-size:10px;color:var(--ink-faint);font-family:var(--font-mono);padding:0 4px;user-select:none;cursor:pointer">v0.7.0</span>
+      <span id="app-version-label" title="Verze aplikace" onclick="handleVersionClick()" style="font-size:10px;color:var(--ink-faint);font-family:var(--font-mono);padding:0 4px;user-select:none;cursor:pointer">v0.7.1</span>
       <button class="btn-ghost" onclick="openSearch()" title="Vyhledat (Ctrl+K)" style="padding:6px 10px;font-size:14px"><span data-icon="btn_hledat">🔍</span></button>
       <button class="btn-ghost" onclick="openHelpCenter()" title="Nápověda" style="padding:6px 10px;font-size:14px"><span data-icon="btn_napoveda">❓</span></button>
       <button class="btn-ghost" id="notif-btn" onclick="toggleNotifPanel()" title="Notifikace" style="position:relative;padding:6px 10px;font-size:16px;display:none;align-items:center;justify-content:center">
@@ -1482,7 +1482,8 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
     </div>
 
     <div id="employee-branch-limits-section" style="display:none">
-      <div class="sub-title">Limity na pobočkách / měsíc</div>
+      <div class="sub-title">Přiřazené pobočky a limity / měsíc</div>
+      <div class="field-hint" style="margin:-4px 0 10px">Algoritmus přiřazuje směny jen na pobočky uvedené níže. Bez pobočky se zaměstnanec do automatického rozpisu nezahrne.</div>
       <div id="employee-branch-limits-list"></div>
     </div>
 
@@ -2225,6 +2226,7 @@ let currentRole = null;  // 'admin' | 'employee'
 let currentEmployeeId = null; // employee row id for non-admin users
 let employees = [];
 let branches = [];
+let editingEmployeeBranchLimits = {}; // working copy of the open employee's branch_limits while the modal is open
 let pendingOrgName = '';
 
 // ============================================================
@@ -2659,6 +2661,7 @@ async function bootstrapAfterAuth(){
     await loadEmployees();
     await loadBranches();
     await loadOrgSettings();
+    if(currentRole === 'admin') await migrateEmployeeBranchLimitsV2();
 
     if(currentRole !== 'admin'){
       if(!currentEmployeeId && currentRole !== 'branch_manager'){
@@ -2959,11 +2962,16 @@ function renderEmployees(){
       accessBadge = `<span style="font-size:11px;color:var(--ink-faint)">bez přístupu</span>`;
     }
 
+    const hasNoBranches = Object.keys(e.branch_limits||{}).length === 0;
+    const noBranchBadge = hasNoBranches
+      ? `<span title="Nemá přiřazenou žádnou pobočku — nebude zahrnut do automatického generování" style="color:var(--amber);margin-left:4px">${ICONS.status_warning}</span>`
+      : '';
+
     return `
     <tr data-emp-id="${e.id}">
       <td>
         <strong>${escapeHtml(e.name)}</strong>
-        ${getEmploymentTypeBadge(e.employment_type)}
+        ${getEmploymentTypeBadge(e.employment_type)}${noBranchBadge}
       </td>
       <td><span class="code-pill">${e.min_shifts}–${e.target_shifts}</span></td>
       <td>${e.max_shifts}</td>
@@ -2979,7 +2987,14 @@ function renderEmployees(){
     </tr>`;
   }).join('');
 
-  wrap.innerHTML = `<table class="data-table" role="table" aria-label="Seznam zaměstnanců">
+  const noBranchEmployees = filtered.filter(e=>Object.keys(e.branch_limits||{}).length === 0);
+  const noBranchWarning = noBranchEmployees.length
+    ? `<div style="background:var(--amber-soft);border:1px solid #f0c080;border-radius:7px;padding:10px 12px;margin-bottom:12px;font-size:12.5px">
+        ${noBranchEmployees.map(e=>`<div>${ICONS.status_warning} <strong>${escapeHtml(e.name)}</strong> nemá přiřazenou žádnou pobočku — nebude zahrnut do automatického generování</div>`).join('')}
+      </div>`
+    : '';
+
+  wrap.innerHTML = noBranchWarning + `<table class="data-table" role="table" aria-label="Seznam zaměstnanců">
     <thead><tr><th>Jméno</th><th>Min–cíl</th><th>Max</th><th>Max série</th><th>Přístup</th><th></th></tr></thead>
     <tbody>${rows}</tbody>
   </table>`;
@@ -2987,7 +3002,10 @@ function renderEmployees(){
 
 function openEmployeeModal(id){
   document.getElementById('employee-edit-id').value = id || '';
-  renderEmployeeBranchLimits(id ? employees.find(x=>x.id===id) : null);
+  const editingEmp = id ? employees.find(x=>x.id===id) : null;
+  // Deep-clone so edits inside the modal don't mutate the live employees array until Save
+  editingEmployeeBranchLimits = editingEmp && editingEmp.branch_limits ? JSON.parse(JSON.stringify(editingEmp.branch_limits)) : {};
+  renderEmployeeBranchLimits();
   if(id){
     const e = employees.find(x=>x.id===id);
     document.getElementById('employee-modal-title').textContent = 'Upravit zaměstnance';
@@ -3038,7 +3056,11 @@ function toggleEmployeeFixedFields(){
   // Placeholder hook — fixed-schedule pattern editor will be added alongside the calendar
 }
 
-function renderEmployeeBranchLimits(emp){
+// Employee ↔ branch assignment model (branch_limits jsonb column, no schema change):
+//   branch_limits = { [branchCode]: { min?, max?, shiftTypes: { [shiftTypeCode]: { min?, max? } } } }
+// A branchCode key present ⇒ employee is assigned to that branch. Removing the key
+// unassigns it. buildSchedule() only ever assigns shifts on branches present here.
+function renderEmployeeBranchLimits(){
   const section = document.getElementById('employee-branch-limits-section');
   const list = document.getElementById('employee-branch-limits-list');
   if(!branches.length){
@@ -3046,15 +3068,75 @@ function renderEmployeeBranchLimits(emp){
     return;
   }
   section.style.display = 'block';
-  const limits = (emp && emp.branch_limits) || {};
-  list.innerHTML = branches.map(b => {
-    const lim = limits[b.code] || {};
-    return `<div style="display:grid;grid-template-columns:90px 1fr 1fr;gap:10px;align-items:center;margin-bottom:8px">
-      <span class="code-pill" style="background:${b.color}22;border-color:${b.color}55;color:${b.color}">${escapeHtml(b.code)}</span>
-      <input type="number" min="0" placeholder="min" value="${lim.min ?? ''}" data-branch-limit-min="${b.code}" style="padding:7px 9px;border:1.5px solid var(--line);border-radius:7px;font-size:13px">
-      <input type="number" min="0" placeholder="max" value="${lim.max ?? ''}" data-branch-limit-max="${b.code}" style="padding:7px 9px;border:1.5px solid var(--line);border-radius:7px;font-size:13px">
+
+  const assignedCodes = Object.keys(editingEmployeeBranchLimits).filter(c=>branches.some(b=>b.code===c));
+  const availableBranches = branches.filter(b=>!assignedCodes.includes(b.code));
+
+  const rows = assignedCodes.map(bCode=>{
+    const b = branches.find(x=>x.code===bCode);
+    const lim = editingEmployeeBranchLimits[bCode] || {};
+    const sts = shiftTypes.filter(s=>s.branch_id===b.id);
+    const stRows = sts.map(st=>{
+      const stLim = (lim.shiftTypes||{})[st.code] || {};
+      return `<div style="display:grid;grid-template-columns:64px 1fr 1fr;gap:8px;align-items:center;margin:4px 0 4px 22px">
+        <span class="code-pill" style="font-size:10px;background:${(st.color||b.color)}22;border-color:${(st.color||b.color)}55;color:${st.color||b.color}">${escapeHtml(st.code)}</span>
+        <input type="number" min="0" placeholder="min" value="${stLim.min ?? ''}" onchange="updateEmpShiftTypeLimitField('${bCode}','${st.code}','min',this.value)" style="padding:5px 8px;border:1.5px solid var(--line);border-radius:6px;font-size:12px">
+        <input type="number" min="0" placeholder="max" value="${stLim.max ?? ''}" onchange="updateEmpShiftTypeLimitField('${bCode}','${st.code}','max',this.value)" style="padding:5px 8px;border:1.5px solid var(--line);border-radius:6px;font-size:12px">
+      </div>`;
+    }).join('');
+    return `<div style="border:1.5px solid var(--line);border-radius:9px;padding:10px;margin-bottom:8px">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 28px;gap:10px;align-items:center">
+        <span class="code-pill" style="background:${b.color}22;border-color:${b.color}55;color:${b.color}">${escapeHtml(b.code)} – ${escapeHtml(b.name)}</span>
+        <input type="number" min="0" placeholder="min" value="${lim.min ?? ''}" onchange="updateEmpBranchLimitField('${bCode}','min',this.value)" style="padding:7px 9px;border:1.5px solid var(--line);border-radius:7px;font-size:13px">
+        <input type="number" min="0" placeholder="max" value="${lim.max ?? ''}" onchange="updateEmpBranchLimitField('${bCode}','max',this.value)" style="padding:7px 9px;border:1.5px solid var(--line);border-radius:7px;font-size:13px">
+        <button type="button" class="icon-btn danger" onclick="removeEmployeeBranch('${bCode}')" title="Odebrat pobočku">${ICONS.btn_zrusit}</button>
+      </div>
+      ${stRows}
     </div>`;
   }).join('');
+
+  const emptyState = `<div style="background:var(--amber-soft);border:1px solid #f0c080;border-radius:7px;padding:8px 10px;margin-bottom:8px;font-size:12.5px">
+    ${ICONS.status_warning} Zatím žádná pobočka — bez pobočky se zaměstnanec nezahrne do automatického rozpisu.
+  </div>`;
+
+  const addPicker = availableBranches.length
+    ? `<div style="display:flex;gap:8px;align-items:center;margin-top:4px">
+        <select id="employee-add-branch-select" style="flex:1;padding:7px 9px;border:1.5px solid var(--line);border-radius:7px;font-size:13px">
+          ${availableBranches.map(b=>`<option value="${escapeHtml(b.code)}">${escapeHtml(b.code)} – ${escapeHtml(b.name)}</option>`).join('')}
+        </select>
+        <button type="button" class="btn-outline" onclick="addEmployeeBranch()" style="white-space:nowrap">${ICONS.btn_pridat} Přidat pobočku</button>
+      </div>`
+    : `<p class="field-hint">Všechny pobočky jsou už přiřazené.</p>`;
+
+  list.innerHTML = (assignedCodes.length ? rows : emptyState) + addPicker;
+}
+
+function addEmployeeBranch(){
+  const sel = document.getElementById('employee-add-branch-select');
+  if(!sel || !sel.value) return;
+  editingEmployeeBranchLimits[sel.value] = { shiftTypes: {} };
+  renderEmployeeBranchLimits();
+}
+
+function removeEmployeeBranch(bCode){
+  delete editingEmployeeBranchLimits[bCode];
+  renderEmployeeBranchLimits();
+}
+
+function updateEmpBranchLimitField(bCode, field, value){
+  if(!editingEmployeeBranchLimits[bCode]) editingEmployeeBranchLimits[bCode] = { shiftTypes:{} };
+  const v = value === '' ? undefined : parseInt(value);
+  if(v === undefined) delete editingEmployeeBranchLimits[bCode][field];
+  else editingEmployeeBranchLimits[bCode][field] = v;
+}
+
+function updateEmpShiftTypeLimitField(bCode, stCode, field, value){
+  if(!editingEmployeeBranchLimits[bCode]) editingEmployeeBranchLimits[bCode] = { shiftTypes:{} };
+  if(!editingEmployeeBranchLimits[bCode].shiftTypes) editingEmployeeBranchLimits[bCode].shiftTypes = {};
+  const stLim = editingEmployeeBranchLimits[bCode].shiftTypes[stCode] || {};
+  const v = value === '' ? undefined : parseInt(value);
+  if(v === undefined) delete stLim[field]; else stLim[field] = v;
+  editingEmployeeBranchLimits[bCode].shiftTypes[stCode] = stLim;
 }
 
 async function saveEmployee(){
@@ -3062,14 +3144,9 @@ async function saveEmployee(){
   const name = document.getElementById('employee-name').value.trim();
   if(!name){ toast('Zadej jméno zaměstnance'); return; }
 
-  const branchLimits = {};
-  branches.forEach(b=>{
-    const minEl = document.querySelector(`[data-branch-limit-min="${b.code}"]`);
-    const maxEl = document.querySelector(`[data-branch-limit-max="${b.code}"]`);
-    const min = minEl && minEl.value !== '' ? parseInt(minEl.value) : undefined;
-    const max = maxEl && maxEl.value !== '' ? parseInt(maxEl.value) : undefined;
-    if(min !== undefined || max !== undefined) branchLimits[b.code] = { min: min||0, max: max ?? 31 };
-  });
+  // editingEmployeeBranchLimits is kept live by addEmployeeBranch/removeEmployeeBranch
+  // and the per-field onchange handlers — it's already the canonical value to save.
+  const branchLimits = editingEmployeeBranchLimits;
 
   const payload = {
     name,
@@ -3306,15 +3383,63 @@ function renderShiftTypesList(){
     </div>`).join('');
 }
 
+// Keep every employee's per-shift-type limits (branch_limits[branchCode].shiftTypes)
+// in sync with the shift types actually defined on a branch — see FEATURE 13 below.
+async function syncShiftTypeAddedToEmployees(branchCode, stCode){
+  const affected = employees.filter(e=>{
+    const bl = (e.branch_limits||{})[branchCode];
+    return bl && !(bl.shiftTypes && bl.shiftTypes[stCode]);
+  });
+  if(!affected.length) return;
+  await Promise.all(affected.map(e=>{
+    const bl = e.branch_limits[branchCode];
+    if(!bl.shiftTypes) bl.shiftTypes = {};
+    bl.shiftTypes[stCode] = {}; // empty = bez omezení
+    return sb.from('employees').update({ branch_limits: e.branch_limits }).eq('id', e.id);
+  }));
+}
+
+async function syncShiftTypeRemovedFromEmployees(branchCode, stCode){
+  const affected = employees.filter(e=>{
+    const bl = (e.branch_limits||{})[branchCode];
+    return bl && bl.shiftTypes && bl.shiftTypes[stCode];
+  });
+  if(!affected.length) return;
+  await Promise.all(affected.map(e=>{
+    delete e.branch_limits[branchCode].shiftTypes[stCode];
+    return sb.from('employees').update({ branch_limits: e.branch_limits }).eq('id', e.id);
+  }));
+}
+
+async function syncShiftTypeRenamedForEmployees(branchCode, oldCode, newCode){
+  if(oldCode === newCode) return;
+  const affected = employees.filter(e=>{
+    const bl = (e.branch_limits||{})[branchCode];
+    return bl && bl.shiftTypes && bl.shiftTypes[oldCode];
+  });
+  if(!affected.length) return;
+  await Promise.all(affected.map(e=>{
+    const sts = e.branch_limits[branchCode].shiftTypes;
+    sts[newCode] = sts[oldCode];
+    delete sts[oldCode];
+    return sb.from('employees').update({ branch_limits: e.branch_limits }).eq('id', e.id);
+  }));
+}
+
 async function updateShiftTypeField(id, field, value){
   if(!value) return;
+  const st = editingBranchShiftTypes.find(s=>s.id===id);
+  const oldCode = st ? st.code : null;
   const { error } = await sb.from('shift_types').update({ [field]: value }).eq('id', id);
   if(error){ toast('Uložení se nezdařilo: '+error.message); return; }
   // Update in-memory so calendar updates immediately without page reload
-  const st = editingBranchShiftTypes.find(s=>s.id===id);
   if(st) st[field] = value;
   const gst = shiftTypes.find(s=>s.id===id);
   if(gst){ gst[field] = value; renderCalendar(); } // re-render calendar with new color
+  if(field === 'code' && oldCode && oldCode !== value){
+    const branch = branches.find(b=>b.id===(st?.branch_id||gst?.branch_id));
+    if(branch) await syncShiftTypeRenamedForEmployees(branch.code, oldCode, value);
+  }
 }
 
 async function addShiftType(){
@@ -3332,16 +3457,25 @@ async function addShiftType(){
   if(error){ toast('Přidání typu směny se nezdařilo: ' + error.message); return; }
   editingBranchShiftTypes.push(data);
   shiftTypes.push(data); // also update global list
+  const branch = branches.find(b=>b.id===branchId);
+  if(branch) await syncShiftTypeAddedToEmployees(branch.code, code);
   document.getElementById('new-shifttype-code').value = '';
   document.getElementById('new-shifttype-label').value = '';
   renderShiftTypesList();
 }
 
 async function removeShiftType(id){
+  const st = editingBranchShiftTypes.find(s=>s.id===id) || shiftTypes.find(s=>s.id===id);
   const { error } = await sb.from('shift_types').delete().eq('id', id);
   if(error){ toast('Smazání se nezdařilo'); return; }
   editingBranchShiftTypes = editingBranchShiftTypes.filter(s=>s.id!==id);
+  shiftTypes = shiftTypes.filter(s=>s.id!==id); // purge stale global entry so the calendar can't show a deleted type
+  if(st){
+    const branch = branches.find(b=>b.id===st.branch_id);
+    if(branch) await syncShiftTypeRemovedFromEmployees(branch.code, st.code);
+  }
   renderShiftTypesList();
+  renderCalendar();
 }
 
 async function saveBranch(){
@@ -3394,6 +3528,12 @@ async function deleteBranch(id){
   if(!confirm(`Opravdu chcete smazat pobočku "${b.name}"?\n\nPozor: Tímto se smažou i všechny směny této pobočky v rozpisu. Tato akce je nevratná.`)) return;
   const { error } = await sb.from('branches').delete().eq('id', id);
   if(error){ toast('Smazání se nezdařilo'); return; }
+  // Unassign the deleted branch from every employee who had it
+  const affected = employees.filter(e=>(e.branch_limits||{})[b.code]);
+  await Promise.all(affected.map(e=>{
+    delete e.branch_limits[b.code];
+    return sb.from('employees').update({ branch_limits: e.branch_limits }).eq('id', e.id);
+  }));
   toast('Pobočka smazána');
   await loadBranches();
 }
@@ -3467,12 +3607,13 @@ const SCORE_METRICS_DEF = [
   { id: 'weekends',   label: 'Volné víkendy',         hint: 'Zaměstnanci mají min. počet volných víkendů' },
   { id: 'idealrest',  label: 'Ideální volno po sérii',hint: 'Po sérii směn následuje ideální počet dní volna' },
   { id: 'typebalance',label: 'Vyváženost typů směn',  hint: 'Rovnoměrné rozložení M1/M2/M3/M4 apod.' },
+  { id: 'shifttypemin',label:'Min. na typech směn',   hint: 'Zaměstnanci mají min. počet směn u přiřazených typů směn (M1, M2…) — max limity jsou vynuceny vždy, tohle je jen měkký cíl' },
 ];
 
 // Maps scoringWeights key → hardConstraints key (only the 3 hardenable conditions)
 const HARDENABLE_MAP = { coverage:'coverage', counts:'minshifts', weekends:'weekends' };
 
-const DEFAULT_WEIGHTS = { coverage:40, counts:30, weekends:20, idealrest:5, typebalance:5 };
+const DEFAULT_WEIGHTS = { coverage:40, counts:25, weekends:20, idealrest:5, typebalance:5, shifttypemin:5 };
 const DEFAULT_HARD    = { coverage:true, minshifts:false, weekends:false };
 
 let scoringWeights = { ...DEFAULT_WEIGHTS };
@@ -3589,6 +3730,49 @@ async function loadOrgSettings(){
   document.getElementById('rule-weekend-priority').checked = orgSettings['weekend_priority'] !== false && orgSettings['weekend_priority'] !== 'false';
   document.getElementById('rule-default-minwe').value = parseInt(orgSettings['default_min_free_weekends'])||0;
   loadScoringUI(); // load scoring weights and hard constraints
+}
+
+// ════════════════════════════════════════════════════════════════
+// FEATURE 13 — POBOČKY A TYPY SMĚN JAKO EXPLICITNÍ PŘIŘAZENÍ
+// branch_limits (existing jsonb column on employees) now means:
+//   { [branchCode]: { min?, max?, shiftTypes: { [stCode]: { min?, max? } } } }
+// A branchCode key present = employee assigned to that branch. No schema change
+// needed — this is a one-time, idempotent client-side data migration below, gated
+// by org_settings.branch_limits_migrated_v2 so it only ever runs once per org.
+// Employees who previously had an EMPTY branch_limits (= could work anywhere,
+// unrestricted) are backfilled to all current branches with no limits, to preserve
+// their exact previous scheduling behavior. Employees who already had specific
+// branch_limits entries keep exactly those branches as their assigned set.
+// ════════════════════════════════════════════════════════════════
+async function migrateEmployeeBranchLimitsV2(){
+  if(orgSettings['branch_limits_migrated_v2']) return;
+  if(!branches.length) return; // nothing to backfill yet — retried on next load
+
+  const updates = [];
+  employees.forEach(emp=>{
+    const bl = emp.branch_limits || {};
+    if(Object.keys(bl).length === 0){
+      const newBl = {};
+      branches.forEach(b=>{ newBl[b.code] = { shiftTypes: {} }; });
+      emp.branch_limits = newBl;
+      updates.push(emp);
+    } else {
+      let changed = false;
+      Object.keys(bl).forEach(bCode=>{
+        if(!bl[bCode].shiftTypes){ bl[bCode].shiftTypes = {}; changed = true; }
+      });
+      if(changed) updates.push(emp);
+    }
+  });
+
+  if(updates.length){
+    await Promise.all(updates.map(e=>sb.from('employees').update({ branch_limits: e.branch_limits }).eq('id', e.id)));
+    renderEmployees();
+  }
+
+  const newSettings = { ...orgSettings, branch_limits_migrated_v2: true };
+  const { error } = await sb.from('org_settings').update({ settings: newSettings }).eq('org_id', currentOrg.id);
+  if(!error) orgSettings = newSettings;
 }
 
 async function saveRules(){
@@ -3900,6 +4084,18 @@ function slotMaxOnDay(dateStr, slotCode, isWE){
   return 1;
 }
 
+// Small colored dots (one per assigned branch) shown next to an employee's name so
+// admins can see at a glance who works where — see FEATURE 13.
+function employeeBranchDots(emp){
+  const codes = Object.keys(emp.branch_limits||{});
+  if(!codes.length) return '';
+  return codes.map(code=>{
+    const b = branches.find(x=>x.code===code);
+    if(!b) return '';
+    return `<span title="${escapeHtml(b.name)}" style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${b.color};margin-left:3px;flex-shrink:0"></span>`;
+  }).join('');
+}
+
 function renderCalendar(){
   const thead = document.getElementById('sched-thead');
   const tbody = document.getElementById('sched-tbody');
@@ -4039,7 +4235,7 @@ function renderCalendar(){
     tr.addEventListener('dragend',   onRowDragEnd);
 
     const dragHandle = (fillMode || isEmployee) ? '' : `<span class="drag-handle" title="Přetáhni pro změnu pořadí">⠿</span>`;
-    let nameCell = `<td class="sched-name-col" title="${escapeHtml(emp.name)}">${dragHandle}${escapeHtml(emp.name)}</td>`;
+    let nameCell = `<td class="sched-name-col" title="${escapeHtml(emp.name)}">${dragHandle}${escapeHtml(emp.name)}${employeeBranchDots(emp)}</td>`;
     let cells = '';
     let shiftCount=0, xCount=0, freeWeekendCount=0;
     const typeCounts = {};
@@ -4265,7 +4461,7 @@ function renderCalendarBranch(thead, tbody, daysInMonth, DOW_SHORT){
       const tr = document.createElement('tr');
       tr.dataset.empId = emp.id;
 
-      let cells = `<td class="sched-name-col" title="${escapeHtml(emp.name)}">${escapeHtml(emp.name)}</td>`;
+      let cells = `<td class="sched-name-col" title="${escapeHtml(emp.name)}">${escapeHtml(emp.name)}${employeeBranchDots(emp)}</td>`;
 
       for(let d=1; d<=daysInMonth; d++){
         const dateStr = isoDate(schedYear, schedMonth+1, d);
@@ -4374,10 +4570,20 @@ function openPicker(cell){
     if(!emp) return { allowed: true, warn: null };
     const bCode = slotBranchCode(code);
     const bl = (emp.branch_limits||{})[bCode];
-    const maxAllowed = bl?.max !== undefined ? bl.max : 31;
+
+    // Not assigned to this branch at all → forbidden (see FEATURE 13)
+    if(!bl) return { allowed: false, warn: `${bCode}: zaměstnanec nemá přiřazenou tuto pobočku` };
+
+    const maxAllowed = bl.max !== undefined ? bl.max : 31;
 
     // Forbidden by branch limits (max=0)?
     if(maxAllowed === 0) return { allowed: false, warn: `${bCode}: zakázáno (max 0)` };
+
+    // Forbidden by shift-type-level limits (max=0)?
+    const stForLimit = shiftTypes.find(s=>s.code===code);
+    const stLim = stForLimit && bl.shiftTypes && bl.shiftTypes[code];
+    if(stLim && stLim.max !== undefined && stLim.max <= 0)
+      return { allowed: false, warn: `${code}: zakázáno (max 0)` };
 
     // Check if this employee already has a shift today (would be overwriting it)
     const existingShift = shifts[empId+':'+dateStr];
@@ -4419,6 +4625,13 @@ function openPicker(cell){
     // Would exceed branch monthly max?
     if(!isOverwrite && effectiveCnt >= maxAllowed)
       return { allowed: true, warn: `${ICONS.status_warning} Překročí limit ${bCode} (${effectiveCnt+1}/${maxAllowed})`, warnLevel: 'error' };
+
+    // Would exceed shift-type-level monthly max?
+    if(!isOverwrite && stLim && stLim.max !== undefined){
+      const stCnt = empShiftTypeCount(emp, code);
+      if(stCnt >= stLim.max)
+        return { allowed: true, warn: `${ICONS.status_warning} Překročí limit ${code} (${stCnt+1}/${stLim.max})`, warnLevel: 'error' };
+    }
 
     // Would exceed total max shifts (only if not overwriting)?
     if(!isOverwrite && currentTotal >= emp.max_shifts)
@@ -4776,6 +4989,28 @@ function computeQuality(shiftsMap, unavailMap){
     });
   }
 
+  // 6. Shift-type minimums — per (employee, shiftType) with a configured branch_limits.shiftTypes min
+  let stMinScore=0, stMinMax=0;
+  const stMinDetails = [];
+  nonFixed.forEach(emp=>{
+    const limits = emp.branch_limits || {};
+    Object.values(limits).forEach(bl=>{
+      Object.entries((bl && bl.shiftTypes) || {}).forEach(([stCode, stLim])=>{
+        const minReq = (stLim && stLim.min) || 0;
+        if(!minReq) return;
+        stMinMax++;
+        let cnt=0;
+        for(let d=1;d<=daysInMonth;d++){
+          const s = shiftsMap[emp.id+':'+isoDate(schedYear,schedMonth+1,d)];
+          if(s && s.shift_type_code===stCode) cnt++;
+        }
+        const ok = cnt >= minReq;
+        if(ok) stMinScore++;
+        stMinDetails.push({ name:`${emp.name} (${stCode})`, cnt, min:minReq, minOk:ok, maxOk:true });
+      });
+    });
+  });
+
   // ── Apply weights — clamp each metric to max ────────────────
   const w = scoringWeights;
   const totalWeight = Object.values(w).reduce((a,b)=>a+b,0) || 100;
@@ -4801,6 +5036,10 @@ function computeQuality(shiftsMap, unavailMap){
       desc: balancePairs.length ? `${balScore}/${balMax} lidí má vyvážené typy` : 'Nenastaveny páry — viz Pravidla',
       details: { type:'employees', rows: balDetails },
       score:balScore, max:balMax||1, weight:w.typebalance||0 },
+    { id:'shifttypemin', label:'Min. na typech směn',
+      desc: stMinMax ? `${stMinScore}/${stMinMax} limitů typů směn splněno` : 'Nenastaveny žádné min. limity typů směn',
+      details: { type:'employees', rows: stMinDetails },
+      score:stMinScore, max:stMinMax||1, weight:w.shifttypemin||0 },
   ].filter(m=>m.weight>0);
 
   const pct = scored.length
@@ -5003,7 +5242,9 @@ function buildSchedule(daysInMonth){
     S[key] = { employee_id:empId, shift_date:dateStr, shift_type_code:'X', is_auto:false };
   });
 
-  const nonFixed = employees.filter(e=>!e.is_fixed);
+  // Employees with zero assigned branches are excluded entirely from auto-generation —
+  // there's nowhere the algorithm is allowed to put them. See FEATURE 13.
+  const nonFixed = employees.filter(e=>!e.is_fixed && Object.keys(e.branch_limits||{}).length>0);
   const defaultMinWE = parseInt(orgSettings['default_min_free_weekends'])||0;
   const weekendPriority = orgSettings['weekend_priority'] !== false && orgSettings['weekend_priority'] !== 'false';
   const weekendBlocks = collectWeekendBlocks(daysInMonth);
@@ -5042,16 +5283,58 @@ function buildSchedule(daysInMonth){
     return cnt;
   }
 
-  // Check the employee's per-branch monthly limit (max=0 forbids the branch entirely)
+  // Count how many shifts the employee already has on this exact shift-type code (not branch-wide)
+  function empShiftTypeCountS(empId, code){
+    let cnt=0;
+    for(let d=1;d<=daysInMonth;d++){
+      const s = S[empId+':'+isoDate(schedYear,schedMonth+1,d)];
+      if(s && s.shift_type_code===code) cnt++;
+    }
+    return cnt;
+  }
+
+  // Check the employee's per-shift-type monthly max (branch_limits[branch].shiftTypes[code].max)
+  function shiftTypeLimitAllows(emp, code){
+    const st = shiftTypes.find(s=>s.code===code);
+    if(!st) return true; // bare branch code — no shift-type-level limits apply
+    const branchCode = branches.find(b=>b.id===st.branch_id)?.code;
+    if(!branchCode) return true;
+    const bl = (emp.branch_limits||{})[branchCode];
+    const stLim = bl && bl.shiftTypes && bl.shiftTypes[code];
+    if(!stLim || stLim.max === undefined) return true;
+    if(stLim.max <= 0) return false;
+    return empShiftTypeCountS(emp.id, code) < stLim.max;
+  }
+
+  // How strongly to prefer this employee for `code` while filling required slots in PASS 1,
+  // because they still haven't reached their own shift-type-level minimum for it. Required
+  // subtype slots (M1/M2/…) get claimed the moment they're seen in PASS 1 — waiting for a
+  // later best-effort pass to redirect them toward a specific employee's min is too late,
+  // since by then almost nothing is left unfilled to redirect.
+  function shiftTypeNeedBonus(emp, code){
+    const st = shiftTypes.find(s=>s.code===code);
+    if(!st) return 0;
+    const branchCode = branches.find(b=>b.id===st.branch_id)?.code;
+    const bl = branchCode && (emp.branch_limits||{})[branchCode];
+    const stLim = bl && bl.shiftTypes && bl.shiftTypes[code];
+    const minReq = (stLim && stLim.min) || 0;
+    if(!minReq) return 0;
+    return empShiftTypeCountS(emp.id, code) < minReq ? 6 : 0;
+  }
+
+  // Check the employee's per-branch monthly limit. A branch the employee isn't assigned
+  // to at all is always forbidden (see FEATURE 13); max=0 explicitly forbids an assigned
+  // branch; shift-type-level max (M1/M2/…) is enforced here too since it's also hard.
   function branchLimitAllows(emp, code){
     if(!code) return true;
     const branchCode = slotBranchCode(code);
     if(!branchCode) return true;
     const bl = (emp.branch_limits||{})[branchCode];
-    if(!bl) return true;
+    if(!bl) return false; // not assigned to this branch → forbidden
     const maxAllowed = bl.max !== undefined ? bl.max : 31;
     if(maxAllowed <= 0) return false;
-    return empBranchCountS(emp.id, branchCode) < maxAllowed;
+    if(empBranchCountS(emp.id, branchCode) >= maxAllowed) return false;
+    return shiftTypeLimitAllows(emp, code);
   }
 
   function canWork(emp, dateStr, code){
@@ -5165,8 +5448,8 @@ function buildSchedule(daysInMonth){
         !S[emp.id+':'+dateStr] && canWork(emp, dateStr, code)
       );
       eligible.sort((a,b)=>{
-        const rA = a.target_shifts - empShiftCount(a.id) + Math.random()*1.5;
-        const rB = b.target_shifts - empShiftCount(b.id) + Math.random()*1.5;
+        const rA = a.target_shifts - empShiftCount(a.id) + shiftTypeNeedBonus(a, code) + Math.random()*1.5;
+        const rB = b.target_shifts - empShiftCount(b.id) + shiftTypeNeedBonus(b, code) + Math.random()*1.5;
         return rB - rA;
       });
       if(eligible.length){
@@ -5226,6 +5509,29 @@ function buildSchedule(daysInMonth){
         S[emp.id+':'+dateStr] = { employee_id:emp.id, shift_date:dateStr, shift_type_code:code, is_auto:true };
         need--;
       }
+    });
+  });
+
+  // PASS 2c: Pursue employee per-shift-type monthly minimums (branch_limits[branch].shiftTypes[code].min)
+  shuffle([...nonFixed]).forEach(emp=>{
+    const limits = emp.branch_limits || {};
+    Object.values(limits).forEach(bl=>{
+      Object.entries((bl && bl.shiftTypes) || {}).forEach(([stCode, stLim])=>{
+        const minReq = (stLim && stLim.min) || 0;
+        if(!minReq) return;
+        let need = minReq - empShiftTypeCountS(emp.id, stCode);
+        if(need <= 0) return;
+        for(const d of shuffle(Array.from({length:daysInMonth},(_,i)=>i+1))){
+          if(need<=0) break;
+          const dateStr = isoDate(schedYear,schedMonth+1,d);
+          if(fullWeekendDays.has(dateStr)) continue; // don't sneak an extra day into a reserved weekend block
+          if(S[emp.id+':'+dateStr] || !canWork(emp, dateStr, stCode)) continue;
+          if(!buildDaySlots(dateStr).includes(stCode)) continue; // this shift type isn't even required today
+          if(slotFilled(dateStr, stCode)) continue; // this exact slot is already taken today
+          S[emp.id+':'+dateStr] = { employee_id:emp.id, shift_date:dateStr, shift_type_code:stCode, is_auto:true };
+          need--;
+        }
+      });
     });
   });
 
@@ -5660,6 +5966,8 @@ function onShiftDragStart(e, empId, dateStr, code){
 // DAY DETAIL — click on day number to see who works + who can
 // ============================================================
 // Check if employee is allowed to work a given slot code based on branch_limits
+// Employee must be assigned to the slot's branch at all (see FEATURE 13); max=0 forbids
+// an assigned branch explicitly, and a per-shift-type max (M1/M2/…) is also enforced.
 function empCanWorkSlot(emp, slotCode){
   if(!slotCode) return true;
   const limits = emp.branch_limits || {};
@@ -5668,10 +5976,12 @@ function empCanWorkSlot(emp, slotCode){
   const branchCode = st ? branches.find(b=>b.id===st.branch_id)?.code : slotCode;
   if(!branchCode) return true;
   const bl = limits[branchCode];
-  if(!bl) return true; // no limit set = allowed
-  // max=0 means explicitly forbidden
+  if(!bl) return false; // not assigned to this branch → forbidden
   const maxAllowed = bl.max !== undefined ? bl.max : 31;
-  return maxAllowed > 0;
+  if(maxAllowed <= 0) return false;
+  const stLim = st && bl.shiftTypes && bl.shiftTypes[slotCode];
+  if(stLim && stLim.max !== undefined && stLim.max <= 0) return false;
+  return true;
 }
 
 // Count how many times employee has worked a given branch this month
@@ -5689,7 +5999,18 @@ function empBranchCount(emp, branchCode){
   return cnt;
 }
 
-// Check if employee is within monthly branch limits for a slot
+// Count how many times employee has worked this exact shift-type code this month
+function empShiftTypeCount(emp, slotCode){
+  const daysInMonth = new Date(schedYear, schedMonth+1, 0).getDate();
+  let cnt = 0;
+  for(let d=1;d<=daysInMonth;d++){
+    const s = shifts[emp.id+':'+isoDate(schedYear,schedMonth+1,d)];
+    if(s && s.shift_type_code===slotCode) cnt++;
+  }
+  return cnt;
+}
+
+// Check if employee is within monthly branch AND shift-type limits for a slot
 function empWithinBranchLimits(emp, slotCode){
   if(!slotCode) return true;
   const limits = emp.branch_limits || {};
@@ -5697,11 +6018,17 @@ function empWithinBranchLimits(emp, slotCode){
   const branchCode = st ? branches.find(b=>b.id===st.branch_id)?.code : slotCode;
   if(!branchCode) return true;
   const bl = limits[branchCode];
-  if(!bl) return true;
+  if(!bl) return false; // not assigned to this branch → forbidden
   const maxAllowed = bl.max !== undefined ? bl.max : 31;
   if(maxAllowed === 0) return false; // explicitly forbidden
   const current = empBranchCount(emp, branchCode);
-  return current < maxAllowed;
+  if(current >= maxAllowed) return false;
+  const stLim = st && bl.shiftTypes && bl.shiftTypes[slotCode];
+  if(stLim && stLim.max !== undefined){
+    if(stLim.max <= 0) return false;
+    if(empShiftTypeCount(emp, slotCode) >= stLim.max) return false;
+  }
+  return true;
 }
 
 // Helper: count current shifts for an employee this month
@@ -8016,8 +8343,8 @@ const EMP_TUT_STEPS = [
     title:'Min. volných víkendů',
     body:'Přepisuje globální nastavení z Pravidel pro tohoto konkrétního zaměstnance. <strong>0</strong> = použije se výchozí hodnota nastavená v záložce Pravidla.' },
   { target:'#employee-branch-limits-section',
-    title:'Limity na pobočkách',
-    body:'Nastav kolik směn může zaměstnanec odpracovat na každé pobočce za měsíc. <strong>Min.</strong> = garantovaný počet, <strong>Max.</strong> = strop. Prázdné nebo nula = bez omezení na dané pobočce.' },
+    title:'Pobočky a limity',
+    body:'Tlačítkem <strong>+ Přidat pobočku</strong> zaměstnanci přiřaď pobočky, na kterých smí pracovat — algoritmus mu jinam směnu nedá. U každé pobočky lze nastavit <strong>Min./Max.</strong> směn za měsíc a totéž i pro jednotlivé typy směn (M1, M2…), pokud je pobočka má. Prázdné = bez omezení.' },
   { target:'#employee-fixed-section',
     title:'Fixní rozvrh',
     body:'Zaměstnanec s fixním rozvrhem se <strong>neúčastní automatického doplnění</strong> — jeho směny se zadávají ručně podle pevného vzoru. Vhodné pro vedoucí nebo zaměstnance s neměnným harmonogramem.',
