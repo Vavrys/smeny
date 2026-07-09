@@ -1068,7 +1068,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
       <button class="btn-ghost" id="emp-settings-btn" onclick="openEmployeeSettings()" style="display:none"><span data-icon="set_profil">👤</span> Profil</button>
       <button class="btn-ghost" id="admin-settings-btn" onclick="openEmployeeSettings()" style="display:none"><span data-icon="set_profil">👤</span> Profil</button>
       <span id="org-code-badge" style="display:none;font-family:var(--font-mono);font-size:12px;font-weight:700;letter-spacing:1.5px;background:var(--paper);border:1.5px solid var(--line);padding:4px 10px;border-radius:6px;color:var(--ink-soft)" title="Kód firmy"></span>
-      <span id="app-version-label" title="Verze aplikace" onclick="handleVersionClick()" style="font-size:10px;color:var(--ink-faint);font-family:var(--font-mono);padding:0 4px;user-select:none;cursor:pointer">v0.7.4</span>
+      <span id="app-version-label" title="Verze aplikace" onclick="handleVersionClick()" style="font-size:10px;color:var(--ink-faint);font-family:var(--font-mono);padding:0 4px;user-select:none;cursor:pointer">v0.7.5</span>
       <button class="btn-ghost" onclick="openSearch()" title="Vyhledat (Ctrl+K)" style="padding:6px 10px;font-size:14px"><span data-icon="btn_hledat">🔍</span></button>
       <button class="btn-ghost" onclick="openHelpCenter()" title="Nápověda" style="padding:6px 10px;font-size:14px"><span data-icon="btn_napoveda">❓</span></button>
       <button class="btn-ghost" id="notif-btn" onclick="toggleNotifPanel()" title="Notifikace" style="position:relative;padding:6px 10px;font-size:16px;display:none;align-items:center;justify-content:center">
@@ -5149,7 +5149,11 @@ function computeQuality(shiftsMap, unavailMap){
   if(hardConstraints.minshifts && cntMinMax && cntMinScore < cntMinMax) hardFailed.push('Někdo má méně směn než minimum');
   if(hardConstraints.weekends  && weMetMinMax && weMetMin  < weMetMinMax) hardFailed.push('Někdo nemá dost volných víkendů');
 
-  return { pct, metrics: scored, hardFailed };
+  // missingSlots = absolute count of unfilled required slots — the lexicographic
+  // first criterion when runAutoSchedule picks its best candidate. The weighted pct
+  // alone let a candidate with coverage holes but pretty weekend/count metrics beat
+  // a candidate that actually covered everything.
+  return { pct, metrics: scored, hardFailed, missingSlots: covMax - Math.min(covScore, covMax) };
 }
 
 function renderScoreBar(){
@@ -5309,6 +5313,60 @@ function findCoverageShortfalls(scheduleMap, daysInMonth){
   return shortfalls;
 }
 
+// Regression invariants (v0.7.5) — run once on the schedule that actually gets saved,
+// console-only. (A) no day may hold more shifts of a code than that day can use —
+// required count for subtype codes, branch day max for bare branch codes — INCLUDING
+// manual shifts, which is exactly how the "second person on an already-held weekend
+// slot" duplicate shows up. (B) no unfilled min-slot may have an employee who could
+// plausibly take it (free that day, code allowed, under max_shifts, protected free
+// weekends intact) — deliberately ignores consec/rest rules, so a hit is a lead to
+// investigate, not automatically a bug. Remove once the algorithm is verified.
+function checkScheduleInvariants(scheduleMap, daysInMonth){
+  const overCoverage = [];
+  const wastedCandidates = [];
+  const nonFixed = employees.filter(e=>!e.is_fixed && Object.keys(e.branch_limits||{}).length>0);
+  const weekendBlocks3 = collectWeekendBlocks(daysInMonth).filter(wb=>wb.length===3);
+  const defaultMinWE = parseInt(orgSettings['default_min_free_weekends'])||0;
+  const isWorking = (empId, dateStr)=>{ const s=scheduleMap[empId+':'+dateStr]; return !!(s && s.shift_type_code && s.shift_type_code!=='X'); };
+  const hasX = (empId, dateStr)=> !!(unavail[empId+':'+dateStr] || (scheduleMap[empId+':'+dateStr]?.shift_type_code==='X'));
+  const shiftCount = {};
+  nonFixed.forEach(emp=>{
+    let c=0;
+    for(let d=1;d<=daysInMonth;d++){ if(isWorking(emp.id, isoDate(schedYear,schedMonth+1,d))) c++; }
+    shiftCount[emp.id]=c;
+  });
+  for(let d=1; d<=daysInMonth; d++){
+    const dateStr = isoDate(schedYear,schedMonth+1,d);
+    const dow = new Date(dateStr+'T00:00:00').getDay();
+    const byCode = {};
+    requiredSlotsForDay(dateStr).forEach(sl=>{ byCode[sl.code]=(byCode[sl.code]||0)+1; });
+    Object.entries(byCode).forEach(([code, need])=>{
+      const got = Object.values(scheduleMap).filter(s=>s.shift_date===dateStr && s.shift_type_code===code).length;
+      const isSubtype = shiftTypes.some(s=>s.code===code);
+      const branch = branches.find(b=>b.code===code);
+      const cap = isSubtype ? need : Math.max(need, branch ? getBranchDayMax(branch, dow) : need);
+      if(got > cap) overCoverage.push(`${d}. ${code}: ${got}/${cap}`);
+      if(got < need){
+        nonFixed.forEach(emp=>{
+          if(hasX(emp.id, dateStr) || scheduleMap[emp.id+':'+dateStr]) return;
+          if(!empCanWorkSlot(emp, code)) return;
+          if(shiftCount[emp.id] >= emp.max_shifts) return;
+          const wb = weekendBlocks3.find(w=>w.includes(dateStr));
+          if(wb && wb.every(ds=>!isWorking(emp.id, ds))){
+            const minWE = emp.min_free_weekends||defaultMinWE;
+            const free = weekendBlocks3.filter(w2=>w2.every(ds=>!isWorking(emp.id, ds))).length;
+            if(free <= minWE) return; // taking the day would eat a protected free weekend
+          }
+          wastedCandidates.push(`${d}. ${code} ← ${emp.name}`);
+        });
+      }
+    });
+  }
+  if(overCoverage.length) console.warn('[smeny][invariant A] Více směn stejného kódu, než den unese (vč. manuálních — možná duplicita):', overCoverage.join(' · '));
+  if(wastedCandidates.length) console.warn('[smeny][invariant B] Neobsazený min-slot má teoreticky volného kandidáta (bez ohledu na série/odpočinek):', wastedCandidates.join(' · '));
+  if(!overCoverage.length && !wastedCandidates.length) console.log('[smeny] Regresní invarianty OK — žádné duplicity, žádný promarněný kandidát.');
+}
+
 async function runAutoSchedule(){
   if(autoRunning){ autoCancel=true; return; }
   if(!employees.length){ toast('Nejsou zaměstnanci'); return; }
@@ -5330,14 +5388,18 @@ async function runAutoSchedule(){
   const progressWrap = document.getElementById('auto-progress-wrap');
   const MAX_RUNS=150, TARGET_PCT=95, STAGNATION=30, STAGNATION_MIN_PCT=70;
   // Two-level best: bestFeasible = best % without hard fails (preferred for saving),
-  // bestOverall = best % regardless of hard fails (ties → fewer hard fails).
-  // A candidate violating hard constraints is never SILENTLY published: when no
-  // feasible candidate exists at all, bestOverall is saved as best effort and the
-  // orange result panel + diagnostic modal explain exactly which constraints failed
-  // and why they can't be met with the current setup.
-  let bestFeasible=null, bestFeasiblePct=-1,
+  // bestOverall = LEXICOGRAPHICALLY best regardless of hard fails — fewest missing
+  // required slots first, then fewest hard fails, then highest %. The weighted % is
+  // deliberately last: it let candidates with coverage holes win on pretty soft
+  // metrics. A candidate violating hard constraints is never SILENTLY published:
+  // when no feasible candidate exists at all, bestOverall is saved as best effort
+  // and the orange result panel + diagnostic modal explain exactly which
+  // constraints failed and why they can't be met with the current setup.
+  let bestFeasible=null, bestFeasiblePct=-1, bestFeasibleDiag=null,
       bestOverall=null, bestOverallPct=-1, bestOverallHardFails=Infinity,
+      bestOverallMissing=Infinity, bestOverallDiag=null,
       run=0, sinceImprove=0;
+  const czSlotWord = n => n===1 ? 'slot' : (n>=2 && n<=4 ? 'sloty' : 'slotů');
   window._lastCoverageShortfalls = [];
 
   progressWrap.innerHTML = `<div class="auto-progress-box">
@@ -5351,25 +5413,31 @@ async function runAutoSchedule(){
   while(run<MAX_RUNS && !autoCancel){
     run++;
     const candidate = buildSchedule(daysInMonth, prevMonthShifts);
-    const { pct, hardFailed } = computeQuality(candidate, unavail);
+    const buildDiag = window._lastBuildDiag || null; // set by buildSchedule for this candidate
+    const { pct, hardFailed, missingSlots } = computeQuality(candidate, unavail);
 
     let improved = false;
     if(hardFailed.length === 0 && pct > bestFeasiblePct){
       if(bestFeasible === null) improved = true; // first feasible candidate resets stagnation
-      bestFeasible = candidate; bestFeasiblePct = pct;
+      bestFeasible = candidate; bestFeasiblePct = pct; bestFeasibleDiag = buildDiag;
     }
-    if(pct > bestOverallPct || (pct === bestOverallPct && hardFailed.length < bestOverallHardFails)){
+    // Lexicographic: (a) fewer missing required slots, (b) fewer hard fails, (c) higher %
+    if(missingSlots < bestOverallMissing
+       || (missingSlots === bestOverallMissing && hardFailed.length < bestOverallHardFails)
+       || (missingSlots === bestOverallMissing && hardFailed.length === bestOverallHardFails && pct > bestOverallPct)){
       bestOverall = candidate; bestOverallPct = pct; bestOverallHardFails = hardFailed.length;
+      bestOverallMissing = missingSlots; bestOverallDiag = buildDiag;
       improved = true;
     }
     sinceImprove = improved ? 0 : sinceImprove+1;
 
     document.getElementById('auto-prog-fill').style.width = Math.round(run/MAX_RUNS*100)+'%';
+    const overallLabel = 'celkově nejlepší: '+bestOverallPct+' % · chybí '+bestOverallMissing+' '+czSlotWord(bestOverallMissing);
     document.getElementById('auto-prog-label').textContent =
       'Pokus '+run+'/'+MAX_RUNS+' — '+
       (bestFeasible !== null
-        ? 'nejlepší se splněnými podmínkami: '+bestFeasiblePct+' % · celkově nejlepší: '+bestOverallPct+' %'
-        : 'zatím žádný nesplňuje tvrdé podmínky · celkově nejlepší: '+bestOverallPct+' %');
+        ? 'nejlepší se splněnými podmínkami: '+bestFeasiblePct+' % · '+overallLabel
+        : 'zatím žádný nesplňuje tvrdé podmínky · '+overallLabel);
 
     // Break check runs every iteration. Stagnation only ends the search early once
     // a feasible, decent candidate exists; otherwise keep trying up to MAX_RUNS.
@@ -5400,6 +5468,10 @@ async function runAutoSchedule(){
     if(!feasibleFound && !window._lastCoverageShortfalls.length){
       window._lastCoverageShortfalls = findCoverageShortfalls(chosen, daysInMonth);
     }
+    // Per-slot reasons ("why is this slot empty") from the chosen candidate's build —
+    // shown next to the shortfall list in the "Proč?" modal.
+    window._lastShortfallReasons = (feasibleFound ? bestFeasibleDiag : bestOverallDiag)?.missing || [];
+    checkScheduleInvariants(chosen, daysInMonth);
     const from = isoDate(schedYear, schedMonth+1, 1);
     const to   = isoDate(schedYear, schedMonth+1, daysInMonth);
     await sb.from('shifts').delete().eq('org_id', currentOrg.id).eq('is_auto', true)
@@ -5545,8 +5617,15 @@ function showFeasibilityModal(){
   }
   const shortfalls = window._lastCoverageShortfalls || [];
   if(shortfalls.length){
+    // Per-slot reasons computed by buildSchedule for the saved candidate — matched to
+    // the shortfall strings by "day. code" prefix.
+    const reasons = window._lastShortfallReasons || [];
+    const lines = shortfalls.slice(0,15).map(sf=>{
+      const r = reasons.find(x=> sf.startsWith(x.day+'. '+x.code+' '));
+      return escapeHtml(sf) + (r ? ` <span style="color:var(--ink-soft)">— ${escapeHtml(r.reason)}</span>` : '');
+    });
     html += `<div style="font-size:12px;font-weight:700;color:var(--ink-soft);text-transform:uppercase;margin:14px 0 6px">Chybějící pokrytí v uloženém rozpisu (den, pobočka, obsazeno/potřeba)</div>`;
-    html += `<div style="background:var(--amber-soft);color:var(--amber);border-radius:7px;padding:8px 12px;font-size:13px;line-height:1.5">${escapeHtml(shortfalls.slice(0,15).join(', '))}${shortfalls.length>15?` a dalších ${shortfalls.length-15}`:''}</div>`;
+    html += `<div style="background:var(--amber-soft);color:var(--amber);border-radius:7px;padding:8px 12px;font-size:13px;line-height:1.6">${lines.join('<br>')}${shortfalls.length>15?`<br>… a dalších ${shortfalls.length-15}`:''}</div>`;
   }
   document.getElementById('feasibility-body').innerHTML = html;
   document.getElementById('feasibility-overlay').classList.add('open');
@@ -5601,37 +5680,57 @@ function buildSchedule(daysInMonth, prevMonthShifts){
     return !!(s && s.shift_type_code && s.shift_type_code !== 'X');
   }
 
+  // Hot-path caches — the global most-constrained-first fill (PASS 1) recomputes
+  // candidate eligibility for every open slot in batches, which calls empShiftCount(),
+  // countFilled(), empBranchCountS() and empShiftTypeCountS() thousands of times per
+  // build. All four are answered from a single lazy scan of S; every write to S inside
+  // the passes must go through setShift()/clearShift() (or call invalidateCaches())
+  // so the caches never go stale.
+  const _codeToBranch = {}; // shift-type code → branch code (static per build)
+  shiftTypes.forEach(st=>{ _codeToBranch[st.code] = branches.find(b=>b.id===st.branch_id)?.code; });
+  let _empCntCache = null, _filledCache = null, _branchCntCache = null, _stCntCache = null;
+  function invalidateCaches(){ _empCntCache = null; _filledCache = null; _branchCntCache = null; _stCntCache = null; }
+  function rebuildCaches(){
+    _empCntCache = {}; _filledCache = {}; _branchCntCache = {}; _stCntCache = {};
+    Object.values(S).forEach(s=>{
+      if(!s.shift_type_code || s.shift_type_code==='X') return;
+      _empCntCache[s.employee_id] = (_empCntCache[s.employee_id]||0)+1;
+      const k = s.shift_date+':'+s.shift_type_code;
+      _filledCache[k] = (_filledCache[k]||0)+1;
+      const bc = slotBranchCode(s.shift_type_code);
+      if(bc) _branchCntCache[s.employee_id+':'+bc] = (_branchCntCache[s.employee_id+':'+bc]||0)+1;
+      _stCntCache[s.employee_id+':'+s.shift_type_code] = (_stCntCache[s.employee_id+':'+s.shift_type_code]||0)+1;
+    });
+  }
+  function setShift(empId, dateStr, code){
+    S[empId+':'+dateStr] = { employee_id:empId, shift_date:dateStr, shift_type_code:code, is_auto:true };
+    invalidateCaches();
+  }
+  function clearShift(key){
+    delete S[key];
+    invalidateCaches();
+  }
+
   function empShiftCount(empId){
-    let c=0;
-    for(let d=1;d<=daysInMonth;d++){ if(isWorking(empId+':'+isoDate(schedYear,schedMonth+1,d))) c++; }
-    return c;
+    if(!_empCntCache) rebuildCaches();
+    return _empCntCache[empId]||0;
   }
 
   // Resolve a shift_type_code (e.g. "M1") or bare branch code (e.g. "K") to its branch code
   function slotBranchCode(code){
-    const st = shiftTypes.find(s=>s.code===code);
-    return st ? branches.find(b=>b.id===st.branch_id)?.code : code;
+    return Object.prototype.hasOwnProperty.call(_codeToBranch, code) ? _codeToBranch[code] : code;
   }
 
   // Count how many shifts the employee already has on a given branch, in the working copy S
   function empBranchCountS(empId, branchCode){
-    let cnt=0;
-    for(let d=1;d<=daysInMonth;d++){
-      const s = S[empId+':'+isoDate(schedYear,schedMonth+1,d)];
-      if(!s || !s.shift_type_code || s.shift_type_code==='X') continue;
-      if(slotBranchCode(s.shift_type_code)===branchCode) cnt++;
-    }
-    return cnt;
+    if(!_branchCntCache) rebuildCaches();
+    return _branchCntCache[empId+':'+branchCode]||0;
   }
 
   // Count how many shifts the employee already has on this exact shift-type code (not branch-wide)
   function empShiftTypeCountS(empId, code){
-    let cnt=0;
-    for(let d=1;d<=daysInMonth;d++){
-      const s = S[empId+':'+isoDate(schedYear,schedMonth+1,d)];
-      if(s && s.shift_type_code===code) cnt++;
-    }
-    return cnt;
+    if(!_stCntCache) rebuildCaches();
+    return _stCntCache[empId+':'+code]||0;
   }
 
   // Check the employee's per-shift-type monthly max (branch_limits[branch].shiftTypes[code].max)
@@ -5737,11 +5836,10 @@ function buildSchedule(daysInMonth, prevMonthShifts){
     return true;
   }
 
-  // How many shifts with this code already exist on the given date
+  // How many shifts with this code already exist on the given date (answered from cache)
   function countFilled(dateStr, code){
-    let c=0;
-    Object.values(S).forEach(s=>{ if(s.shift_date===dateStr && s.shift_type_code===code) c++; });
-    return c;
+    if(!_filledCache) rebuildCaches();
+    return _filledCache[dateStr+':'+code]||0;
   }
 
   // PASS 0: Weekend blocks — reserve the whole Fri+Sat+Sun block to ONE employee per
@@ -5761,20 +5859,38 @@ function buildSchedule(daysInMonth, prevMonthShifts){
       if(wb.length < 3) return; // partial block at month edge — no whole weekend to offer, leave to PASS 1
       const [friDs, satDs, sunDs] = wb;
 
+      // Lanes represent only the still-UNCOVERED part of the block's demand. Seeded
+      // manual shifts are already in S at this point, and countFilled() sees them —
+      // creating a lane unconditionally would put a second person on a slot someone
+      // already holds (the "Monika next to Veronika" duplicate bug).
       const lanes = []; // { code, days }
       branches.forEach(b=>{
         const sts = shiftTypes.filter(s=>s.branch_id===b.id);
         if(sts.length){
-          sts.forEach(st=>lanes.push({ code:st.code, days:wb })); // each subtype needed every day
+          sts.forEach(st=>{
+            // Whole-block lane only when NO day of the block is covered yet. A partially
+            // covered type (e.g. a manual shift on Sat only) gets no lane at all — the
+            // missing days are left to PASS 1, otherwise a 3-day lane would duplicate
+            // the covered day(s).
+            const anyCovered = wb.some(ds=>countFilled(ds, st.code) >= 1);
+            if(!anyCovered) lanes.push({ code:st.code, days:wb });
+          });
         } else {
           const friMin = getBranchDayMin(b, new Date(friDs+'T00:00:00').getDay());
           const satMin = getBranchDayMin(b, new Date(satDs+'T00:00:00').getDay());
           const sunMin = getBranchDayMin(b, new Date(sunDs+'T00:00:00').getDay());
           const minAcrossDays = Math.min(friMin, satMin, sunMin);
-          for(let i=0;i<minAcrossDays;i++) lanes.push({ code:b.code, days:wb });
+          // Existing coverage counts against the demand: min across the 3 days of what's
+          // already filled = how many whole-block "positions" are effectively taken.
+          const friFilled = countFilled(friDs, b.code);
+          const satFilled = countFilled(satDs, b.code);
+          const sunFilled = countFilled(sunDs, b.code);
+          const baseFilled = Math.min(friFilled, satFilled, sunFilled);
+          for(let i=0;i<minAcrossDays - baseFilled;i++) lanes.push({ code:b.code, days:wb });
           // Extra Sat+Sun-only demand beyond the whole-block baseline — its own 2-day lane.
           const weekendExtra = Math.min(satMin, sunMin) - minAcrossDays;
-          for(let i=0;i<weekendExtra;i++) lanes.push({ code:b.code, days:[satDs, sunDs] });
+          const extraFilled = Math.max(0, Math.min(satFilled, sunFilled) - baseFilled);
+          for(let i=0;i<weekendExtra - extraFilled;i++) lanes.push({ code:b.code, days:[satDs, sunDs] });
         }
       });
       if(!lanes.length) return;
@@ -5800,9 +5916,7 @@ function buildSchedule(daysInMonth, prevMonthShifts){
             if(!days.every(ds=>canWork(emp, ds, code))) continue;
             if(!blockRespectsLimits(emp, days.length, code)) continue;
 
-            days.forEach(ds=>{
-              S[emp.id+':'+ds] = { employee_id:emp.id, shift_date:ds, shift_type_code:code, is_auto:true };
-            });
+            days.forEach(ds=>setShift(emp.id, ds, code));
             assigned = true;
             break;
           }
@@ -5812,36 +5926,82 @@ function buildSchedule(daysInMonth, prevMonthShifts){
     });
   }
 
-  // PASS 1: Fill remaining slots day by day. requiredSlotsForDay() repeats a bare branch
-  // code once per required person that day (e.g. "M" four times if Majestic needs 4) — so
-  // this must fill UP TO that count per code, not stop the instant ONE person has that
-  // code, or every multi-person branch would silently cap at 1 person/day forever.
-  const dayOrder = shuffle(Array.from({length:daysInMonth},(_,i)=>i+1));
-  dayOrder.forEach(d=>{
-    const dateStr = isoDate(schedYear,schedMonth+1,d);
-    const neededCounts = {};
-    requiredSlotsForDay(dateStr).forEach(sl=>{ neededCounts[sl.code] = (neededCounts[sl.code]||0) + 1; });
-    Object.entries(neededCounts).forEach(([code, neededCount])=>{
-      let haveCount = countFilled(dateStr, code);
-      while(haveCount < neededCount){
-        const eligible = shuffle([...nonFixed]).filter(emp=>
-          !S[emp.id+':'+dateStr] && canWork(emp, dateStr, code)
-        );
-        if(!eligible.length) break; // nobody left who can take this slot today
+  // PASS 1: Fill ALL remaining required min-slots of the whole month GLOBALLY,
+  // most-constrained-first — not day by day. Day-by-day filling spent people's
+  // capacity on whichever days came first in the shuffle, so a slot late in the
+  // ordering whose only possible candidate had already been used up elsewhere
+  // stayed empty ("someone at max, elsewhere a hole"). Now every still-unfilled
+  // (day × code) slot unit competes at once, and the slot with the FEWEST
+  // eligible candidates is always filled first. requiredSlotsForDay() repeats a
+  // bare branch code once per required person that day, so one openSlots entry
+  // = one person needed. Eligible counts are recomputed in batches of ~10
+  // assignments — exact per-assignment recomputation would be O(slots²) and is
+  // not needed for the ordering to hold up.
+  {
+    let openSlots = [];
+    for(let d=1; d<=daysInMonth; d++){
+      const dateStr = isoDate(schedYear,schedMonth+1,d);
+      const neededCounts = {};
+      requiredSlotsForDay(dateStr).forEach(sl=>{ neededCounts[sl.code] = (neededCounts[sl.code]||0) + 1; });
+      Object.entries(neededCounts).forEach(([code, need])=>{
+        const missing = need - countFilled(dateStr, code); // seeds + PASS 0 already count
+        for(let i=0;i<missing;i++) openSlots.push({ dateStr, code, day:d });
+      });
+    }
+    const eligibleFor = slot => nonFixed.filter(emp=>
+      !S[emp.id+':'+slot.dateStr] && canWork(emp, slot.dateStr, slot.code));
+    while(openSlots.length){
+      const ranked = shuffle(openSlots).map(slot=>({ slot, count: eligibleFor(slot).length }));
+      ranked.sort((a,b)=>a.count-b.count);
+      openSlots = [];
+      let assigned = 0;
+      for(const r of ranked){
+        if(assigned >= 10){ openSlots.push(r.slot); continue; } // batch full → re-rank the rest
+        // Revalidate right before assigning — earlier assignments in this batch may
+        // have consumed this slot's candidates. A slot with zero candidates is dropped
+        // from the fill (the repair pass gets a shot at it later).
+        const eligible = eligibleFor(r.slot);
+        if(!eligible.length) continue;
         eligible.sort((a,b)=>{
-          const rA = a.target_shifts - empShiftCount(a.id) + shiftTypeNeedBonus(a, code) + weekendContinuationBonus(a, dateStr, code) + Math.random()*1.5;
-          const rB = b.target_shifts - empShiftCount(b.id) + shiftTypeNeedBonus(b, code) + weekendContinuationBonus(b, dateStr, code) + Math.random()*1.5;
+          const rA = a.target_shifts - empShiftCount(a.id) + shiftTypeNeedBonus(a, r.slot.code) + weekendContinuationBonus(a, r.slot.dateStr, r.slot.code) + Math.random()*1.5;
+          const rB = b.target_shifts - empShiftCount(b.id) + shiftTypeNeedBonus(b, r.slot.code) + weekendContinuationBonus(b, r.slot.dateStr, r.slot.code) + Math.random()*1.5;
           return rB - rA;
         });
-        const emp = eligible[0];
-        S[emp.id+':'+dateStr] = { employee_id:emp.id, shift_date:dateStr, shift_type_code:code, is_auto:true };
-        haveCount++;
+        setShift(eligible[0].id, r.slot.dateStr, r.slot.code);
+        assigned++;
       }
-    });
-  });
+      if(!assigned) break; // nothing assignable left — safety, shouldn't be reachable
+    }
+  }
+
+  // The "debt" of min-slots still missing after the global fill. The target passes
+  // (2/2b/2c/3) hand out ABOVE-minimum shifts only, so they must not consume an
+  // employee who could still repay any of this debt — canWork() is not monotone
+  // (a new adjacent shift can e.g. merge two streaks and re-open a day), so an
+  // employee useless for a slot during PASS 1 can become its candidate later.
+  function computeMissingMinSlots(){
+    const out = [];
+    for(let d=1; d<=daysInMonth; d++){
+      const dateStr = isoDate(schedYear,schedMonth+1,d);
+      const neededCounts = {};
+      requiredSlotsForDay(dateStr).forEach(sl=>{ neededCounts[sl.code] = (neededCounts[sl.code]||0) + 1; });
+      Object.entries(neededCounts).forEach(([code, need])=>{
+        if(countFilled(dateStr, code) < need) out.push({ dateStr, code, need, day:d });
+      });
+    }
+    return out;
+  }
+  const missingAfterMin = computeMissingMinSlots();
+  function couldFillAnyMissingSlot(emp){
+    return missingAfterMin.some(sl=>
+      countFilled(sl.dateStr, sl.code) < sl.need &&
+      !S[emp.id+':'+sl.dateStr] &&
+      canWork(emp, sl.dateStr, sl.code));
+  }
 
   // PASS 2: Balance toward employee target shift count
   shuffle([...nonFixed]).forEach(emp=>{
+    if(couldFillAnyMissingSlot(emp)) return; // their remaining capacity is reserved for a min-slot
     const cnt = empShiftCount(emp.id);
     if(cnt >= emp.target_shifts) return;
     const need = emp.target_shifts - cnt;
@@ -5861,13 +6021,14 @@ function buildSchedule(daysInMonth, prevMonthShifts){
       });
       if(!avail.length) continue;
       const code = avail[Math.floor(Math.random()*avail.length)];
-      S[emp.id+':'+dateStr] = { employee_id:emp.id, shift_date:dateStr, shift_type_code:code, is_auto:true };
+      setShift(emp.id, dateStr, code);
       added++;
     }
   });
 
   // PASS 2b: Pursue employee per-branch monthly minimums (branch_limits.min)
   shuffle([...nonFixed]).forEach(emp=>{
+    if(couldFillAnyMissingSlot(emp)) return; // their remaining capacity is reserved for a min-slot
     const limits = emp.branch_limits || {};
     Object.entries(limits).forEach(([branchCode, bl])=>{
       const minReq = bl && bl.min || 0;
@@ -5888,7 +6049,7 @@ function buildSchedule(daysInMonth, prevMonthShifts){
         });
         if(!avail.length) continue;
         const code = avail[Math.floor(Math.random()*avail.length)];
-        S[emp.id+':'+dateStr] = { employee_id:emp.id, shift_date:dateStr, shift_type_code:code, is_auto:true };
+        setShift(emp.id, dateStr, code);
         need--;
       }
     });
@@ -5896,6 +6057,7 @@ function buildSchedule(daysInMonth, prevMonthShifts){
 
   // PASS 2c: Pursue employee per-shift-type monthly minimums (branch_limits[branch].shiftTypes[code].min)
   shuffle([...nonFixed]).forEach(emp=>{
+    if(couldFillAnyMissingSlot(emp)) return; // their remaining capacity is reserved for a min-slot
     const limits = emp.branch_limits || {};
     Object.values(limits).forEach(bl=>{
       Object.entries((bl && bl.shiftTypes) || {}).forEach(([stCode, stLim])=>{
@@ -5910,7 +6072,7 @@ function buildSchedule(daysInMonth, prevMonthShifts){
           if(S[emp.id+':'+dateStr] || !canWork(emp, dateStr, stCode)) continue;
           if(!requiredSlotsForDay(dateStr).some(sl=>sl.code===stCode)) continue; // this shift type isn't even required today
           if(countFilled(dateStr, stCode) > 0) continue; // this exact slot is already taken today
-          S[emp.id+':'+dateStr] = { employee_id:emp.id, shift_date:dateStr, shift_type_code:stCode, is_auto:true };
+          setShift(emp.id, dateStr, stCode);
           need--;
         }
       });
@@ -5933,16 +6095,123 @@ function buildSchedule(daysInMonth, prevMonthShifts){
       const need = tgt - curCnt;
       const eligible = shuffle([...nonFixed]).filter(emp=>
         !S[emp.id+':'+dateStr] && canWork(emp, dateStr, b.code) && empShiftCount(emp.id) < emp.max_shifts
+        && !couldFillAnyMissingSlot(emp) // capacity reserved for a min-slot
       );
       eligible.sort((a,bEmp)=>{ // prefer employees below their target
         return (bEmp.target_shifts - empShiftCount(bEmp.id)) - (a.target_shifts - empShiftCount(a.id));
       });
       for(let i=0; i<Math.min(need, eligible.length); i++){
-        const emp = eligible[i];
-        S[emp.id+':'+dateStr] = { employee_id:emp.id, shift_date:dateStr, shift_type_code:b.code, is_auto:true };
+        setShift(eligible[i].id, dateStr, b.code);
       }
     });
   });
+
+  // REPAIR PASS (final): try to repay still-missing min-slots. Three moves, cheapest
+  // first: (0) direct fill by a free employee — canWork() is not monotone, so someone
+  // useless for the slot during PASS 1 may have become eligible since; (a) retype
+  // within the day — an employee working an OVER-covered code that day switches to the
+  // missing code; (b) cross-day move — an employee's surplus shift (code above its
+  // required count that day) moves onto the missing slot. Only is_auto shifts are ever
+  // touched — manual shifts are untouchable. Weekend guards keep whole Fri+Sat+Sun
+  // blocks intact and never eat a protected free weekend. Hard cap: 200 iterations.
+  {
+    const requiredCountFor = (dateStr, code) => requiredSlotsForDay(dateStr).filter(sl=>sl.code===code).length;
+    function freeWeekendCount(emp){
+      return weekendBlocks.filter(wb=> wb.length===3 && wb.every(ds=>!isWorking(emp.id+':'+ds))).length;
+    }
+    // Adding a shift on a full-weekend day must not tear a whole-free block into a
+    // partial one below the employee's protected free-weekend minimum.
+    function weekendSafeToAdd(emp, dateStr){
+      if(!fullWeekendDays.has(dateStr)) return true;
+      const wb = weekendBlocks.find(w=>w.length===3 && w.includes(dateStr));
+      if(!wb) return true;
+      if(!wb.every(ds=>!isWorking(emp.id+':'+ds))) return true; // already works part of it
+      const minWE = emp.min_free_weekends||defaultMinWE;
+      return freeWeekendCount(emp) > minWE;
+    }
+    // Removing one day of a block the employee otherwise works would leave a torn
+    // weekend (e.g. Fri+Sun) — exactly what PASS 0 exists to prevent.
+    function weekendSafeToRemove(emp, dateStr){
+      if(!fullWeekendDays.has(dateStr)) return true;
+      const wb = weekendBlocks.find(w=>w.length===3 && w.includes(dateStr));
+      if(!wb) return true;
+      return !wb.some(ds=>ds!==dateStr && isWorking(emp.id+':'+ds));
+    }
+    let iterations = 0, progressed = true;
+    while(progressed && iterations < 200){
+      progressed = false;
+      for(const gap of computeMissingMinSlots()){
+        if(iterations >= 200) break;
+        iterations++;
+        let fixed = false;
+        // (0) direct fill — someone free and able right now
+        for(const emp of shuffle([...nonFixed])){
+          if(S[emp.id+':'+gap.dateStr]) continue;
+          if(!weekendSafeToAdd(emp, gap.dateStr)) continue;
+          if(!canWork(emp, gap.dateStr, gap.code)) continue;
+          setShift(emp.id, gap.dateStr, gap.code);
+          fixed = true; break;
+        }
+        // (a) same-day retype from an over-covered code to the missing one
+        if(!fixed){
+          for(const emp of shuffle([...nonFixed])){
+            const key = emp.id+':'+gap.dateStr;
+            const s = S[key];
+            if(!s || !s.is_auto || s.shift_type_code==='X') continue;
+            if(countFilled(gap.dateStr, s.shift_type_code) <= requiredCountFor(gap.dateStr, s.shift_type_code)) continue; // their code is needed as-is
+            clearShift(key);
+            if(canWork(emp, gap.dateStr, gap.code)){
+              setShift(emp.id, gap.dateStr, gap.code);
+              fixed = true; break;
+            }
+            S[key] = s; invalidateCaches(); // restore
+          }
+        }
+        // (b) move a surplus shift from another day onto the missing slot
+        if(!fixed){
+          outer:
+          for(const emp of shuffle([...nonFixed])){
+            if(S[emp.id+':'+gap.dateStr]) continue;
+            if(!weekendSafeToAdd(emp, gap.dateStr)) continue;
+            for(const d2 of shuffle(Array.from({length:daysInMonth},(_,i)=>i+1))){
+              const ds2 = isoDate(schedYear,schedMonth+1,d2);
+              if(ds2===gap.dateStr) continue;
+              const key2 = emp.id+':'+ds2;
+              const s2 = S[key2];
+              if(!s2 || !s2.is_auto || s2.shift_type_code==='X') continue;
+              if(countFilled(ds2, s2.shift_type_code) <= requiredCountFor(ds2, s2.shift_type_code)) continue; // not surplus there
+              if(!weekendSafeToRemove(emp, ds2)) continue;
+              clearShift(key2);
+              if(canWork(emp, gap.dateStr, gap.code)){
+                setShift(emp.id, gap.dateStr, gap.code);
+                fixed = true; break outer;
+              }
+              S[key2] = s2; invalidateCaches(); // restore
+            }
+          }
+        }
+        if(fixed) progressed = true;
+      }
+    }
+  }
+
+  // Final diagnostics for the caller: why each still-missing min-slot has no candidate.
+  // runAutoSchedule stores this alongside whichever candidate it ends up keeping and
+  // feeds it to the "Proč?" modal.
+  window._lastBuildDiag = {
+    missing: computeMissingMinSlots().map(sl=>{
+      const allowed = nonFixed.filter(emp=>empCanWorkSlot(emp, sl.code));
+      let reason;
+      if(!allowed.length) reason = 'žádný zaměstnanec nemá tuto pobočku povolenou';
+      else {
+        const freeThatDay = allowed.filter(emp=>!S[emp.id+':'+sl.dateStr]);
+        if(!freeThatDay.length) reason = 'všichni povolení mají ten den volno (X) nebo jinou směnu';
+        else if(freeThatDay.every(emp=>empShiftCount(emp.id) >= emp.max_shifts)) reason = 'všichni volní kandidáti jsou na max. počtu směn';
+        else reason = 'kombinace pravidel (max. série po sobě / odpočinek / volné víkendy / limity poboček)';
+      }
+      return { day:sl.day, code:sl.code, need:sl.need, got:countFilled(sl.dateStr, sl.code), reason };
+    }),
+  };
 
   // Debug log: per-day branch coverage vs. minimum requirement. Off by default (would
   // spam the console on every one of the up-to-80 candidate builds) — enable from the
