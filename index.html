@@ -38,6 +38,15 @@
   --amber-soft:#FBEDE0;
   --red:#C4453A;
   --red-soft:#FBEAE8;
+  /* Sémantické stavové barvy — NEZÁVISLÉ na motivu (motiv mění jen akcent/pozadí).
+     Zelená = OK, oranžová = varování, červená = fail. Mění je pouze dark mode
+     (světlejší odstíny kvůli kontrastu), nikdy THEME_PRESETS. */
+  --status-ok:#2E7D46;
+  --status-ok-soft:#E3F1E7;
+  --status-warn:#D97A34;
+  --status-warn-soft:#FBEDE0;
+  --status-bad:#C4453A;
+  --status-bad-soft:#FBEAE8;
   --radius:12px;
   --radius-sm:8px;
   --shadow:0 1px 2px rgba(30,34,48,.04), 0 8px 24px -8px rgba(30,34,48,.10);
@@ -64,6 +73,12 @@ body.dark{
   --red-soft:rgba(248,113,113,0.15);
   --amber:#fbbf24;
   --amber-soft:rgba(251,191,36,0.15);
+  --status-ok:#4ade80;
+  --status-ok-soft:rgba(74,222,128,.14);
+  --status-warn:#fbbf24;
+  --status-warn-soft:rgba(251,191,36,.15);
+  --status-bad:#f87171;
+  --status-bad-soft:rgba(248,113,113,.15);
   --shadow:0 1px 2px rgba(0,0,0,.15), 0 8px 24px -8px rgba(0,0,0,.3);
   --shadow-lg:0 24px 64px -16px rgba(0,0,0,.6);
 }
@@ -73,7 +88,7 @@ body.dark .sched-name-col{background:var(--surface)}
 body.dark .sched-day-col.weekend{background:#242638}
 body.dark .sched-cell.weekend{background:#1e2035}
 body.dark .score-bar,body.dark .auto-progress-box,body.dark .condition-row{background:var(--surface);border-color:var(--line)}
-body.dark .condition-row.is-hard{border-color:var(--red);background:var(--red-soft)}
+body.dark .condition-row.is-hard{border-color:var(--status-bad);background:var(--status-bad-soft)}
 body.dark table.data-table tr:hover td{background:#1e2132}
 body.dark .sched-scroll{border-color:var(--line)}
 body.dark .toolbar-menu-item:hover{background:var(--paper)}
@@ -87,6 +102,57 @@ body.dark .org-tag{background:var(--paper)}
 body.dark .pick-btn.pick-clear{background:#4a5066}
 body.dark .notif-item{border-color:var(--line)}
 body.dark #notif-panel{background:var(--surface);border-color:var(--line)}
+/* ── Dark mode: tabulka rozpisu — přebíjí natvrdo zadané světlé barvy ── */
+body.dark table.sched-table th,body.dark table.sched-table td{border-bottom-color:#3a3d55;border-right-color:#3a3d55}
+body.dark .sched-name-col{color:var(--ink);border-right-color:#464a68}
+body.dark thead .sched-name-col{color:var(--ink-soft)}
+body.dark .sched-day-col{color:var(--ink)}
+body.dark .sched-day-col .dow{color:var(--ink-soft)}
+body.dark .sched-day-col.weekend{color:var(--ink)}
+body.dark .sched-stat-col{color:var(--ink)}
+body.dark thead .sched-stat-col{color:var(--ink-soft)}
+body.dark .sched-legend-item{color:var(--ink-soft)}
+/* Barevné pilulky směn ztlumit, ať v tmavém nesvítí, ale zůstávají rozlišitelné */
+body.dark .sched-chip{filter:saturate(.72) brightness(.85);text-shadow:none}
+body.dark .sched-cell:hover{background:var(--accent-soft)}
+body.dark .sched-cell.drop-target,body.dark .sched-cell.drag-over{background:var(--accent-soft)!important}
+/* ── Dark mode: panely, karty, menší komponenty ── */
+body.dark .stats-card{background:var(--paper);border-color:var(--line)}
+body.dark .toast{background:#3a3f5c;color:#fff}
+body.dark .code-pill{background:var(--paper);border-color:var(--line);color:var(--ink-soft)}
+body.dark .kb-key,body.dark .search-kbd{background:var(--paper);border-color:var(--line);color:var(--ink)}
+body.dark .search-box,body.dark .kb-card{background:var(--surface)}
+body.dark .org-switcher-dropdown,body.dark #auto-mode-menu{background:var(--surface);border-color:var(--line)}
+body.dark .help-panel{background:var(--surface);border-color:var(--line)}
+body.dark .help-cat-card{background:var(--paper)}
+body.dark .help-search-input{background:var(--paper);color:var(--ink)}
+body.dark .weekly-pattern-table th{background:var(--paper);color:var(--ink-soft)}
+body.dark .weekly-pattern-table th.we-col{background:#28304e;color:#9fb4e8}
+body.dark .weekly-pattern-table td.we-col{background:#232a48}
+body.dark .weekly-pattern-table input{color:var(--ink)}
+body.dark .pattern-tpl-btn,body.dark .quick-fill-btn{background:var(--paper);color:var(--ink-soft)}
+body.dark .fill-mode-day-ok{background:#1d3327!important}
+body.dark .fill-mode-day-full{background:#3a2c18!important}
+body.dark .fill-mode-header-ok{background:#1d3327!important;color:#7fd8a0!important}
+body.dark .fill-mode-header-full{background:#3a2c18!important;color:#e8b06a!important}
+body.dark .branch-group-spacer td{background:var(--paper)!important}
+body.dark .auto-progress-box{background:var(--accent-soft);border-color:var(--line)}
+body.dark .auto-progress-track{background:rgba(255,255,255,.08)}
+body.dark .emp-type-badge.full{background:rgba(34,197,94,.16);color:#86efac}
+body.dark .emp-type-badge.part{background:rgba(251,191,36,.14);color:#fcd34d}
+body.dark .emp-type-badge.ico{background:rgba(99,102,241,.2);color:#c7d2fe}
+body.dark .emp-type-badge.other{background:rgba(148,163,184,.15);color:#cbd5e1}
+body.dark .role-badge.branch_manager{background:rgba(251,191,36,.14);color:#fcd34d}
+body.dark .role-badge.employee{background:var(--paper);color:var(--ink-soft)}
+body.dark .open-shift-badge{background:rgba(251,191,36,.12);color:#fcd34d;border-color:#8a6a2a}
+body.dark .cost-tag{background:rgba(74,222,128,.08)}
+body.dark #open-shifts-panel{background:var(--paper);border-color:var(--line)}
+body.dark .template-card:hover{background:var(--accent-soft)}
+body.dark .leave-status.approved{background:var(--status-ok-soft);color:var(--status-ok)}
+body.dark .leave-status.pending{background:var(--status-warn-soft);color:var(--status-warn)}
+body.dark .leave-status.rejected{background:var(--status-bad-soft);color:var(--status-bad)}
+body.dark tr.drag-over td{background:var(--accent-soft)!important}
+body.dark ::selection{background:var(--accent-soft);color:var(--ink)}
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
 body{
@@ -436,6 +502,8 @@ tr.dragging{opacity:.4}
    PRINT / PDF STYLES
    ============================================================ */
 @media print {
+  /* Font-size zoom nesmí ovlivnit tisk */
+  body { zoom: 1 !important; }
   /* Force background colors — critical for printing colored chips */
   * {
     -webkit-print-color-adjust: exact !important;
@@ -555,7 +623,7 @@ body.employee-view #fill-mode-slot-wrap { display: none !important; }
 #notif-panel.open { display:block }
 /* Condition rows in unified rules panel */
 .condition-row { border:1.5px solid var(--line);border-radius:10px;padding:11px 14px;margin-bottom:8px }
-.condition-row.is-hard { border-color:var(--red);background:#fff8f8 }
+.condition-row.is-hard { border-color:var(--status-bad);background:var(--status-bad-soft) }
 /* Table bottom resize handle */
 #table-height-handle { width:100%;height:7px;cursor:row-resize;z-index:5;border-bottom:3px solid transparent;transition:border-color .15s;margin-top:1px }
 #table-height-handle:hover, #table-height-handle.dragging { border-bottom-color:var(--accent) }
@@ -642,8 +710,8 @@ body.dark .search-input{color:var(--ink)}
 .stats-bar-label{width:120px;flex-shrink:0;color:var(--ink);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .stats-bar-track{flex:1;height:12px;background:var(--line);border-radius:6px;overflow:hidden}
 .stats-bar-fill{height:100%;background:var(--accent);border-radius:6px;transition:width .3s}
-.stats-bar-fill.over{background:var(--amber)}
-.stats-bar-fill.under{background:var(--red)}
+.stats-bar-fill.over{background:var(--status-warn)}
+.stats-bar-fill.under{background:var(--status-bad)}
 .stats-bar-num{width:34px;text-align:right;font-family:var(--font-mono);font-size:12px;font-weight:600;color:var(--ink-soft);flex-shrink:0}
 
 /* Archive badge */
@@ -1048,6 +1116,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
           <rect x="15" y="25" width="6" height="4" rx="1.5" fill="#fff"/>
         </svg>
       </div>
+      <img id="org-logo-topbar" alt="Logo organizace" style="display:none;height:28px;max-width:80px;object-fit:contain;border-radius:6px">
       <span class="org-name" id="org-name-label" onclick="switchAppTab('schedule')" style="cursor:pointer" title="Přejít na Rozpis">—</span>
       <span class="org-tag" id="org-role-label">admin</span>
       <div class="org-switcher-wrap" id="org-switcher-wrap" style="display:none">
@@ -1068,12 +1137,12 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
       <button class="btn-ghost" id="emp-settings-btn" onclick="openEmployeeSettings()" style="display:none"><span data-icon="set_profil">👤</span> Profil</button>
       <button class="btn-ghost" id="admin-settings-btn" onclick="openEmployeeSettings()" style="display:none"><span data-icon="set_profil">👤</span> Profil</button>
       <span id="org-code-badge" style="display:none;font-family:var(--font-mono);font-size:12px;font-weight:700;letter-spacing:1.5px;background:var(--paper);border:1.5px solid var(--line);padding:4px 10px;border-radius:6px;color:var(--ink-soft)" title="Kód firmy"></span>
-      <span id="app-version-label" title="Verze aplikace" onclick="handleVersionClick()" style="font-size:10px;color:var(--ink-faint);font-family:var(--font-mono);padding:0 4px;user-select:none;cursor:pointer">v0.7.8</span>
+      <span id="app-version-label" title="Verze aplikace" onclick="handleVersionClick()" style="font-size:10px;color:var(--ink-faint);font-family:var(--font-mono);padding:0 4px;user-select:none;cursor:pointer">v0.7.9</span>
       <button class="btn-ghost" onclick="openSearch()" title="Vyhledat (Ctrl+K)" style="padding:6px 10px;font-size:14px"><span data-icon="btn_hledat">🔍</span></button>
       <button class="btn-ghost" onclick="openHelpCenter()" title="Nápověda" style="padding:6px 10px;font-size:14px"><span data-icon="btn_napoveda">❓</span></button>
       <button class="btn-ghost" id="notif-btn" onclick="toggleNotifPanel()" title="Notifikace" style="position:relative;padding:6px 10px;font-size:16px;display:none;align-items:center;justify-content:center">
         <span data-icon="notif_bell">🔔</span>
-        <span id="notif-badge" style="display:none;position:absolute;top:3px;right:3px;width:9px;height:9px;background:var(--red);border-radius:50%;border:2px solid var(--surface)"></span>
+        <span id="notif-badge" style="display:none;position:absolute;top:0;right:0;min-width:15px;height:15px;padding:0 3px;background:var(--red);color:#fff;border-radius:8px;border:2px solid var(--surface);font-size:9px;font-weight:700;line-height:1;align-items:center;justify-content:center"></span>
       </button>
       <button class="btn-ghost" id="tutorial-btn" onclick="openTutorialMenu()" title="Průvodce aplikací" style="font-size:15px;padding:6px 10px">?</button>
       <button class="btn-ghost" onclick="doLogout()"><span data-icon="btn_odhlasit">🚪</span> Odhlásit</button>
@@ -1283,8 +1352,12 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
             <p class="panel-sub">Přehled odpracovaných směn, pokrytí poboček a trendů za posledních 6 měsíců.</p>
           </div>
           <div style="display:flex;gap:8px;align-items:center">
-            <button class="icon-nav-btn" onclick="changeMonth(-1);renderStats()">‹</button>
-            <button class="icon-nav-btn" onclick="changeMonth(1);renderStats()">›</button>
+            <div id="stats-period-toggle" style="display:flex;gap:2px;background:var(--paper);border-radius:8px;padding:3px">
+              <button id="stats-period-month" onclick="setStatsPeriod('month')" style="border:none;border-radius:6px;padding:6px 12px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit;background:var(--surface);color:var(--ink);box-shadow:var(--shadow)">Měsíc</button>
+              <button id="stats-period-range" onclick="setStatsPeriod('range')" style="border:none;border-radius:6px;padding:6px 12px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit;background:none;color:var(--ink-soft)">Celé období (6 měsíců)</button>
+            </div>
+            <button class="icon-nav-btn" id="stats-nav-prev" onclick="changeMonth(-1);renderStats()">‹</button>
+            <button class="icon-nav-btn" id="stats-nav-next" onclick="changeMonth(1);renderStats()">›</button>
             <button class="btn-outline" onclick="exportStatsExcel()" style="font-size:12.5px;padding:6px 12px"><span data-icon="btn_export_excel">📊</span> Export</button>
           </div>
         </div>
@@ -1795,6 +1868,10 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
     </button>
   </div>
   <div class="help-body" id="help-body"></div>
+  <!-- Trvalé tlačítko — reset na hlavní rozcestník z libovolné obrazovky nápovědy -->
+  <button onclick="helpGoHome()" style="flex-shrink:0;border:none;border-top:1px solid var(--line);background:var(--paper);color:var(--ink-soft);font-size:12.5px;font-weight:600;font-family:inherit;padding:10px;cursor:pointer">
+    <span data-icon="help_zpet_start">⌂</span> Zpět na začátek
+  </button>
 </div>
 
 <!-- ============================================================
@@ -1967,6 +2044,28 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
 </div>
 
 <!-- ============================================================
+     DELETE ORGANIZATION — dvojité potvrzení
+     ============================================================ -->
+<div class="modal-overlay" id="delete-org-overlay" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal" style="max-width:460px">
+    <div id="delete-org-body"></div>
+  </div>
+</div>
+
+<!-- ============================================================
+     HELP FEEDBACK — přehled zpětné vazby z nápovědy (admin)
+     ============================================================ -->
+<div class="modal-overlay" id="help-feedback-admin-overlay" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal" style="max-width:520px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <h3 style="margin:0"><span data-icon="help_thumbs_up">👍</span> Zpětná vazba nápovědy</h3>
+      <button class="btn-ghost" onclick="document.getElementById('help-feedback-admin-overlay').classList.remove('open')" style="padding:5px 10px">✕</button>
+    </div>
+    <div id="help-feedback-admin-body"></div>
+  </div>
+</div>
+
+<!-- ============================================================
      ONBOARDING WIZARD (new admin — no branches/employees yet)
      ============================================================ -->
 <div class="onboarding-overlay" id="onboarding-wizard-overlay" onclick="if(event.target===this)skipOnboarding()">
@@ -2070,7 +2169,7 @@ const DEFAULT_ICONS = {
   // Help center
   help_rozpis: '📅', help_zamestnanci: '👥', help_pobocky: '🏠', help_pravidla: '📋',
   help_notifikace: '🔔', help_nastaveni: '⚙️', help_search: '🔍',
-  help_thumbs_up: '👍', help_thumbs_down: '👎', help_home: '🏠',
+  help_thumbs_up: '👍', help_thumbs_down: '👎', help_home: '🏠', help_zpet_start: '⌂',
 
   // Notifikace
   notif_bell: '🔔', notif_rozpis: '📢', notif_pozvanka: '📨', notif_zadost_volno: '🙋',
@@ -2722,6 +2821,7 @@ async function bootstrapAfterAuth(){
     await loadEmployees();
     await loadBranches();
     await loadOrgSettings();
+    updateOrgLogoDisplay();
     if(currentRole === 'admin') await migrateEmployeeBranchLimitsV2();
 
     if(currentRole !== 'admin'){
@@ -2765,6 +2865,13 @@ async function bootstrapAfterAuth(){
       // Show admin profile button
       const adminSettingsBtn = document.getElementById('admin-settings-btn');
       if(adminSettingsBtn) adminSettingsBtn.style.display = 'block';
+      // Jméno vedoucího v hlavičce (v0.7.9) — z propojeného zaměstnance, jinak z auth metadat
+      const adminEmp = employees.find(e=>e.id===currentEmployeeId);
+      const adminDisplayName = adminEmp?.name || user.user_metadata?.display_name || '';
+      if(adminDisplayName){
+        const nameEl = document.getElementById('user-display-name');
+        if(nameEl){ nameEl.textContent = adminDisplayName; nameEl.style.display = 'block'; }
+      }
       // Load and show org code for admin
       await loadOrgCode();
       const badge = document.getElementById('org-code-badge');
@@ -2775,11 +2882,11 @@ async function bootstrapAfterAuth(){
       }
     }
 
-    // Load notifications for employees
     // Load notifications for all users
     const notifBtn = document.getElementById('notif-btn');
     if(notifBtn) notifBtn.style.display = 'inline-flex';
     loadNotifications();
+    flushPendingActivityLog();
 
     initSchedule();
     checkAndShowOnboarding();
@@ -2794,13 +2901,36 @@ async function bootstrapAfterAuth(){
 // ============================================================
 // ACTIVITY LOG
 // ============================================================
+// Zprávy zalogované před načtením organizace (např. přihlášení) se bufferují
+// a zapíší po bootstrapu — dřív se tiše zahazovaly.
+let _pendingActivityLog = [];
+
 function logActivity(msg) {
-  if (!currentOrg) return;
+  if (!currentOrg) { _pendingActivityLog.push(msg); return; }
   const key = 'activity_log_' + currentOrg.id;
   const log = JSON.parse(localStorage.getItem(key) || '[]');
   log.unshift({ msg, ts: new Date().toISOString() });
   if (log.length > 50) log.length = 50;
   localStorage.setItem(key, JSON.stringify(log));
+  // v0.7.9: zrcadlit do DB tabulky audit_log (best-effort — bez tabulky appka běží dál,
+  // historie se pak čte jen z localStorage). Migrace: migration_notifications.sql.
+  try {
+    const userName = (typeof currentUser !== 'undefined' && currentUser)
+      ? (document.getElementById('user-display-name')?.textContent || currentUser.email || '')
+      : '';
+    sb.from('audit_log').insert({
+      org_id: currentOrg.id,
+      user_id: (typeof currentUser !== 'undefined' && currentUser) ? currentUser.id : null,
+      user_name: userName,
+      message: msg,
+    }).then(()=>{}, ()=>{});
+  } catch(e){}
+}
+
+function flushPendingActivityLog(){
+  const pending = _pendingActivityLog;
+  _pendingActivityLog = [];
+  pending.forEach(msg => logActivity(msg));
 }
 
 // ============================================================
@@ -3034,9 +3164,8 @@ function renderEmployees(){
         <strong>${escapeHtml(e.name)}</strong>
         ${getEmploymentTypeBadge(e.employment_type)}${noBranchBadge}
       </td>
-      <td><span class="code-pill">${e.min_shifts}–${e.target_shifts}</span></td>
-      <td>${e.max_shifts}</td>
-      <td>${e.max_consec}</td>
+      <td><span class="code-pill">${e.min_shifts}–${e.max_shifts}</span></td>
+      <td>${e.target_shifts}</td>
       <td>${accessBadge}</td>
       <td>
         <div class="row-actions">
@@ -3056,7 +3185,7 @@ function renderEmployees(){
     : '';
 
   wrap.innerHTML = noBranchWarning + `<table class="data-table" role="table" aria-label="Seznam zaměstnanců">
-    <thead><tr><th>Jméno</th><th>Min–cíl</th><th>Max</th><th>Max série</th><th>Přístup</th><th></th></tr></thead>
+    <thead><tr><th>Jméno</th><th>Směny min–max</th><th>Cíl</th><th>Přístup</th><th></th></tr></thead>
     <tbody>${rows}</tbody>
   </table>`;
 }
@@ -4410,7 +4539,7 @@ function renderCalendar(){
     const minOk = shiftCount >= emp.min_shifts;
     const maxOk = shiftCount <= emp.max_shifts;
     // Color: amber if below min OR above max, green if in range
-    const statStyle = !minOk ? 'color:var(--red);font-weight:700' : !maxOk ? 'color:var(--amber);font-weight:700' : 'color:var(--accent);font-weight:600';
+    const statStyle = !minOk ? 'color:var(--status-bad);font-weight:700' : !maxOk ? 'color:var(--status-warn);font-weight:700' : 'color:var(--status-ok);font-weight:600';
     // Display: current/max — so user sees how much room is left
     // Tooltip shows the full picture: current, min, max
     const shiftDisplay = `${shiftCount}/${emp.max_shifts}`;
@@ -4419,7 +4548,7 @@ function renderCalendar(){
     const defaultMinWE = parseInt(orgSettings['default_min_free_weekends'])||0;
     const minWE = emp.min_free_weekends || defaultMinWE;
     const weOk = !minWE || freeWeekendCount >= minWE;
-    const weStyle = !weOk ? 'color:var(--amber);font-weight:700' : '';
+    const weStyle = !weOk ? 'color:var(--status-warn);font-weight:700' : '';
     const weDisplay = minWE ? `${freeWeekendCount}/${minWE}` : `${freeWeekendCount}`;
 
     // Build balance pair cells
@@ -4434,10 +4563,10 @@ function renderCalendar(){
         pairStyle = 'color:var(--ink-faint)';
         title = `${c1}: 0, ${c2}: 0 — žádné tyto směny`;
       } else if(diff<=2){
-        pairStyle = 'color:var(--accent);font-weight:600';
+        pairStyle = 'color:var(--status-ok);font-weight:600';
         title = `${c1}: ${n1}, ${c2}: ${n2} — vyvážené (rozdíl ${diff})`;
       } else {
-        pairStyle = 'color:var(--amber);font-weight:700';
+        pairStyle = 'color:var(--status-warn);font-weight:700';
         title = `${c1}: ${n1}, ${c2}: ${n2} — nevyvážené (rozdíl ${diff})`;
       }
       pairCells += `<td class="sched-stat-col" style="${pairStyle}" title="${title}">${total===0?'–':n1+'/'+n2}</td>`;
@@ -5201,9 +5330,9 @@ function computeQuality(shiftsMap, unavailMap){
 
 function renderScoreBar(){
   const { pct, metrics, hardFailed } = computeQuality(shifts, unavail);
-  const color = pct>=85?'var(--accent)':pct>=65?'var(--amber)':'var(--red)';
+  const color = pct>=85?'var(--status-ok)':pct>=65?'var(--status-warn)':'var(--status-bad)';
   const hardWarn = hardFailed.length
-    ? `<div style="background:var(--red-soft);color:var(--red);border-radius:6px;padding:7px 10px;font-size:12px;margin-bottom:8px">
+    ? `<div style="background:var(--status-bad-soft);color:var(--status-bad);border-radius:6px;padding:7px 10px;font-size:12px;margin-bottom:8px">
         ${ICONS.status_locked} <strong>Tvrdá podmínka nesplněna:</strong> ${hardFailed.join(' · ')}
        </div>` : '';
   document.getElementById('score-bar-wrap').innerHTML = `<div class="score-bar">
@@ -5216,7 +5345,7 @@ function renderScoreBar(){
     <div class="score-metrics">
       ${metrics.map((m,i)=>{
         const mp=Math.round(m.score/m.max*100);
-        const mc=mp>=85?'var(--accent)':mp>=65?'var(--amber)':'var(--red)';
+        const mc=mp>=85?'var(--status-ok)':mp>=65?'var(--status-warn)':'var(--status-bad)';
         const hasDetail = m.details && (m.details.rows?.length || Object.keys(m.details.branches||{}).length);
         const clickable = hasDetail ? `style="cursor:pointer" onclick="showMetricDetail(${i})" title="Klikni pro detail"` : '';
         const hoverStyle = hasDetail ? 'border-radius:6px;padding:4px;margin:-4px;transition:background .15s' : '';
@@ -5255,7 +5384,7 @@ function showMetricDetail(idx){
     Object.entries(d.branches).forEach(([code, b])=>{
       if(!b.daysTotal) return;
       const bp = Math.round(b.daysOk/b.daysTotal*100);
-      const bc = bp>=100?'var(--accent)':bp>=80?'var(--amber)':'var(--red)';
+      const bc = bp>=100?'var(--status-ok)':bp>=80?'var(--status-warn)':'var(--status-bad)';
       const missed = bp < 100
         ? (b.missedDays.slice(0,8).join(', ')+(b.missedDays.length>8?` a dalších ${b.missedDays.length-8}`:''))
         : '—';
@@ -5279,7 +5408,7 @@ function showMetricDetail(idx){
     d.rows.forEach(r=>{
       const ok = r.ok !== undefined ? r.ok : (r.minOk && r.maxOk !== false);
       const icon = ok ? '✓' : '✗';
-      const ic = ok ? 'var(--accent)' : 'var(--red)';
+      const ic = ok ? 'var(--status-ok)' : 'var(--status-bad)';
       let detail = '';
       if(r.cnt!==undefined) detail = `${r.cnt} směn (min ${r.min}${r.max?' / max '+r.max:''})`;
       else if(r.free!==undefined) detail = `${r.free} volných víkendů (min ${r.min})`;
@@ -5939,6 +6068,14 @@ function buildSchedule(daysInMonth, prevMonthShifts){
     return null;
   }
 
+  // OVĚŘENO (v0.7.9, bod 11): programový test testWeekendPriority() — viz definice
+  // u buildSchedule — porovnal generování se zapnutým a vypnutým checkboxem
+  // „Přednostně doplňovat celé víkendy". Výsledek na syntetické organizaci
+  // (8 lidí, 1 pobočka, min 2 o víkendu, 10 běhů, červenec 2026): průměr celých
+  // Pá+So+Ne bloků u jedné osoby zapnuto=8.0 vs. vypnuto=2.0 → napojení checkboxu
+  // (orgSettings.weekend_priority → weekendPriority → guard tohoto PASS 0) funguje,
+  // PASS 0 běží jen se zapnutým nastavením.
+  //
   // PASS 0: Weekend blocks — reserve the whole Fri+Sat+Sun block to ONE employee per
   // required slot "lane" at a time, so nobody ends up working e.g. just Friday+Sunday.
   // Each lane (one per required branch/shift-type slot) is filled independently —
@@ -6553,6 +6690,41 @@ function buildSchedule(daysInMonth, prevMonthShifts){
   }
 
   return S;
+}
+
+// ── Ověření víkendového cílení (v0.7.9, bod 11) — programový test bez UI ──
+// Spusť v konzoli prohlížeče: `testWeekendPriority()` (volitelně počet běhů).
+// Vygeneruje rozpis se zapnutým a vypnutým „Přednostně doplňovat celé víkendy"
+// (přímo přes buildSchedule, bez zápisu do DB) a porovná průměrný počet celých
+// Pá+So+Ne bloků odpracovaných jednou osobou. Zapnuto musí dávat prokazatelně víc.
+function testWeekendPriority(runs = 5){
+  const daysInMonth = new Date(schedYear, schedMonth+1, 0).getDate();
+  const fullBlocks = collectWeekendBlocks(daysInMonth).filter(wb=>wb.length===3);
+  if(!fullBlocks.length){ console.warn('[testWeekendPriority] Měsíc nemá žádný celý Pá+So+Ne blok.'); return null; }
+  const countFullBlocks = S => {
+    let n = 0;
+    fullBlocks.forEach(wb=>{
+      employees.forEach(e=>{
+        if(wb.every(ds=>{ const s = S[e.id+':'+ds]; return s && s.shift_type_code && s.shift_type_code!=='X'; })) n++;
+      });
+    });
+    return n;
+  };
+  const orig = orgSettings['weekend_priority'];
+  const result = {};
+  try{
+    for(const on of [true, false]){
+      orgSettings['weekend_priority'] = on;
+      let sum = 0;
+      for(let i=0;i<runs;i++) sum += countFullBlocks(buildSchedule(daysInMonth, {}));
+      result[on ? 'zapnuto' : 'vypnuto'] = +(sum/runs).toFixed(2);
+    }
+  } finally {
+    orgSettings['weekend_priority'] = orig;
+  }
+  const ok = result.zapnuto > result.vypnuto;
+  console.log(`[testWeekendPriority] Průměr celých Pá+So+Ne bloků u jedné osoby (${runs} běhů): zapnuto=${result.zapnuto}, vypnuto=${result.vypnuto} → ${ok ? 'OK, zapnuto dává víc' : 'POZOR: rozdíl se neprojevil'}`);
+  return result;
 }
 
 function shuffle(arr){
@@ -7658,7 +7830,7 @@ async function openEmployeeSettings(){
       <div>
         <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--ink-soft);margin-bottom:8px">Osobní údaje</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
-          <div><label style="font-size:11px;display:block;margin-bottom:3px">Jméno</label>
+          <div><label style="font-size:11px;display:block;margin-bottom:3px">Jméno a příjmení</label>
             <input type="text" id="prof-name" value="${escapeHtml(myEmp?.name||adminName)}"
               style="padding:7px 9px;border:1.5px solid var(--line);border-radius:7px;font-size:13px;width:100%;box-sizing:border-box"></div>
           <div><label style="font-size:11px;display:block;margin-bottom:3px">Telefon</label>
@@ -7681,24 +7853,9 @@ async function openEmployeeSettings(){
         <div id="prof-pass-result" style="font-size:12px;margin-top:6px;display:none"></div>
       </div>
       <div style="border-top:1px solid var(--line);padding-top:16px">
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--ink-soft);margin-bottom:10px">${ICONS.notif_bell} Notifikace</div>
-        ${myEmp ? `
-        <label style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line)">
-          <div>
-            <div style="font-size:13px;font-weight:600">In-app notifikace</div>
-            <div style="font-size:11.5px;color:var(--ink-soft);margin-top:2px">Zobrazit upozornění v aplikaci</div>
-          </div>
-          <input type="checkbox" id="notif-inapp" ${(orgSettings['emp_notify']?.[myEmp.id]?.inapp)!==false?'checked':''} style="width:16px;height:16px;cursor:pointer">
-        </label>
-        <label style="display:flex;align-items:center;justify-content:space-between;padding:10px 0">
-          <div>
-            <div style="font-size:13px;font-weight:600">Email při publikování</div>
-            <div style="font-size:11.5px;color:var(--ink-soft);margin-top:2px">Dostávat email když admin publikuje rozpis</div>
-          </div>
-          <input type="checkbox" id="notif-email" ${(orgSettings['emp_notify']?.[myEmp.id]?.email)!==false?'checked':''} style="width:16px;height:16px;cursor:pointer">
-        </label>
-        <button onclick="saveNotifPrefs('${myEmp.id}')" class="btn-outline" style="width:100%;margin-top:6px;padding:7px">${ICONS.btn_ulozit} Uložit nastavení notifikací</button>
-        ` : `<div style="font-size:13px;color:var(--ink-soft)">Notifikace nejsou pro administrátory bez zaměstnaneckého záznamu k dispozici.</div>`}
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--ink-soft);margin-bottom:10px">${ICONS.notif_bell} Upozornění</div>
+        <div id="notif-prefs-body">${renderNotifPrefsSection()}</div>
+        <button onclick="saveNotifPrefs()" class="btn-outline" style="width:100%;margin-top:10px;padding:7px">${ICONS.btn_ulozit} Uložit nastavení upozornění</button>
       </div>
       <div style="border-top:1px solid var(--line);padding-top:16px">
         <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--ink-soft);margin-bottom:8px">Identifikace</div>
@@ -7786,9 +7943,11 @@ const THEME_PRESETS = {
 };
 
 const FS_PRESETS = {
-  small:  { fontBase:'12px', tblFs:'10px', tblNameFs:'11px' },
-  normal: { fontBase:'14px', tblFs:'12px', tblNameFs:'12px' },
-  large:  { fontBase:'16px', tblFs:'13.5px', tblNameFs:'13px' },
+  // zoom škáluje celou aplikaci (12/14/16px ≈ 0.86/1/1.14×) — samotný --font-base
+  // ovlivňoval jen pár elementů, protože většina komponent má pevné px velikosti.
+  small:  { fontBase:'12px', tblFs:'10px', tblNameFs:'11px', zoom:12/14 },
+  normal: { fontBase:'14px', tblFs:'12px', tblNameFs:'12px', zoom:1 },
+  large:  { fontBase:'16px', tblFs:'13.5px', tblNameFs:'13px', zoom:16/14 },
 };
 
 const DENSITY_PRESETS = {
@@ -7824,10 +7983,11 @@ function applyAppearSettings(s){
   const dn = DENSITY_PRESETS[s.density] || DENSITY_PRESETS.normal;
   const theme = THEME_PRESETS[s.theme] || THEME_PRESETS.classic;
 
-  // Font size
+  // Font size — base var pro texty + zoom celé aplikace, aby byl rozdíl skutečně vidět
   root.setProperty('--font-base', fs.fontBase);
   root.setProperty('--tbl-fs',      fs.tblFs);
   root.setProperty('--tbl-name-fs', fs.tblNameFs);
+  document.body.style.zoom = fs.zoom === 1 ? '' : String(fs.zoom);
   // tbl-h from density (CSS class takes precedence for actual cells)
   root.setProperty('--tbl-h', dn.tblH);
 
@@ -7937,7 +8097,8 @@ function renderAppearSettings(){
 
       <!-- Density -->
       <div>
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--ink-soft);margin-bottom:10px;letter-spacing:.04em">${ICONS.icon_density} Hustota tabulky</div>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--ink-soft);margin-bottom:10px;letter-spacing:.04em">${ICONS.icon_density} Velikost rozpisu</div>
+        <div style="font-size:11.5px;color:var(--ink-soft);margin:-4px 0 8px">Mění velikost buněk rozpisu směn (výšku řádků a písmo v tabulce).</div>
         <div style="display:flex;gap:8px">
           ${Object.entries(densInfo).map(([val,[h,label]])=>`
             <button onclick="previewAppear('density','${val}')"
@@ -8000,17 +8161,6 @@ function renderAppearSettings(){
         </label>
       </div>
 
-      <!-- Language selector -->
-      <div style="border-top:1px solid var(--line);padding-top:16px;display:flex;align-items:center;justify-content:space-between">
-        <div>
-          <div style="font-size:14px;font-weight:600">${ICONS.set_jazyk} Jazyk</div>
-          <div style="font-size:12px;color:var(--ink-soft);margin-top:2px">Jazyk rozhraní aplikace</div>
-        </div>
-        <select id="lang-select" onchange="setLanguage(this.value)" style="padding:7px 10px;border:1.5px solid var(--line);border-radius:8px;font-size:13px;background:var(--surface);color:var(--ink);cursor:pointer">
-          <option value="cs" ${currentLang==='cs'?'selected':''}>🇨🇿 Čeština</option>
-        </select>
-      </div>
-
       <!-- Save bar -->
       <div style="border-top:1px solid var(--line);padding-top:14px;display:flex;gap:8px;align-items:center">
         <button onclick="saveAppearSettings()" class="btn-primary"
@@ -8033,7 +8183,7 @@ function openDashboard(){
   if(!overlay) return;
 
   const { pct: qualityPct } = computeQuality(shifts, unavail);
-  const qualityColor = qualityPct >= 85 ? 'var(--accent)' : qualityPct >= 65 ? 'var(--amber)' : 'var(--red)';
+  const qualityColor = qualityPct >= 85 ? 'var(--status-ok)' : qualityPct >= 65 ? 'var(--status-warn)' : 'var(--status-bad)';
 
   const publishedKey = `${schedYear}-${String(schedMonth+1).padStart(2,'0')}`;
   const isPublished = (orgSettings['published_months']||[]).includes(publishedKey);
@@ -8118,7 +8268,9 @@ async function loadNotifications(){
 function updateNotifBadge(){
   const badge = document.getElementById('notif-badge');
   const unread = _notifications.filter(n=>!n.read).length;
-  if(badge) badge.style.display = unread > 0 ? 'block' : 'none';
+  if(!badge) return;
+  badge.style.display = unread > 0 ? 'flex' : 'none';
+  badge.textContent = unread > 9 ? '9+' : String(unread);
 }
 
 function toggleNotifPanel(){
@@ -8159,9 +8311,13 @@ function renderNotifPanel(){
   list.innerHTML = _notifications.map((n,i)=>{
     const date = new Date(n.created_at).toLocaleDateString('cs-CZ',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
     const clickable = NOTIF_LEAVE_TYPES.includes(n.type);
+    // title/body jsou nové sloupce (migration_notifications.sql); message je legacy fallback
+    const title = n.title ? `<div style="font-size:13px;font-weight:700;color:var(--ink);line-height:1.4">${escapeHtml(n.title)}</div>` : '';
+    const body = escapeHtml(n.body || n.message || '');
     return `<div onclick="handleNotifClick(${i})" style="padding:10px 16px;border-bottom:1px solid var(--line);display:flex;gap:10px;align-items:flex-start;background:${n.read?'none':'var(--accent-soft)'};${clickable?'cursor:pointer':''}">
       <div style="flex:1">
-        <div style="font-size:13px;color:var(--ink);line-height:1.4">${escapeHtml(n.message)}</div>
+        ${title}
+        <div style="font-size:13px;color:var(--ink);line-height:1.4">${body}</div>
         <div style="font-size:11px;color:var(--ink-faint);margin-top:3px">${date}</div>
       </div>
       ${!n.read?`<div style="width:7px;height:7px;border-radius:50%;background:var(--red);flex-shrink:0;margin-top:5px"></div>`:''}
@@ -8192,15 +8348,60 @@ async function markAllNotifsRead(){
   renderNotifPanel();
 }
 
-async function saveNotifPrefs(empId){
-  const inapp = document.getElementById('notif-inapp')?.checked !== false;
-  const email = document.getElementById('notif-email')?.checked !== false;
-  if(!orgSettings['emp_notify']) orgSettings['emp_notify'] = {};
-  if(!orgSettings['emp_notify'][empId]) orgSettings['emp_notify'][empId] = {};
-  orgSettings['emp_notify'][empId].inapp = inapp;
-  orgSettings['emp_notify'][empId].email = email;
-  await saveOrgSettings();
-  toast('✓ Nastavení notifikací uloženo');
+// ── Per-user preference upozornění (v0.7.9) ──────────────────
+// Uloženo v orgSettings.notify_prefs[userId] = { publish_inapp, publish_email,
+// leave_inapp, leave_email, decision_inapp, decision_email }. Výchozí = zapnuto.
+// Funguje i pro adminy (dřívější blokace pro vedoucí zrušena).
+const NOTIF_EVENTS = [
+  { id:'publish',  label:'Publikování rozpisu',            hint:'Když admin publikuje nový měsíc' },
+  { id:'leave',    label:'Žádost o volno',                 hint:'Nová žádost o volno v týmu (pro vedoucí)' },
+  { id:'decision', label:'Schválení / zamítnutí žádosti',  hint:'Rozhodnutí o tvé žádosti o volno' },
+];
+
+function getNotifPref(userId, event, channel){
+  const p = orgSettings['notify_prefs']?.[userId];
+  if(p && p[`${event}_${channel}`] !== undefined) return p[`${event}_${channel}`] !== false;
+  // Legacy fallback: staré per-zaměstnanec preference (emp_notify) pro publikování
+  if(event === 'publish'){
+    const emp = employees.find(e=>e.user_id===userId);
+    const legacy = emp && orgSettings['emp_notify']?.[emp.id];
+    if(legacy && legacy[channel] !== undefined) return legacy[channel] !== false;
+  }
+  return true;
+}
+
+async function saveNotifPrefs(){
+  if(!currentUser || !currentOrg) return;
+  const prefs = {};
+  document.querySelectorAll('#notif-prefs-body input[data-pref]').forEach(cb=>{
+    prefs[cb.dataset.pref] = cb.checked;
+  });
+  if(!orgSettings['notify_prefs']) orgSettings['notify_prefs'] = {};
+  orgSettings['notify_prefs'][currentUser.id] = prefs;
+  const { error } = await sb.from('org_settings').update({ settings: orgSettings }).eq('org_id', currentOrg.id);
+  toast(error ? 'Chyba: ' + error.message : '✓ Nastavení upozornění uloženo', error ? 'error' : 'ok');
+}
+
+// Vykreslí přepínače per událost × kanál (in-app / e-mail). E-mail zatím reálně
+// odchází jen u publikování (Edge Function smeny-notify); ostatní e-maily jsou
+// připravené přepínače s poznámkou „brzy" — preference se ukládá už teď.
+function renderNotifPrefsSection(){
+  const uid = currentUser?.id;
+  if(!uid) return '';
+  const emailReady = { publish:true, leave:false, decision:false };
+  return NOTIF_EVENTS.map(ev=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600">${ev.label}</div>
+        <div style="font-size:11px;color:var(--ink-soft);margin-top:1px">${ev.hint}</div>
+      </div>
+      <label style="display:flex;align-items:center;gap:4px;font-size:11.5px;color:var(--ink-soft);cursor:pointer;flex-shrink:0">
+        <input type="checkbox" data-pref="${ev.id}_inapp" ${getNotifPref(uid, ev.id, 'inapp')?'checked':''} style="width:15px;height:15px;cursor:pointer"> aplikace
+      </label>
+      <label style="display:flex;align-items:center;gap:4px;font-size:11.5px;color:var(--ink-soft);cursor:pointer;flex-shrink:0" title="${emailReady[ev.id]?'':'Odesílání e-mailů pro tuto událost bude brzy — preference se už ukládá'}">
+        <input type="checkbox" data-pref="${ev.id}_email" ${getNotifPref(uid, ev.id, 'email')?'checked':''} style="width:15px;height:15px;cursor:pointer"> e-mail${emailReady[ev.id]?'':' <span style="font-size:9px;background:var(--amber-soft);color:var(--amber);border-radius:4px;padding:1px 4px;font-weight:700">brzy</span>'}
+      </label>
+    </div>`).join('');
 }
 
 // PUBLISH SCHEDULE
@@ -8235,13 +8436,17 @@ async function doPublishSchedule(){
   if(error){ toast('Chyba: ' + error.message, 'error'); return; }
   orgSettings = newSettings;
 
-  // Insert in-app notifications for all org employees (the publishing admin gets a separate summary below)
-  const notifiedEmployees = employees.filter(emp => emp.user_id && emp.user_id !== currentUser.id);
-  const notifRows = notifiedEmployees.map(emp => ({
+  // In-app notifikace VŠEM členům organizace s účtem — včetně dalších adminů/vedoucích
+  // (v0.7.9: blokace pro vedoucí zrušena). Publikující admin dostává souhrn níže.
+  // Respektuje per-user preference (getNotifPref) z profilu → sekce Upozornění.
+  const memberRecipients = orgMembers.filter(m =>
+    m.user_id && m.user_id !== currentUser.id && getNotifPref(m.user_id, 'publish', 'inapp'));
+  const notifRows = memberRecipients.map(m => ({
     org_id: currentOrg.id,
-    user_id: emp.user_id,
-    message: `${ICONS.btn_publikovat} Byl publikován nový rozpis na ${monthLabel}.`,
+    user_id: m.user_id,
     type: 'publish',
+    title: `${ICONS.btn_publikovat} Nový rozpis`,
+    body: `Byl publikován rozpis na ${monthLabel}.`,
     read: false,
   }));
   if(notifRows.length > 0){
@@ -8252,17 +8457,21 @@ async function doPublishSchedule(){
   await sb.from('notifications').insert({
     org_id: currentOrg.id,
     user_id: currentUser.id,
-    message: `${ICONS.status_ok} Rozpis ${monthLabel} byl úspěšně publikován. ${notifiedEmployees.length > 0 ? `Zaměstnanci (${notifiedEmployees.length}) byli upozorněni.` : 'Žádní zaměstnanci s propojeným účtem nebyli upozorněni.'}`,
     type: 'publish_admin',
+    title: `${ICONS.status_ok} Rozpis publikován`,
+    body: `Rozpis ${monthLabel} byl úspěšně publikován. ${memberRecipients.length > 0 ? `Upozorněno ${memberRecipients.length} členů týmu.` : 'Žádní další členové s účtem nebyli upozorněni.'}`,
     read: false,
   });
   loadNotifications();
 
-  // Send email notifications (best-effort via Edge Function), including a confirmation email to the admin
-  const emailRecipients = notifiedEmployees.filter(emp => {
-    const pref = orgSettings['emp_notify']?.[emp.id];
-    return pref === undefined || pref?.email !== false;
+  // Pro e-mail a log potřebujeme jména — spoj členy se zaměstnaneckými záznamy
+  const notifiedEmployees = memberRecipients.map(m => {
+    const emp = employees.find(e => e.user_id === m.user_id);
+    return { name: emp?.name || m.user_id, user_id: m.user_id, emp_id: emp?.id };
   });
+
+  // Send email notifications (best-effort via Edge Function), including a confirmation email to the admin
+  const emailRecipients = notifiedEmployees.filter(r => getNotifPref(r.user_id, 'publish', 'email'));
   const notifLog = {
     ts: new Date().toISOString(),
     monthLabel,
@@ -8309,12 +8518,13 @@ async function testNotifications(){
   const { error } = await sb.from('notifications').insert({
     org_id: currentOrg.id,
     user_id: currentUser.id,
-    message: `${ICONS.notif_bell} Testovací notifikace (${new Date().toLocaleTimeString('cs-CZ')})`,
     type: 'test',
+    title: `${ICONS.notif_bell} Testovací notifikace`,
+    body: `Vše funguje — odesláno ${new Date().toLocaleTimeString('cs-CZ')}. Pokud tuhle zprávu vidíš ve zvonečku, notifikace jsou správně nastavené.`,
     read: false,
   });
   await loadNotifications();
-  toast(error ? 'Chyba: ' + error.message : '✓ Testovací notifikace odeslána sama sobě', error ? 'error' : 'ok');
+  toast(error ? 'Chyba: ' + error.message + ' (spustil jsi migration_notifications.sql v Supabase?)' : '✓ Testovací notifikace odeslána — mrkni na zvoneček', error ? 'error' : 'ok');
   renderNotifTestLog();
 }
 
@@ -8883,6 +9093,26 @@ document.getElementById('onboard-org-name').addEventListener('keydown', e=>{ if(
 // ============================================================
 // INIT: check existing session on page load
 // ============================================================
+// ── Modaly: zavírat overlay jen když mousedown I mouseup proběhly na overlayi (v0.7.9) ──
+// Inline onclick handlery overlayů (`if(event.target===this)…`) zavírají modal na click.
+// Click ale vznikne i když mousedown začal v inputu uvnitř modalu a uvolnění myši
+// (např. při označování textu tažením) skončilo na overlayi — targetem click eventu je
+// pak overlay jako společný předek. Tento capture-phase guard si uloží target mousedownu
+// a click na overlay zastaví dřív, než se k inline handleru dostane, pokud mousedown
+// nezačal přímo na overlayi. Platí globálně pro všechny modaly; Esc zavírá dál.
+(function initOverlayCloseGuard(){
+  const OVERLAY_CLASSES = ['modal-overlay','onboarding-overlay','search-overlay','kb-overlay','picker-overlay'];
+  let downTarget = null;
+  document.addEventListener('mousedown', e => { downTarget = e.target; }, true);
+  document.addEventListener('click', e => {
+    const cl = e.target.classList;
+    if(cl && OVERLAY_CLASSES.some(c => cl.contains(c)) && downTarget !== e.target){
+      e.stopPropagation();
+      e.preventDefault();
+    }
+  }, true);
+})();
+
 (async function init(){
   // Check for invite params in URL — prefill signup form
   const params = new URLSearchParams(window.location.search);
@@ -9572,56 +9802,115 @@ function positionEmpBubble(){
 
 // ── Feature 1 & 2: STATISTIKY + ARCHIV ──────────────────────
 
-// Days in the current stats month where a branch's minimum staffing was met vs
-// total days that branch actually required staffing (days with min=0, e.g. closed, don't count).
-function computeBranchDayCoverage(shiftList, daysInMonth){
+// Days where a branch's minimum staffing was met vs total days that branch actually
+// required staffing (days with min=0, e.g. closed, don't count). `months` = [{y, m0}]
+// — one entry for the month view, six for the whole-period view.
+function computeBranchDayCoverage(shiftList, months){
   return branches.map(b=>{
     const sts = shiftTypes.filter(st=>st.branch_id===b.id);
     let daysMet = 0, daysTotal = 0;
-    for(let d=1; d<=daysInMonth; d++){
-      const dow = new Date(schedYear, schedMonth, d).getDay();
-      const minReq = getBranchDayMin(b, dow);
-      if(!minReq) continue;
-      daysTotal++;
-      const dateStr = isoDate(schedYear, schedMonth+1, d);
-      const met = sts.length
-        ? sts.every(st => shiftList.some(s => s.shift_date===dateStr && s.shift_type_code===st.code))
-        : shiftList.filter(s => s.shift_date===dateStr && s.shift_type_code===b.code).length >= minReq;
-      if(met) daysMet++;
-    }
+    months.forEach(({y, m0})=>{
+      const dim = new Date(y, m0+1, 0).getDate();
+      for(let d=1; d<=dim; d++){
+        const dow = new Date(y, m0, d).getDay();
+        const minReq = getBranchDayMin(b, dow);
+        if(!minReq) continue;
+        daysTotal++;
+        const dateStr = isoDate(y, m0+1, d);
+        const met = sts.length
+          ? sts.every(st => shiftList.some(s => s.shift_date===dateStr && s.shift_type_code===st.code))
+          : shiftList.filter(s => s.shift_date===dateStr && s.shift_type_code===b.code).length >= minReq;
+        if(met) daysMet++;
+      }
+    });
     return { branch: b, daysMet, daysTotal };
   });
 }
 
-function renderStats(){
+// ── Období statistik: 'month' = vybraný měsíc (šipkami), 'range' = 6 měsíců
+// ukotvených na dnešku (2 zpět až 3 dopředu) ──
+let statsPeriod = 'month';
+
+function statsRangeMonths(){
+  const now = new Date();
+  const out = [];
+  for(let off=-2; off<=3; off++){
+    const d = new Date(now.getFullYear(), now.getMonth()+off, 1);
+    out.push({ y:d.getFullYear(), m0:d.getMonth() });
+  }
+  return out;
+}
+
+function setStatsPeriod(p){
+  statsPeriod = p;
+  const mBtn = document.getElementById('stats-period-month');
+  const rBtn = document.getElementById('stats-period-range');
+  [[mBtn, p==='month'], [rBtn, p==='range']].forEach(([btn, active])=>{
+    if(!btn) return;
+    btn.style.background = active ? 'var(--surface)' : 'none';
+    btn.style.color      = active ? 'var(--ink)' : 'var(--ink-soft)';
+    btn.style.boxShadow  = active ? 'var(--shadow)' : 'none';
+  });
+  // Šipky mění vybraný měsíc — v pohledu celého období nemají smysl
+  const prev = document.getElementById('stats-nav-prev');
+  const next = document.getElementById('stats-nav-next');
+  if(prev) prev.style.display = p==='month' ? '' : 'none';
+  if(next) next.style.display = p==='month' ? '' : 'none';
+  renderStats();
+}
+
+async function renderStats(){
   const el = document.getElementById('stats-content');
   if(!el) return;
-  const d = new Date(schedYear, schedMonth, 1);
-  document.getElementById('stats-month-label').textContent =
-    d.toLocaleDateString('cs-CZ',{month:'long',year:'numeric'});
+  const isRange = statsPeriod === 'range';
+  const now = new Date();
+  const todayStr = isoDate(now.getFullYear(), now.getMonth()+1, now.getDate());
 
-  const daysInMonth = new Date(schedYear, schedMonth+1, 0).getDate();
-  const monthKey = isoDate(schedYear, schedMonth+1, 1).slice(0,7);
-  const shiftList = Object.values(shifts).filter(s => s.shift_date && s.shift_date.startsWith(monthKey));
+  let months, shiftList, periodLabel, daysInPeriod;
+  if(isRange){
+    months = statsRangeMonths();
+    const first = months[0], last = months[months.length-1];
+    periodLabel = `${new Date(first.y, first.m0, 1).toLocaleDateString('cs-CZ',{month:'long',year:'numeric'})} – ${new Date(last.y, last.m0, 1).toLocaleDateString('cs-CZ',{month:'long',year:'numeric'})}`;
+    document.getElementById('stats-month-label').textContent = '· celé období: ' + periodLabel;
+    el.innerHTML = '<div class="spinner-lg" style="margin:40px auto"></div>';
+    const from = isoDate(first.y, first.m0+1, 1);
+    const to = isoDate(last.y, last.m0+1, new Date(last.y, last.m0+1, 0).getDate());
+    const { data, error } = await sb.from('shifts').select('*')
+      .eq('org_id', currentOrg.id).gte('shift_date', from).lte('shift_date', to);
+    if(error){ el.innerHTML = `<p style="font-size:13px;color:var(--status-bad)">Chyba načítání dat: ${escapeHtml(error.message)}</p>`; return; }
+    shiftList = data || [];
+    daysInPeriod = months.reduce((a,{y,m0})=>a+new Date(y, m0+1, 0).getDate(), 0);
+  } else {
+    months = [{ y:schedYear, m0:schedMonth }];
+    const d = new Date(schedYear, schedMonth, 1);
+    periodLabel = d.toLocaleDateString('cs-CZ',{month:'long',year:'numeric'});
+    document.getElementById('stats-month-label').textContent = '· měsíc: ' + periodLabel;
+    const monthKey = isoDate(schedYear, schedMonth+1, 1).slice(0,7);
+    shiftList = Object.values(shifts).filter(s => s.shift_date && s.shift_date.startsWith(monthKey));
+    daysInPeriod = new Date(schedYear, schedMonth+1, 0).getDate();
+  }
 
-  // Count shifts per employee + per shift type this month
-  const empCounts = {};
-  const typeCounts = {};
-  employees.forEach(e => { empCounts[e.id] = 0; });
-
+  // Odpracováno = do včerejška včetně (dnešek se NIKDY nepočítá jako odpracovaný),
+  // naplánováno = ode dneška dál.
+  const empCounts = {}, empWorked = {}, empPlanned = {};
+  employees.forEach(e => { empCounts[e.id] = 0; empWorked[e.id] = 0; empPlanned[e.id] = 0; });
+  let worked = 0, planned = 0;
   shiftList.forEach(s => {
     if(s.shift_type_code && s.shift_type_code !== 'X'){
-      if(empCounts[s.employee_id] !== undefined) empCounts[s.employee_id]++;
-      typeCounts[s.shift_type_code] = (typeCounts[s.shift_type_code]||0) + 1;
+      const isWorked = s.shift_date < todayStr;
+      if(isWorked) worked++; else planned++;
+      if(empCounts[s.employee_id] !== undefined){
+        empCounts[s.employee_id]++;
+        if(isWorked) empWorked[s.employee_id]++; else empPlanned[s.employee_id]++;
+      }
     }
   });
-
-  const totalShifts = Object.values(empCounts).reduce((a,b)=>a+b,0);
+  const totalShifts = worked + planned;
 
   if(totalShifts === 0){
     el.innerHTML = `<div class="empty-state"><div style="font-size:40px;margin-bottom:12px">${ICONS.nav_statistiky}</div>
       <p style="font-size:15px;font-weight:700;margin-bottom:6px">Nejsou k dispozici žádná data</p>
-      <p style="font-size:13px;color:var(--ink-soft)">Vygeneruj nebo ručně zadej směny pro zobrazení statistik.</p></div>`;
+      <p style="font-size:13px;color:var(--ink-soft)">Vygeneruj nebo ručně zadej směny pro zobrazení statistik (${escapeHtml(periodLabel)}).</p></div>`;
     return;
   }
 
@@ -9630,7 +9919,7 @@ function renderStats(){
   const topEmp = empRanking[0];
   const bottomEmp = empRanking[empRanking.length-1];
 
-  const branchCoverage = computeBranchDayCoverage(shiftList, daysInMonth);
+  const branchCoverage = computeBranchDayCoverage(shiftList, months);
 
   // Quality history (last 6 months from localStorage)
   const key = `sched_quality_${currentOrg?.id}`;
@@ -9638,29 +9927,31 @@ function renderStats(){
 
   el.innerHTML = `
     <div class="stats-grid">
-      <div class="stats-card"><div class="stats-card-title">Celkem směn</div><div class="stats-card-val">${totalShifts}</div><div class="stats-card-sub">za ${d.toLocaleDateString('cs-CZ',{month:'long'})}</div></div>
-      <div class="stats-card"><div class="stats-card-title">Průměr / zaměstnanec</div><div class="stats-card-val">${avgShifts}</div><div class="stats-card-sub">ze ${daysInMonth} dní</div></div>
+      <div class="stats-card"><div class="stats-card-title">Celkem směn</div><div class="stats-card-val">${totalShifts}</div><div class="stats-card-sub">Odpracováno ${worked} · Naplánováno ${planned}</div></div>
+      <div class="stats-card"><div class="stats-card-title">Průměr / zaměstnanec</div><div class="stats-card-val">${avgShifts}</div><div class="stats-card-sub">ze ${daysInPeriod} dní (${escapeHtml(periodLabel)})</div></div>
       <div class="stats-card"><div class="stats-card-title">Nejvíc směn</div><div class="stats-card-val" style="font-size:18px">${topEmp?escapeHtml(topEmp.e.name):'—'}</div><div class="stats-card-sub">${topEmp?topEmp.count+' směn':''}</div></div>
       <div class="stats-card"><div class="stats-card-title">Nejméně směn</div><div class="stats-card-val" style="font-size:18px">${bottomEmp&&bottomEmp.e.id!==topEmp?.e.id?escapeHtml(bottomEmp.e.name):'—'}</div><div class="stats-card-sub">${bottomEmp&&bottomEmp.e.id!==topEmp?.e.id?bottomEmp.count+' směn':''}</div></div>
     </div>
 
-    <h3 style="font-family:var(--font-display);font-size:15px;margin:0 0 14px">Směny dle zaměstnance — min / cíl / max</h3>
+    <h3 style="font-family:var(--font-display);font-size:15px;margin:0 0 14px">Směny dle zaměstnance — ${escapeHtml(periodLabel)}</h3>
     <div style="margin-bottom:24px">
       ${employees.map(e=>{
         const count = empCounts[e.id]||0;
-        const maxVal = Math.max(e.max_shifts||20, count);
+        const monthMax = isRange ? (e.max_shifts||20)*months.length : (e.max_shifts||20);
+        const maxVal = Math.max(monthMax, count);
         const pct = Math.round((count/maxVal)*100);
-        const cls = count < e.min_shifts ? 'under' : count > e.max_shifts ? 'over' : '';
-        const targetPct = Math.round(((e.target_shifts||e.max_shifts)/maxVal)*100);
+        const cls = !isRange ? (count < e.min_shifts ? 'under' : count > e.max_shifts ? 'over' : '') : '';
+        const targetPct = !isRange ? Math.round(((e.target_shifts||e.max_shifts)/maxVal)*100) : null;
+        const wp = empWorked[e.id]||0, pp = empPlanned[e.id]||0;
         return `<div class="stats-bar-row">
           <span class="stats-bar-label" title="${escapeHtml(e.name)}">${escapeHtml(e.name)}</span>
           <div class="stats-bar-track">
             <div class="stats-bar-fill ${cls}" style="width:${pct}%;position:relative">
-              <div style="position:absolute;top:0;bottom:0;left:${targetPct}%;width:2px;background:rgba(0,0,0,.2);border-radius:1px"></div>
+              ${targetPct!==null?`<div style="position:absolute;top:0;bottom:0;left:${targetPct}%;width:2px;background:rgba(0,0,0,.2);border-radius:1px"></div>`:''}
             </div>
           </div>
-          <span class="stats-bar-num">${count}</span>
-          <span style="font-size:10px;color:var(--ink-faint);margin-left:4px">${e.min_shifts}–${e.max_shifts}</span>
+          <span class="stats-bar-num" title="Odpracováno ${wp} · Naplánováno ${pp}">${count}</span>
+          ${getEmploymentTypeBadge(e.employment_type)}
         </div>`;
       }).join('')}
     </div>
@@ -9675,19 +9966,6 @@ function renderStats(){
           <span class="stats-bar-num">${daysMet}/${daysTotal}</span>
         </div>`;
       }).join('') : '<p style="font-size:13px;color:var(--ink-soft)">Žádné pobočky.</p>'}
-    </div>
-
-    <h3 style="font-family:var(--font-display);font-size:15px;margin:0 0 14px">Přehled typů směn</h3>
-    <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:24px">
-      ${Object.keys(typeCounts).length ? Object.entries(typeCounts).sort((a,b)=>b[1]-a[1]).map(([code,cnt])=>{
-        const st = shiftTypes.find(s=>s.code===code);
-        return `<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border:1.5px solid var(--line);border-radius:8px">
-          <span style="width:10px;height:10px;border-radius:3px;background:${st?.color||'var(--accent)'}"></span>
-          <span style="font-weight:600;font-size:13px">${escapeHtml(st?.label||code)}</span>
-          <span style="font-size:12px;color:var(--ink-faint)">(${escapeHtml(code)})</span>
-          <span style="font-weight:700;font-size:14px;margin-left:4px">${cnt}</span>
-        </div>`;
-      }).join('') : '<p style="font-size:13px;color:var(--ink-soft)">Žádné směny.</p>'}
     </div>
 
     ${qualityHistory.length ? `
@@ -10021,13 +10299,15 @@ function saveLeaveRequest(){
 
   // Notify org admins in-app so they know a request is waiting for them
   if(currentOrg){
-    const admins = orgMembers.filter(m => m.role === 'admin' && m.user_id && m.user_id !== currentUser?.id);
+    const admins = orgMembers.filter(m => m.role === 'admin' && m.user_id && m.user_id !== currentUser?.id
+      && getNotifPref(m.user_id, 'leave', 'inapp'));
     if(admins.length){
       const rows = admins.map(m => ({
         org_id: currentOrg.id,
         user_id: m.user_id,
-        message: `${ICONS.notif_zadost_volno} ${empName} žádá o volno ${fmtLeaveRange(from, to)}. Ke schválení →`,
         type: 'leave_request',
+        title: `${ICONS.notif_zadost_volno} Žádost o volno`,
+        body: `${empName} žádá o volno ${fmtLeaveRange(from, to)}. Ke schválení →`,
         read: false,
       }));
       sb.from('notifications').insert(rows).catch(()=>{});
@@ -10117,14 +10397,16 @@ function notifyLeaveDecision(l, decision){
   if(!emp?.user_id) return;
   const range = fmtLeaveRangeShort(l.from_date, l.to_date);
   const days = leaveDayLabel(leaveDayCount(l.from_date, l.to_date));
-  const message = decision === 'approved'
-    ? `${ICONS.status_ok} Tvoje žádost o volno ${range} (${days}) byla schválena.`
-    : `${ICONS.status_error} Tvoje žádost o volno ${range} (${days}) byla zamítnuta.${l.reject_reason ? ` Důvod: ${l.reject_reason}` : ''}`;
+  if(!getNotifPref(emp.user_id, 'decision', 'inapp')) return;
+  const approved = decision === 'approved';
   sb.from('notifications').insert({
     org_id: currentOrg.id,
     user_id: emp.user_id,
-    message,
-    type: decision === 'approved' ? 'leave_approved' : 'leave_rejected',
+    type: approved ? 'leave_approved' : 'leave_rejected',
+    title: approved ? `${ICONS.status_ok} Žádost schválena` : `${ICONS.status_error} Žádost zamítnuta`,
+    body: approved
+      ? `Tvoje žádost o volno ${range} (${days}) byla schválena.`
+      : `Tvoje žádost o volno ${range} (${days}) byla zamítnuta.${l.reject_reason ? ` Důvod: ${l.reject_reason}` : ''}`,
     read: false,
   }).catch(()=>{});
 }
@@ -10213,34 +10495,141 @@ async function switchOrg(orgId){
 // ── Feature 9: AUDIT LOG ─────────────────────────────────────
 
 function logAudit(msg){
-  logActivity(msg); // reuse existing localStorage log
-  if(!currentOrg) return;
-  // Also attempt to save to Supabase audit_log (if table exists, best-effort)
-  const { data: { user } } = sb.auth.getUser().then(({ data })=>{
-    sb.from('audit_log').insert({
-      org_id: currentOrg.id,
-      user_id: data.user?.id,
-      message: msg,
-      created_at: new Date().toISOString()
-    }).catch(()=>{});
-  });
+  logActivity(msg); // logActivity zapisuje localStorage i DB audit_log (v0.7.9)
 }
 
-function openAuditLog(){
-  const key = 'activity_log_' + currentOrg?.id;
-  const log = JSON.parse(localStorage.getItem(key)||'[]');
-  const el = document.getElementById('audit-log-content');
+// ── Přehled zpětné vazby z nápovědy pro adminy (v0.7.9) ─────
+let _helpFbFilter = ''; // '' = vše, 'up' = 👍, 'down' = 👎
+
+function setHelpFbFilter(f){
+  _helpFbFilter = f;
+  loadHelpFeedbackAdmin();
+}
+
+function openHelpFeedbackAdmin(){
+  _helpFbFilter = '';
+  document.getElementById('help-feedback-admin-overlay').classList.add('open');
+  loadHelpFeedbackAdmin();
+}
+
+async function loadHelpFeedbackAdmin(){
+  const el = document.getElementById('help-feedback-admin-body');
   if(!el) return;
-  if(!log.length){
-    el.innerHTML='<p style="color:var(--ink-soft);text-align:center;padding:20px 0">Žádné záznamy</p>';
-  } else {
-    el.innerHTML = log.map(l=>`
+  const filterBtn = (val,label)=>`<button onclick="setHelpFbFilter('${val}')"
+    style="border:1.5px solid ${_helpFbFilter===val?'var(--accent)':'var(--line)'};background:${_helpFbFilter===val?'var(--accent-soft)':'none'};color:var(--ink);border-radius:8px;padding:5px 12px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit">${label}</button>`;
+  el.innerHTML = `
+    <div style="display:flex;gap:6px;margin-bottom:12px">
+      ${filterBtn('','Vše')}${filterBtn('up',ICONS.help_thumbs_up+' Pomohlo')}${filterBtn('down',ICONS.help_thumbs_down+' Nepomohlo')}
+    </div>
+    <div id="help-fb-list"><div class="spinner-lg" style="margin:20px auto"></div></div>`;
+  let query = sb.from('help_feedback').select('*').eq('org_id', currentOrg.id)
+    .order('created_at', { ascending:false }).limit(100);
+  if(_helpFbFilter) query = query.eq('verdict', _helpFbFilter);
+  const { data, error } = await query;
+  const list = document.getElementById('help-fb-list');
+  if(!list) return;
+  if(error){
+    list.innerHTML = `<p style="font-size:12.5px;color:var(--ink-soft)">Zpětnou vazbu se nepodařilo načíst (${escapeHtml(error.message)}). Spustil jsi migration_notifications.sql v Supabase?</p>`;
+    return;
+  }
+  if(!(data||[]).length){
+    list.innerHTML = '<p style="font-size:13px;color:var(--ink-soft);text-align:center;padding:16px 0">Zatím žádná zpětná vazba.</p>';
+    return;
+  }
+  list.innerHTML = data.map(r=>{
+    const emp = employees.find(e=>e.user_id===r.user_id);
+    return `<div style="display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-bottom:1px solid var(--line)">
+      <span style="font-size:16px;flex-shrink:0">${r.verdict==='up'?ICONS.help_thumbs_up:ICONS.help_thumbs_down}</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600">${escapeHtml(r.question||'—')}</div>
+        <div style="font-size:11px;color:var(--ink-faint);margin-top:1px">${escapeHtml(r.article||'')}${emp?` · ${escapeHtml(emp.name)}`:''}</div>
+      </div>
+      <span style="font-size:11px;color:var(--ink-faint);white-space:nowrap">${new Date(r.created_at).toLocaleDateString('cs-CZ',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</span>
+    </div>`;
+  }).join('');
+}
+
+// ── Historie změn (v0.7.9): DB audit_log se stránkováním, filtrem data/uživatele
+// a fulltextem; localStorage log slouží jako fallback bez migrace. ──
+const AUDIT_PAGE_SIZE = 50;
+let _auditRows = [];
+let _auditHasMore = false;
+
+async function fetchAuditPage(offset){
+  const dateFrom = document.getElementById('audit-filter-from')?.value || '';
+  const dateTo   = document.getElementById('audit-filter-to')?.value || '';
+  const userId   = document.getElementById('audit-filter-user')?.value || '';
+  const q        = document.getElementById('audit-filter-text')?.value.trim() || '';
+  let query = sb.from('audit_log').select('*')
+    .eq('org_id', currentOrg.id)
+    .order('created_at', { ascending:false })
+    .range(offset, offset + AUDIT_PAGE_SIZE - 1);
+  if(dateFrom) query = query.gte('created_at', dateFrom + 'T00:00:00');
+  if(dateTo)   query = query.lte('created_at', dateTo + 'T23:59:59');
+  if(userId)   query = query.eq('user_id', userId);
+  if(q)        query = query.ilike('message', `%${q.replace(/[%_]/g, '')}%`);
+  return await query;
+}
+
+async function loadAuditLog(append){
+  const listEl = document.getElementById('audit-log-list');
+  if(!listEl) return;
+  if(!append){ _auditRows = []; listEl.innerHTML = '<div class="spinner-lg" style="margin:20px auto"></div>'; }
+  const { data, error } = await fetchAuditPage(_auditRows.length);
+  if(error){
+    // Tabulka audit_log ještě neexistuje (migrace nespuštěna) → fallback na localStorage
+    const key = 'activity_log_' + currentOrg?.id;
+    const log = JSON.parse(localStorage.getItem(key)||'[]');
+    listEl.innerHTML = (log.length ? log.map(l=>`
       <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line)">
         <span>${escapeHtml(l.msg)}</span>
         <span style="font-size:11px;color:var(--ink-faint);white-space:nowrap;margin-left:12px">${new Date(l.ts).toLocaleString('cs-CZ')}</span>
-      </div>`).join('');
+      </div>`).join('') : '<p style="color:var(--ink-soft);text-align:center;padding:20px 0">Žádné záznamy</p>')
+      + `<p style="font-size:11px;color:var(--ink-faint);margin-top:10px">Zobrazena lokální historie (posledních 50). Pro plnou historii s filtry spusť migration_notifications.sql v Supabase.</p>`;
+    document.getElementById('audit-load-more').style.display = 'none';
+    return;
   }
+  _auditRows = _auditRows.concat(data||[]);
+  _auditHasMore = (data||[]).length === AUDIT_PAGE_SIZE;
+  listEl.innerHTML = _auditRows.length ? _auditRows.map(r=>`
+    <div style="display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)">
+      <div style="flex:1;min-width:0">
+        <div>${escapeHtml(r.message)}</div>
+        ${r.user_name?`<div style="font-size:11px;color:var(--ink-faint);margin-top:1px">${escapeHtml(r.user_name)}</div>`:''}
+      </div>
+      <span style="font-size:11px;color:var(--ink-faint);white-space:nowrap">${new Date(r.created_at).toLocaleString('cs-CZ')}</span>
+    </div>`).join('')
+    : '<p style="color:var(--ink-soft);text-align:center;padding:20px 0">Žádné záznamy pro zvolené filtry</p>';
+  document.getElementById('audit-load-more').style.display = _auditHasMore ? '' : 'none';
+}
+
+function openAuditLog(){
+  const el = document.getElementById('audit-log-content');
+  if(!el) return;
+  // Select uživatelů — členové organizace s propojeným účtem
+  const userOptions = orgMembers.filter(m=>m.user_id).map(m=>{
+    const emp = employees.find(e=>e.user_id===m.user_id);
+    const label = emp?.name || (m.user_id===currentUser?.id ? (currentUser.email||'Já') : m.user_id.slice(0,8)+'…');
+    return `<option value="${m.user_id}">${escapeHtml(label)}</option>`;
+  }).join('');
+  const inputStyle = 'padding:6px 8px;border:1.5px solid var(--line);border-radius:7px;font-size:12px;font-family:inherit;color:var(--ink);background:var(--surface)';
+  el.innerHTML = `
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;align-items:flex-end">
+      <div><label style="font-size:10px;font-weight:700;color:var(--ink-soft);display:block;margin-bottom:2px">Od</label>
+        <input type="date" id="audit-filter-from" onchange="loadAuditLog(false)" style="${inputStyle}"></div>
+      <div><label style="font-size:10px;font-weight:700;color:var(--ink-soft);display:block;margin-bottom:2px">Do</label>
+        <input type="date" id="audit-filter-to" onchange="loadAuditLog(false)" style="${inputStyle}"></div>
+      <div><label style="font-size:10px;font-weight:700;color:var(--ink-soft);display:block;margin-bottom:2px">Uživatel</label>
+        <select id="audit-filter-user" onchange="loadAuditLog(false)" style="${inputStyle}">
+          <option value="">Všichni</option>${userOptions}
+        </select></div>
+      <div style="flex:1;min-width:120px"><label style="font-size:10px;font-weight:700;color:var(--ink-soft);display:block;margin-bottom:2px">Hledat v popisu</label>
+        <input type="text" id="audit-filter-text" placeholder="např. publikován…" oninput="clearTimeout(window._auditSearchT);window._auditSearchT=setTimeout(()=>loadAuditLog(false),350)" style="${inputStyle};width:100%;box-sizing:border-box"></div>
+    </div>
+    <div id="audit-log-list"></div>
+    <button id="audit-load-more" class="btn-outline" style="width:100%;margin-top:10px;display:none" onclick="loadAuditLog(true)">Načíst starší</button>`;
   document.getElementById('audit-modal-overlay').classList.add('open');
+  loadAuditLog(false);
 }
 
 // ── Feature 10: SPRÁVA ORGANIZACE ───────────────────────────
@@ -10278,6 +10667,7 @@ function renderOrgSettings(){
       </div>
       <button class="btn-accent" onclick="saveOrgSettings()">${ICONS.btn_ulozit} Uložit nastavení organizace</button>
       <button class="btn-ghost" onclick="openAuditLog()" style="margin-top:4px">${ICONS.audit_log} Historie změn</button>
+      <button class="btn-ghost" onclick="openHelpFeedbackAdmin()" style="margin-top:4px">${ICONS.help_thumbs_up} Zpětná vazba nápovědy</button>
       <div style="margin-top:8px;padding-top:14px;border-top:1px solid var(--line)">
         <label style="font-weight:600">${ICONS.notif_bell} Test notifikací <span style="font-weight:400;color:var(--ink-faint);font-size:11.5px">(dočasný debug nástroj)</span></label>
         <button class="btn-outline" onclick="testNotifications()" style="margin-top:8px">${ICONS.notif_bell} Test notifikací</button>
@@ -10299,7 +10689,7 @@ async function handleOrgLogoUpload(input){
   reader.onload = async e => {
     const newSettings = { ...orgSettings, org_logo: e.target.result };
     const { error } = await sb.from('org_settings').update({ settings: newSettings }).eq('org_id', currentOrg.id);
-    if(!error){ orgSettings = newSettings; toast('Logo nahráno'); renderOrgSettings(); }
+    if(!error){ orgSettings = newSettings; toast('Logo nahráno'); renderOrgSettings(); updateOrgLogoDisplay(); }
     else toast('Chyba při nahrávání loga','error');
   };
   reader.readAsDataURL(file);
@@ -10309,7 +10699,18 @@ async function removeOrgLogo(){
   const newSettings = { ...orgSettings };
   delete newSettings.org_logo;
   const { error } = await sb.from('org_settings').update({ settings: newSettings }).eq('org_id', currentOrg.id);
-  if(!error){ orgSettings = newSettings; toast('Logo odebráno'); renderOrgSettings(); }
+  if(!error){ orgSettings = newSettings; toast('Logo odebráno'); renderOrgSettings(); updateOrgLogoDisplay(); }
+}
+
+// Nahrané logo organizace v hlavičce vedle názvu; fallback = stávající ikonka
+// (logo se prostě skryje). Přihlašovací obrazovka název organizace nezná
+// (org se načítá až po přihlášení), takže tam zůstává obecná značka Směny.
+function updateOrgLogoDisplay(){
+  const img = document.getElementById('org-logo-topbar');
+  if(!img) return;
+  const logo = orgSettings?.org_logo;
+  if(logo){ img.src = logo; img.style.display = 'inline-block'; }
+  else { img.removeAttribute('src'); img.style.display = 'none'; }
 }
 
 async function saveOrgSettings(){
@@ -10326,11 +10727,77 @@ async function saveOrgSettings(){
   logAudit('Nastavení organizace upraveno');
 }
 
-async function confirmDeleteOrg(){
-  const name = currentOrg?.name||'organizace';
-  const input = prompt(`Pro smazání napište přesně název organizace: "${name}"`);
-  if(input !== name){ toast('Název nesouhlasí — organizace nebyla smazána','error'); return; }
-  toast('Mazání organizace… (funkce vyžaduje backend RPC)', 'error');
+// ── Smazání organizace: dvojité potvrzení (v0.7.9) ──────────
+// Krok 1: výčet, co vše se smaže. Krok 2: opsat přesný název organizace —
+// tlačítko se aktivuje až při přesné shodě, jinak smazání nelze provést.
+function confirmDeleteOrg(){
+  const body = document.getElementById('delete-org-body');
+  if(!body || !currentOrg) return;
+  body.innerHTML = `
+    <h3 style="margin:0 0 14px;color:var(--red)">${ICONS.status_warning} Smazat organizaci?</h3>
+    <p style="font-size:13.5px;margin:0 0 12px">Chystáš se <strong>nevratně smazat</strong> organizaci <strong>${escapeHtml(currentOrg.name)}</strong>. Smaže se:</p>
+    <ul style="font-size:13px;line-height:1.8;margin:0 0 16px;padding-left:22px;color:var(--ink)">
+      <li>všechny <strong>směny a rozpisy</strong> (včetně archivu)</li>
+      <li><strong>${employees.length}</strong> zaměstnanců a jejich přístupy</li>
+      <li><strong>${branches.length}</strong> poboček včetně typů směn</li>
+      <li>všechna nastavení, pravidla a šablony</li>
+      <li>notifikace, žádosti o volno a historie změn</li>
+      <li>členství všech uživatelů v organizaci</li>
+    </ul>
+    <p style="font-size:12.5px;color:var(--red);font-weight:600;margin:0 0 16px">Tuto akci nelze vzít zpět.</p>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn-outline" onclick="document.getElementById('delete-org-overlay').classList.remove('open')">Zrušit</button>
+      <button onclick="deleteOrgStep2()" style="background:var(--red);color:#fff;border:none;border-radius:8px;padding:9px 16px;font-size:13.5px;font-weight:600;cursor:pointer;font-family:inherit">Pokračovat →</button>
+    </div>`;
+  document.getElementById('delete-org-overlay').classList.add('open');
+}
+
+function deleteOrgStep2(){
+  const body = document.getElementById('delete-org-body');
+  const name = currentOrg?.name || '';
+  body.innerHTML = `
+    <h3 style="margin:0 0 14px;color:var(--red)">${ICONS.status_warning} Poslední krok</h3>
+    <p style="font-size:13.5px;margin:0 0 12px">Pro potvrzení opiš přesný název organizace:</p>
+    <div style="font-family:var(--font-mono);font-size:15px;font-weight:700;background:var(--paper);border:1.5px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:12px;text-align:center;user-select:all">${escapeHtml(name)}</div>
+    <input type="text" id="delete-org-confirm-input" placeholder="Opiš název organizace…" autocomplete="off"
+      oninput="document.getElementById('delete-org-final-btn').disabled = this.value !== ${JSON.stringify(name).replace(/"/g,'&quot;')}"
+      style="width:100%;padding:10px 12px;border:1.5px solid var(--red);border-radius:8px;font-size:14px;font-family:inherit;color:var(--ink);background:var(--surface);box-sizing:border-box;margin-bottom:14px">
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn-outline" onclick="document.getElementById('delete-org-overlay').classList.remove('open')">Zrušit</button>
+      <button id="delete-org-final-btn" disabled onclick="deleteOrgForReal()"
+        style="background:var(--red);color:#fff;border:none;border-radius:8px;padding:9px 16px;font-size:13.5px;font-weight:600;cursor:pointer;font-family:inherit;opacity:1">
+        ${ICONS.btn_smazat} Smazat navždy
+      </button>
+    </div>
+    <style>#delete-org-final-btn:disabled{opacity:.4;cursor:not-allowed}</style>`;
+  setTimeout(()=>document.getElementById('delete-org-confirm-input')?.focus(), 50);
+}
+
+async function deleteOrgForReal(){
+  const input = document.getElementById('delete-org-confirm-input');
+  if(!input || input.value !== currentOrg?.name){ toast('Název nesouhlasí — organizace nebyla smazána','error'); return; }
+  const btn = document.getElementById('delete-org-final-btn');
+  if(btn){ btn.disabled = true; btn.textContent = 'Mažu…'; }
+  const orgId = currentOrg.id;
+  try{
+    // Závislé tabulky napřed (best-effort — některé mají ON DELETE CASCADE, jiné ne)
+    for(const t of ['notifications','audit_log','help_feedback','shifts','unavailability','open_shifts','shift_swaps','schedule_templates','support_requests']){
+      try{ await sb.from(t).delete().eq('org_id', orgId); }catch(e){}
+    }
+    for(const t of ['org_settings','employees','branches','org_members']){
+      try{ await sb.from(t).delete().eq('org_id', orgId); }catch(e){}
+    }
+    const { error } = await sb.from('organizations').delete().eq('id', orgId);
+    if(error){ toast('Smazání se nepodařilo dokončit: ' + error.message, 'error'); if(btn){btn.disabled=false; btn.textContent='Smazat navždy';} return; }
+    // Lokální data organizace
+    ['activity_log_','leave_requests_','recurring_','notif_log_','sched_quality_'].forEach(p=>localStorage.removeItem(p+orgId));
+    toast('Organizace smazána');
+    await sb.auth.signOut();
+    location.reload();
+  }catch(e){
+    toast('Chyba při mazání: ' + (e?.message||e), 'error');
+    if(btn){ btn.disabled = false; btn.textContent = 'Smazat navždy'; }
+  }
 }
 
 // ── Feature 11: PWA ─────────────────────────────────────────
@@ -10847,6 +11314,19 @@ function helpFeedback(positive){
   el.innerHTML = positive
     ? `<div class="help-feedback-msg">Super, díky za zpětnou vazbu! 🎉</div>`
     : `<div class="help-feedback-msg">Omlouváme se! Zkus tutoriál v záložce ? nebo nás kontaktuj.</div>`;
+  // v0.7.9: uložit verdikt do help_feedback (tabulka z migration_notifications.sql; best-effort)
+  try {
+    const cat = HELP_TOPICS[helpState.catKey];
+    const parentItem = cat?.items?.[helpState.itemIdx];
+    const item = helpState.screen==='follow' ? parentItem?.follow?.[helpState.followIdx] : parentItem;
+    sb.from('help_feedback').insert({
+      org_id: currentOrg?.id || null,
+      user_id: currentUser?.id || null,
+      question: item?.q || '',
+      article: `${cat?.label||''}${parentItem&&parentItem!==item?' › '+parentItem.q:''}`,
+      verdict: positive ? 'up' : 'down',
+    }).then(()=>{}, ()=>{});
+  } catch(e){}
 }
 
 function helpMatchesQuery(item, q){
@@ -10983,17 +11463,66 @@ const ICON_GROUPS = [
   { label:'Akce', keys:['btn_pridat','btn_ulozit','btn_zrusit','btn_upravit','btn_smazat','btn_export_pdf','btn_zpet','btn_dalsi','btn_hotovo','btn_pozvanka','btn_kopirovat','btn_odeslat','btn_kontrolovat','btn_odhlasit','btn_hledat','btn_napoveda','btn_zobrazit','btn_skryt','btn_zastavit','btn_proc'] },
   { label:'Stavy a indikátory', keys:['status_ok','status_warning','status_error','status_info','status_pending','status_locked','status_claimed'] },
   { label:'Tutoriál', keys:['tut_uvod','tut_rozpis','tut_pobocky','tut_zamestnanci','tut_mezery','tut_pravidla_tvrdá','tut_pravidla_mekka','tut_pravidla_vaha','tut_pravidla_pary','tut_pravidla_vikendy','tut_ulozit','tut_navigace_mesic','tut_skore','tut_legenda','tut_sirka_sloupce','tut_klik','tut_dalsi_krok','tut_kod_firmy','tut_smerovani'] },
-  { label:'Help center', keys:['help_rozpis','help_zamestnanci','help_pobocky','help_pravidla','help_notifikace','help_nastaveni','help_search','help_thumbs_up','help_thumbs_down','help_home'] },
+  { label:'Help center', keys:['help_rozpis','help_zamestnanci','help_pobocky','help_pravidla','help_notifikace','help_nastaveni','help_search','help_thumbs_up','help_thumbs_down','help_home','help_zpet_start'] },
   { label:'Notifikace', keys:['notif_bell','notif_rozpis','notif_pozvanka'] },
   { label:'Nastavení', keys:['set_profil','set_vzhled','set_notifikace','set_jazyk','set_org','set_ikony'] },
   { label:'Různé', keys:['archiv','admin_badge','audit_log','logo_upload','kod_zamestnance','odkaz','poznamka','tpl_rovnomerne','tpl_weekend_peak','tpl_workweek','dash_prehled','icon_klavesy','icon_import','sec_podminky','empty_inbox','icon_font','icon_density','set_dark_mode'] },
 ];
 
+// ── Předpřipravené sady ikon. Overrides se aplikují nad DEFAULT_ICONS; klíče
+// mimo overrides zůstávají výchozí. Sady respektují páry z validateIconConsistency()
+// (nav_pobocky=btn_pobocky_prehled, nav_zamestnanci=btn_zamestnanci_prehled,
+// nav_mezery=btn_otevrene_smeny, nav_statistiky=dash_prehled). ──
+const ICON_SET_KEY = 'smeny_icon_set';
+const ICON_SETS = {
+  default: { label:'Klasická', hint:'Výchozí barevné emoji', preview:['📅','🏠','👤','📊'], overrides:{} },
+  vivid: { label:'Výrazná', hint:'Alternativní syté emoji', preview:['🗓️','🏢','👥','📈'], overrides:{
+    nav_rozpis:'🗓️', nav_pobocky:'🏢', nav_zamestnanci:'👥', nav_mezery:'🧩', nav_statistiky:'📈', nav_zadosti:'📮', nav_pravidla:'📏',
+    btn_pobocky_prehled:'🏢', btn_zamestnanci_prehled:'👥', btn_otevrene_smeny:'🧩', dash_prehled:'📈',
+    btn_auto:'🪄', btn_publikovat:'📣', btn_kde_doplnit:'🔎', btn_hledat:'🔎',
+    status_ok:'🟢', status_warning:'🟠', status_error:'🔴',
+  }},
+  minimal: { label:'Minimalistická', hint:'Decentní jednoduché symboly', preview:['▦','⌂','●','▤'], overrides:{
+    nav_rozpis:'▦', nav_pobocky:'⌂', nav_zamestnanci:'●', nav_mezery:'▢', nav_statistiky:'▤', nav_zadosti:'✉', nav_pravidla:'§',
+    btn_pobocky_prehled:'⌂', btn_zamestnanci_prehled:'●', btn_otevrene_smeny:'▢', dash_prehled:'▤',
+    btn_auto:'⚡', btn_publikovat:'▶', btn_kde_doplnit:'◎', btn_hledat:'◎', btn_ulozit:'✔', btn_smazat:'✖',
+    btn_smazat_auto:'✖', btn_smazat_vse:'✖', btn_upravit:'✎', btn_pridat:'+', btn_odeslat:'➤',
+    status_ok:'✔', status_warning:'▲', status_error:'✖', status_info:'ℹ',
+    notif_bell:'◉', set_profil:'●', set_vzhled:'◐', set_org:'⌂', set_ikony:'◐',
+  }},
+};
+
+function selectIconSet(setId){
+  const set = ICON_SETS[setId];
+  if(!set) return;
+  // Sada nahrazuje předchozí overrides (včetně ručních úprav jednotlivých ikon)
+  Object.keys(ICONS).forEach(k=>{ ICONS[k] = set.overrides[k] !== undefined ? set.overrides[k] : DEFAULT_ICONS[k]; });
+  saveIconOverrides({...set.overrides});
+  localStorage.setItem(ICON_SET_KEY, setId);
+  applyIcons();
+  validateIconConsistency();
+  renderIconSettings();
+  toast(`✓ Sada ikon „${set.label}" aplikována`);
+}
+
 function renderIconSettings(){
   const el = document.getElementById('icons-settings-body');
   if(!el) return;
+  const activeSet = localStorage.getItem(ICON_SET_KEY) || 'default';
   el.innerHTML = `
-    <p style="font-size:12.5px;color:var(--ink-soft);margin:0 0 14px">Uprav libovolnou ikonu v aplikaci. Ulož a projeví se okamžitě v celé appce (uloženo v tomto prohlížeči).</p>
+    <p style="font-size:12.5px;color:var(--ink-soft);margin:0 0 14px">Vyber sadu ikon — aplikuje se okamžitě v celé appce (uloženo v tomto prohlížeči).</p>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:18px">
+      ${Object.entries(ICON_SETS).map(([id,set])=>`
+        <button onclick="selectIconSet('${id}')"
+          style="border-radius:12px;border:2.5px solid ${activeSet===id?'var(--accent)':'var(--line)'};background:${activeSet===id?'var(--accent-soft)':'none'};cursor:pointer;padding:12px 8px;display:flex;flex-direction:column;align-items:center;gap:8px;font-family:inherit">
+          <span style="font-size:17px;letter-spacing:3px">${set.preview.join('')}</span>
+          <span style="font-size:12.5px;font-weight:${activeSet===id?700:600};color:${activeSet===id?'var(--accent-ink)':'var(--ink)'}">${set.label}</span>
+          <span style="font-size:10.5px;color:var(--ink-soft)">${set.hint}</span>
+          ${activeSet===id?`<span style="font-size:11px;color:var(--accent);font-weight:700">✓ Aktivní</span>`:''}
+        </button>`).join('')}
+    </div>
+    <details style="border-top:1px solid var(--line);padding-top:12px">
+    <summary style="font-size:12.5px;font-weight:700;color:var(--ink-soft);cursor:pointer;margin-bottom:12px">Pokročilé — upravit jednotlivé ikony</summary>
     ${ICON_GROUPS.map(g=>`
       <div style="margin-bottom:16px">
         <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--ink-soft);letter-spacing:.04em;margin-bottom:8px">${escapeHtml(g.label)}</div>
@@ -11006,6 +11535,7 @@ function renderIconSettings(){
         `).join('')}
       </div>
     `).join('')}
+    </details>
     <div style="display:flex;gap:10px;margin-top:8px;position:sticky;bottom:0;background:var(--surface);padding-top:10px">
       <button class="btn-outline" style="flex:1" onclick="resetIconsToDefaultUI()">Obnovit výchozí</button>
       <button class="btn-accent" style="flex:1" onclick="saveIconSettingsUI()"><span data-icon="btn_ulozit">💾</span> Uložit ikony</button>
@@ -11029,6 +11559,7 @@ function saveIconSettingsUI(){
 
 function resetIconsToDefaultUI(){
   resetIconsToDefault();
+  localStorage.removeItem(ICON_SET_KEY);
   renderIconSettings();
   toast('Ikony obnoveny na výchozí');
 }
@@ -11569,9 +12100,11 @@ async function createManualOpenShift(dateStr, shiftTypeCode, note=''){
 }
 
 async function notifyEligibleEmployees(shiftCode, dateStr, msg){
+  // v0.7.9: oprava — notifikace jsou adresované user_id (auth účet), ne employee_id
   const notifRows = employees
-    .filter(e=>e.id && !e.is_fixed)
-    .map(e=>({ org_id: currentOrg.id, employee_id: e.id, message: msg, read: false }));
+    .filter(e=>e.user_id && !e.is_fixed)
+    .map(e=>({ org_id: currentOrg.id, user_id: e.user_id, type: 'open_shift', title: `${ICONS.btn_otevrene_smeny} Otevřená směna`, body: msg, read: false }));
+  if(!notifRows.length) return;
   try { await sb.from('notifications').insert(notifRows); } catch(e){}
 }
 

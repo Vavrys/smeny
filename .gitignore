@@ -1,3 +1,4 @@
 *
 !index.html
-!.gitignore 
+!.gitignore
+!migration_notifications.sql
