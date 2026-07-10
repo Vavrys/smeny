@@ -198,18 +198,15 @@ body.dark .auth-shell{
   pointer-events:none;
   overflow:hidden;
 }
-.auth-ring .dot{position:absolute;border-radius:50%;animation:dot-float 9s ease-in-out infinite}
-.auth-ring .dot:nth-child(2n){animation-duration:12s;animation-direction:reverse}
-.auth-ring .dot:nth-child(3n){animation-duration:15s}
-.auth-ring .dot:nth-child(5n){animation-delay:-4s}
-.auth-ring .dot:nth-child(7n){animation-delay:-2s}
-@keyframes dot-float{
-  0%,100%{transform:translateY(0)}
-  50%{transform:translateY(-14px)}
+/* ── v0.8.0: fyzikální bublinky — poloha/deformace řízená JS přes transform ── */
+.auth-ring .bubble{
+  position:absolute;top:0;left:0;border-radius:50%;
+  pointer-events:auto;cursor:grab;touch-action:none;user-select:none;
+  will-change:transform;
+  box-shadow:inset 0 1px 4px rgba(255,255,255,.5), 0 2px 10px rgba(30,34,48,.06);
 }
-@media (prefers-reduced-motion: reduce){
-  .auth-ring .dot{animation:none}
-}
+.auth-ring .bubble:active{cursor:grabbing}
+body.dark .auth-ring .bubble{box-shadow:inset 0 1px 4px rgba(255,255,255,.14), 0 2px 10px rgba(0,0,0,.25)}
 
 .auth-card{
   position:relative;
@@ -460,6 +457,9 @@ body.employee-view .sched-name-col{width:160px;min-width:80px;max-width:280px;pa
 .sched-chip.auto{opacity:0.85}
 body.employee-view .sched-chip.auto{opacity:1}
 .sched-chip.x-chip{background:#999!important;color:#fff}
+/* Dovolenkové X (v0.8.0) — schválená dovolená, zaměstnanec ho sám nesmaže */
+.sched-chip.x-chip.leave-x{background:#7d92b8!important;color:#fff;pointer-events:auto;cursor:help}
+body.dark .sched-chip.x-chip.leave-x{background:#56688c!important}
 .sched-stat-col{padding:3px 6px;text-align:center;font-size:11px;color:#111;white-space:nowrap;font-weight:600}
 thead .sched-stat-col{white-space:normal;line-height:1.3;font-size:10px;font-weight:600;color:#555;vertical-align:bottom;padding-bottom:4px}
 .sched-legend{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
@@ -891,26 +891,8 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
      AUTH SCREEN
      ============================================================ -->
 <div class="auth-shell" id="auth-shell" style="display:none">
-  <div class="auth-ring" aria-hidden="true">
-    <span class="dot" style="left:6%;top:12%;width:10px;height:10px;background:#2B6E4F;opacity:.5"></span>
-    <span class="dot" style="left:18%;top:78%;width:8px;height:8px;background:#D97A34;opacity:.4"></span>
-    <span class="dot" style="left:28%;top:30%;width:14px;height:14px;background:#2B6E4F;opacity:.3"></span>
-    <span class="dot" style="left:35%;top:88%;width:7px;height:7px;background:#D97A34;opacity:.45"></span>
-    <span class="dot" style="left:42%;top:8%;width:9px;height:9px;background:#2B6E4F;opacity:.4"></span>
-    <span class="dot" style="left:48%;top:55%;width:6px;height:6px;background:#D97A34;opacity:.35"></span>
-    <span class="dot" style="left:55%;top:20%;width:11px;height:11px;background:#2B6E4F;opacity:.3"></span>
-    <span class="dot" style="left:62%;top:70%;width:8px;height:8px;background:#D97A34;opacity:.5"></span>
-    <span class="dot" style="left:70%;top:12%;width:6px;height:6px;background:#2B6E4F;opacity:.4"></span>
-    <span class="dot" style="left:75%;top:45%;width:13px;height:13px;background:#D97A34;opacity:.3"></span>
-    <span class="dot" style="left:82%;top:82%;width:9px;height:9px;background:#2B6E4F;opacity:.45"></span>
-    <span class="dot" style="left:88%;top:25%;width:7px;height:7px;background:#D97A34;opacity:.4"></span>
-    <span class="dot" style="left:92%;top:60%;width:10px;height:10px;background:#2B6E4F;opacity:.35"></span>
-    <span class="dot" style="left:12%;top:50%;width:8px;height:8px;background:#D97A34;opacity:.3"></span>
-    <span class="dot" style="left:24%;top:6%;width:6px;height:6px;background:#2B6E4F;opacity:.5"></span>
-    <span class="dot" style="left:58%;top:90%;width:9px;height:9px;background:#D97A34;opacity:.4"></span>
-    <span class="dot" style="left:8%;top:90%;width:7px;height:7px;background:#2B6E4F;opacity:.35"></span>
-    <span class="dot" style="left:95%;top:8%;width:8px;height:8px;background:#D97A34;opacity:.4"></span>
-  </div>
+  <!-- v0.8.0: bublinky s 2D fyzikou (odraz, kolize, drag & throw) — plní je initAuthBubbles() -->
+  <div class="auth-ring" id="auth-ring" aria-hidden="true"></div>
 
   <div class="auth-card">
     <div class="auth-mark">
@@ -1137,7 +1119,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
       <button class="btn-ghost" id="emp-settings-btn" onclick="openEmployeeSettings()" style="display:none"><span data-icon="set_profil">👤</span> Profil</button>
       <button class="btn-ghost" id="admin-settings-btn" onclick="openEmployeeSettings()" style="display:none"><span data-icon="set_profil">👤</span> Profil</button>
       <span id="org-code-badge" style="display:none;font-family:var(--font-mono);font-size:12px;font-weight:700;letter-spacing:1.5px;background:var(--paper);border:1.5px solid var(--line);padding:4px 10px;border-radius:6px;color:var(--ink-soft)" title="Kód firmy"></span>
-      <span id="app-version-label" title="Verze aplikace" onclick="handleVersionClick()" style="font-size:10px;color:var(--ink-faint);font-family:var(--font-mono);padding:0 4px;user-select:none;cursor:pointer">v0.7.9</span>
+      <span id="app-version-label" title="Verze aplikace" onclick="handleVersionClick()" style="font-size:10px;color:var(--ink-faint);font-family:var(--font-mono);padding:0 4px;user-select:none;cursor:pointer">v0.8.0</span>
       <button class="btn-ghost" onclick="openSearch()" title="Vyhledat (Ctrl+K)" style="padding:6px 10px;font-size:14px"><span data-icon="btn_hledat">🔍</span></button>
       <button class="btn-ghost" onclick="openHelpCenter()" title="Nápověda" style="padding:6px 10px;font-size:14px"><span data-icon="btn_napoveda">❓</span></button>
       <button class="btn-ghost" id="notif-btn" onclick="toggleNotifPanel()" title="Notifikace" style="position:relative;padding:6px 10px;font-size:16px;display:none;align-items:center;justify-content:center">
@@ -1884,11 +1866,16 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
       <button class="btn-ghost" onclick="document.getElementById('leave-modal-overlay').classList.remove('open')" style="padding:5px 10px">✕</button>
     </div>
     <div class="field"><label>Zaměstnanec</label>
-      <select id="leave-emp-select" style="width:100%;padding:9px;border:1.5px solid var(--line);border-radius:8px;font-size:13.5px;font-family:inherit;color:var(--ink);background:var(--surface)"></select>
+      <select id="leave-emp-select" onchange="onLeaveEmpSelectChange()" style="width:100%;padding:9px;border:1.5px solid var(--line);border-radius:8px;font-size:13.5px;font-family:inherit;color:var(--ink);background:var(--surface)"></select>
     </div>
+    <div id="leave-quota-hint"></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
       <div class="field"><label>Od</label><input type="date" id="leave-from" style="width:100%;padding:9px;border:1.5px solid var(--line);border-radius:8px;font-size:13.5px;font-family:inherit"></div>
       <div class="field"><label>Do</label><input type="date" id="leave-to" style="width:100%;padding:9px;border:1.5px solid var(--line);border-radius:8px;font-size:13.5px;font-family:inherit"></div>
+    </div>
+    <div class="field"><label>Snížení počtu směn</label>
+      <input type="number" id="leave-reduction" min="0" max="31" placeholder="např. 7" style="width:100%;padding:9px;border:1.5px solid var(--line);border-radius:8px;font-size:13.5px;font-family:inherit;color:var(--ink);background:var(--surface)">
+      <div class="field-hint">O kolik směn se v dotčeném měsíci sníží minimum, cíl i maximum. Orientačně počet směn, které by jinak v období připadly. Při přesahu do dalšího měsíce se snížení rozdělí poměrně.</div>
     </div>
     <div class="field"><label>Poznámka</label><textarea id="leave-note" rows="2" placeholder="Nepovinné…" style="width:100%;padding:9px;border:1.5px solid var(--line);border-radius:8px;font-size:13.5px;font-family:inherit;resize:vertical;color:var(--ink);background:var(--surface)"></textarea></div>
     <div style="display:flex;gap:10px;margin-top:4px">
@@ -2822,6 +2809,8 @@ async function bootstrapAfterAuth(){
     await loadBranches();
     await loadOrgSettings();
     updateOrgLogoDisplay();
+    await loadLeaveRequests(); // v0.8.0: dovolené — před prvním renderCalendar (efektivní limity)
+    migrateLocalLeavesToDB(); // jednorázový přenos starých localStorage žádostí (best-effort)
     if(currentRole === 'admin') await migrateEmployeeBranchLimitsV2();
 
     if(currentRole !== 'admin'){
@@ -4211,7 +4200,7 @@ function canEmpWorkDate(emp, dateStr, daysInMonth){
     const s = shifts[emp.id+':'+isoDate(schedYear,schedMonth+1,d)];
     if(s && s.shift_type_code!=='X') cnt++;
   }
-  if(cnt >= emp.max_shifts) return false;
+  if(cnt >= effectiveLimits(emp, schedYear, schedMonth).max) return false;
 
   // Check consec + rest
   const dayIdx = parseInt(dateStr.split('-')[2]);
@@ -4442,7 +4431,17 @@ function renderCalendar(){
       } else if(shift){
         const code = shift.shift_type_code;
         if(code==='X'){
-          if(!isOtherEmpRow){ inner = `<span class="sched-chip x-chip">X</span>`; xCount++; }
+          if(!isOtherEmpRow){
+            // v0.8.0: dovolenkové X (s leave_request_id) — jemně odlišený odstín + tooltip
+            if(shift.leave_request_id){
+              const lv = leaveRequests.find(x=>x.id===shift.leave_request_id);
+              const tip = lv ? `Dovolená ${fmtLeaveRangeShort(lv.date_from, lv.date_to)}, schváleno` : 'Dovolená (schváleno)';
+              inner = `<span class="sched-chip x-chip leave-x" title="${escapeHtml(tip)}">X</span>`;
+            } else {
+              inner = `<span class="sched-chip x-chip">X</span>`;
+            }
+            xCount++;
+          }
         } else {
           const color = codeColor(code);
           inner = `<span class="sched-chip${shift.is_auto?' auto':''}" style="background:${color}">${escapeHtml(code||'?')}</span>`;
@@ -4536,14 +4535,16 @@ function renderCalendar(){
       }
     });
 
-    const minOk = shiftCount >= emp.min_shifts;
-    const maxOk = shiftCount <= emp.max_shifts;
+    // v0.8.0: efektivní limity — schválená dovolená snižuje min/cíl/max v tomto měsíci
+    const eff = effectiveLimits(emp, schedYear, schedMonth);
+    const minOk = shiftCount >= eff.min;
+    const maxOk = shiftCount <= eff.max;
     // Color: amber if below min OR above max, green if in range
     const statStyle = !minOk ? 'color:var(--status-bad);font-weight:700' : !maxOk ? 'color:var(--status-warn);font-weight:700' : 'color:var(--status-ok);font-weight:600';
-    // Display: current/max — so user sees how much room is left
-    // Tooltip shows the full picture: current, min, max
-    const shiftDisplay = `${shiftCount}/${emp.max_shifts}`;
-    const shiftTitle = `Směny: ${shiftCount} aktuálně | min ${emp.min_shifts} | max ${emp.max_shifts}${!minOk?' '+ICONS.status_warning+' pod minimem':''}${!maxOk?' '+ICONS.status_warning+' nad maximem':''}`;
+    // Display: current/max (−reduction) — so user sees how much room is left and why
+    const shiftDisplay = `${shiftCount}/${eff.max}${eff.reduction?` (−${eff.reduction})`:''}`;
+    const leaveTip = eff.leaves.map(({l})=>`Dovolená ${fmtLeaveRangeShort(l.date_from, l.date_to)}, schváleno`).join(' · ');
+    const shiftTitle = `Směny: ${shiftCount} aktuálně | min ${eff.min} | max ${eff.max}${eff.reduction?` | ${leaveTip} (−${eff.reduction} směn)`:''}${!minOk?' '+ICONS.status_warning+' pod minimem':''}${!maxOk?' '+ICONS.status_warning+' nad maximem':''}`;
 
     const defaultMinWE = parseInt(orgSettings['default_min_free_weekends'])||0;
     const minWE = emp.min_free_weekends || defaultMinWE;
@@ -4827,9 +4828,10 @@ function openPicker(cell){
         return { allowed: true, warn: `${ICONS.status_warning} Překročí limit ${code} (${stCnt+1}/${stLim.max})`, warnLevel: 'error' };
     }
 
-    // Would exceed total max shifts (only if not overwriting)?
-    if(!isOverwrite && currentTotal >= emp.max_shifts)
-      return { allowed: true, warn: `${ICONS.status_warning} Překročí max směn (${currentTotal+1}/${emp.max_shifts})`, warnLevel: 'error' };
+    // Would exceed total max shifts (only if not overwriting)? — efektivní max (dovolená)
+    const _effMax = effectiveLimits(emp, schedYear, schedMonth).max;
+    if(!isOverwrite && currentTotal >= _effMax)
+      return { allowed: true, warn: `${ICONS.status_warning} Překročí max směn (${currentTotal+1}/${_effMax})`, warnLevel: 'error' };
 
     // Approaching branch monthly max?
     if(!isOverwrite && effectiveCnt + 1 === maxAllowed)
@@ -4843,7 +4845,8 @@ function openPicker(cell){
   }
 
   const empName = emp ? escapeHtml(emp.name) : empId;
-  const totalInfo = emp ? `<span style="font-size:10px;color:var(--ink-faint)">${currentTotal}/${emp.min_shifts}–${emp.max_shifts} směn</span>` : '';
+  const _effHdr = emp ? effectiveLimits(emp, schedYear, schedMonth) : null;
+  const totalInfo = emp ? `<span style="font-size:10px;color:var(--ink-faint)">${currentTotal}/${_effHdr.min}–${_effHdr.max} směn${_effHdr.reduction?` (−${_effHdr.reduction})`:''}</span>` : '';
 
   let html = `<div style="font-size:11px;font-weight:700;color:var(--ink-soft);margin-bottom:6px;display:flex;justify-content:space-between">
     <span>${empName}</span>${totalInfo}
@@ -5115,7 +5118,8 @@ function groupCoverage(group, countFn){
 function computeQuality(shiftsMap, unavailMap){
   if(!employees.length || !branches.length) return { pct:0, metrics:[], hardFailed:[] };
   const daysInMonth = new Date(schedYear, schedMonth+1, 0).getDate();
-  const nonFixed = employees.filter(e=>!e.is_fixed);
+  const nonFixed = employees.filter(e=>!e.is_fixed)
+    .map(e=>withEffectiveLimits(e, schedYear, schedMonth)); // v0.8.0: metriky počítají s efektivními limity (dovolená)
   const weekendBlocks = collectWeekendBlocks(daysInMonth);
   const defaultMinWE = parseInt(orgSettings['default_min_free_weekends'])||0;
 
@@ -5496,7 +5500,8 @@ function findCoverageShortfalls(scheduleMap, daysInMonth){
 function checkScheduleInvariants(scheduleMap, daysInMonth){
   const overCoverage = [];
   const wastedCandidates = [];
-  const nonFixed = employees.filter(e=>!e.is_fixed && Object.keys(e.branch_limits||{}).length>0);
+  const nonFixed = employees.filter(e=>!e.is_fixed && Object.keys(e.branch_limits||{}).length>0)
+    .map(e=>withEffectiveLimits(e, schedYear, schedMonth)); // v0.8.0: schválená dovolená snižuje min/cíl/max jen v tomto měsíci
   const weekendBlocks3 = collectWeekendBlocks(daysInMonth).filter(wb=>wb.length===3);
   const defaultMinWE = parseInt(orgSettings['default_min_free_weekends'])||0;
   const isWorking = (empId, dateStr)=>{ const s=scheduleMap[empId+':'+dateStr]; return !!(s && s.shift_type_code && s.shift_type_code!=='X'); };
@@ -5695,7 +5700,8 @@ function analyzeFeasibility(){
   const daysInMonth = new Date(schedYear, schedMonth+1, 0).getDate();
   // Same eligibility rule as buildSchedule: fixed-schedule employees and employees
   // with zero assigned branches (FEATURE 13) can't be given anything by the algorithm
-  const nonFixed = employees.filter(e=>!e.is_fixed && Object.keys(e.branch_limits||{}).length>0);
+  const nonFixed = employees.filter(e=>!e.is_fixed && Object.keys(e.branch_limits||{}).length>0)
+    .map(e=>withEffectiveLimits(e, schedYear, schedMonth)); // v0.8.0: schválená dovolená snižuje min/cíl/max jen v tomto měsíci
   const result = {
     nonFixedCount: nonFixed.length,
     demand: 0,            // total required slots this month
@@ -5850,7 +5856,8 @@ function buildSchedule(daysInMonth, prevMonthShifts){
 
   // Employees with zero assigned branches are excluded entirely from auto-generation —
   // there's nowhere the algorithm is allowed to put them. See FEATURE 13.
-  const nonFixed = employees.filter(e=>!e.is_fixed && Object.keys(e.branch_limits||{}).length>0);
+  const nonFixed = employees.filter(e=>!e.is_fixed && Object.keys(e.branch_limits||{}).length>0)
+    .map(e=>withEffectiveLimits(e, schedYear, schedMonth)); // v0.8.0: schválená dovolená snižuje min/cíl/max jen v tomto měsíci
   const defaultMinWE = parseInt(orgSettings['default_min_free_weekends'])||0;
   const weekendPriority = orgSettings['weekend_priority'] !== false && orgSettings['weekend_priority'] !== 'false';
   const weekendBlocks = collectWeekendBlocks(daysInMonth);
@@ -7259,10 +7266,11 @@ function openDayDetail(day, replaceEmpId=null){
   if(replaceEmp){
     const replaceShift = shifts[replaceEmpId+':'+dateStr];
     const replacedCount = empCurrentShiftCount(replaceEmpId);
-    const willBeUnder = (replacedCount - 1) < replaceEmp.min_shifts;
+    const replaceEff = effectiveLimits(replaceEmp, schedYear, schedMonth);
+    const willBeUnder = (replacedCount - 1) < replaceEff.min;
     const warning = willBeUnder
       ? `<div style="background:var(--amber-soft);border:1px solid #f0c080;border-radius:7px;padding:8px 10px;font-size:12px;margin:10px 0">
-          ${ICONS.status_warning} <strong>${escapeHtml(replaceEmp.name)}</strong> bude mít po odebrání ${replacedCount-1} směn (minimum je ${replaceEmp.min_shifts}) — bude potřeba doplnit.
+          ${ICONS.status_warning} <strong>${escapeHtml(replaceEmp.name)}</strong> bude mít po odebrání ${replacedCount-1} směn (minimum je ${replaceEff.min}) — bude potřeba doplnit.
         </div>` : '';
 
     // Replacements = people who can work AND are allowed on this slot AND within branch limits
@@ -7297,13 +7305,14 @@ function openDayDetail(day, replaceEmpId=null){
           <div style="font-size:12px;color:var(--ink-soft);margin-bottom:8px">Vyber náhradu — převezme slot ${slotCode}:</div>
           ${replacements.map(emp=>{
             const cnt = empCurrentShiftCount(emp.id);
-            const hasRoom = cnt < emp.max_shifts;
+            const empEff = effectiveLimits(emp, schedYear, schedMonth);
+            const hasRoom = cnt < empEff.max;
             if(!hasRoom) return '';
-            const willBeOver = (cnt+1) > emp.target_shifts;
-            const note = willBeOver ? ` <span style="color:var(--amber);font-size:10px">(${cnt+1}/${emp.target_shifts} cíl)</span>` : '';
+            const willBeOver = (cnt+1) > empEff.target;
+            const note = willBeOver ? ` <span style="color:var(--amber);font-size:10px">(${cnt+1}/${empEff.target} cíl)</span>` : '';
             return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--line)">
               <span style="font-size:13px;font-weight:600;flex:1">${escapeHtml(emp.name)}${note}</span>
-              <span style="font-size:11px;color:var(--ink-faint)">${cnt}/${emp.min_shifts} směn</span>
+              <span style="font-size:11px;color:var(--ink-faint)">${cnt}/${empEff.min} směn</span>
               <button onclick="dayDetailReplace('${replaceEmpId}','${emp.id}','${dateStr}','${slotCode}',${day})"
                 style="background:${codeColor(slotCode)};color:#fff;border:none;border-radius:5px;padding:4px 10px;font-size:11.5px;font-weight:600;cursor:pointer">
                 Nahradit
@@ -7451,7 +7460,7 @@ function openDayDetail(day, replaceEmpId=null){
 
         return `<div style="display:flex;align-items:center;gap:6px;padding:6px 6px;border-bottom:1px solid var(--line);flex-wrap:wrap">
           <span style="font-size:13px;font-weight:600;min-width:120px">${escapeHtml(emp.name)}</span>
-          <span style="font-size:11px;color:var(--ink-faint)">${cnt}/${emp.min_shifts}</span>
+          <span style="font-size:11px;color:var(--ink-faint)">${cnt}/${effectiveLimits(emp, schedYear, schedMonth).min}</span>
           <div style="display:flex;flex-wrap:wrap;gap:4px;margin-left:auto;align-items:center">
             ${slotBtns}
             ${blockedInfo}
@@ -7527,7 +7536,7 @@ async function dayDetailReplace(oldEmpId, newEmpId, dateStr, slotCode, day){
   const oldEmp = employees.find(e=>e.id===oldEmpId);
   const newEmp = employees.find(e=>e.id===newEmpId);
   const oldCount = empCurrentShiftCount(oldEmpId);
-  const warn = oldCount < (oldEmp?.min_shifts||0) ? ` ${ICONS.status_warning} ${oldEmp?.name} má pod minimem!` : '';
+  const warn = oldCount < (oldEmp ? effectiveLimits(oldEmp, schedYear, schedMonth).min : 0) ? ` ${ICONS.status_warning} ${oldEmp?.name} má pod minimem!` : '';
   renderCalendar();
   openDayDetail(day);
   toast(`✓ Nahrazeno: ${newEmp?.name} místo ${oldEmp?.name}${warn}`);
@@ -7841,6 +7850,12 @@ async function openEmployeeSettings(){
         <button onclick="saveProfile()" class="btn-primary" style="width:100%;padding:8px">${ICONS.btn_ulozit} Uložit údaje</button>
         <div id="prof-save-result" style="font-size:12px;margin-top:6px;display:none"></div>
       </div>
+      ${myEmp ? `
+      <div style="border-top:1px solid var(--line);padding-top:16px">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--ink-soft);margin-bottom:8px">${ICONS.nav_zadosti} Moje směny a volno</div>
+        ${leaveQuotaHintHtml(myEmp)}
+        <button onclick="document.getElementById('emp-settings-overlay').classList.remove('open');openLeaveRequestModal()" class="btn-outline" style="width:100%;padding:8px;margin-top:6px">${ICONS.nav_zadosti} Požádat o volno</button>
+      </div>` : ''}
       <div style="border-top:1px solid var(--line);padding-top:16px">
         <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--ink-soft);margin-bottom:8px">Změna hesla</div>
         <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px">
@@ -8786,6 +8801,13 @@ async function employeeToggleX(empId, dateStr){
   const key = empId+':'+dateStr;
   const day = parseInt(dateStr.split('-')[2]);
 
+  // v0.8.0: dovolenkové X (schválená dovolená) zaměstnanec sám nesmaže —
+  // odstraní se jen zrušením žádosti vedoucím
+  if(shifts[key] && shifts[key].shift_type_code === 'X' && shifts[key].leave_request_id){
+    toast('Tento den je schválená dovolená — změnit ji může jen vedoucí zrušením žádosti');
+    return;
+  }
+
   if(unavail[key]){
     // Remove X
     const { error } = await sb.from('unavailability').delete()
@@ -8798,6 +8820,22 @@ async function employeeToggleX(empId, dateStr){
     if(shifts[key] && shifts[key].shift_type_code !== 'X'){
       toast('Na tento den máš přiřazenou směnu — volno může změnit jen vedoucí');
       return;
+    }
+    // v0.8.0: limit žádanek X — dovolenkové X ho čerpají, takže vlastních X
+    // zbývá max(0, max_x − dovolenková X v měsíci)
+    const emp = employees.find(e=>e.id===empId);
+    const maxX = emp?.max_x || 0;
+    if(maxX){
+      const monthKey = dateStr.slice(0,7);
+      const ownX = Object.keys(unavail).filter(k=>{
+        const [id, ds] = k.split(':');
+        return id === empId && ds && ds.startsWith(monthKey);
+      }).length;
+      const leaveX = leaveXCountInMonth(empId, monthKey);
+      if(ownX + leaveX >= maxX){
+        toast(`Vyčerpaný limit žádanek X na tento měsíc (${maxX}${leaveX?`, z toho dovolená ${leaveX}`:''})`);
+        return;
+      }
     }
     const { error } = await sb.from('unavailability').insert({
       org_id: currentOrg.id, employee_id: empId, unavail_date: dateStr
@@ -9093,6 +9131,230 @@ document.getElementById('onboard-org-name').addEventListener('keydown', e=>{ if(
 // ============================================================
 // INIT: check existing session on page load
 // ============================================================
+// ════════════════════════════════════════════════════════════
+// ÚVODNÍ BUBLINKY (v0.8.0) — jednoduchá 2D fyzika bez knihovny.
+// 15–30 bublin (1×–4× původní velikosti), náhodné směry; odraz od okrajů
+// viewportu, od obsahových boxů (login karta) a mezi sebou (elastický odraz
+// s krátkým squash & stretch přes CSS transform). Drag & throw se setrvačností
+// a tlumením zpět na klidové tempo. requestAnimationFrame; pauza když tab
+// není viditelný nebo je auth obrazovka skrytá; prefers-reduced-motion →
+// statické bubliny bez animace.
+// ════════════════════════════════════════════════════════════
+function initAuthBubbles(){
+  const ring = document.getElementById('auth-ring');
+  const shell = document.getElementById('auth-shell');
+  if(!ring || !shell || ring.dataset.bubblesInit) return;
+  ring.dataset.bubblesInit = '1';
+
+  const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const COLORS = ['43,110,79', '217,122,52']; // decentní zelená + jantarová (stávající paleta)
+  const N = 15 + Math.floor(Math.random()*16); // 15–30
+  const bubbles = [];
+  let W = 0, H = 0, spawned = false;
+  let obstacles = []; // obdélníkové kolizní zóny (login karta) relativně k ringu
+  let frame = 0, lastT = 0, rafId = null;
+
+  function spawn(){
+    W = ring.clientWidth; H = ring.clientHeight;
+    if(!W || !H) return false;
+    refreshObstacles();
+    for(let i=0; i<N; i++){
+      // původní tečky měly průměr 6–14 px → velikost náhodně 1×–4×
+      const r = (3 + Math.random()*4) * (1 + Math.random()*3);
+      const el = document.createElement('span');
+      el.className = 'bubble';
+      const c = COLORS[i % 2];
+      const op = 0.22 + Math.random()*0.26;
+      el.style.width = el.style.height = (r*2)+'px';
+      el.style.background = `radial-gradient(circle at 32% 30%, rgba(255,255,255,${(op*0.9).toFixed(3)}), rgba(${c},${op.toFixed(3)}) 62%, rgba(${c},${(op*0.5).toFixed(3)}))`;
+      el.style.filter = 'blur(0.4px)';
+      ring.appendChild(el);
+      const ang = Math.random()*Math.PI*2;
+      const base = 10 + Math.random()*22; // klidové tempo px/s — pomalé, důstojné
+      const b = {
+        el, r, m: r*r,
+        x: r + Math.random()*(W - 2*r),
+        y: r + Math.random()*(H - 2*r),
+        vx: Math.cos(ang)*base, vy: Math.sin(ang)*base,
+        base, sq: 0, sqA: 0,
+        dragging: false, hist: [],
+      };
+      // nespawnovat uvnitř překážky — posunout nad/pod ni
+      obstacles.forEach(o=>{
+        if(b.x > o.x - b.r && b.x < o.x + o.w + b.r && b.y > o.y - b.r && b.y < o.y + o.h + b.r){
+          b.y = (o.y > H/2) ? Math.max(b.r, o.y - b.r - 8) : Math.min(H - b.r, o.y + o.h + b.r + 8);
+        }
+      });
+      if(!reduced) attachDrag(b);
+      else b.el.style.pointerEvents = 'none'; // statický režim — bez interakce
+      bubbles.push(b);
+      render(b);
+    }
+    return true;
+  }
+
+  function refreshObstacles(){
+    const ringRect = ring.getBoundingClientRect();
+    obstacles = [...shell.querySelectorAll('.auth-card')].map(card=>{
+      const r = card.getBoundingClientRect();
+      return { x: r.left - ringRect.left, y: r.top - ringRect.top, w: r.width, h: r.height };
+    });
+  }
+
+  function render(b){
+    const k = 0.25 * b.sq; // squash & stretch podél osy nárazu
+    b.el.style.transform = `translate(${(b.x - b.r).toFixed(1)}px,${(b.y - b.r).toFixed(1)}px)`
+      + (k > 0.005 ? ` rotate(${b.sqA.toFixed(3)}rad) scale(${(1-k).toFixed(3)},${(1+k).toFixed(3)}) rotate(${(-b.sqA).toFixed(3)}rad)` : '');
+  }
+
+  function bump(b, nx, ny, strength){
+    b.sq = Math.min(1, Math.max(b.sq, strength));
+    b.sqA = Math.atan2(ny, nx);
+  }
+
+  function step(dt){
+    // fyzika: pohyb + tlumení k základnímu tempu (po hodu se postupně zklidní)
+    bubbles.forEach(b=>{
+      if(b.dragging){ b.sq *= Math.pow(0.02, dt); return; }
+      const sp = Math.hypot(b.vx, b.vy);
+      if(sp > b.base * 1.1){
+        const f = Math.pow(0.45, dt); // exponenciální tlumení
+        const target = Math.max(b.base, sp * f);
+        b.vx *= target/sp; b.vy *= target/sp;
+      } else if(sp < b.base * 0.9 && sp > 0.01){
+        const target = Math.min(b.base, sp * (1 + 0.8*dt));
+        b.vx *= target/sp; b.vy *= target/sp;
+      }
+      b.x += b.vx * dt; b.y += b.vy * dt;
+      b.sq *= Math.pow(0.02, dt); // deformace odezní za ~250 ms
+
+      // odraz od okrajů viewportu
+      if(b.x < b.r){ b.x = b.r; if(b.vx < 0){ b.vx = -b.vx; bump(b, 1, 0, Math.min(1, Math.abs(b.vx)/220)); } }
+      if(b.x > W - b.r){ b.x = W - b.r; if(b.vx > 0){ b.vx = -b.vx; bump(b, 1, 0, Math.min(1, Math.abs(b.vx)/220)); } }
+      if(b.y < b.r){ b.y = b.r; if(b.vy < 0){ b.vy = -b.vy; bump(b, 0, 1, Math.min(1, Math.abs(b.vy)/220)); } }
+      if(b.y > H - b.r){ b.y = H - b.r; if(b.vy > 0){ b.vy = -b.vy; bump(b, 0, 1, Math.min(1, Math.abs(b.vy)/220)); } }
+
+      // odraz od obsahových boxů (nejbližší bod obdélníku → normála)
+      obstacles.forEach(o=>{
+        const cx = Math.max(o.x, Math.min(b.x, o.x + o.w));
+        const cy = Math.max(o.y, Math.min(b.y, o.y + o.h));
+        let dx = b.x - cx, dy = b.y - cy;
+        let d = Math.hypot(dx, dy);
+        if(d >= b.r) return;
+        if(d < 0.0001){ // střed uvnitř boxu — vytlačit nejkratší cestou ven
+          const outs = [
+            { dx:-1, dy:0, dist: b.x - o.x }, { dx:1, dy:0, dist: o.x + o.w - b.x },
+            { dx:0, dy:-1, dist: b.y - o.y }, { dx:0, dy:1, dist: o.y + o.h - b.y },
+          ].sort((a,c)=>a.dist-c.dist)[0];
+          dx = outs.dx; dy = outs.dy; d = 1;
+          b.x += dx * (outs.dist + b.r); b.y += dy * (outs.dist + b.r);
+        }
+        const nx = dx/d, ny = dy/d;
+        b.x = cx + nx * b.r; b.y = cy + ny * b.r;
+        const dot = b.vx*nx + b.vy*ny;
+        if(dot < 0){
+          b.vx -= 2*dot*nx; b.vy -= 2*dot*ny;
+          bump(b, nx, ny, Math.min(1, Math.abs(dot)/220));
+        }
+      });
+    });
+
+    // kolize bublin mezi sebou — elastický odraz (hmotnost ~ r²)
+    for(let i=0; i<bubbles.length; i++){
+      for(let j=i+1; j<bubbles.length; j++){
+        const a = bubbles[i], c = bubbles[j];
+        const dx = c.x - a.x, dy = c.y - a.y;
+        const d = Math.hypot(dx, dy), minD = a.r + c.r;
+        if(d >= minD || d < 0.0001) continue;
+        const nx = dx/d, ny = dy/d;
+        // rozestoupit podle převrácené hmotnosti (tažená bublina se nehýbe)
+        const overlap = minD - d;
+        const ia = a.dragging ? 0 : 1/a.m, ic = c.dragging ? 0 : 1/c.m;
+        const isum = ia + ic || 1;
+        a.x -= nx * overlap * (ia/isum); a.y -= ny * overlap * (ia/isum);
+        c.x += nx * overlap * (ic/isum); c.y += ny * overlap * (ic/isum);
+        const rel = (c.vx - a.vx)*nx + (c.vy - a.vy)*ny;
+        if(rel < 0){
+          const e = 0.92; // téměř elastické, drobná ztráta
+          const jImp = -(1 + e) * rel / isum;
+          if(!a.dragging){ a.vx -= jImp * nx * ia; a.vy -= jImp * ny * ia; }
+          if(!c.dragging){ c.vx += jImp * nx * ic; c.vy += jImp * ny * ic; }
+          const s = Math.min(1, Math.abs(rel)/220);
+          bump(a, nx, ny, s); bump(c, nx, ny, s);
+        }
+      }
+    }
+
+    bubbles.forEach(render);
+  }
+
+  function attachDrag(b){
+    b.el.addEventListener('pointerdown', e=>{
+      e.preventDefault();
+      b.dragging = true;
+      b.hist = [{ x: e.clientX, y: e.clientY, t: performance.now() }];
+      b.el.setPointerCapture(e.pointerId);
+      const ringRect = ring.getBoundingClientRect();
+      const offX = (e.clientX - ringRect.left) - b.x;
+      const offY = (e.clientY - ringRect.top) - b.y;
+
+      const onMove = ev=>{
+        if(!b.dragging) return;
+        const rr = ring.getBoundingClientRect();
+        b.x = Math.max(b.r, Math.min(W - b.r, (ev.clientX - rr.left) - offX));
+        b.y = Math.max(b.r, Math.min(H - b.r, (ev.clientY - rr.top) - offY));
+        b.hist.push({ x: ev.clientX, y: ev.clientY, t: performance.now() });
+        if(b.hist.length > 6) b.hist.shift();
+        b.vx = 0; b.vy = 0;
+        if(reduced) render(b);
+      };
+      const onUp = ()=>{
+        b.dragging = false;
+        // hod: rychlost z posledních ~100 ms pohybu, se stropem
+        const now = performance.now();
+        const recent = b.hist.filter(h=>now - h.t < 120);
+        if(recent.length >= 2){
+          const first = recent[0], last = recent[recent.length-1];
+          const dt = (last.t - first.t)/1000;
+          if(dt > 0.005){
+            const MAXV = 900;
+            b.vx = Math.max(-MAXV, Math.min(MAXV, (last.x - first.x)/dt));
+            b.vy = Math.max(-MAXV, Math.min(MAXV, (last.y - first.y)/dt));
+          }
+        }
+        b.el.removeEventListener('pointermove', onMove);
+        b.el.removeEventListener('pointerup', onUp);
+        b.el.removeEventListener('pointercancel', onUp);
+      };
+      b.el.addEventListener('pointermove', onMove);
+      b.el.addEventListener('pointerup', onUp);
+      b.el.addEventListener('pointercancel', onUp);
+    });
+  }
+
+  function visible(){
+    return !document.hidden && shell.style.display !== 'none' && shell.offsetParent !== null;
+  }
+
+  function loop(t){
+    rafId = null;
+    if(!visible()){ lastT = 0; setTimeout(schedule, 600); return; } // pauza: skrytý tab / po přihlášení
+    if(!spawned){ spawned = spawn(); if(!spawned){ setTimeout(schedule, 600); return; } if(reduced) return; }
+    frame++;
+    if(frame % 45 === 0){ W = ring.clientWidth; H = ring.clientHeight; refreshObstacles(); }
+    const dt = lastT ? Math.min(0.05, (t - lastT)/1000) : 0.016;
+    lastT = t;
+    step(dt);
+    schedule();
+  }
+  function schedule(){ if(rafId === null) rafId = requestAnimationFrame(loop); }
+
+  document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) schedule(); });
+  window.addEventListener('resize', ()=>{ if(spawned){ W = ring.clientWidth; H = ring.clientHeight; refreshObstacles(); } });
+  schedule();
+}
+initAuthBubbles();
+
 // ── Modaly: zavírat overlay jen když mousedown I mouseup proběhly na overlayi (v0.7.9) ──
 // Inline onclick handlery overlayů (`if(event.target===this)…`) zavírají modal na click.
 // Click ale vznikne i když mousedown začal v inputu uvnitř modalu a uvolnění myši
@@ -9937,11 +10199,12 @@ async function renderStats(){
     <div style="margin-bottom:24px">
       ${employees.map(e=>{
         const count = empCounts[e.id]||0;
-        const monthMax = isRange ? (e.max_shifts||20)*months.length : (e.max_shifts||20);
+        const effS = !isRange ? effectiveLimits(e, schedYear, schedMonth) : null; // dovolená (v0.8.0)
+        const monthMax = isRange ? (e.max_shifts||20)*months.length : (effS.max||20);
         const maxVal = Math.max(monthMax, count);
         const pct = Math.round((count/maxVal)*100);
-        const cls = !isRange ? (count < e.min_shifts ? 'under' : count > e.max_shifts ? 'over' : '') : '';
-        const targetPct = !isRange ? Math.round(((e.target_shifts||e.max_shifts)/maxVal)*100) : null;
+        const cls = !isRange ? (count < effS.min ? 'under' : count > effS.max ? 'over' : '') : '';
+        const targetPct = !isRange ? Math.round(((effS.target||effS.max)/maxVal)*100) : null;
         const wp = empWorked[e.id]||0, pp = empPlanned[e.id]||0;
         return `<div class="stats-bar-row">
           <span class="stats-bar-label" title="${escapeHtml(e.name)}">${escapeHtml(e.name)}</span>
@@ -9989,8 +10252,9 @@ function exportStatsExcel(){
   const rows = [['Zaměstnanec','Min','Cíl','Max','Skutečně','Status']];
   employees.forEach(e=>{
     const count = Object.values(shifts).filter(s=>s.employee_id===e.id&&s.shift_date.startsWith(monthKey)&&s.shift_type_code&&s.shift_type_code!=='X').length;
-    const status = count<e.min_shifts?'Pod minimum':count>e.max_shifts?'Překročen max':'OK';
-    rows.push([e.name,e.min_shifts,e.target_shifts,e.max_shifts,count,status]);
+    const eff = effectiveLimits(e, schedYear, schedMonth); // dovolená (v0.8.0)
+    const status = count<eff.min?'Pod minimum':count>eff.max?'Překročen max':'OK';
+    rows.push([e.name,eff.min,eff.target,eff.max,count,status]);
   });
   const ws = XLSX.utils.aoa_to_sheet(rows);
   const wb = XLSX.utils.book_new();
@@ -10227,9 +10491,113 @@ async function saveEmpExtras(empId, extras){
 
 // ── Feature 6: ŽÁDOSTI O VOLNO ──────────────────────────────
 
-function getLeavesKey(){ return `leave_requests_${currentOrg?.id}`; }
-function loadLeaves(){ return JSON.parse(localStorage.getItem(getLeavesKey())||'[]'); }
-function saveLeaves(arr){ localStorage.setItem(getLeavesKey(), JSON.stringify(arr)); }
+// ════════════════════════════════════════════════════════════
+// DOVOLENÉ (v0.8.0) — DB tabulka leave_requests (migration_leave.sql)
+// nahrazuje starý localStorage systém; stará data se jednorázově přenesou.
+// ════════════════════════════════════════════════════════════
+let leaveRequests = []; // cache řádků leave_requests pro aktuální org (RLS: zaměstnanec vidí jen své)
+
+async function loadLeaveRequests(){
+  if(!currentOrg) return;
+  const { data, error } = await sb.from('leave_requests').select('*')
+    .eq('org_id', currentOrg.id).order('created_at', { ascending:false });
+  if(error){
+    // Tabulka ještě neexistuje (migrace nespuštěna) — appka běží dál bez dovolených
+    window._leaveTableMissing = true;
+    leaveRequests = [];
+    return;
+  }
+  window._leaveTableMissing = false;
+  leaveRequests = data || [];
+}
+
+// Jednorázový přenos žádostí z localStorage (≤ v0.7.9) do DB. Jen admin a jen
+// když je DB pro organizaci prázdná — jinak by při více strojích vznikly duplicity.
+async function migrateLocalLeavesToDB(){
+  if(currentRole !== 'admin' || window._leaveTableMissing) return;
+  const key = `leave_requests_${currentOrg?.id}`;
+  const local = JSON.parse(localStorage.getItem(key)||'[]');
+  if(!local.length) return;
+  if(leaveRequests.length){ localStorage.removeItem(key); return; }
+  const rows = local
+    .filter(l=>l.employee_id && l.employee_id !== '__admin__' && employees.some(e=>e.id===l.employee_id))
+    .map(l=>({
+      org_id: currentOrg.id, employee_id: l.employee_id,
+      date_from: l.from_date, date_to: l.to_date, shift_reduction: 0,
+      note: l.note || null, status: l.status || 'pending',
+      decision_note: l.reject_reason || null,
+      requested_by: currentUser?.id || null,
+    }));
+  if(rows.length){
+    const { error } = await sb.from('leave_requests').insert(rows);
+    if(error) return;
+  }
+  localStorage.removeItem(key);
+  await loadLeaveRequests();
+}
+
+// ── Efektivní limity (v0.8.0): schválená dovolená snižuje min/cíl/max jen
+// v dotčeném měsíci. Kmenová data zaměstnance se NIKDY nemění — builder,
+// scorer, statistiky i UI čtou přes tuto funkci. ──
+
+// Rozpad shift_reduction žádosti na měsíce: poměrně podle počtu dní žádosti
+// v každém měsíci, zaokrouhleno metodou největších zbytků (celkový součet
+// vždy sedí na shift_reduction). Klíč = "rok-měsíc0".
+function leaveReductionByMonth(l){
+  const from = new Date(l.date_from+'T00:00:00');
+  const to = new Date(l.date_to+'T00:00:00');
+  if(isNaN(from) || isNaN(to) || from > to) return {};
+  const daysPerMonth = {}; let total = 0;
+  for(let d = new Date(from); d <= to; d.setDate(d.getDate()+1)){
+    const k = `${d.getFullYear()}-${d.getMonth()}`;
+    daysPerMonth[k] = (daysPerMonth[k]||0) + 1; total++;
+  }
+  const red = l.shift_reduction || 0;
+  const keys = Object.keys(daysPerMonth);
+  if(keys.length === 1) return { [keys[0]]: red };
+  const shares = keys.map(k=>{
+    const exact = red * daysPerMonth[k] / total;
+    return { k, base: Math.floor(exact), frac: exact - Math.floor(exact) };
+  });
+  let rem = red - shares.reduce((a,s)=>a+s.base, 0);
+  shares.sort((a,b)=>b.frac - a.frac);
+  for(let i=0; i<shares.length && rem>0; i++, rem--) shares[i].base++;
+  const out = {}; shares.forEach(s=>{ out[s.k] = s.base; });
+  return out;
+}
+
+function effectiveLimits(emp, year, month0){
+  const base = { min: emp.min_shifts, target: emp.target_shifts, max: emp.max_shifts, reduction: 0, leaves: [] };
+  if(!leaveRequests.length || !emp?.id) return base;
+  const mk = `${year}-${month0}`;
+  leaveRequests.forEach(l=>{
+    if(l.status !== 'approved' || l.employee_id !== emp.id || !(l.shift_reduction > 0)) return;
+    const r = leaveReductionByMonth(l)[mk];
+    if(r){ base.reduction += r; base.leaves.push({ l, r }); }
+  });
+  if(base.reduction > 0){
+    base.min    = Math.max(0, (emp.min_shifts||0)    - base.reduction);
+    base.target = Math.max(0, (emp.target_shifts||0) - base.reduction);
+    base.max    = Math.max(0, (emp.max_shifts||0)    - base.reduction);
+  }
+  return base;
+}
+
+// Kopie zaměstnance s efektivními limity pro builder/scorer — id a ostatní
+// pole beze změny; bez dovolené vrací původní objekt (žádná alokace navíc).
+function withEffectiveLimits(emp, year, month0){
+  const eff = effectiveLimits(emp, year, month0);
+  if(!eff.reduction) return emp;
+  return { ...emp, min_shifts: eff.min, target_shifts: eff.target, max_shifts: eff.max };
+}
+
+// Počet dovolenkových X (shifts s leave_request_id) zaměstnance v měsíci —
+// čerpají limit žádanek X: zaměstnanci zbývá max(0, max_x − tento počet).
+function leaveXCountInMonth(empId, monthKey){
+  return Object.values(shifts).filter(s=>
+    s.employee_id===empId && s.leave_request_id && s.shift_type_code==='X'
+    && s.shift_date && s.shift_date.startsWith(monthKey)).length;
+}
 
 function fmtLeaveRange(from, to){
   const dFrom = new Date(from+'T00:00:00');
@@ -10248,13 +10616,12 @@ function leaveDayCount(from, to){
 }
 
 function openLeaveRequestModal(){
+  if(window._leaveTableMissing){ toast('Systém dovolených vyžaduje spuštění migration_leave.sql v Supabase', 'error'); return; }
   const sel = document.getElementById('leave-emp-select');
   if(currentRole === 'admin'){
     const ownEmp = currentEmployeeId ? employees.find(e=>e.id===currentEmployeeId) : null;
     const rest = ownEmp ? employees.filter(e=>e.id!==ownEmp.id) : employees;
-    const ownOption = ownEmp
-      ? `<option value="${ownEmp.id}">${escapeHtml(ownEmp.name)} (já)</option>`
-      : `<option value="__admin__">Já (admin)</option>`;
+    const ownOption = ownEmp ? `<option value="${ownEmp.id}">${escapeHtml(ownEmp.name)} (já)</option>` : '';
     sel.innerHTML = ownOption + rest.map(e=>`<option value="${e.id}">${escapeHtml(e.name)}</option>`).join('');
     sel.parentElement.style.display='';
   } else {
@@ -10268,37 +10635,71 @@ function openLeaveRequestModal(){
   document.getElementById('leave-from').value = today;
   document.getElementById('leave-to').value = today;
   document.getElementById('leave-note').value = '';
+  const redEl = document.getElementById('leave-reduction');
+  if(redEl) redEl.value = '';
+  const hintEl = document.getElementById('leave-quota-hint');
+  if(hintEl){
+    const emp = employees.find(e=>e.id===(currentRole==='admin' ? sel.value : currentEmployeeId));
+    hintEl.innerHTML = emp ? leaveQuotaHintHtml(emp) : '';
+  }
   document.getElementById('leave-modal-overlay').classList.add('open');
 }
 
-function saveLeaveRequest(){
+// Kvóta směn zaměstnance pro aktuálně zobrazený měsíc (efektivní hodnoty)
+function leaveQuotaHintHtml(emp){
+  const eff = effectiveLimits(emp, schedYear, schedMonth);
+  const monthLabel = new Date(schedYear, schedMonth, 1).toLocaleDateString('cs-CZ',{month:'long',year:'numeric'});
+  return `<div style="background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:8px 12px;font-size:12px;color:var(--ink-soft);margin-bottom:4px">
+    Kvóta směn (${escapeHtml(monthLabel)}): <strong style="color:var(--ink)">${eff.min} – ${eff.target} – ${eff.max}</strong> (min–cíl–max)${eff.reduction?` <span style="color:var(--status-warn);font-weight:600">vč. −${eff.reduction} za schválenou dovolenou</span>`:''}
+  </div>`;
+}
+
+function onLeaveEmpSelectChange(){
+  const hintEl = document.getElementById('leave-quota-hint');
+  const emp = employees.find(e=>e.id===document.getElementById('leave-emp-select').value);
+  if(hintEl) hintEl.innerHTML = emp ? leaveQuotaHintHtml(emp) : '';
+}
+
+async function saveLeaveRequest(){
   const empId = document.getElementById('leave-emp-select').value || currentEmployeeId;
   const from = document.getElementById('leave-from').value;
   const to = document.getElementById('leave-to').value;
   const note = document.getElementById('leave-note').value.trim();
+  const reduction = Math.max(0, parseInt(document.getElementById('leave-reduction')?.value)||0);
   if(!empId||!from||!to){ toast('Vyplň zaměstnance a data','error'); return; }
   if(from > to){ toast('Od musí být před Do','error'); return; }
-  const emp = empId === '__admin__' ? null : employees.find(x=>x.id===empId);
-  const empName = empId === '__admin__' ? (currentUser?.email ? `Já — ${currentUser.email}` : 'Já (admin)') : (emp?.name||'');
-  const leaves = loadLeaves();
-  leaves.push({
-    id: Date.now().toString(),
-    employee_id: empId,
-    employee_name: empName,
-    from_date: from,
-    to_date: to,
-    note,
-    status: 'pending',
-    created_at: new Date().toISOString()
-  });
-  saveLeaves(leaves);
-  document.getElementById('leave-modal-overlay').classList.remove('open');
-  toast('Žádost odeslána');
-  logAudit(`Žádost o volno: ${emp?.name} ${from}–${to}`);
-  if(document.getElementById('pane-leaves').style.display !== 'none') renderLeaves();
+  const emp = employees.find(x=>x.id===empId);
+  if(!emp){ toast('Zaměstnanec nenalezen','error'); return; }
 
-  // Notify org admins in-app so they know a request is waiting for them
-  if(currentOrg){
+  // Zadává-li volno admin, je rovnou schválené (bod 2c)
+  const isAdminDirect = currentRole === 'admin';
+  const row = {
+    org_id: currentOrg.id,
+    employee_id: empId,
+    date_from: from,
+    date_to: to,
+    shift_reduction: reduction,
+    note: note || null,
+    status: isAdminDirect ? 'approved' : 'pending',
+    requested_by: currentUser?.id || null,
+    decided_by: isAdminDirect ? (currentUser?.id || null) : null,
+    decided_at: isAdminDirect ? new Date().toISOString() : null,
+  };
+  const { data, error } = await sb.from('leave_requests').insert(row).select().single();
+  if(error || !data){ toast('Chyba: ' + (error?.message || 'žádost se nepodařilo uložit'), 'error'); return; }
+  leaveRequests.unshift(data);
+
+  document.getElementById('leave-modal-overlay').classList.remove('open');
+  logAudit(`Žádost o volno: ${emp.name} ${from}–${to}${reduction?` (−${reduction} směn)`:''}${isAdminDirect?' — schváleno adminem':''}`);
+
+  if(isAdminDirect){
+    await applyLeaveX(data);
+    toast('Volno zadáno a schváleno — dny vloženy do rozpisu jako X');
+    notifyLeaveDecision(data, 'approved');
+    renderCalendar();
+  } else {
+    toast('Žádost odeslána');
+    // Notify org admins in-app so they know a request is waiting for them
     const admins = orgMembers.filter(m => m.role === 'admin' && m.user_id && m.user_id !== currentUser?.id
       && getNotifPref(m.user_id, 'leave', 'inapp'));
     if(admins.length){
@@ -10307,80 +10708,151 @@ function saveLeaveRequest(){
         user_id: m.user_id,
         type: 'leave_request',
         title: `${ICONS.notif_zadost_volno} Žádost o volno`,
-        body: `${empName} žádá o volno ${fmtLeaveRange(from, to)}. Ke schválení →`,
+        body: `${emp.name} žádá o volno ${fmtLeaveRange(from, to)}${reduction?` (−${reduction} směn)`:''}. Ke schválení →`,
         read: false,
       }));
       sb.from('notifications').insert(rows).catch(()=>{});
     }
   }
+  if(document.getElementById('pane-leaves').style.display !== 'none') renderLeaves();
+}
+
+// Vloží dny schváleného období do rozpisu jako X s příznakem leave_request_id:
+// vkládají se VŽDY (ignorují limit žádanek X), ale čerpají ho — viz
+// leaveXCountInMonth(). Zaměstnanec je nesmí smazat; mažou se jen při
+// zrušení/zamítnutí žádosti (cancelLeave).
+async function applyLeaveX(l){
+  if(!l.employee_id) return;
+  const from = new Date(l.date_from+'T00:00:00');
+  const to = new Date(l.date_to+'T00:00:00');
+  const toInsert = [];
+  for(let d = new Date(from); d <= to; d.setDate(d.getDate()+1)){
+    toInsert.push({
+      org_id: currentOrg.id, employee_id: l.employee_id,
+      // POZOR: ne toISOString() — to převádí lokální půlnoc do UTC a v CEST
+      // by posunulo všechny dny o jeden zpět
+      shift_date: isoDate(d.getFullYear(), d.getMonth()+1, d.getDate()),
+      shift_type_code: 'X', branch_id: null, is_auto: false,
+      leave_request_id: l.id,
+    });
+  }
+  if(toInsert.length){
+    const { error } = await sb.from('shifts').upsert(toInsert, { onConflict: 'org_id,employee_id,shift_date' });
+    if(error) toast('X dny se nepodařilo vložit: ' + error.message, 'error');
+    await loadShiftsForMonth(true);
+  }
+}
+
+// Varování při schvalování (bod 3d): pobočková minima zaměstnance neupravujeme —
+// jen upozorníme, když by po snížení byla v součtu nesplnitelná.
+function branchMinWarning(emp, l){
+  const branchMinSum = Object.values(emp.branch_limits||{}).reduce((a,bl)=>a+(parseInt(bl?.min)||0),0);
+  if(!branchMinSum) return null;
+  const byMonth = leaveReductionByMonth(l);
+  for(const mk of Object.keys(byMonth)){
+    if(!byMonth[mk]) continue;
+    const [y, m0] = mk.split('-').map(Number);
+    const eff = effectiveLimits(emp, y, m0);
+    const effMaxAfter = Math.max(0, (emp.max_shifts||0) - eff.reduction - byMonth[mk]);
+    if(branchMinSum >= effMaxAfter){
+      const monthLabel = new Date(y, m0, 1).toLocaleDateString('cs-CZ',{month:'long',year:'numeric'});
+      return `Pozor: ${emp.name} má pobočková minima v součtu ${branchMinSum}, po dovolené max ${effMaxAfter} směn (${monthLabel}) — zvaž úpravu pobočkových minim.`;
+    }
+  }
+  return null;
+}
+
+function leaveEmpName(l){
+  const emp = employees.find(e=>e.id===l.employee_id);
+  return emp?.name || l.employee_name || '—';
 }
 
 function renderLeaves(){
   const el = document.getElementById('leaves-content');
   if(!el) return;
-  const leaves = loadLeaves();
-  if(!leaves.length){
+  if(window._leaveTableMissing){
+    el.innerHTML = `<div class="empty-state"><div style="font-size:40px;margin-bottom:12px">${ICONS.status_warning}</div>
+      <p style="font-size:15px;font-weight:700;margin-bottom:6px">Systém dovolených není aktivní</p>
+      <p style="font-size:13px;color:var(--ink-soft)">Spusť migration_leave.sql v Supabase SQL editoru a obnov stránku.</p></div>`;
+    return;
+  }
+  if(!leaveRequests.length){
     el.innerHTML=`<div class="empty-state"><div style="font-size:40px;margin-bottom:12px">${ICONS.nav_zadosti}</div><p style="font-size:15px;font-weight:700;margin-bottom:6px">Žádné žádosti</p><p style="font-size:13px;color:var(--ink-soft)">Zaměstnanci mohou požádat o volno tlačítkem nahoře.</p></div>`;
     return;
   }
-  // For employee: show only own requests
-  const visible = currentRole==='admin' ? leaves : leaves.filter(l=>l.employee_id===currentEmployeeId);
-  const sorted = [...visible].sort((a,b)=>b.created_at.localeCompare(a.created_at));
+  // RLS už zaměstnanci vrací jen jeho žádosti; filtr je jen pojistka pro admin-view
+  const visible = currentRole==='admin' ? leaveRequests : leaveRequests.filter(l=>l.employee_id===currentEmployeeId);
+  const sorted = [...visible].sort((a,b)=>(b.created_at||'').localeCompare(a.created_at||''));
   el.innerHTML = sorted.map(l=>`
     <div class="leave-request-row">
       <div style="flex:1">
-        <div style="font-weight:600">${escapeHtml(l.employee_name)}</div>
-        <div style="color:var(--ink-soft);font-size:12px">${l.from_date} – ${l.to_date} (${leaveDayLabel(leaveDayCount(l.from_date,l.to_date))})${l.note?' • '+escapeHtml(l.note):''}</div>
-        ${l.status==='rejected'&&l.reject_reason?`<div style="color:var(--red);font-size:12px;margin-top:2px">Důvod zamítnutí: ${escapeHtml(l.reject_reason)}</div>`:''}
+        <div style="font-weight:600">${escapeHtml(leaveEmpName(l))}${l.shift_reduction?` <span class="code-pill" title="Snížení počtu směn v dotčeném měsíci">−${l.shift_reduction} směn</span>`:''}</div>
+        <div style="color:var(--ink-soft);font-size:12px">${l.date_from} – ${l.date_to} (${leaveDayLabel(leaveDayCount(l.date_from,l.date_to))})${l.note?' • '+escapeHtml(l.note):''}</div>
+        ${l.status==='rejected'&&l.decision_note?`<div style="color:var(--red);font-size:12px;margin-top:2px">Poznámka: ${escapeHtml(l.decision_note)}</div>`:''}
       </div>
       <span class="leave-status ${l.status}">${l.status==='pending'?ICONS.status_pending+' čeká':l.status==='approved'?ICONS.status_ok+' schváleno':ICONS.status_error+' zamítnuto'}</span>
       ${currentRole==='admin'&&l.status==='pending'?`
         <button class="btn-accent" style="padding:4px 10px;font-size:12px;margin-left:8px" onclick="approveLeave('${l.id}')">Schválit</button>
         <button class="btn-ghost" style="padding:4px 10px;font-size:12px;color:var(--red);border-color:var(--red)" onclick="rejectLeave('${l.id}')">Zamítnout</button>
       `:''}
+      ${currentRole==='admin'&&l.status==='approved'?`
+        <button class="btn-ghost" style="padding:4px 10px;font-size:12px;margin-left:8px" title="Zruší dovolenou — odebere X dny a vrátí limity" onclick="cancelLeave('${l.id}')">Zrušit</button>
+      `:''}
     </div>`).join('');
 }
 
 async function approveLeave(id){
-  const leaves = loadLeaves();
-  const l = leaves.find(x=>x.id===id);
+  const l = leaveRequests.find(x=>x.id===id);
   if(!l) return;
-  l.status = 'approved';
-  saveLeaves(leaves);
-  // Apply as X in schedule for all days in range (skip if not tied to a real employee record, e.g. admin-only request)
-  if(l.employee_id && l.employee_id !== '__admin__'){
-    const from = new Date(l.from_date+'T00:00:00');
-    const to = new Date(l.to_date+'T00:00:00');
-    const toInsert = [];
-    for(let d = new Date(from); d <= to; d.setDate(d.getDate()+1)){
-      toInsert.push({
-        org_id: currentOrg.id, employee_id: l.employee_id,
-        shift_date: d.toISOString().split('T')[0],
-        shift_type_code: 'X', branch_id: null, is_auto: false
-      });
-    }
-    if(toInsert.length){
-      await sb.from('shifts').upsert(toInsert, { onConflict: 'org_id,employee_id,shift_date' });
-      await loadShiftsForMonth();
-    }
+  const emp = employees.find(e=>e.id===l.employee_id);
+  // Varování na nesplnitelná pobočková minima (bod 3d) — minima neupravujeme
+  if(emp && l.shift_reduction > 0){
+    const warn = branchMinWarning(emp, l);
+    if(warn && !confirm(`${warn}\n\nPřesto schválit?`)) return;
   }
+  const patch = { status:'approved', decided_by: currentUser?.id || null, decided_at: new Date().toISOString() };
+  const { error } = await sb.from('leave_requests').update(patch).eq('id', id);
+  if(error){ toast('Chyba: ' + error.message, 'error'); return; }
+  Object.assign(l, patch);
+  await applyLeaveX(l);
   renderLeaves();
-  toast(l.employee_id === '__admin__' ? 'Žádost schválena' : 'Žádost schválena, volno přidáno do rozpisu');
-  logAudit(`Žádost schválena: ${l.employee_name} ${l.from_date}–${l.to_date}`);
+  renderCalendar();
+  toast('Žádost schválena, volno přidáno do rozpisu');
+  logAudit(`Žádost schválena: ${leaveEmpName(l)} ${l.date_from}–${l.date_to}${l.shift_reduction?` (−${l.shift_reduction} směn)`:''}`);
   notifyLeaveDecision(l, 'approved');
 }
 
-function rejectLeave(id){
-  const leaves = loadLeaves();
-  const l = leaves.find(x=>x.id===id);
+async function rejectLeave(id){
+  const l = leaveRequests.find(x=>x.id===id);
   if(!l) return;
   const reason = (prompt('Důvod zamítnutí (nepovinné, uvidí ho zaměstnanec):', '') || '').trim();
-  l.status = 'rejected';
-  l.reject_reason = reason;
-  saveLeaves(leaves);
+  const patch = { status:'rejected', decision_note: reason || null, decided_by: currentUser?.id || null, decided_at: new Date().toISOString() };
+  const { error } = await sb.from('leave_requests').update(patch).eq('id', id);
+  if(error){ toast('Chyba: ' + error.message, 'error'); return; }
+  Object.assign(l, patch);
   renderLeaves();
   toast('Žádost zamítnuta');
-  logAudit(`Žádost zamítnuta: ${l.employee_name} ${l.from_date}–${l.to_date}`);
+  logAudit(`Žádost zamítnuta: ${leaveEmpName(l)} ${l.date_from}–${l.date_to}`);
+  notifyLeaveDecision(l, 'rejected');
+}
+
+// Zrušení schválené dovolené (bod 3e): smaže dovolenkové X dny (podle
+// leave_request_id) a žádost zamítne — efektivní limity se tím vrátí samy,
+// protože effectiveLimits počítá jen approved žádosti.
+async function cancelLeave(id){
+  const l = leaveRequests.find(x=>x.id===id);
+  if(!l || l.status !== 'approved') return;
+  if(!confirm(`Zrušit schválenou dovolenou ${leaveEmpName(l)} (${l.date_from} – ${l.date_to})?\nOdeberou se X dny z rozpisu a limity směn se vrátí na původní hodnoty.`)) return;
+  const { error: delErr } = await sb.from('shifts').delete().eq('org_id', currentOrg.id).eq('leave_request_id', id);
+  if(delErr){ toast('Chyba při mazání X dnů: ' + delErr.message, 'error'); return; }
+  const patch = { status:'rejected', decision_note:'Dovolená zrušena vedoucím', decided_by: currentUser?.id || null, decided_at: new Date().toISOString() };
+  const { error } = await sb.from('leave_requests').update(patch).eq('id', id);
+  if(error){ toast('Chyba: ' + error.message, 'error'); return; }
+  Object.assign(l, patch);
+  await loadShiftsForMonth(true);
+  renderLeaves();
+  toast('Dovolená zrušena — X dny odebrány, limity vráceny');
+  logAudit(`Dovolená zrušena: ${leaveEmpName(l)} ${l.date_from}–${l.date_to}`);
   notifyLeaveDecision(l, 'rejected');
 }
 
@@ -10389,14 +10861,13 @@ function leaveDayLabel(days){
 }
 
 // Notifies the requesting employee in-app once their leave request is approved/rejected.
-// No-op for the admin's own request (employee_id==='__admin__') since there's no separate
-// account to notify, or if the employee has no linked user account yet.
+// No-op if the employee has no linked user account, or when deciding own request.
 function notifyLeaveDecision(l, decision){
-  if(!currentOrg || !l.employee_id || l.employee_id === '__admin__') return;
+  if(!currentOrg || !l.employee_id) return;
   const emp = employees.find(e=>e.id===l.employee_id);
-  if(!emp?.user_id) return;
-  const range = fmtLeaveRangeShort(l.from_date, l.to_date);
-  const days = leaveDayLabel(leaveDayCount(l.from_date, l.to_date));
+  if(!emp?.user_id || emp.user_id === currentUser?.id) return;
+  const range = fmtLeaveRangeShort(l.date_from, l.date_to);
+  const days = leaveDayLabel(leaveDayCount(l.date_from, l.date_to));
   if(!getNotifPref(emp.user_id, 'decision', 'inapp')) return;
   const approved = decision === 'approved';
   sb.from('notifications').insert({
@@ -10406,7 +10877,7 @@ function notifyLeaveDecision(l, decision){
     title: approved ? `${ICONS.status_ok} Žádost schválena` : `${ICONS.status_error} Žádost zamítnuta`,
     body: approved
       ? `Tvoje žádost o volno ${range} (${days}) byla schválena.`
-      : `Tvoje žádost o volno ${range} (${days}) byla zamítnuta.${l.reject_reason ? ` Důvod: ${l.reject_reason}` : ''}`,
+      : `Tvoje žádost o volno ${range} (${days}) byla zamítnuta.${l.decision_note ? ` Důvod: ${l.decision_note}` : ''}`,
     read: false,
   }).catch(()=>{});
 }
@@ -10781,7 +11252,7 @@ async function deleteOrgForReal(){
   const orgId = currentOrg.id;
   try{
     // Závislé tabulky napřed (best-effort — některé mají ON DELETE CASCADE, jiné ne)
-    for(const t of ['notifications','audit_log','help_feedback','shifts','unavailability','open_shifts','shift_swaps','schedule_templates','support_requests']){
+    for(const t of ['notifications','audit_log','help_feedback','shifts','unavailability','leave_requests','open_shifts','shift_swaps','schedule_templates','support_requests']){
       try{ await sb.from(t).delete().eq('org_id', orgId); }catch(e){}
     }
     for(const t of ['org_settings','employees','branches','org_members']){
@@ -11612,7 +12083,8 @@ function switchAppTab(tab){
     // Show request button based on role
     document.getElementById('leaves-request-btn').style.display = currentRole==='admin' ? 'flex' : 'none';
     document.getElementById('leaves-request-emp-btn').style.display = currentRole!=='admin' ? 'flex' : 'none';
-    renderLeaves();
+    renderLeaves(); // okamžitě z cache…
+    loadLeaveRequests().then(renderLeaves); // …a pak refresh z DB (nové žádosti od zaměstnanců)
   }
   if(!tutActive) maybeStartTabTutorial(tab);
   updateArchiveBadge();
@@ -12418,7 +12890,7 @@ async function exportFullBackup(){
       members: membersData||[],
       scheduleTemplates: templatesData||[],
       localStorage: {
-        leaves:     localStorage.getItem(`leave_requests_${currentOrg.id}`)||'[]',
+        leaves:     JSON.stringify(leaveRequests), // v0.8.0: dovolené žijí v DB (leave_requests)
         recurring:  localStorage.getItem(`recurring_${currentOrg.id}`)||'[]',
         quality:    localStorage.getItem(`sched_quality_${currentOrg.id}`)||'[]',
       },

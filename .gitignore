@@ -2,3 +2,4 @@
 !index.html
 !.gitignore
 !migration_notifications.sql
+!migration_leave.sql
