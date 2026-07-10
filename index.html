@@ -3106,6 +3106,20 @@ async function loadEmployees(){
   renderEmployees();
 }
 
+// ── Vazba auth uživatel ↔ zaměstnanec (v0.8.0 oprava) ────────
+// employees.user_id NEEXISTUJE — vazba vede výhradně přes org_members
+// (user_id → auth.users, employee_id → employees.id). Vždy mapuj přes
+// tyto helpery, nikdy nečti emp.user_id.
+function empByUserId(userId){
+  if(!userId) return null;
+  const m = orgMembers.find(mm=>mm.user_id===userId && mm.employee_id);
+  return m ? (employees.find(e=>e.id===m.employee_id) || null) : null;
+}
+function userIdByEmpId(empId){
+  if(!empId) return null;
+  return orgMembers.find(mm=>mm.employee_id===empId)?.user_id || null;
+}
+
 function renderEmployees(){
   const wrap = document.getElementById('employees-table-wrap');
   const typeFilter = document.getElementById('emp-type-filter')?.value || '';
@@ -8378,7 +8392,7 @@ function getNotifPref(userId, event, channel){
   if(p && p[`${event}_${channel}`] !== undefined) return p[`${event}_${channel}`] !== false;
   // Legacy fallback: staré per-zaměstnanec preference (emp_notify) pro publikování
   if(event === 'publish'){
-    const emp = employees.find(e=>e.user_id===userId);
+    const emp = empByUserId(userId);
     const legacy = emp && orgSettings['emp_notify']?.[emp.id];
     if(legacy && legacy[channel] !== undefined) return legacy[channel] !== false;
   }
@@ -8480,8 +8494,9 @@ async function doPublishSchedule(){
   loadNotifications();
 
   // Pro e-mail a log potřebujeme jména — spoj členy se zaměstnaneckými záznamy
+  // (vazba přes org_members.employee_id; employees.user_id neexistuje)
   const notifiedEmployees = memberRecipients.map(m => {
-    const emp = employees.find(e => e.user_id === m.user_id);
+    const emp = m.employee_id ? employees.find(e => e.id === m.employee_id) : null;
     return { name: emp?.name || m.user_id, user_id: m.user_id, emp_id: emp?.id };
   });
 
@@ -10864,15 +10879,15 @@ function leaveDayLabel(days){
 // No-op if the employee has no linked user account, or when deciding own request.
 function notifyLeaveDecision(l, decision){
   if(!currentOrg || !l.employee_id) return;
-  const emp = employees.find(e=>e.id===l.employee_id);
-  if(!emp?.user_id || emp.user_id === currentUser?.id) return;
+  const empUserId = userIdByEmpId(l.employee_id); // vazba přes org_members
+  if(!empUserId || empUserId === currentUser?.id) return;
   const range = fmtLeaveRangeShort(l.date_from, l.date_to);
   const days = leaveDayLabel(leaveDayCount(l.date_from, l.date_to));
-  if(!getNotifPref(emp.user_id, 'decision', 'inapp')) return;
+  if(!getNotifPref(empUserId, 'decision', 'inapp')) return;
   const approved = decision === 'approved';
   sb.from('notifications').insert({
     org_id: currentOrg.id,
-    user_id: emp.user_id,
+    user_id: empUserId,
     type: approved ? 'leave_approved' : 'leave_rejected',
     title: approved ? `${ICONS.status_ok} Žádost schválena` : `${ICONS.status_error} Žádost zamítnuta`,
     body: approved
@@ -11008,7 +11023,7 @@ async function loadHelpFeedbackAdmin(){
     return;
   }
   list.innerHTML = data.map(r=>{
-    const emp = employees.find(e=>e.user_id===r.user_id);
+    const emp = empByUserId(r.user_id);
     return `<div style="display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-bottom:1px solid var(--line)">
       <span style="font-size:16px;flex-shrink:0">${r.verdict==='up'?ICONS.help_thumbs_up:ICONS.help_thumbs_down}</span>
       <div style="flex:1;min-width:0">
@@ -11079,7 +11094,7 @@ function openAuditLog(){
   if(!el) return;
   // Select uživatelů — členové organizace s propojeným účtem
   const userOptions = orgMembers.filter(m=>m.user_id).map(m=>{
-    const emp = employees.find(e=>e.user_id===m.user_id);
+    const emp = m.employee_id ? employees.find(e=>e.id===m.employee_id) : null;
     const label = emp?.name || (m.user_id===currentUser?.id ? (currentUser.email||'Já') : m.user_id.slice(0,8)+'…');
     return `<option value="${m.user_id}">${escapeHtml(label)}</option>`;
   }).join('');
@@ -12572,10 +12587,10 @@ async function createManualOpenShift(dateStr, shiftTypeCode, note=''){
 }
 
 async function notifyEligibleEmployees(shiftCode, dateStr, msg){
-  // v0.7.9: oprava — notifikace jsou adresované user_id (auth účet), ne employee_id
+  // Notifikace jsou adresované user_id (auth účet) — vazba na zaměstnance přes org_members
   const notifRows = employees
-    .filter(e=>e.user_id && !e.is_fixed)
-    .map(e=>({ org_id: currentOrg.id, user_id: e.user_id, type: 'open_shift', title: `${ICONS.btn_otevrene_smeny} Otevřená směna`, body: msg, read: false }));
+    .filter(e=>!e.is_fixed && userIdByEmpId(e.id))
+    .map(e=>({ org_id: currentOrg.id, user_id: userIdByEmpId(e.id), type: 'open_shift', title: `${ICONS.btn_otevrene_smeny} Otevřená směna`, body: msg, read: false }));
   if(!notifRows.length) return;
   try { await sb.from('notifications').insert(notifRows); } catch(e){}
 }

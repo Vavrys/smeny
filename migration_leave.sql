@@ -32,12 +32,14 @@ ALTER TABLE leave_requests ENABLE ROW LEVEL SECURITY;
 
 -- Zaměstnanec vidí své žádosti (svého zaměstnaneckého záznamu nebo jím podané);
 -- admin vidí všechny žádosti své organizace.
+-- POZOR: employees.user_id NEEXISTUJE — vazba auth uživatele na zaměstnance
+-- vede přes org_members.employee_id.
 DROP POLICY IF EXISTS "leave_select" ON leave_requests;
 CREATE POLICY "leave_select" ON leave_requests
   FOR SELECT TO authenticated
   USING (
     requested_by = auth.uid()
-    OR employee_id IN (SELECT id FROM employees WHERE user_id = auth.uid())
+    OR employee_id IN (SELECT employee_id FROM org_members WHERE user_id = auth.uid() AND employee_id IS NOT NULL)
     OR org_id IN (SELECT org_id FROM org_members WHERE user_id = auth.uid() AND role = 'admin')
   );
 
@@ -49,7 +51,7 @@ CREATE POLICY "leave_insert" ON leave_requests
   WITH CHECK (
     org_id IN (SELECT org_id FROM org_members WHERE user_id = auth.uid())
     AND (
-      employee_id IN (SELECT id FROM employees WHERE user_id = auth.uid())
+      employee_id IN (SELECT employee_id FROM org_members WHERE user_id = auth.uid() AND employee_id IS NOT NULL)
       OR org_id IN (SELECT org_id FROM org_members WHERE user_id = auth.uid() AND role = 'admin')
     )
   );
