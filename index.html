@@ -902,7 +902,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
      AUTH SCREEN
      ============================================================ -->
 <div class="auth-shell" id="auth-shell" style="display:none">
-  <!-- v0.8.2: bublinkový ekosystém s 2D fyzikou (odraz, kolize, drag & throw, role, choreografie) — plní je initAuthBubbles() -->
+  <!-- v0.8.3: bublinkový ekosystém s 2D fyzikou (odraz, kolize, drag & throw, role, choreografie, fair-play) — plní je initAuthBubbles() -->
   <div class="auth-ring" id="auth-ring" aria-hidden="true"></div>
 
   <div class="auth-card">
@@ -1130,7 +1130,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
       <button class="btn-ghost" id="emp-settings-btn" onclick="openEmployeeSettings()" style="display:none"><span data-icon="set_profil">👤</span> Profil</button>
       <button class="btn-ghost" id="admin-settings-btn" onclick="openEmployeeSettings()" style="display:none"><span data-icon="set_profil">👤</span> Profil</button>
       <span id="org-code-badge" style="display:none;font-family:var(--font-mono);font-size:12px;font-weight:700;letter-spacing:1.5px;background:var(--paper);border:1.5px solid var(--line);padding:4px 10px;border-radius:6px;color:var(--ink-soft)" title="Kód firmy"></span>
-      <span id="app-version-label" title="Verze aplikace" onclick="handleVersionClick()" style="font-size:10px;color:var(--ink-faint);font-family:var(--font-mono);padding:0 4px;user-select:none;cursor:pointer">v0.8.2</span>
+      <span id="app-version-label" title="Verze aplikace" onclick="handleVersionClick()" style="font-size:10px;color:var(--ink-faint);font-family:var(--font-mono);padding:0 4px;user-select:none;cursor:pointer">v0.8.3</span>
       <button class="btn-ghost" onclick="openSearch()" title="Vyhledat (Ctrl+K)" style="padding:6px 10px;font-size:14px"><span data-icon="btn_hledat">🔍</span></button>
       <button class="btn-ghost" onclick="openHelpCenter()" title="Nápověda" style="padding:6px 10px;font-size:14px"><span data-icon="btn_napoveda">❓</span></button>
       <button class="btn-ghost" id="notif-btn" onclick="toggleNotifPanel()" title="Notifikace" style="position:relative;padding:6px 10px;font-size:16px;display:none;align-items:center;justify-content:center">
@@ -9158,15 +9158,17 @@ document.getElementById('onboard-org-name').addEventListener('keydown', e=>{ if(
 // INIT: check existing session on page load
 // ============================================================
 // ════════════════════════════════════════════════════════════
-// ÚVODNÍ BUBLINKY (v0.8.2) — „bublinkový ekosystém" bez knihovny.
-// Skleněné kuličky v zelené paletě (větší = tmavší, sytá výplň, odlesk,
-// měkký stín — žádný blur). Populace 12–30 (start ~20), absolutní strop
-// poloměru 80 px. Role dynamicky podle populace: požírači (1 na započatých
-// 12; loví menší civilní bubliny, nad ~60 px neloví, dokud je dělič
-// nezmenší; plocha se při pohlcení sčítá), děliči (1 na započatých 10;
-// dělí NEJVĚTŠÍ bublinu nad prahem ~45 px vč. požírače — plocha se
-// zachová, role přechází na větší polovinu; když cíl nedohání > 10 s,
-// dostane boost ×2 na max 5 s), 2 matky (dýchají ±4 %, rodí každá po
+// ÚVODNÍ BUBLINKY (v0.8.3) — „bublinkový ekosystém" bez knihovny.
+// Skleněné kuličky v syté smaragdové paletě (větší = tmavší, plná výplň,
+// odlesk, měkký stín — žádný blur). Populace 24–55 (start ~35), absolutní
+// strop poloměru 64 px. Role dynamicky podle populace: požírači (1 na
+// započatých 12; loví menší civilní bubliny, nad ~48 px neloví, dokud je
+// dělič nezmenší; plocha se při pohlcení sčítá; po rozdělení 15 s zákaz
+// požírání — pohaslý prstenec, únik a vyhýbání děliči), děliči (1 na
+// započatých 10; dělí NEJVĚTŠÍ bublinu nad prahem ~36 px vč. požírače —
+// plocha se zachová, role přechází na větší polovinu; po dělení hned
+// přepnou cíl, na rozděleného se vrací až po zákazu; když cíl nedohání
+// > 10 s, boost ×2 na max 5 s), 2 matky (dýchají ±4 %, rodí každá po
 // svém intervalu 6–10 s). Lock cílů (dva lovci nikdy na jednom cíli),
 // sytost u minima populace, odpočinek u maxima, regulace drobotiny
 // (> 60 % pod 20 px → matky pauza, požírači berou nejmenší), dostředivý
@@ -9189,35 +9191,37 @@ function initAuthBubbles(){
 
   const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const useRoles = !reduced;
-  // paleta zelených: světle mátová → tmavě smaragdová; větší bublina = tmavší
-  const SHADES = ['150,214,183','108,190,152','72,160,120','46,128,92','26,96,66'];
-  const DEEP = '16,70,48';
-  const MIN_POP = 12, MAX_POP = 30; // tvrdé meze populace
-  const ABS_CAP = 80;               // absolutní strop poloměru — pro všechny vč. požírače
+  // paleta zelených: mátová → lahvová; plné smaragdové tóny (v0.8.3: sytost
+  // +30 bodů S, velké mírně tmavší), větší bublina = tmavší
+  const SHADES = ['106,231,168','47,218,138','29,175,109','16,132,84','8,94,62'];
+  const DEEP = '4,68,46';
+  const MIN_POP = 24, MAX_POP = 55; // tvrdé meze populace (v0.8.3: hustší hejno)
+  const ABS_CAP = 64;               // absolutní strop poloměru — pro všechny vč. požírače
+  const EAT_BAN = 15;               // fair-play: zákaz požírání po rozdělení požírače (s)
   const bubbles = [];
   const stats = { births: 0, eats: 0, splits: 0, comets: 0, pops: 0, hits: 0, eventTimes: [] };
   let W = 0, H = 0, spawned = false;
   let obstacles = []; // obdélníkové kolizní zóny (login karta) relativně k ringu
   let frame = 0, lastT = 0, rafId = null, simT = 0;
   let capR = ABS_CAP;    // efektivní strop poloměru (menší na stísněných displejích)
-  let sizeK = 1;         // měřítko hejna = capR/80 — na mobilu vše úměrně menší
-  let huntMax = 60;      // nad tímto poloměrem požírač neloví, dokud ho dělič nezmenší
-  let splitMinR = 45;    // dělič cílí na bubliny nad tímto poloměrem
+  let sizeK = 1;         // měřítko hejna = capR/64 — na mobilu vše úměrně menší
+  let huntMax = 48;      // nad tímto poloměrem požírač neloví, dokud ho dělič nezmenší
+  let splitMinR = 36;    // dělič cílí na bubliny nad tímto poloměrem
   let fryR = 20;         // hranice „drobotiny" pro regulaci populace
   let popCap = MAX_POP;  // efektivní max populace podle volné plochy
   let pending = [];      // naplánovaná zrození vstupní sekvence
   let anchors = [];      // středy volných pruhů — cíle dostředivého tahu
-  let introHuntDone = false, roleRebalT = 0;
+  let introHuntDone = false, roleRebalT = 0, uid = 0;
   let nextEventAt = 0, lastEventType = '';
   const mouse = { x: 0, y: 0, on: false };
 
   const alive = ()=> bubbles.reduce((n,b)=> n + (b.absorb ? 0 : 1), 0);
   const rnd = (a,b)=> a + Math.random()*(b-a);
-  const noteEvent = t=>{ stats.eventTimes.push({ t: simT, type: t }); if(stats.eventTimes.length > 4000) stats.eventTimes.shift(); };
+  const noteEvent = (type, id)=>{ stats.eventTimes.push({ t: simT, type, id }); if(stats.eventTimes.length > 4000) stats.eventTimes.shift(); };
 
   function shadeIdx(b){
     if(b.role === 'eater') return SHADES.length - 1; // nejtmavší sytá výplň
-    return Math.max(0, Math.min(SHADES.length - 1, Math.floor((b.r - 12)/17)));
+    return Math.max(0, Math.min(SHADES.length - 1, Math.floor((b.r - 13)/13)));
   }
 
   // „skleněná kulička": sytá výplň (op 0.55–0.8), odlesk vlevo nahoře ~25 %
@@ -9231,10 +9235,12 @@ function initAuthBubbles(){
       `radial-gradient(circle at 30% 27%, rgba(255,255,255,${Math.min(1, b.op*1.15).toFixed(3)}), rgba(255,255,255,0) 26%),`
       + ` radial-gradient(circle at 38% 33%, rgba(${c},${b.op.toFixed(3)}), rgba(${cd},${b.op.toFixed(3)}) 68%, rgba(${cd},${Math.min(1, b.op+0.12).toFixed(3)}))`;
     let sh = `0 ${Math.max(2, b.r*0.10).toFixed(1)}px ${Math.max(6, b.r*0.30).toFixed(1)}px rgba(22,64,44,.22)`;
-    if(b.role === 'eater') sh += `, inset 0 0 ${(b.r*0.55).toFixed(0)}px rgba(8,42,28,.5)`; // vnitřní stín — „hlubina"
-    else if(b.role === 'splitter') sh += ', 0 0 0 2px rgba(255,255,255,.55), 0 0 0 5px rgba(150,214,183,.4)'; // dvojitý prstenec
+    if(b.role === 'eater') sh += `, inset 0 0 ${(b.r*0.55).toFixed(0)}px rgba(8,42,28,${b.banT > 0 ? '.25' : '.5'})`; // vnitřní stín — „hlubina"
+    else if(b.role === 'splitter') sh += ', 0 0 0 2px rgba(255,255,255,.55), 0 0 0 5px rgba(106,231,168,.4)'; // dvojitý prstenec
     b.el.style.boxShadow = sh;
-    b.el.style.borderColor = b.role === 'eater' ? 'rgba(12,54,36,.55)' : 'transparent'; // tenký tmavší prstenec požírače
+    // prstenec požírače: při zákazu požírání pohaslý a přerušovaný — stav je čitelný
+    b.el.style.borderStyle = (b.role === 'eater' && b.banT > 0) ? 'dashed' : 'solid';
+    b.el.style.borderColor = b.role === 'eater' ? (b.banT > 0 ? 'rgba(12,54,36,.22)' : 'rgba(12,54,36,.55)') : 'transparent';
     b.el.classList.toggle('mother', b.role === 'mother'); // pulzující glow přes CSS animaci
   }
 
@@ -9251,7 +9257,7 @@ function initAuthBubbles(){
       dragging: false, hist: [],
       absorb: null,        // probíhající vcucnutí požíračem: {t, x0, y0, eater}
       born: 0, bornAt: simT,
-      satiety: 0, cool: 0, birthIn: 0, rTarget: 0,
+      satiety: 0, cool: 0, birthIn: 0, rTarget: 0, banT: 0, id: ++uid,
       tgt: null, lock: null, chaseT: 0, boostT: 0, cruiseUntil: 0,
       scripted: false,     // choreografická bublina — nesahat fyzikálními regulacemi
       edgeT: 0,            // souvislý čas strávený u okraje viewportu
@@ -9284,27 +9290,27 @@ function initAuthBubbles(){
     obstacles.forEach(o=>{ fitR = Math.min(fitR, Math.max(o.y, H - o.y - o.h, o.x, W - o.x - o.w) / 2 - 6); });
     capR = Math.round(Math.max(14, Math.min(ABS_CAP, fitR * 0.6))); // pohodlně se vejít do pruhu
     sizeK = capR / ABS_CAP; // celé hejno škáluje se stropem
-    huntMax = capR * 0.75;  // desktop: 60
-    splitMinR = capR * 0.56; // desktop: ~45
+    huntMax = capR * 0.75;  // desktop: 48
+    splitMinR = capR * 0.56; // desktop: ~36
     fryR = Math.max(8, 20 * sizeK);
     let freeA = W * H;
     obstacles.forEach(o=>{ freeA -= Math.max(0, Math.min(W, o.x + o.w) - Math.max(0, o.x)) * Math.max(0, Math.min(H, o.y + o.h) - Math.max(0, o.y)); });
-    popCap = Math.max(MIN_POP + 4, Math.min(MAX_POP, Math.round(freeA / 14000)));
+    popCap = Math.max(MIN_POP + 4, Math.min(MAX_POP, Math.round(freeA / 16000)));
 
     // šikmé rozdělení velikostí: hodně 12–30, několik 35–55, 1–2 kusy 60–75
     const plan = [];
     if(useRoles){
-      plan.push({ r: Math.max(9, rnd(34,42)*sizeK), base: rnd(16,24), role: 'eater' });
-      plan.push({ r: Math.max(9, rnd(34,42)*sizeK), base: rnd(16,24), role: 'eater' });
-      plan.push({ r: Math.max(8, rnd(20,28)*sizeK), base: rnd(18,28), role: 'splitter' });
-      plan.push({ r: Math.max(8, rnd(20,28)*sizeK), base: rnd(18,28), role: 'splitter' });
-      plan.push({ r: Math.max(8, rnd(28,38)*sizeK), base: rnd(12,18), role: 'mother' });
-      plan.push({ r: Math.max(8, rnd(28,38)*sizeK), base: rnd(12,18), role: 'mother' });
+      plan.push({ r: Math.max(9, rnd(27,34)*sizeK), base: rnd(16,24), role: 'eater' });
+      plan.push({ r: Math.max(9, rnd(27,34)*sizeK), base: rnd(16,24), role: 'eater' });
+      plan.push({ r: Math.max(8, rnd(16,22)*sizeK), base: rnd(18,28), role: 'splitter' });
+      plan.push({ r: Math.max(8, rnd(16,22)*sizeK), base: rnd(18,28), role: 'splitter' });
+      plan.push({ r: Math.max(8, rnd(22,30)*sizeK), base: rnd(12,18), role: 'mother' });
+      plan.push({ r: Math.max(8, rnd(22,30)*sizeK), base: rnd(12,18), role: 'mother' });
     }
-    for(let i = 0, n = 1 + (Math.random()<0.5 ? 1 : 0); i<n; i++) plan.push({ r: Math.max(10, rnd(60,75)*sizeK), base: rnd(9,14) }); // velké, pomalé
-    for(let i = 0, n = 1 + (Math.random()<0.5 ? 1 : 0); i<n; i++) plan.push({ r: Math.min(rnd(11,16), Math.max(8, capR*0.5)), base: rnd(50,62), dart: true }); // „šipky" ~2.5×
-    for(let i = plan.length, n = Math.min(popCap - 2, 19 + Math.floor(Math.random()*3)); i<n; i++)
-      plan.push(Math.random() < 0.7 ? { r: Math.max(7, rnd(12,30)*sizeK), base: rnd(14,30) } : { r: Math.max(8, rnd(35,55)*sizeK), base: rnd(13,24) });
+    for(let i = 0, n = 1 + (Math.random()<0.5 ? 1 : 0); i<n; i++) plan.push({ r: Math.max(10, rnd(48,60)*sizeK), base: rnd(9,14) }); // velké, pomalé
+    for(let i = 0, n = 1 + (Math.random()<0.5 ? 1 : 0); i<n; i++) plan.push({ r: Math.min(rnd(13,17), Math.max(8, capR*0.5)), base: rnd(50,62), dart: true }); // „šipky" ~2.5×
+    for(let i = plan.length, n = Math.min(popCap - 2, 34 + Math.floor(Math.random()*3)); i<n; i++)
+      plan.push(Math.random() < 0.7 ? { r: Math.max(7, rnd(13,30)*sizeK), base: rnd(14,30) } : { r: Math.max(8, rnd(28,44)*sizeK), base: rnd(13,24) });
 
     if(reduced){ // statický režim: všechno hned, bez animací a rolí
       plan.forEach(p=>{ const q = randomPos(p.r); makeBubble(p.r, q.x, q.y, p.base, p.role); });
@@ -9313,7 +9319,7 @@ function initAuthBubbles(){
 
     // (a) vstupní sekvence: postupná zrození, stagger ~60 ms, spring scale-in + impulz
     plan.forEach((p, i)=>{
-      pending.push({ at: 0.05 + i*0.06, make: ()=>{
+      pending.push({ at: 0.05 + i*0.045, make: ()=>{
         const q = randomPos(p.r);
         const b = makeBubble(p.r, q.x, q.y, p.base, p.role);
         b.dart = !!p.dart;
@@ -9441,15 +9447,18 @@ function initAuthBubbles(){
   function validSplitTgt(s, t){
     return t && !t.dead && !t.absorb && !t.dragging && !t.scripted
       && t.role !== 'mother' && t.role !== 'splitter' && t !== s
+      && !(t.role === 'eater' && t.banT > 0) // na čerstvě rozděleného se vrací až po zákazu
       && t.r >= splitMinR && (t.lock === s || !t.lock) && !losBlocked(s, t);
   }
   function retargetSplitter(s){
     releaseTgt(s);
-    let best = null;
-    bubbles.forEach(t=>{ // NEJVĚTŠÍ bublina nad prahem (vč. požírače) — poloměr, ne průměr
+    let bestE = null, bestC = null;
+    bubbles.forEach(t=>{ // NEJVĚTŠÍ nad prahem — preferenčně požírač, jinak civilní
       if(!validSplitTgt(s, t)) return;
-      if(!best || t.r > best.r) best = t;
+      if(t.role === 'eater'){ if(!bestE || t.r > bestE.r) bestE = t; }
+      else if(!bestC || t.r > bestC.r) bestC = t;
     });
+    const best = bestE || bestC;
     if(best){ s.tgt = best; best.lock = s; }
   }
 
@@ -9474,7 +9483,7 @@ function initAuthBubbles(){
     const p = e === a ? c : a;
     if(p.role || p.dragging || p.absorb || p.scripted) return false; // role a držené jsou nedotknutelné
     if(p.r >= e.r) return false;
-    if(e.satiety > 0 || alive() <= MIN_POP) return false;
+    if(e.satiety > 0 || e.banT > 0 || alive() <= MIN_POP) return false; // fair-play zákaz po rozdělení
     const cur = Math.max(e.r, e.rTarget);
     const nr = Math.sqrt(cur*cur + p.r*p.r);
     if(nr > capR) return false; // absolutní strop — nad ním nemůže růst, tak nežere
@@ -9484,7 +9493,7 @@ function initAuthBubbles(){
     p.absorb = { t: 0, x0: p.x, y0: p.y, eater: e };
     p.el.style.pointerEvents = 'none';
     bubbles.forEach(h=>{ if(h.tgt === p) releaseTgt(h); });
-    stats.eats++; noteEvent('eat');
+    stats.eats++; noteEvent('eat', e.id);
     return true;
   }
 
@@ -9502,8 +9511,10 @@ function initAuthBubbles(){
     const f = rnd(0.52, 0.6); // lehce nesouměrné půlky, plocha zachována
     const r1 = t.r*Math.sqrt(f), r2 = t.r*Math.sqrt(1 - f);
     const x0 = t.x, y0 = t.y, vx0 = t.vx, vy0 = t.vy;
+    const wasEater = t.role === 'eater';
     puf(x0, y0, t.r);
     bubbles.forEach(h=>{ if(h.tgt === t) releaseTgt(h); }); // cíl se právě změnil
+    if(wasEater) t.banT = EAT_BAN; // fair-play: zákaz požírání pro polovinu s rolí…
     t.r = r1; t.rTarget = 0; applyLook(t); // větší polovina si nechává roli (vč. požírače)
     t.x = Math.max(t.r, Math.min(W - t.r, x0 - dx*(r2+1)));
     t.y = Math.max(t.r, Math.min(H - t.r, y0 - dy*(r2+1)));
@@ -9511,8 +9522,14 @@ function initAuthBubbles(){
     const nb = makeBubble(r2, Math.max(r2, Math.min(W - r2, x0 + dx*(r1+1))), Math.max(r2, Math.min(H - r2, y0 + dy*(r1+1))), t.base);
     nb.vx = vx0 + dx*70; nb.vy = vy0 + dy*70;
     nb.born = 0.35; nb.scale = 0;
+    if(wasEater){
+      nb.banT = EAT_BAN; // …i pro civilní polovinu (kdyby ji rebalanc povýšil zpět)
+      const ex = t.x - s.x, ey = t.y - s.y, ed = Math.hypot(ex, ey) || 1;
+      t.vx += ex/ed * 140; t.vy += ey/ed * 140; // únikový impulz od děliče
+    }
     s.cool = 5; s.chaseT = 0; s.boostT = 0; // odpočinek děliče
-    stats.splits++; noteEvent('split');
+    stats.splits++; noteEvent(wasEater ? 'split-eater' : 'split', t.id);
+    retargetSplitter(s); // ihned nový cíl — na rozděleného se smí vrátit až po zákazu
     return true;
   }
 
@@ -9531,7 +9548,7 @@ function initAuthBubbles(){
     });
   }
   function promote(role){
-    const base = { eater: [26,55], splitter: [16,40], mother: [24,50] }[role];
+    const base = { eater: [21,44], splitter: [13,32], mother: [19,40] }[role];
     const range = [base[0]*sizeK, base[1]*sizeK];
     const mid = (range[0] + range[1]) / 2;
     let best = null, bs = Infinity;
@@ -9569,6 +9586,10 @@ function initAuthBubbles(){
     bubbles.forEach(b=>{
       if(b.absorb) return;
       if(b.boostT > 0) b.boostT = Math.max(0, b.boostT - dt);
+      if(b.banT > 0){ // fair-play zákaz požírání tiká všem (i civilní polovině)
+        b.banT = Math.max(0, b.banT - dt);
+        if(b.banT === 0 && b.role === 'eater') applyLook(b); // prstenec zpět naplno
+      }
       if(b.role === 'eater'){
         if(b.rTarget > b.r){ // plynulé dorůstání po pohlcení
           b.r = Math.min(b.rTarget, b.r + (b.rTarget - b.r)*Math.min(1, dt*10) + dt);
@@ -9576,6 +9597,13 @@ function initAuthBubbles(){
           applyLook(b);
         }
         if(b.dragging) return;
+        if(b.banT > 0){ // v zákazu neloví a aktivně se vyhýbá nejbližšímu děliči
+          let ns = null, nd = Infinity;
+          bubbles.forEach(p=>{ if(p.role === 'splitter' && !p.absorb){ const d2 = Math.hypot(p.x - b.x, p.y - b.y); if(d2 < nd){ nd = d2; ns = p; } } });
+          if(ns && nd < 240) steer(b, 2*b.x - ns.x, 2*b.y - ns.y, 40, dt);
+          releaseTgt(b);
+          return;
+        }
         if(lowPop) b.satiety = Math.max(b.satiety, 4); // u minima pár sekund neloví
         b.satiety = Math.max(0, b.satiety - dt);
         if(b.satiety > 0 || b.r >= huntMax || n <= MIN_POP){ releaseTgt(b); return; } // přerostlý čeká na děliče
@@ -9584,7 +9612,12 @@ function initAuthBubbles(){
       } else if(b.role === 'splitter'){
         if(b.dragging) return;
         b.cool = Math.max(0, b.cool - dt);
-        if(b.cool > 0 || !canGrow){ releaseTgt(b); b.chaseT = 0; return; }
+        if(!canGrow){ releaseTgt(b); b.chaseT = 0; return; }
+        if(b.cool > 0){ // během odpočinku si cíl drží (přepnul ho hned po dělení)
+          b.chaseT = 0;
+          if(!validSplitTgt(b, b.tgt)) releaseTgt(b);
+          return;
+        }
         if(!validSplitTgt(b, b.tgt)){ retargetSplitter(b); b.chaseT = 0; }
         if(b.tgt){
           b.chaseT += dt;
