@@ -902,7 +902,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
      AUTH SCREEN
      ============================================================ -->
 <div class="auth-shell" id="auth-shell" style="display:none">
-  <!-- v0.8.3: bublinkový ekosystém s 2D fyzikou (odraz, kolize, drag & throw, role, choreografie, fair-play) — plní je initAuthBubbles() -->
+  <!-- v0.8.4: bublinkový ekosystém s 2D fyzikou (odraz, kolize, drag & throw, role, choreografie, slučování) — plní je initAuthBubbles() -->
   <div class="auth-ring" id="auth-ring" aria-hidden="true"></div>
 
   <div class="auth-card">
@@ -1130,7 +1130,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
       <button class="btn-ghost" id="emp-settings-btn" onclick="openEmployeeSettings()" style="display:none"><span data-icon="set_profil">👤</span> Profil</button>
       <button class="btn-ghost" id="admin-settings-btn" onclick="openEmployeeSettings()" style="display:none"><span data-icon="set_profil">👤</span> Profil</button>
       <span id="org-code-badge" style="display:none;font-family:var(--font-mono);font-size:12px;font-weight:700;letter-spacing:1.5px;background:var(--paper);border:1.5px solid var(--line);padding:4px 10px;border-radius:6px;color:var(--ink-soft)" title="Kód firmy"></span>
-      <span id="app-version-label" title="Verze aplikace" onclick="handleVersionClick()" style="font-size:10px;color:var(--ink-faint);font-family:var(--font-mono);padding:0 4px;user-select:none;cursor:pointer">v0.8.3</span>
+      <span id="app-version-label" title="Verze aplikace" onclick="handleVersionClick()" style="font-size:10px;color:var(--ink-faint);font-family:var(--font-mono);padding:0 4px;user-select:none;cursor:pointer">v0.8.4</span>
       <button class="btn-ghost" onclick="openSearch()" title="Vyhledat (Ctrl+K)" style="padding:6px 10px;font-size:14px"><span data-icon="btn_hledat">🔍</span></button>
       <button class="btn-ghost" onclick="openHelpCenter()" title="Nápověda" style="padding:6px 10px;font-size:14px"><span data-icon="btn_napoveda">❓</span></button>
       <button class="btn-ghost" id="notif-btn" onclick="toggleNotifPanel()" title="Notifikace" style="position:relative;padding:6px 10px;font-size:16px;display:none;align-items:center;justify-content:center">
@@ -9158,10 +9158,14 @@ document.getElementById('onboard-org-name').addEventListener('keydown', e=>{ if(
 // INIT: check existing session on page load
 // ============================================================
 // ════════════════════════════════════════════════════════════
-// ÚVODNÍ BUBLINKY (v0.8.3) — „bublinkový ekosystém" bez knihovny.
+// ÚVODNÍ BUBLINKY (v0.8.4) — „bublinkový ekosystém" bez knihovny.
 // Skleněné kuličky v syté smaragdové paletě (větší = tmavší, plná výplň,
-// odlesk, měkký stín — žádný blur). Populace 24–55 (start ~35), absolutní
-// strop poloměru 64 px. Role dynamicky podle populace: požírači (1 na
+// odlesk, měkký stín — žádný blur). Populace 32–70 (start ~45), absolutní
+// strop poloměru 64 px. Kolize přes spatial grid (~150px buňky). Vážený
+// spawn do nejřidší buňky mřížky 6×4 + jemný anti-shluk drift; dostředivý
+// tah k orbitálnímu pásmu okolo login karty. Obyčejné bubliny se občas
+// při kontaktu slijí (plocha se sčítá, strop 60 % capR, cooldowny, pauza
+// při nízké populaci). Role dynamicky podle populace: požírači (1 na
 // započatých 12; loví menší civilní bubliny, nad ~48 px neloví, dokud je
 // dělič nezmenší; plocha se při pohlcení sčítá; po rozdělení 15 s zákaz
 // požírání — pohaslý prstenec, únik a vyhýbání děliči), děliči (1 na
@@ -9195,11 +9199,11 @@ function initAuthBubbles(){
   // +30 bodů S, velké mírně tmavší), větší bublina = tmavší
   const SHADES = ['106,231,168','47,218,138','29,175,109','16,132,84','8,94,62'];
   const DEEP = '4,68,46';
-  const MIN_POP = 24, MAX_POP = 55; // tvrdé meze populace (v0.8.3: hustší hejno)
+  const MIN_POP = 32, MAX_POP = 70; // tvrdé meze populace (v0.8.4: plnější scéna)
   const ABS_CAP = 64;               // absolutní strop poloměru — pro všechny vč. požírače
   const EAT_BAN = 15;               // fair-play: zákaz požírání po rozdělení požírače (s)
   const bubbles = [];
-  const stats = { births: 0, eats: 0, splits: 0, comets: 0, pops: 0, hits: 0, eventTimes: [] };
+  const stats = { births: 0, eats: 0, splits: 0, merges: 0, comets: 0, pops: 0, hits: 0, eventTimes: [] };
   let W = 0, H = 0, spawned = false;
   let obstacles = []; // obdélníkové kolizní zóny (login karta) relativně k ringu
   let frame = 0, lastT = 0, rafId = null, simT = 0;
@@ -9212,6 +9216,9 @@ function initAuthBubbles(){
   let pending = [];      // naplánovaná zrození vstupní sekvence
   let anchors = [];      // středy volných pruhů — cíle dostředivého tahu
   let introHuntDone = false, roleRebalT = 0, uid = 0;
+  let orbMin = 150, orbMax = 350; // orbitální pásmo okolo login karty (dostředivý tah)
+  let mergeGlobalCd = 0;          // globální rozestup slučování — jednotky za minutu, ne lavina
+  let driftT = 0, driftOff = 0;   // časovač a rotující offset anti-shluk driftu
   let nextEventAt = 0, lastEventType = '';
   const mouse = { x: 0, y: 0, on: false };
 
@@ -9257,10 +9264,12 @@ function initAuthBubbles(){
       dragging: false, hist: [],
       absorb: null,        // probíhající vcucnutí požíračem: {t, x0, y0, eater}
       born: 0, bornAt: simT,
-      satiety: 0, cool: 0, birthIn: 0, rTarget: 0, banT: 0, id: ++uid,
+      satiety: 0, cool: 0, birthIn: 0, rTarget: 0, banT: 0, mergeCd: 0, id: ++uid,
       tgt: null, lock: null, chaseT: 0, boostT: 0, cruiseUntil: 0,
       scripted: false,     // choreografická bublina — nesahat fyzikálními regulacemi
       edgeT: 0,            // souvislý čas strávený u okraje viewportu
+      roamT: 0,            // anti-shluk poutník: po tu dobu bez orbitálního tahu
+      roamTgt: null,       // cíl poutníka — aktivně si ho drží i přes srážky cestou
       phase: Math.random()*Math.PI*2, roleSince: simT,
     };
     applyLook(b);
@@ -9271,8 +9280,31 @@ function initAuthBubbles(){
     return b;
   }
 
+  // bod v nejřidší buňce mřížky ~6×4 (mimo zónu login karty) — vážený spawn
+  // pro rovnoměrné pokrytí prostoru
+  function sparsePoint(){
+    const GC = 6, GR = 4;
+    const counts = new Array(GC*GR).fill(0);
+    bubbles.forEach(b=>{
+      if(b.absorb) return;
+      counts[Math.min(GC-1, Math.floor(b.x/W*GC)) + Math.min(GR-1, Math.floor(b.y/H*GR))*GC]++;
+    });
+    let bc = Infinity;
+    const mins = []; // při shodě losovat — jinak by vždy vyhrával levý horní roh
+    for(let i=0; i<GC*GR; i++){
+      const cx = (i%GC + 0.5)*W/GC, cy = (Math.floor(i/GC) + 0.5)*H/GR;
+      if(obstacles.some(o=> cx > o.x - 20 && cx < o.x + o.w + 20 && cy > o.y - 20 && cy < o.y + o.h + 20)) continue; // zóna karty
+      if(counts[i] < bc){ bc = counts[i]; mins.length = 0; }
+      if(counts[i] === bc) mins.push(i);
+    }
+    if(!mins.length) return { x: W/2, y: H/2, n: 0 };
+    const best = mins[Math.floor(Math.random()*mins.length)];
+    return { x: (best%GC + rnd(0.15,0.85))*W/GC, y: (Math.floor(best/GC) + rnd(0.15,0.85))*H/GR, n: bc };
+  }
+
   function randomPos(r){
-    const p = { x: r + Math.random()*(W - 2*r), y: r + Math.random()*(H - 2*r) };
+    const sp = sparsePoint();
+    const p = { x: Math.max(r, Math.min(W - r, sp.x)), y: Math.max(r, Math.min(H - r, sp.y)) };
     obstacles.forEach(o=>{ // nespawnovat uvnitř překážky — posunout nad/pod ni
       if(p.x > o.x - r && p.x < o.x + o.w + r && p.y > o.y - r && p.y < o.y + o.h + r){
         p.y = (o.y > H/2) ? Math.max(r, o.y - r - 8) : Math.min(H - r, o.y + o.h + r + 8);
@@ -9293,9 +9325,13 @@ function initAuthBubbles(){
     huntMax = capR * 0.75;  // desktop: 48
     splitMinR = capR * 0.56; // desktop: ~36
     fryR = Math.max(8, 20 * sizeK);
+    // orbitální pásmo dostředivého tahu: ~150–350 px od okraje karty, na
+    // stísněných displejích úměrně užší, ať se vejde do pruhu
+    orbMin = Math.min(150 * sizeK, fitR * 0.5);
+    orbMax = Math.max(orbMin + 40, Math.min(350 * sizeK, fitR * 1.4));
     let freeA = W * H;
     obstacles.forEach(o=>{ freeA -= Math.max(0, Math.min(W, o.x + o.w) - Math.max(0, o.x)) * Math.max(0, Math.min(H, o.y + o.h) - Math.max(0, o.y)); });
-    popCap = Math.max(MIN_POP + 4, Math.min(MAX_POP, Math.round(freeA / 16000)));
+    popCap = Math.max(MIN_POP + 4, Math.min(MAX_POP, Math.round(freeA / 15000)));
 
     // šikmé rozdělení velikostí: hodně 12–30, několik 35–55, 1–2 kusy 60–75
     const plan = [];
@@ -9309,7 +9345,7 @@ function initAuthBubbles(){
     }
     for(let i = 0, n = 1 + (Math.random()<0.5 ? 1 : 0); i<n; i++) plan.push({ r: Math.max(10, rnd(48,60)*sizeK), base: rnd(9,14) }); // velké, pomalé
     for(let i = 0, n = 1 + (Math.random()<0.5 ? 1 : 0); i<n; i++) plan.push({ r: Math.min(rnd(13,17), Math.max(8, capR*0.5)), base: rnd(50,62), dart: true }); // „šipky" ~2.5×
-    for(let i = plan.length, n = Math.min(popCap - 2, 34 + Math.floor(Math.random()*3)); i<n; i++)
+    for(let i = plan.length, n = Math.min(popCap - 2, 44 + Math.floor(Math.random()*3)); i<n; i++)
       plan.push(Math.random() < 0.7 ? { r: Math.max(7, rnd(13,30)*sizeK), base: rnd(14,30) } : { r: Math.max(8, rnd(28,44)*sizeK), base: rnd(13,24) });
 
     if(reduced){ // statický režim: všechno hned, bez animací a rolí
@@ -9465,7 +9501,9 @@ function initAuthBubbles(){
   // matka vypustí novou malou bublinu (vyklouznutí + malý impuls od matky)
   function birth(mother){
     const r = Math.max(7, rnd(10,16)*sizeK);
-    const ang = Math.random()*Math.PI*2;
+    // vyklouzne na straně matky přivrácené k nejřidší oblasti — vážené pokrytí
+    const sp = sparsePoint();
+    const ang = Math.atan2(sp.y - mother.y, sp.x - mother.x) + rnd(-0.5, 0.5);
     const x = Math.max(r, Math.min(W - r, mother.x + Math.cos(ang)*(mother.r + r + 1)));
     const y = Math.max(r, Math.min(H - r, mother.y + Math.sin(ang)*(mother.r + r + 1)));
     const needDart = !bubbles.some(o=> o.dart && !o.absorb); // vždy aspoň jedna „šipka"
@@ -9590,12 +9628,13 @@ function initAuthBubbles(){
         b.banT = Math.max(0, b.banT - dt);
         if(b.banT === 0 && b.role === 'eater') applyLook(b); // prstenec zpět naplno
       }
+      if(b.mergeCd > 0) b.mergeCd = Math.max(0, b.mergeCd - dt);
+      if(b.rTarget > b.r){ // plynulé dorůstání po pohlcení / slití (i civilní slitek)
+        b.r = Math.min(b.rTarget, b.r + (b.rTarget - b.r)*Math.min(1, dt*10) + dt);
+        if(b.rTarget - b.r < 0.05){ b.r = b.rTarget; b.rTarget = 0; }
+        applyLook(b);
+      }
       if(b.role === 'eater'){
-        if(b.rTarget > b.r){ // plynulé dorůstání po pohlcení
-          b.r = Math.min(b.rTarget, b.r + (b.rTarget - b.r)*Math.min(1, dt*10) + dt);
-          if(b.rTarget - b.r < 0.05) b.r = b.rTarget;
-          applyLook(b);
-        }
         if(b.dragging) return;
         if(b.banT > 0){ // v zákazu neloví a aktivně se vyhýbá nejbližšímu děliči
           let ns = null, nd = Infinity;
@@ -9700,15 +9739,58 @@ function initAuthBubbles(){
 
   function step(dt){
     simT += dt;
+    mergeGlobalCd = Math.max(0, mergeGlobalCd - dt);
     while(pending.length && pending[0].at <= simT) pending.shift().make(); // vstupní sekvence
     if(useRoles){ stepRoles(dt); stepDirector(); }
+
+    // anti-shluk: jednou za ~2,5 s dostanou bubliny z přehuštěných buněk mřížky
+    // jemný impulz k nejřidší oblasti — decentní, žádné viditelné strkání
+    driftT -= dt;
+    if(driftT <= 0 && useRoles){
+      driftT = 2.5;
+      const GC = 6, GR = 4;
+      const counts = new Array(GC*GR).fill(0);
+      const cellOf = b=> Math.min(GC-1, Math.floor(b.x/W*GC)) + Math.min(GR-1, Math.floor(b.y/H*GR))*GC;
+      bubbles.forEach(b=>{ if(!b.absorb) counts[cellOf(b)]++; });
+      const thr = Math.max(5, 2.2 * alive() / (GC*GR));
+      const cands = bubbles.filter(b=> !(b.absorb || b.dragging || b.scripted || b.born > 0 || b.role || b.roamT > 0));
+      cands.sort((a, b)=> counts[cellOf(b)] - counts[cellOf(a)]); // nejhustší napřed
+      let ci = 0;
+      const sendTo = (tx, ty)=>{ // pošli dalšího kandidáta z nejhustší buňky
+        if(ci >= cands.length) return;
+        const b = cands[ci++];
+        const dx = tx - b.x, dy = ty - b.y, d = Math.hypot(dx, dy) || 1;
+        const v = Math.max(50, d/8); // dojít tam do ~8 s i přes celou obrazovku
+        b.vx = dx/d * v; b.vy = dy/d * v;
+        b.roamT = 14; // po cestě a chvíli po ní ho orbitální tah nestahuje zpět
+        b.roamTgt = { x: tx, y: ty };
+        b.cruiseUntil = Math.max(b.cruiseUntil, simT + Math.min(8, d/v));
+      };
+      // každé prázdné buňce (mimo zónu karty) jednoho poutníka — při plné
+      // populaci porody stojí a rohy by jinak vyhladověly; rotující offset,
+      // ať se při mnoha prázdných buňkách dostane postupně na všechny
+      let sent = 0;
+      driftOff = (driftOff + 7) % (GC*GR);
+      for(let k=0; k<GC*GR && sent < 5; k++){
+        const i = (k + driftOff) % (GC*GR);
+        if(counts[i]) continue;
+        const cx = (i%GC + 0.5)*W/GC, cy = (Math.floor(i/GC) + 0.5)*H/GR;
+        if(obstacles.some(o=> cx > o.x - 20 && cx < o.x + o.w + 20 && cy > o.y - 20 && cy < o.y + o.h + 20)) continue;
+        sendTo(cx + rnd(-30,30), cy + rnd(-30,30)); sent++;
+      }
+      // a přehuštěná buňka se navíc uleví směrem k nejřidší
+      if(ci < cands.length && counts[cellOf(cands[ci])] > thr){
+        const sp = sparsePoint();
+        sendTo(sp.x, sp.y);
+      }
+    }
 
     // vcucnutí požíračem — kořist letí do jeho středu, zmenšuje se a zmizí (~300 ms)
     for(let i = bubbles.length - 1; i >= 0; i--){
       const b = bubbles[i];
       if(!b.absorb) continue;
       b.absorb.t += dt;
-      const p = Math.min(1, b.absorb.t / 0.3);
+      const p = Math.min(1, b.absorb.t / (b.absorb.dur || 0.3));
       b.x = b.absorb.x0 + (b.absorb.eater.x - b.absorb.x0) * p;
       b.y = b.absorb.y0 + (b.absorb.eater.y - b.absorb.y0) * p;
       b.scale = Math.max(0.05, 1 - p);
@@ -9730,36 +9812,41 @@ function initAuthBubbles(){
         const d = Math.hypot(dx, dy), R = 80 + b.r;
         if(d < R && d > 0.5){ const a2 = (1 - d/R) * 260; b.vx += dx/d*a2*dt; b.vy += dy/d*a2*dt; }
       }
-      if(!b.scripted){ // dostředivý tah úměrný poloměru — velké nekempují u krajů.
-        // Tah jen k OSE nejbližšího pruhu, kam se bublina vejde (podél pruhu je
-        // volná — tah k bodu by hejno shlukl a tlačil sousedy na zeď).
-        let an = null, ad = Infinity;
-        anchors.forEach(a=>{
-          if(a.fit < 2*b.r + 10) return;
-          const d = Math.hypot(a.x - b.x, a.y - b.y);
-          if(d < ad){ ad = d; an = a; }
-        });
-        if(!an) anchors.forEach(a=>{ if(!an || a.fit > an.fit) an = a; });
+      if(b.roamT > 0){
+        b.roamT -= dt;
+        if(b.roamTgt){ // navádění poutníka — srážky cestou ho jinak vychýlí
+          const dxr = b.roamTgt.x - b.x, dyr = b.roamTgt.y - b.y, dr = Math.hypot(dxr, dyr);
+          if(dr < 40 || b.roamT <= 0) b.roamTgt = null;
+          else steer(b, b.roamTgt.x, b.roamTgt.y, 60, dt);
+        }
+      }
+      if(!b.scripted){ // dostředivý tah k orbitálnímu pásmu okolo login karty:
+        // velké a střední krouží poblíž středu, ale nelezou pod kartu (ta
+        // zůstává kolizní zónou); tah úměrný poloměru, u zdi zesílí
+        const o = obstacles[0];
+        const px = o ? Math.max(o.x, Math.min(b.x, o.x + o.w)) : W/2;
+        const py = o ? Math.max(o.y, Math.min(b.y, o.y + o.h)) : H/2;
+        const dx = b.x - px, dy = b.y - py, d = Math.hypot(dx, dy) || 1;
         const nearWall = b.x < b.r + 10 || b.x > W - b.r - 10 || b.y < b.r + 10 || b.y > H - b.r - 10;
         const pull = b.r * 0.14 * (nearWall ? 2.5 : 1);
-        if(an.axis !== 'y') b.vx += Math.sign(an.x - b.x) * pull * dt;
-        if(an.axis !== 'x') b.vy += Math.sign(an.y - b.y) * pull * dt;
+        const em = Math.max(16, orbMin - b.r); // velká bublina smí být středem blíž (úzké pruhy)
+        if(d > orbMax && b.roamT <= 0){ b.vx -= dx/d * pull * dt; b.vy -= dy/d * pull * dt; } // dovnitř k prstenci
+        else if(d < em && !nearWall){ b.vx += dx/d * pull * dt; b.vy += dy/d * pull * dt; }   // ven od karty
         // odlepení: kdo je u zdi > 1,2 s vkuse (zaklíněný davem/rohem), dostane
-        // ráz ke středu pruhu a chvíli bez tlumení, ať se opravdu odlepí
+        // ráz kolmo od zdi s náhodnou tečnou složkou a chvíli bez tlumení
         b.edgeT = nearWall ? b.edgeT + dt : 0;
+        if(!nearWall) b.edgeKick = 0;
         if(b.edgeT > 1.2){
-          // ráz kolmo od zdí, u kterých bublina opravdu je; slabší složka k ose
-          // pruhu, ať neletí rovnou do karty
           let ex = 0, ey = 0;
           if(b.x < b.r + 10) ex = 1; else if(b.x > W - b.r - 10) ex = -1;
           if(b.y < b.r + 10) ey = 1; else if(b.y > H - b.r - 10) ey = -1;
-          if(!ex && an.axis !== 'y') ex = Math.sign(an.x - b.x) * 0.4;
-          if(!ey && an.axis !== 'x') ey = Math.sign(an.y - b.y) * 0.4;
           if(!ex) ex = rnd(-0.6, 0.6); // tečná náhoda — opakovaný pokus obejde souseda
           if(!ey) ey = rnd(-0.6, 0.6);
-          const d = Math.hypot(ex, ey) || 1;
-          const v = Math.max(130, b.base * 1.5);
-          b.vx = ex/d * v; b.vy = ey/d * v;
+          const ed = Math.hypot(ex, ey) || 1;
+          // chronicky zaklíněná (hustý dav na malém displeji) kope čím dál silněji
+          b.edgeKick = Math.min(4, (b.edgeKick || 0) + 1);
+          const v = Math.min(300, Math.max(130, b.base * 1.5) + 55 * (b.edgeKick - 1));
+          b.vx = ex/ed * v; b.vy = ey/ed * v;
           b.cruiseUntil = Math.max(b.cruiseUntil, simT + 1.2);
           b.edgeT = 0;
         }
@@ -9810,34 +9897,28 @@ function initAuthBubbles(){
       });
     });
 
-    // kolize bublin mezi sebou — nejdřív pohlcení/rozdělení, jinak elastický odraz
-    for(let i=0; i<bubbles.length; i++){
-      for(let j=i+1; j<bubbles.length; j++){
-        const a = bubbles[i], c = bubbles[j];
-        if(a.absorb || c.absorb) continue;
-        const dx = c.x - a.x, dy = c.y - a.y;
-        const d = Math.hypot(dx, dy), minD = a.r + c.r;
-        if(d >= minD || d < 0.0001) continue;
-        if(useRoles && (tryConsume(a, c) || trySplit(a, c))) continue;
-        const nx = dx/d, ny = dy/d;
-        const overlap = minD - d;
-        const ia = a.dragging ? 0 : 1/a.m, ic = c.dragging ? 0 : 1/c.m;
-        const isum = ia + ic || 1;
-        a.x -= nx * overlap * (ia/isum); a.y -= ny * overlap * (ia/isum);
-        c.x += nx * overlap * (ic/isum); c.y += ny * overlap * (ic/isum);
-        const rel = (c.vx - a.vx)*nx + (c.vy - a.vy)*ny;
-        if(rel < 0){
-          const e = 0.92; // téměř elastické, drobná ztráta
-          const jImp = -(1 + e) * rel / isum;
-          if(!a.dragging){ a.vx -= jImp * nx * ia; a.vy -= jImp * ny * ia; }
-          if(!c.dragging){ c.vx += jImp * nx * ic; c.vy += jImp * ny * ic; }
-          const s = Math.min(1, Math.abs(rel)/220);
-          bump(a, nx, ny, s); bump(c, nx, ny, s);
-          stats.hits++;
-          if(a.scripted && c.scripted){ a.scripted = c.scripted = false; noteEvent('collision'); } // choreografická srážka
-        }
+    // kolize bublin mezi sebou — spatial grid (buňky ~150 px > 2×max poloměr,
+    // sousedství 3×3 tedy pokryje každý možný kontakt); každý pár právě jednou
+    const CS = 150;
+    const cols = Math.max(1, Math.ceil(W / CS)), rows = Math.max(1, Math.ceil(H / CS));
+    const cells = new Map();
+    bubbles.forEach(b=>{
+      if(b.absorb) return;
+      const k = Math.min(cols-1, Math.max(0, Math.floor(b.x/CS))) + Math.min(rows-1, Math.max(0, Math.floor(b.y/CS)))*cols;
+      const arr = cells.get(k);
+      if(arr) arr.push(b); else cells.set(k, [b]);
+    });
+    cells.forEach((list, k)=>{
+      const cx = k % cols, cy = (k - cx) / cols;
+      for(let i=0; i<list.length; i++)
+        for(let j=i+1; j<list.length; j++) collidePair(list[i], list[j]);
+      for(const [ox, oy] of [[1,0],[-1,1],[0,1],[1,1]]){ // jen „dopředné" sousedy
+        const nx2 = cx + ox, ny2 = cy + oy;
+        if(nx2 < 0 || nx2 >= cols || ny2 >= rows) continue;
+        const other = cells.get(nx2 + ny2*cols);
+        if(other) list.forEach(a=> other.forEach(c=> collidePair(a, c)));
       }
-    }
+    });
 
     // pojistka: separace kolizí / vytlačení z karty nesmí nechat bublinu mimo viewport
     bubbles.forEach(b=>{
@@ -9847,6 +9928,64 @@ function initAuthBubbles(){
       }
       render(b);
     });
+  }
+
+  // srážka páru: nejdřív pohlcení/rozdělení/sloučení, jinak elastický odraz
+  function collidePair(a, c){
+    if(a.absorb || c.absorb) return;
+    const dx = c.x - a.x, dy = c.y - a.y;
+    const d = Math.hypot(dx, dy), minD = a.r + c.r;
+    if(d >= minD || d < 0.0001) return;
+    if(useRoles && (tryConsume(a, c) || trySplit(a, c))) return;
+    const nx = dx/d, ny = dy/d;
+    const overlap = minD - d;
+    const ia = a.dragging ? 0 : 1/a.m, ic = c.dragging ? 0 : 1/c.m;
+    const isum = ia + ic || 1;
+    a.x -= nx * overlap * (ia/isum); a.y -= ny * overlap * (ia/isum);
+    c.x += nx * overlap * (ic/isum); c.y += ny * overlap * (ic/isum);
+    const rel = (c.vx - a.vx)*nx + (c.vy - a.vy)*ny;
+    if(rel < 0){
+      if(useRoles && tryMerge(a, c, nx, ny)) return; // občas slití místo odrazu
+      const e = 0.92; // téměř elastické, drobná ztráta
+      const jImp = -(1 + e) * rel / isum;
+      if(!a.dragging){ a.vx -= jImp * nx * ia; a.vy -= jImp * ny * ia; }
+      if(!c.dragging){ c.vx += jImp * nx * ic; c.vy += jImp * ny * ic; }
+      const s = Math.min(1, Math.abs(rel)/220);
+      bump(a, nx, ny, s); bump(c, nx, ny, s);
+      stats.hits++;
+      if(a.scripted && c.scripted){ a.scripted = c.scripted = false; noteEvent('collision'); } // choreografická srážka
+    }
+  }
+
+  // slučování obyčejných bublin (v0.8.4): malá šance při kontaktu místo odrazu;
+  // plocha se sčítá, menší se plynule slije do větší (~350 ms) + „želé" wobble.
+  // Pojistky: výsledek max 60 % stropu, cooldown bubliny 10 s, globální rozestup
+  // slučování, pauza při nízké populaci (ať matky stíhají dorovnávat). Velké
+  // slitky = potrava požíračů a práce děličů — cyklus se uzavírá.
+  function tryMerge(a, c, nx, ny){
+    if(mergeGlobalCd > 0) return false;
+    if(a.role || c.role || a.dart || c.dart) return false;
+    if(a.dragging || c.dragging || a.scripted || c.scripted) return false;
+    if(a.banT > 0 || c.banT > 0 || a.mergeCd > 0 || c.mergeCd > 0) return false;
+    if(a.born > 0 || c.born > 0) return false;
+    if(alive() <= MIN_POP + 0.4*(popCap - MIN_POP)) return false; // pod 40 % rozsahu se neslučuje
+    const sur = a.r >= c.r ? a : c, vic = sur === a ? c : a;
+    const cur = Math.max(sur.r, sur.rTarget);
+    const nr = Math.sqrt(cur*cur + vic.r*vic.r); // plocha se sčítá
+    if(nr > capR * 0.6) return false; // moc velký slitek — jen odraz
+    if(Math.random() > 0.08){ // neúspěšný los: chvíli znovu nelosovat, jen odraz
+      a.mergeCd = Math.max(a.mergeCd, 2); c.mergeCd = Math.max(c.mergeCd, 2);
+      return false;
+    }
+    sur.rTarget = nr;
+    sur.mergeCd = 10; // tatáž bublina znovu nejdřív za 10 s
+    mergeGlobalCd = rnd(5, 9);
+    vic.absorb = { t: 0, x0: vic.x, y0: vic.y, eater: sur, dur: 0.35 }; // plynulé slití
+    vic.el.style.pointerEvents = 'none';
+    bubbles.forEach(h=>{ if(h.tgt === vic) releaseTgt(h); });
+    bump(sur, nx, ny, 0.7); // krátký „želé" wobble výsledku
+    stats.merges++; noteEvent('merge', sur.id);
+    return true;
   }
 
   function attachDrag(b){
