@@ -1137,7 +1137,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
       <button class="btn-ghost" id="emp-settings-btn" onclick="openEmployeeSettings()" style="display:none"><span data-icon="set_profil">👤</span> Profil</button>
       <button class="btn-ghost" id="admin-settings-btn" onclick="openEmployeeSettings()" style="display:none"><span data-icon="set_profil">👤</span> Profil</button>
       <span id="org-code-badge" style="display:none;font-family:var(--font-mono);font-size:12px;font-weight:700;letter-spacing:1.5px;background:var(--paper);border:1.5px solid var(--line);padding:4px 10px;border-radius:6px;color:var(--ink-soft)" title="Kód firmy"></span>
-      <span id="app-version-label" title="Verze aplikace" onclick="handleVersionClick()" style="font-size:10px;color:var(--ink-faint);font-family:var(--font-mono);padding:0 4px;user-select:none;cursor:pointer">v0.8.7</span>
+      <span id="app-version-label" title="Verze aplikace" onclick="handleVersionClick()" style="font-size:10px;color:var(--ink-faint);font-family:var(--font-mono);padding:0 4px;user-select:none;cursor:pointer">v0.8.8</span>
       <button class="btn-ghost" onclick="openSearch()" title="Vyhledat (Ctrl+K)" style="padding:6px 10px;font-size:14px"><span data-icon="btn_hledat">🔍</span></button>
       <button class="btn-ghost" onclick="openHelpCenter()" title="Nápověda" style="padding:6px 10px;font-size:14px"><span data-icon="btn_napoveda">❓</span></button>
       <button class="btn-ghost" id="notif-btn" onclick="toggleNotifPanel()" title="Notifikace" style="position:relative;padding:6px 10px;font-size:16px;display:none;align-items:center;justify-content:center">
@@ -9165,7 +9165,7 @@ document.getElementById('onboard-org-name').addEventListener('keydown', e=>{ if(
 // INIT: check existing session on page load
 // ============================================================
 // ════════════════════════════════════════════════════════════
-// ÚVODNÍ BUBLINKY (v0.8.7) — „bublinkový ekosystém" bez knihovny.
+// ÚVODNÍ BUBLINKY (v0.8.8) — „bublinkový ekosystém" bez knihovny.
 // Skleněné kuličky v syté smaragdové paletě (větší = tmavší, plná výplň,
 // odlesk, měkký stín — žádný blur). Populace 32–85 (start ~45), absolutní
 // strop poloměru 64 px. Kolize přes spatial grid (~150px buňky). Vážený
@@ -9176,7 +9176,8 @@ document.getElementById('onboard-org-name').addEventListener('keydown', e=>{ if(
 // započatých 12; loví menší civilní bubliny, nad ~48 px neloví, dokud je
 // dělič nezmenší; plocha se při pohlcení sčítá; po rozdělení 15 s zákaz
 // požírání — pohaslý prstenec, únik a vyhýbání děliči), děliči (1 na
-// započatých 10; v0.8.7: dělí VÝHRADNĚ požírače nad prahem ~36 px — s každou
+// započatých 10; v0.8.7: dělí VÝHRADNĚ požírače nad prahem (v0.8.8: 80 %
+// sytostní hranice huntMax, desktop ~38 px) — s každou
 // jinou bublinou jen elastický odraz; dělí i mimochodný kontakt, bez
 // cooldownu; plocha se zachová, role přechází na větší polovinu; na
 // rozděleného se vrací až po 15s ochraně; bez platného cíle volně pluje
@@ -9231,7 +9232,7 @@ function initAuthBubbles(){
   let capR = ABS_CAP;    // efektivní strop poloměru (menší na stísněných displejích)
   let sizeK = 1;         // měřítko hejna = capR/64 — na mobilu vše úměrně menší
   let huntMax = 48;      // nad tímto poloměrem požírač neloví, dokud ho dělič nezmenší
-  let splitMinR = 36;    // dělič dělí požírače nad tímto poloměrem (v0.8.7: jen požírače)
+  let splitMinR = 38;    // práh dělení požírače = 80 % sytostní hranice huntMax (v0.8.8)
   let fryR = 20;         // hranice „drobotiny" pro regulaci populace
   let popCap = MAX_POP;  // efektivní max populace podle volné plochy
   let pending = [];      // naplánovaná zrození vstupní sekvence
@@ -9350,8 +9351,8 @@ function initAuthBubbles(){
     obstacles.forEach(o=>{ fitR = Math.min(fitR, Math.max(o.y, H - o.y - o.h, o.x, W - o.x - o.w) / 2 - 6); });
     capR = Math.round(Math.max(14, Math.min(ABS_CAP, fitR * 0.6))); // pohodlně se vejít do pruhu
     sizeK = capR / ABS_CAP; // celé hejno škáluje se stropem
-    huntMax = capR * 0.75;  // desktop: 48
-    splitMinR = capR * 0.56; // desktop: ~36
+    huntMax = capR * 0.75;  // sytostní hranice — nad ní požírač aktivně neloví; desktop: 48
+    splitMinR = huntMax * 0.8; // práh dělení = 80 % sytostní hranice (v0.8.8) — dělič zasáhne těsně před zpasivněním požírače; desktop: ~38
     fryR = Math.max(8, 20 * sizeK);
     // orbitální pásmo dostředivého tahu: ~150–350 px od okraje karty, na
     // stísněných displejích úměrně užší, ať se vejde do pruhu
@@ -9728,7 +9729,12 @@ function initAuthBubbles(){
           releaseTgt(b);
           return;
         }
-        if(lowPop) b.satiety = Math.max(b.satiety, 4); // u minima pár sekund neloví
+        // pojistka minima až na tvrdém dně (v0.8.8): dřívější zámek sytosti už
+        // od MIN_POP+2 požírače na stísněných displejích (chronicky nízká
+        // populace) trvale vyhladověl — nerostl, nikdy nepřekročil práh dělení
+        // a děliči „nedělili". Tvrdé dno hlídá tryConsume; zámek tady navíc dá
+        // pár sekund hysterezi po zotavení populace ze dna.
+        if(n <= MIN_POP) b.satiety = Math.max(b.satiety, 4);
         b.satiety = Math.max(0, b.satiety - dt);
         if(n <= MIN_POP){ releaseTgt(b); return; }
         // v kultivaci sytost ani práh velikosti neplatí (strop capR dál platí
