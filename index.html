@@ -909,7 +909,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
      AUTH SCREEN
      ============================================================ -->
 <div class="auth-shell" id="auth-shell" style="display:none">
-  <!-- v0.8.5: bublinkový ekosystém s 2D fyzikou (odraz, kolize, drag & throw, role, choreografie, slučování, přetlakový ventil) — plní je initAuthBubbles() -->
+  <!-- v0.8.6: bublinkový ekosystém s 2D fyzikou (odraz, kolize, drag & throw, role, choreografie, slučování, přetlakový ventil, tvrdý rychlostní strop) — plní je initAuthBubbles() -->
   <div class="auth-ring" id="auth-ring" aria-hidden="true"></div>
 
   <div class="auth-card">
@@ -1137,7 +1137,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
       <button class="btn-ghost" id="emp-settings-btn" onclick="openEmployeeSettings()" style="display:none"><span data-icon="set_profil">👤</span> Profil</button>
       <button class="btn-ghost" id="admin-settings-btn" onclick="openEmployeeSettings()" style="display:none"><span data-icon="set_profil">👤</span> Profil</button>
       <span id="org-code-badge" style="display:none;font-family:var(--font-mono);font-size:12px;font-weight:700;letter-spacing:1.5px;background:var(--paper);border:1.5px solid var(--line);padding:4px 10px;border-radius:6px;color:var(--ink-soft)" title="Kód firmy"></span>
-      <span id="app-version-label" title="Verze aplikace" onclick="handleVersionClick()" style="font-size:10px;color:var(--ink-faint);font-family:var(--font-mono);padding:0 4px;user-select:none;cursor:pointer">v0.8.5</span>
+      <span id="app-version-label" title="Verze aplikace" onclick="handleVersionClick()" style="font-size:10px;color:var(--ink-faint);font-family:var(--font-mono);padding:0 4px;user-select:none;cursor:pointer">v0.8.6</span>
       <button class="btn-ghost" onclick="openSearch()" title="Vyhledat (Ctrl+K)" style="padding:6px 10px;font-size:14px"><span data-icon="btn_hledat">🔍</span></button>
       <button class="btn-ghost" onclick="openHelpCenter()" title="Nápověda" style="padding:6px 10px;font-size:14px"><span data-icon="btn_napoveda">❓</span></button>
       <button class="btn-ghost" id="notif-btn" onclick="toggleNotifPanel()" title="Notifikace" style="position:relative;padding:6px 10px;font-size:16px;display:none;align-items:center;justify-content:center">
@@ -9165,7 +9165,7 @@ document.getElementById('onboard-org-name').addEventListener('keydown', e=>{ if(
 // INIT: check existing session on page load
 // ============================================================
 // ════════════════════════════════════════════════════════════
-// ÚVODNÍ BUBLINKY (v0.8.5) — „bublinkový ekosystém" bez knihovny.
+// ÚVODNÍ BUBLINKY (v0.8.6) — „bublinkový ekosystém" bez knihovny.
 // Skleněné kuličky v syté smaragdové paletě (větší = tmavší, plná výplň,
 // odlesk, měkký stín — žádný blur). Populace 32–85 (start ~45), absolutní
 // strop poloměru 64 px. Kolize přes spatial grid (~150px buňky). Vážený
@@ -9179,7 +9179,7 @@ document.getElementById('onboard-org-name').addEventListener('keydown', e=>{ if(
 // započatých 10; dělí KAŽDOU bublinu nad prahem ~36 px, do které narazí —
 // i mimochodem, bez cooldownu dělení (v0.8.5); plocha se zachová, role
 // přechází na větší polovinu; na rozděleného požírače se vrací až po
-// 15s ochraně; když cíl nedohání > 10 s, boost ×2 na max 5 s), 2 matky
+// 15s ochraně; když cíl nedohání > 10 s, boost ×BOOST na max 5 s), 2 matky
 // (dýchají ±4 %, rodí každá po svém intervalu 6–10 s). Lock cílů (dva
 // lovci nikdy na jednom cíli), sytost u minima populace, regulace
 // drobotiny (> 60 % pod 20 px → matky pauza, požírači berou nejmenší).
@@ -9194,6 +9194,10 @@ document.getElementById('onboard-org-name').addEventListener('keydown', e=>{ if(
 // porod / hon děliče), žádná dvakrát po sobě, min. 1× za ~22 s.
 // Interakce: drag & throw pro všechny, kurzor odpuzuje (~80 px brázda),
 // klik/tap do prázdna = nová bublina, dvojklik na civilní = prasknutí.
+// Rychlostní strop (v0.8.6): VMAX tvrdě ořezáván po každém kroku fyziky
+// (odrazy, impulzy dělení, únik požírače, boosty); hozená bublina má ~1 s
+// milost do VTHROW; šipky/komety/boosty škálovány ×0.75, ať zůstanou
+// relativně rychlejší, ale pod stropem.
 // requestAnimationFrame; pauza při skrytém tabu / po přihlášení;
 // prefers-reduced-motion → statické bubliny bez rolí a událostí.
 // Testovací háček: initAuthBubbles._debug (spawn/step/bubbles/stats).
@@ -9213,6 +9217,10 @@ function initAuthBubbles(){
   const MIN_POP = 32, MAX_POP = 85; // tvrdé meze populace (v0.8.5: vyšší strop, brzdí přetlakový ventil)
   const ABS_CAP = 64;               // absolutní strop poloměru — pro všechny vč. požírače
   const EAT_BAN = 15;               // fair-play: zákaz požírání po rozdělení požírače (s)
+  const VMAX = 225;                 // globální rychlostní strop (v0.8.6: −25 % z dřívějších ~300),
+                                    // tvrdě ořezáván po každém kroku fyziky
+  const VTHROW = 675;               // strop hodu myší (−25 % z 900) — ~1 s po puštění smí nad VMAX
+  const BOOST = 1.5;                // boost honu (dělič/požírač/intro) — v0.8.6: ×0.75 z 2, proporčně s VMAX
   const bubbles = [];
   const stats = { births: 0, eats: 0, splits: 0, merges: 0, comets: 0, pops: 0, hits: 0, cults: 0, culls: 0, splitViols: 0, eventTimes: [] };
   let W = 0, H = 0, spawned = false;
@@ -9280,6 +9288,7 @@ function initAuthBubbles(){
       dragging: false, hist: [],
       absorb: null,        // probíhající vcucnutí požíračem: {t, x0, y0, eater}
       born: 0, bornAt: simT,
+      freeUntil: 0,        // milost hodu: do tohoto času smí rychlost nad VMAX (max VTHROW)
       satiety: 0, cool: 0, birthIn: 0, rTarget: 0, banT: 0, mergeCd: 0, id: ++uid,
       tgt: null, lock: null, chaseT: 0, boostT: 0, cruiseUntil: 0,
       scripted: false,     // choreografická bublina — nesahat fyzikálními regulacemi
@@ -9360,7 +9369,7 @@ function initAuthBubbles(){
       plan.push({ r: Math.max(8, rnd(22,30)*sizeK), base: rnd(12,18), role: 'mother' });
     }
     for(let i = 0, n = 1 + (Math.random()<0.5 ? 1 : 0); i<n; i++) plan.push({ r: Math.max(10, rnd(48,60)*sizeK), base: rnd(9,14) }); // velké, pomalé
-    for(let i = 0, n = 1 + (Math.random()<0.5 ? 1 : 0); i<n; i++) plan.push({ r: Math.min(rnd(13,17), Math.max(8, capR*0.5)), base: rnd(50,62), dart: true }); // „šipky" ~2.5×
+    for(let i = 0, n = 1 + (Math.random()<0.5 ? 1 : 0); i<n; i++) plan.push({ r: Math.min(rnd(13,17), Math.max(8, capR*0.5)), base: rnd(38,47), dart: true }); // „šipky" ~2× (v0.8.6: ×0.75, proporčně s VMAX)
     for(let i = plan.length, n = Math.min(popCap - 2, 44 + Math.floor(Math.random()*3)); i<n; i++)
       plan.push(Math.random() < 0.7 ? { r: Math.max(7, rnd(13,30)*sizeK), base: rnd(14,30) } : { r: Math.max(8, rnd(28,44)*sizeK), base: rnd(13,24) });
 
@@ -9563,7 +9572,7 @@ function initAuthBubbles(){
     const x = Math.max(r, Math.min(W - r, mother.x + Math.cos(ang)*(mother.r + r + 1)));
     const y = Math.max(r, Math.min(H - r, mother.y + Math.sin(ang)*(mother.r + r + 1)));
     const needDart = !bubbles.some(o=> o.dart && !o.absorb); // vždy aspoň jedna „šipka"
-    const b = makeBubble(r, x, y, needDart ? rnd(50,62) : rnd(14,30));
+    const b = makeBubble(r, x, y, needDart ? rnd(38,47) : rnd(14,30));
     b.dart = needDart;
     b.vx = Math.cos(ang) * Math.max(60, b.base); b.vy = Math.sin(ang) * Math.max(60, b.base);
     b.born = 0.5; b.scale = 0;
@@ -9725,11 +9734,11 @@ function initAuthBubbles(){
         b.satiety = Math.max(0, b.satiety - dt);
         if(n <= MIN_POP){ releaseTgt(b); return; }
         // v kultivaci sytost ani práh velikosti neplatí (strop capR dál platí
-        // v tryConsume) a loví se svižně (×2) — ventil musí populaci srazit
+        // v tryConsume) a loví se svižně (×BOOST) — ventil musí populaci srazit
         if(culling) b.boostT = Math.max(b.boostT, 0.2);
         if(!culling && (b.satiety > 0 || b.r >= huntMax)){ releaseTgt(b); return; } // přerostlý čeká na děliče
         if(!validPrey(b, b.tgt)) retargetEater(b, fryHeavy);
-        if(b.tgt) steer(b, b.tgt.x, b.tgt.y, (culling ? 60 : 46) * (b.boostT > 0 ? 2 : 1), dt);
+        if(b.tgt) steer(b, b.tgt.x, b.tgt.y, (culling ? 60 : 46) * (b.boostT > 0 ? BOOST : 1), dt);
       } else if(b.role === 'splitter'){
         if(b.dragging) return;
         b.cool = Math.max(0, b.cool - dt); // v0.8.5: děliči pracují vždy — žádný odpočinek u stropu populace
@@ -9741,14 +9750,14 @@ function initAuthBubbles(){
         if(!validSplitTgt(b, b.tgt)){ retargetSplitter(b); b.chaseT = 0; }
         if(b.tgt){
           b.chaseT += dt;
-          if(b.chaseT > 10 && b.boostT <= 0){ b.boostT = 5; b.chaseT = 0; } // nedohání → ×2 na max 5 s
-          steer(b, b.tgt.x, b.tgt.y, 40 * (b.boostT > 0 ? 2 : 1), dt);
+          if(b.chaseT > 10 && b.boostT <= 0){ b.boostT = 5; b.chaseT = 0; } // nedohání → ×BOOST na max 5 s
+          steer(b, b.tgt.x, b.tgt.y, 40 * (b.boostT > 0 ? BOOST : 1), dt);
         }
       } else if(b.role === 'mother'){
         if(b.born <= 0) b.scale = 1 + 0.04*Math.sin(simT*1.3 + b.phase); // dýchání ±4 %
         if(b.dragging) return;
         if(culling){ // kultivace: nerodí, loví nejmenší drobotinu (pohlcení řeší tryCultivate)
-          b.boostT = Math.max(b.boostT, 0.2); // svižnější tempo (×2) — jinak drobotinu nedožene
+          b.boostT = Math.max(b.boostT, 0.2); // svižnější tempo (×BOOST) — jinak drobotinu nedožene
           if(!validCultTgt(b, b.tgt)) retargetMother(b);
           if(b.tgt) steer(b, b.tgt.x, b.tgt.y, 75, dt);
           return;
@@ -9805,12 +9814,12 @@ function initAuthBubbles(){
           y = st.y + rnd(-1,1)*(st.fit/2 - r - 8);
         } else y = rnd(H*0.15, H*0.85);
         const b = makeBubble(r, fromLeft ? r + 2 : W - r - 2, y, rnd(16,26));
-        b.vx = (fromLeft ? 1 : -1) * rnd(230,280); b.vy = rnd(-20,20);
+        b.vx = (fromLeft ? 1 : -1) * rnd(172,210); b.vy = rnd(-20,20); // v0.8.6: ×0.75, pod VMAX
         b.cruiseUntil = simT + 4; // pár sekund bez tlumení, pak se zklidní
         b.born = 0.3; b.scale = 0;
       } else { // u stropu populace: kometou se stane nejmenší civilní bublina
         let s = null; bubbles.forEach(b=>{ if(!b.role && !b.absorb && !b.dragging && (!s || b.r < s.r)) s = b; });
-        if(s){ const a2 = Math.random()*Math.PI*2; s.vx = Math.cos(a2)*260; s.vy = Math.sin(a2)*260; s.cruiseUntil = simT + 3; }
+        if(s){ const a2 = Math.random()*Math.PI*2; s.vx = Math.cos(a2)*195; s.vy = Math.sin(a2)*195; s.cruiseUntil = simT + 3; }
       }
       stats.comets++; noteEvent('comet');
     } else if(ev === 'pop'){ // tiché prasknutí nejstarší drobné bubliny
@@ -9934,15 +9943,15 @@ function initAuthBubbles(){
           const ed = Math.hypot(ex, ey) || 1;
           // chronicky zaklíněná (hustý dav na malém displeji) kope čím dál silněji
           b.edgeKick = Math.min(4, (b.edgeKick || 0) + 1);
-          const v = Math.min(300, Math.max(130, b.base * 1.5) + 55 * (b.edgeKick - 1));
+          const v = Math.min(VMAX, Math.max(130, b.base * 1.5) + 55 * (b.edgeKick - 1));
           b.vx = ex/ed * v; b.vy = ey/ed * v;
           b.cruiseUntil = Math.max(b.cruiseUntil, simT + 1.2);
           b.edgeT = 0;
         }
       }
-      if(!b.scripted && simT >= b.cruiseUntil){ // tlumení k základnímu tempu (boost děliče ×2)
+      if(!b.scripted && simT >= b.cruiseUntil){ // tlumení k základnímu tempu (boost honu ×BOOST)
         // matka v kultivaci ještě ×1.8 navrch — jinak jí drobotina utíká
-        const eff = b.base * (b.boostT > 0 ? 2 : 1) * (culling && b.role === 'mother' ? 1.8 : 1);
+        const eff = b.base * (b.boostT > 0 ? BOOST : 1) * (culling && b.role === 'mother' ? 1.8 : 1);
         const sp = Math.hypot(b.vx, b.vy);
         if(sp > eff * 1.1){
           const target = Math.max(eff, sp * Math.pow(0.45, dt));
@@ -10015,6 +10024,12 @@ function initAuthBubbles(){
       if(!b.absorb){
         if(b.x < b.r) b.x = b.r; else if(b.x > W - b.r) b.x = W - b.r;
         if(b.y < b.r) b.y = b.r; else if(b.y > H - b.r) b.y = H - b.r;
+        // tvrdý rychlostní strop (v0.8.6): ořez PO všem — odrazech, impulzech
+        // z dělení, úniku požírače, boostech i kolizích. Jediná výjimka:
+        // čerstvě hozená bublina má ~1 s milost (freeUntil), i tak max VTHROW.
+        const vcap = simT < b.freeUntil ? VTHROW : VMAX;
+        const sp = Math.hypot(b.vx, b.vy);
+        if(sp > vcap){ b.vx *= vcap/sp; b.vy *= vcap/sp; }
       }
       render(b);
     });
@@ -10114,16 +10129,17 @@ function initAuthBubbles(){
       };
       const onUp = ()=>{
         b.dragging = false;
-        // hod: rychlost z posledních ~100 ms pohybu, se stropem
+        // hod: rychlost z posledních ~100 ms pohybu, se stropem VTHROW;
+        // ~1 s milost nad VMAX (freeUntil), pak hozenou ořízne globální strop
         const now = performance.now();
         const recent = b.hist.filter(h=>now - h.t < 120);
         if(recent.length >= 2){
           const first = recent[0], last = recent[recent.length-1];
           const dt = (last.t - first.t)/1000;
           if(dt > 0.005){
-            const MAXV = 900;
-            b.vx = Math.max(-MAXV, Math.min(MAXV, (last.x - first.x)/dt));
-            b.vy = Math.max(-MAXV, Math.min(MAXV, (last.y - first.y)/dt));
+            b.vx = Math.max(-VTHROW, Math.min(VTHROW, (last.x - first.x)/dt));
+            b.vy = Math.max(-VTHROW, Math.min(VTHROW, (last.y - first.y)/dt));
+            b.freeUntil = simT + 1;
           }
         }
         b.el.removeEventListener('pointermove', onMove);
@@ -10187,7 +10203,7 @@ function initAuthBubbles(){
     get capR(){ return capR; }, get huntMax(){ return huntMax; }, get splitMinR(){ return splitMinR; },
     get sizeK(){ return sizeK; }, get fryR(){ return fryR; },
     get popCap(){ return popCap; }, get W(){ return W; }, get H(){ return H; },
-    get culling(){ return culling; },
+    get culling(){ return culling; }, VMAX, VTHROW,
   };
   schedule();
 }
