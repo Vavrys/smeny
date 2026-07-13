@@ -909,7 +909,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
      AUTH SCREEN
      ============================================================ -->
 <div class="auth-shell" id="auth-shell" style="display:none">
-  <!-- v0.8.9: bublinkový ekosystém s 2D fyzikou (odraz, kolize, drag & throw, role, choreografie, slučování, přetlakový ventil, tvrdý rychlostní strop; dělič dělí požírače i velké civilní bubliny) — plní je initAuthBubbles() -->
+  <!-- v0.9.0: bublinkový ekosystém s 2D fyzikou (odraz, kolize, drag & throw, role, choreografie, slučování, přetlakový ventil, tvrdý rychlostní strop; dělič dělí požírače i velké civilní bubliny; populace podle hustoty na volnou plochu, mobilní ambientní režim) — plní je initAuthBubbles() -->
   <div class="auth-ring" id="auth-ring" aria-hidden="true"></div>
 
   <div class="auth-card">
@@ -1137,7 +1137,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
       <button class="btn-ghost" id="emp-settings-btn" onclick="openEmployeeSettings()" style="display:none"><span data-icon="set_profil">👤</span> Profil</button>
       <button class="btn-ghost" id="admin-settings-btn" onclick="openEmployeeSettings()" style="display:none"><span data-icon="set_profil">👤</span> Profil</button>
       <span id="org-code-badge" style="display:none;font-family:var(--font-mono);font-size:12px;font-weight:700;letter-spacing:1.5px;background:var(--paper);border:1.5px solid var(--line);padding:4px 10px;border-radius:6px;color:var(--ink-soft)" title="Kód firmy"></span>
-      <span id="app-version-label" title="Verze aplikace" onclick="handleVersionClick()" style="font-size:10px;color:var(--ink-faint);font-family:var(--font-mono);padding:0 4px;user-select:none;cursor:pointer">v0.8.9</span>
+      <span id="app-version-label" title="Verze aplikace" onclick="handleVersionClick()" style="font-size:10px;color:var(--ink-faint);font-family:var(--font-mono);padding:0 4px;user-select:none;cursor:pointer">v0.9.0</span>
       <button class="btn-ghost" onclick="openSearch()" title="Vyhledat (Ctrl+K)" style="padding:6px 10px;font-size:14px"><span data-icon="btn_hledat">🔍</span></button>
       <button class="btn-ghost" onclick="openHelpCenter()" title="Nápověda" style="padding:6px 10px;font-size:14px"><span data-icon="btn_napoveda">❓</span></button>
       <button class="btn-ghost" id="notif-btn" onclick="toggleNotifPanel()" title="Notifikace" style="position:relative;padding:6px 10px;font-size:16px;display:none;align-items:center;justify-content:center">
@@ -9165,11 +9165,24 @@ document.getElementById('onboard-org-name').addEventListener('keydown', e=>{ if(
 // INIT: check existing session on page load
 // ============================================================
 // ════════════════════════════════════════════════════════════
-// ÚVODNÍ BUBLINKY (v0.8.9) — „bublinkový ekosystém" bez knihovny.
+// ÚVODNÍ BUBLINKY (v0.9.0) — „bublinkový ekosystém" bez knihovny.
+// v0.9.0: RESPONZIVITA — populační meze a start se odvozují z hustoty na
+// megapixel VOLNÉ plochy (viewport minus login karta), kalibrováno na FHD:
+// min 32, max 85, start ~45; počet matek 1 na započatý ~0,93 MP (FHD: 2),
+// interval porodů normalizovaný na plochu (birthK). Strop velikosti navíc
+// ≤ 7 % kratší strany viewportu. MOBILNÍ REŽIM (šířka < 768 px nebo
+// touch-only s malou plochou): ekosystém vypnut — žádné role, události,
+// plánovač ani kolize; jen 10–14 ambientních bublin ≤ ~28 px s pomalým
+// driftem, jemným vztlakem a odrazem od okrajů, plavou i pod login kartou
+// (bez kolizní zóny, z-index pod kartou); tap = jemné odpláchnutí od místa
+// dotyku (žádný spawn/praskání); ~30 fps přeskakováním rAF snímků.
+// Přepínání režimů za běhu při resize/orientationchange (debounce ~300 ms):
+// přebytek odplave/vybledne (0,5 s), chybějící vybledne dovnitř — žádný
+// tvrdý restart scény. Reduced-motion fallback platí v obou režimech.
 // Skleněné kuličky v syté smaragdové paletě (větší = tmavší, plná výplň,
-// odlesk, měkký stín — žádný blur). Populace 32–85 (start ~45), absolutní
-// strop poloměru 58 px (v0.8.8: −10 % z 64; horní pásmo velkých bublin,
-// limit slučování, sytost i práh dělení škálují proporčně přes capR).
+// odlesk, měkký stín — žádný blur). Populace 32–85 na FHD (start ~45),
+// absolutní strop poloměru 58 px (v0.8.8: −10 % z 64; horní pásmo velkých
+// bublin, limit slučování, sytost i práh dělení škálují proporčně přes capR).
 // Kolize přes spatial grid (~150px buňky). Vážený
 // spawn do nejřidší buňky mřížky 6×4 + jemný anti-shluk drift; dostředivý
 // tah k orbitálnímu pásmu okolo login karty. Obyčejné bubliny se občas
@@ -9215,12 +9228,22 @@ function initAuthBubbles(){
   ring.dataset.bubblesInit = '1';
 
   const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const useRoles = !reduced;
+  // v0.9.0: touch-only zařízení bez jemného ukazatele — spolu s malou plochou
+  // přepíná do mobilního ambientního režimu
+  const touchOnly = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches && !window.matchMedia('(any-pointer: fine)').matches);
+  let useRoles = false; // nastavuje spawn()/setMode(): jen desktop bez reduced-motion
   // paleta zelených: mátová → lahvová; plné smaragdové tóny (v0.8.3: sytost
   // +30 bodů S, velké mírně tmavší), větší bublina = tmavší
   const SHADES = ['106,231,168','47,218,138','29,175,109','16,132,84','8,94,62'];
   const DEEP = '4,68,46';
-  const MIN_POP = 32, MAX_POP = 85; // tvrdé meze populace (v0.8.5: vyšší strop, brzdí přetlakový ventil)
+  // v0.9.0: populační meze z hustoty na megapixel VOLNÉ plochy (viewport
+  // minus login karta) — kalibrováno tak, aby na FHD (volná plocha ≈ 1,86 MP
+  // s kartou ~420×500) vycházela čísla v0.8.x: min 32, max 85, start ~45
+  const DENS_MIN = 17.17, DENS_MAX = 45.61, DENS_START = 24.15; // bublin / MP volné plochy
+  const MP_PER_MOTHER = 0.932;      // 1 matka na započatý ~0,93 MP volné plochy (FHD: 2)
+  const MOB_MIN = 10, MOB_MAX = 14; // mobilní ambientní režim (v0.9.0): populace
+  const MOB_RMAX = 28;              // …a strop poloměru — žádná mobilní bublina přes ~28 px
+  let MIN_POP = 32, MAX_POP = 85;   // tvrdé meze populace — přepočítává computeScales()
   const ABS_CAP = 58;               // absolutní strop poloměru — pro všechny vč. požírače (v0.8.8: −10 % z 64)
   const EAT_BAN = 15;               // fair-play: zákaz požírání po rozdělení požírače (s)
   const VMAX = 191;                 // globální rychlostní strop (v0.8.8: −15 % z 225 z v0.8.6),
@@ -9240,6 +9263,11 @@ function initAuthBubbles(){
                          // bubliny — půlky ≥ ~19 px jsou životaschopné, žádná drť
   let fryR = 20;         // hranice „drobotiny" pro regulaci populace
   let popCap = MAX_POP;  // efektivní max populace podle volné plochy
+  let startPop = 45;     // startovní počet podle hustoty (v0.9.0)
+  let motherN = 2;       // počet matek podle volné plochy (v0.9.0)
+  let birthK = 1;        // normalizace intervalu porodů na plochu (v0.9.0) — ceil matek nadsazuje
+  let mode = 'desktop';  // 'desktop' | 'mobile' — určuje spawn()/reflow() (v0.9.0)
+  let resizeT = null;    // debounce resize/orientationchange ~300 ms
   let pending = [];      // naplánovaná zrození vstupní sekvence
   let anchors = [];      // středy volných pruhů — cíle dostředivého tahu
   let introHuntDone = false, roleRebalT = 0, uid = 0;
@@ -9250,13 +9278,16 @@ function initAuthBubbles(){
   let culling = false, cullEnd = 0; // přetlakový ventil (v0.8.5): kultivace při populaci na stropě
   const mouse = { x: 0, y: 0, on: false };
 
-  const alive = ()=> bubbles.reduce((n,b)=> n + (b.absorb ? 0 : 1), 0);
+  const alive = ()=> bubbles.reduce((n,b)=> n + (b.absorb || b.fade != null ? 0 : 1), 0); // vybledávající se nepočítají (v0.9.0)
   const rnd = (a,b)=> a + Math.random()*(b-a);
   // interval mezi porody matky (v0.8.9: zpět na hodnotu z v0.8.6 — civilní
   // dělení se vrátilo jako přítok ~+10/min, takže kompenzace z v0.8.7
   // (kratší interval) by přítok počítala dvakrát a ventil spínal > 4×/10 min;
   // bilance toku laděná harnessem, ventil zůstává vzácná epizoda)
-  const birthPause = ()=> rnd(7.5, 12.5);
+  // v0.9.0: ×birthK — počet matek se zaokrouhluje nahoru (ceil), takže na
+  // mezivelikostech ploch by porodnost NA MEGAPIXEL vycházela vyšší než na
+  // FHD; delší interval to normalizuje (celkový přítok porodů ∝ volné ploše)
+  const birthPause = ()=> rnd(7.5, 12.5) * birthK;
   const noteEvent = (type, id, r)=>{ stats.eventTimes.push({ t: simT, type, id, r }); if(stats.eventTimes.length > 4000) stats.eventTimes.shift(); }; // r: poloměr před dělením (jen split/split-eater) — harness ověřuje prahy
 
   function shadeIdx(b){
@@ -9306,10 +9337,12 @@ function initAuthBubbles(){
       roamT: 0,            // anti-shluk poutník: po tu dobu bez orbitálního tahu
       roamTgt: null,       // cíl poutníka — aktivně si ho drží i přes srážky cestou
       phase: Math.random()*Math.PI*2, roleSince: simT,
+      dir: ang,            // kurz ambientního driftu (mobilní režim, v0.9.0)
+      fade: null, fadeIn: null, // sim-řízené vyblednutí / vplutí při přepnutí režimu (v0.9.0)
     };
     applyLook(b);
-    if(!reduced) attachDrag(b);
-    else b.el.style.pointerEvents = 'none'; // statický režim — bez interakce
+    if(!reduced) attachDrag(b); // handlery vždy — interaktivitu řídí pointerEvents (přepínání režimů)
+    b.el.style.pointerEvents = (reduced || mode !== 'desktop') ? 'none' : 'auto'; // mobil: tap prochází na shell
     bubbles.push(b);
     render(b);
     return b;
@@ -9348,14 +9381,18 @@ function initAuthBubbles(){
     return p;
   }
 
-  function spawn(){
-    W = ring.clientWidth; H = ring.clientHeight;
-    if(!W || !H) return false;
-    refreshObstacles();
+  // v0.9.0: režim scény — mobil při úzkém viewportu nebo touch-only
+  // zařízení s malou plochou (velké dotykové tablety zůstávají desktop)
+  const detectMode = ()=> (W < 768 || (touchOnly && W*H < 800000)) ? 'mobile' : 'desktop';
+
+  // v0.9.0: všechny odvozené škály z aktuálních rozměrů — volá se při spawnu
+  // i po resize (debounce ~300 ms), takže se scéna plynule dopočítává za běhu
+  function computeScales(){
     // stropy podle volného místa: bublina se musí vejít do pruhu vedle/nad/pod kartou
     let fitR = Math.min(W, H) / 2;
     obstacles.forEach(o=>{ fitR = Math.min(fitR, Math.max(o.y, H - o.y - o.h, o.x, W - o.x - o.w) / 2 - 6); });
-    capR = Math.round(Math.max(14, Math.min(ABS_CAP, fitR * 0.6))); // pohodlně se vejít do pruhu
+    // v0.9.0: strop velikosti navíc ≤ ~7 % kratší strany viewportu
+    capR = Math.round(Math.max(14, Math.min(ABS_CAP, Math.min(W, H) * 0.07, fitR * 0.6))); // pohodlně se vejít do pruhu
     sizeK = capR / ABS_CAP; // celé hejno škáluje se stropem
     huntMax = capR * 0.75;  // sytostní hranice — nad ní požírač aktivně neloví; desktop: ~43,5
     splitMinR = huntMax * 0.8; // práh dělení = 80 % sytostní hranice (v0.8.8) — dělič zasáhne těsně před zpasivněním požírače; desktop: ~35
@@ -9367,7 +9404,38 @@ function initAuthBubbles(){
     orbMax = Math.max(orbMin + 40, Math.min(350 * sizeK, fitR * 1.4));
     let freeA = W * H;
     obstacles.forEach(o=>{ freeA -= Math.max(0, Math.min(W, o.x + o.w) - Math.max(0, o.x)) * Math.max(0, Math.min(H, o.y + o.h) - Math.max(0, o.y)); });
-    popCap = Math.max(MIN_POP + 4, Math.min(MAX_POP, Math.round(freeA / 15000)));
+    // v0.9.0: populační meze, start a počet matek z hustoty na MP volné plochy
+    const freeMP = freeA / 1e6;
+    MIN_POP = Math.max(8, Math.round(freeMP * DENS_MIN));
+    MAX_POP = Math.max(MIN_POP + 6, Math.round(freeMP * DENS_MAX));
+    popCap = MAX_POP;
+    startPop = Math.max(MIN_POP + 2, Math.round(freeMP * DENS_START));
+    motherN = Math.max(1, Math.ceil(freeMP / MP_PER_MOTHER));
+    birthK = Math.min(2.5, Math.max(1, motherN * MP_PER_MOTHER / Math.max(0.05, freeMP)));
+  }
+
+  function spawn(){
+    W = ring.clientWidth; H = ring.clientHeight;
+    if(!W || !H) return false;
+    mode = detectMode();
+    useRoles = !reduced && mode === 'desktop';
+    refreshObstacles();
+    computeScales();
+
+    // mobilní ambientní režim (v0.9.0): 10–14 malých až středních bublin,
+    // žádné role, události ani kolize — jen klidný drift za login kartou
+    if(mode === 'mobile'){
+      const mplan = [];
+      for(let i = 0, n = Math.round(rnd(MOB_MIN, MOB_MAX)); i<n; i++)
+        mplan.push({ r: rnd(9, MOB_RMAX - 2), base: rnd(6,16) });
+      if(reduced){ mplan.forEach(p=>{ const q = randomPos(p.r); makeBubble(p.r, q.x, q.y, p.base); }); return true; }
+      mplan.forEach((p, i)=> pending.push({ at: 0.05 + i*0.07, make: ()=>{
+        const q = randomPos(p.r);
+        const b = makeBubble(p.r, q.x, q.y, p.base);
+        b.born = 0.5; b.scale = 0;
+      }}));
+      return true;
+    }
 
     // šikmé rozdělení velikostí: hodně 12–30, několik 35–55, 1–2 kusy 60–75
     const plan = [];
@@ -9381,7 +9449,7 @@ function initAuthBubbles(){
     }
     for(let i = 0, n = 1 + (Math.random()<0.5 ? 1 : 0); i<n; i++) plan.push({ r: Math.max(10, rnd(43,54)*sizeK), base: rnd(9,14) }); // velké, pomalé (v0.8.8: ×0.9 se stropem)
     for(let i = 0, n = 1 + (Math.random()<0.5 ? 1 : 0); i<n; i++) plan.push({ r: Math.min(rnd(13,17), Math.max(8, capR*0.5)), base: rnd(32,40), dart: true }); // „šipky" ~2× (v0.8.8: ×0.85, proporčně s VMAX)
-    for(let i = plan.length, n = Math.min(popCap - 2, 44 + Math.floor(Math.random()*3)); i<n; i++)
+    for(let i = plan.length, n = Math.min(popCap - 2, startPop - 1 + Math.floor(Math.random()*3)); i<n; i++)
       plan.push(Math.random() < 0.7 ? { r: Math.max(7, rnd(13,30)*sizeK), base: rnd(14,30) } : { r: Math.max(8, rnd(28,44)*sizeK), base: rnd(13,24) });
 
     if(reduced){ // statický režim: všechno hned, bez animací a rolí
@@ -9421,6 +9489,11 @@ function initAuthBubbles(){
   }
 
   function refreshObstacles(){
+    if(mode === 'mobile'){ // mobil (v0.9.0): žádná kolizní zóna — bubliny plavou i pod kartou
+      obstacles = [];
+      anchors = [{ x: W/2, y: H/2, fit: Math.min(W, H), axis: 'both' }];
+      return;
+    }
     const ringRect = ring.getBoundingClientRect();
     obstacles = [...shell.querySelectorAll('.auth-card')].map(card=>{
       const r = card.getBoundingClientRect();
@@ -9502,7 +9575,7 @@ function initAuthBubbles(){
 
   // ── role: cílení s lockem (dva lovci nikdy na stejném cíli) ──
   function validPrey(e, p){
-    return p && !p.dead && !p.absorb && !p.dragging && !p.scripted && !p.role
+    return p && !p.dead && !p.absorb && p.fade == null && !p.dragging && !p.scripted && !p.role
       && p.r < e.r && (p.lock === e || !p.lock) && !losBlocked(e, p)
       && Math.sqrt(Math.max(e.r, e.rTarget)**2 + p.r*p.r*(culling ? 0.5 : 1)) <= capR;
   }
@@ -9519,7 +9592,7 @@ function initAuthBubbles(){
   function validSplitTgt(s, t){
     // v0.8.9: dělič cílí na požírače nad prahem i na střední/velké civilní
     // bubliny nad civilním prahem; matka a druhý dělič nedotknutelní
-    if(!t || t.dead || t.absorb || t.dragging || t.scripted) return false;
+    if(!t || t.dead || t.absorb || t.fade != null || t.dragging || t.scripted) return false;
     if(t.banT > 0) return false; // na čerstvě rozděleného (i civilní půlku) se vrací až po ochraně
     const ok = t.role === 'eater' ? t.r >= splitMinR : (!t.role && t.r >= civSplitR);
     return ok && (t.lock === s || !t.lock) && !losBlocked(s, t);
@@ -9541,7 +9614,7 @@ function initAuthBubbles(){
   // nerodí a aktivně vyhledává NEJMENŠÍ obyčejné bubliny a pohlcuje je.
   // Nikdy nesahá na role, bubliny držené myší ani čerstvě narozené (< 3 s). ──
   function validCultTgt(m, p){
-    return p && !p.dead && !p.absorb && !p.dragging && !p.scripted && !p.role
+    return p && !p.dead && !p.absorb && p.fade == null && !p.dragging && !p.scripted && !p.role
       && p.r < m.r && simT - p.bornAt >= 3 && (p.lock === m || !p.lock) && !losBlocked(m, p);
   }
   function retargetMother(m){
@@ -9661,7 +9734,7 @@ function initAuthBubbles(){
 
   // ── dynamické počty rolí: požírači = ⌈n/12⌉, děliči = ⌈n/10⌉, matky = 2 ──
   function rebalanceRoles(n){
-    const want = { eater: Math.ceil(n/12), splitter: Math.ceil(n/10), mother: 2 };
+    const want = { eater: Math.ceil(n/12), splitter: Math.ceil(n/10), mother: motherN }; // matky podle volné plochy (v0.9.0)
     ['eater','splitter','mother'].forEach(role=>{
       const have = bubbles.filter(b=> b.role === role && !b.absorb).sort((a,b)=> a.roleSince - b.roleSince);
       let d = want[role] - have.length;
@@ -9679,7 +9752,7 @@ function initAuthBubbles(){
     const mid = (range[0] + range[1]) / 2;
     let best = null, bs = Infinity;
     bubbles.forEach(b=>{ // nejbližší civilní bublina vhodné velikosti
-      if(b.role || b.absorb || b.dragging || b.scripted || b.dart || b.born > 0) return;
+      if(b.role || b.absorb || b.fade != null || b.dragging || b.scripted || b.dart || b.born > 0) return;
       const s = Math.abs(b.r - mid) + (b.r < range[0] || b.r > range[1] ? 100 : 0);
       if(s < bs){ bs = s; best = b; }
     });
@@ -9821,7 +9894,7 @@ function initAuthBubbles(){
     const n = alive();
     const opts = []; // žádná událost dvakrát po sobě
     if(lastEventType !== 'comet') opts.push('comet');
-    if(lastEventType !== 'pop' && n > MIN_POP && bubbles.some(b=> !b.role && !b.absorb && !b.dragging && !b.scripted && b.r < fryR)) opts.push('pop');
+    if(lastEventType !== 'pop' && n > MIN_POP && bubbles.some(b=> !b.role && !b.absorb && b.fade == null && !b.dragging && !b.scripted && b.r < fryR)) opts.push('pop');
     if(lastEventType !== 'birth' && n <= popCap - 2 && !culling) opts.push('birth');
     if(lastEventType !== 'hunt' && !culling // hon jen když existuje platný cíl — požírač nad prahem nebo civilní nad civSplitR (v0.8.9)
        && bubbles.some(b=> b.role === 'splitter' && !b.absorb)
@@ -9846,13 +9919,13 @@ function initAuthBubbles(){
         b.cruiseUntil = simT + 4; // pár sekund bez tlumení, pak se zklidní
         b.born = 0.3; b.scale = 0;
       } else { // u stropu populace: kometou se stane nejmenší civilní bublina
-        let s = null; bubbles.forEach(b=>{ if(!b.role && !b.absorb && !b.dragging && (!s || b.r < s.r)) s = b; });
+        let s = null; bubbles.forEach(b=>{ if(!b.role && !b.absorb && b.fade == null && !b.dragging && (!s || b.r < s.r)) s = b; });
         if(s){ const a2 = Math.random()*Math.PI*2; s.vx = Math.cos(a2)*166; s.vy = Math.sin(a2)*166; s.cruiseUntil = simT + 3; }
       }
       stats.comets++; noteEvent('comet');
     } else if(ev === 'pop'){ // tiché prasknutí nejstarší drobné bubliny
       let o = null;
-      bubbles.forEach(b=>{ if(!b.role && !b.absorb && !b.dragging && !b.scripted && b.r < fryR && (!o || b.bornAt < o.bornAt)) o = b; });
+      bubbles.forEach(b=>{ if(!b.role && !b.absorb && b.fade == null && !b.dragging && !b.scripted && b.r < fryR && (!o || b.bornAt < o.bornAt)) o = b; });
       if(o){ puf(o.x, o.y, o.r); killBubble(o); stats.pops++; noteEvent('pop'); }
     } else if(ev === 'birth'){
       const m = bubbles.find(b=> b.role === 'mother' && !b.absorb && !b.dragging);
@@ -9863,10 +9936,150 @@ function initAuthBubbles(){
     }
   }
 
+  // ── v0.9.0: mobilní ambientní krok — pomalé bloudění s jemným vztlakem,
+  // odraz od okrajů viewportu; žádné role, události, kolize ani spatial grid.
+  // Dýchání/pulzy vypnuté (role neexistují), stíny a odlesky zůstávají. ──
+  function stepMobile(dt){
+    bubbles.forEach(b=>{
+      if(b.born > 0){ // stejný spring scale-in jako na desktopu
+        b.born = Math.max(0, b.born - dt);
+        const p = 1 - b.born/0.5;
+        b.scale = 1 - Math.exp(-4.2*p)*Math.cos(6.3*p);
+        if(b.born === 0) b.scale = 1;
+      }
+      // pomalá náhodná změna kurzu + velmi jemný vztlak (~18 % tempa vzhůru);
+      // rychlost se měkce vrací k ambientnímu tempu — impulz tapu se sám rozplyne
+      b.dir += rnd(-0.7, 0.7) * dt;
+      const k = Math.min(1, dt * 0.9);
+      b.vx += (Math.cos(b.dir) * b.base - b.vx) * k;
+      b.vy += (Math.sin(b.dir) * b.base - b.base * 0.18 - b.vy) * k;
+      b.x += b.vx * dt; b.y += b.vy * dt;
+      b.sq *= Math.pow(0.02, dt);
+      let hit = false; // odraz od okrajů — bez minimální odrazové rychlosti, klid
+      if(b.x < b.r){ b.x = b.r; if(b.vx < 0){ b.vx = -b.vx; hit = true; } }
+      else if(b.x > W - b.r){ b.x = W - b.r; if(b.vx > 0){ b.vx = -b.vx; hit = true; } }
+      if(b.y < b.r){ b.y = b.r; if(b.vy < 0){ b.vy = -b.vy; hit = true; } }
+      else if(b.y > H - b.r){ b.y = H - b.r; if(b.vy > 0){ b.vy = -b.vy; hit = true; } }
+      if(hit) b.dir = Math.atan2(b.vy, b.vx); // kurz sleduje odraz, ať se nelepí na zeď
+      render(b);
+    });
+  }
+
+  // měkké vyblednutí (0,5 s) — bublina dál pluje, pak se odstraní; navazuje
+  // na případný rozpracovaný fade-in (start z aktuální průhlednosti)
+  function startFade(b){
+    if(b.fade != null || b.absorb) return;
+    b.fade = b.fadeIn != null ? Math.max(0.05, 0.5 - b.fadeIn) : 0.5;
+    b.fadeIn = null;
+    releaseTgt(b);
+    bubbles.forEach(h=>{ if(h.tgt === b) releaseTgt(h); });
+    b.el.style.pointerEvents = 'none';
+  }
+
+  // nová ambientní bublina (mobil) — vplouvá fade-inem + spring scale-in
+  function seedAmbient(){
+    const r = rnd(9, MOB_RMAX - 2);
+    const b = makeBubble(r, rnd(r, W - r), rnd(r, H - r), rnd(6, 16));
+    b.born = 0.5; b.scale = 0;
+    b.fadeIn = 0.5; b.el.style.opacity = '0';
+    return b;
+  }
+
+  // ── v0.9.0: přepnutí desktop ↔ mobil za běhu — žádný tvrdý restart scény.
+  // Přebytek nech odplavat/vyblednout (0,5 s), chybějící vybledne dovnitř;
+  // v mobilu se ruší role, události i kolizní zóna karty; zpět na desktopu
+  // role dorovná rebalanceRoles a události nastartuje plánovač. ──
+  function setMode(next){
+    mode = next;
+    useRoles = !reduced && mode === 'desktop';
+    pending.length = 0;
+    culling = false;
+    bubbles.slice().forEach(b=>{ if(b.absorb) killBubble(b); }); // rozjetá vcucnutí ukončit hned (jsou už drobná, žádný skok)
+    refreshObstacles();
+    if(mode === 'mobile'){
+      bubbles.forEach(b=>{
+        if(b.role) demote(b); // bez rolí — zmizí prstence, glow i dýchání
+        releaseTgt(b);
+        b.dart = false; b.scripted = false; b.roamT = 0; b.roamTgt = null;
+        b.boostT = 0; b.banT = 0; b.satiety = 0;
+        b.el.style.pointerEvents = 'none';
+      });
+      const keep = bubbles.filter(b=> b.fade == null && b.r <= MOB_RMAX)
+        .sort((a,b)=> a.r - b.r).slice(0, Math.round(rnd(MOB_MIN, MOB_MAX)));
+      bubbles.forEach(b=>{ if(b.fade == null && keep.indexOf(b) < 0) startFade(b); });
+      keep.forEach(b=>{
+        b.base = rnd(6, 16); b.dir = Math.random()*Math.PI*2;
+        const sp = Math.hypot(b.vx, b.vy);
+        if(sp > b.base){ b.vx *= b.base/sp; b.vy *= b.base/sp; } // zklidnit na ambientní tempo
+      });
+      for(let i = keep.length; i < MOB_MIN; i++) seedAmbient();
+    } else {
+      computeScales();
+      bubbles.forEach(b=>{
+        if(b.fade != null) return;
+        b.el.style.pointerEvents = 'auto';
+        b.base = rnd(14, 30);
+      });
+      // dorodit do startovní hustoty — postupně a s fade-inem, žádný skok;
+      // přebytek (po zmenšení okna) přirozeně odbourá kultivace/požírači
+      const need = Math.max(0, Math.min(popCap - 2, startPop) - alive());
+      for(let i = 0; i < need; i++) pending.push({ at: simT + 0.1 + i*0.06, make: ()=>{
+        if(alive() >= popCap) return;
+        const big = Math.random() >= 0.7;
+        const r = big ? Math.max(8, rnd(28,44)*sizeK) : Math.max(7, rnd(13,30)*sizeK);
+        const q = randomPos(r);
+        const b = makeBubble(r, q.x, q.y, big ? rnd(13,24) : rnd(14,30));
+        b.born = 0.5; b.scale = 0;
+        b.fadeIn = 0.5; b.el.style.opacity = '0';
+      }});
+      roleRebalT = 0;       // role dorovnat hned v příštím kroku
+      introHuntDone = true; // intro choreografie jen při skutečném startu
+      nextEventAt = simT + 12 + rnd(0, 6);
+    }
+  }
+
+  // v0.9.0: přepočet po resize/orientationchange — hned se aktualizují jen
+  // rozměry a překážky (dělá onResize), tohle po ~300 ms klidu dopočítá
+  // hustotu/škály a případně plynule přepne režim
+  function reflow(){
+    W = ring.clientWidth; H = ring.clientHeight;
+    if(!W || !H) return;
+    if(reduced){ // statická scéna bez animací: fady by se nedokreslily —
+      // při změně režimu se layout prostě přeskládá (uživatel animace nevidí)
+      if(detectMode() !== mode){
+        while(bubbles.length) killBubble(bubbles[0]);
+        pending.length = 0;
+        spawned = spawn();
+      } else refreshObstacles();
+      return;
+    }
+    refreshObstacles();
+    const next = detectMode();
+    if(next !== mode){ setMode(next); return; }
+    if(mode === 'desktop'){ computeScales(); return; } // přebytek odbourá ventil, nedostatek dorodí matky
+    const live = bubbles.filter(b=> b.fade == null); // mobil zůstává: jen srovnat do pásma 10–14
+    for(let i = live.length - 1; i >= MOB_MAX; i--) startFade(live[i]);
+    for(let i = live.length; i < MOB_MIN; i++) seedAmbient();
+  }
+
   function step(dt){
     simT += dt;
     mergeGlobalCd = Math.max(0, mergeGlobalCd - dt);
     while(pending.length && pending[0].at <= simT) pending.shift().make(); // vstupní sekvence
+    // v0.9.0: sim-řízené fady přechodů režimů — vybledlé odstranit, vplouvající zjasnit
+    for(let i = bubbles.length - 1; i >= 0; i--){
+      const b = bubbles[i];
+      if(b.fadeIn != null){
+        b.fadeIn -= dt;
+        if(b.fadeIn <= 0){ b.fadeIn = null; b.el.style.opacity = ''; }
+        else b.el.style.opacity = (1 - b.fadeIn/0.5).toFixed(3);
+      }
+      if(b.fade == null) continue;
+      b.fade -= dt;
+      if(b.fade <= 0){ killBubble(b); continue; }
+      b.el.style.opacity = (b.fade/0.5).toFixed(3);
+    }
+    if(mode === 'mobile'){ stepMobile(dt); return; } // ambientní režim: bez rolí, událostí i kolizí
     if(useRoles){ stepRoles(dt); stepDirector(); }
 
     // anti-shluk: jednou za ~2,5 s dostanou bubliny z přehuštěných buněk mřížky
@@ -9879,7 +10092,7 @@ function initAuthBubbles(){
       const cellOf = b=> Math.min(GC-1, Math.floor(b.x/W*GC)) + Math.min(GR-1, Math.floor(b.y/H*GR))*GC;
       bubbles.forEach(b=>{ if(!b.absorb) counts[cellOf(b)]++; });
       const thr = Math.max(5, 2.2 * alive() / (GC*GR));
-      const cands = bubbles.filter(b=> !(b.absorb || b.dragging || b.scripted || b.born > 0 || b.role || b.roamT > 0));
+      const cands = bubbles.filter(b=> !(b.absorb || b.fade != null || b.dragging || b.scripted || b.born > 0 || b.role || b.roamT > 0));
       cands.sort((a, b)=> counts[cellOf(b)] - counts[cellOf(a)]); // nejhustší napřed
       let ci = 0;
       const sendTo = (tx, ty)=>{ // pošli dalšího kandidáta z nejhustší buňky
@@ -10030,7 +10243,7 @@ function initAuthBubbles(){
     const cols = Math.max(1, Math.ceil(W / CS)), rows = Math.max(1, Math.ceil(H / CS));
     const cells = new Map();
     bubbles.forEach(b=>{
-      if(b.absorb) return;
+      if(b.absorb || b.fade != null) return; // vybledávající už nekolidují
       const k = Math.min(cols-1, Math.max(0, Math.floor(b.x/CS))) + Math.min(rows-1, Math.max(0, Math.floor(b.y/CS)))*cols;
       const arr = cells.get(k);
       if(arr) arr.push(b); else cells.set(k, [b]);
@@ -10185,7 +10398,7 @@ function initAuthBubbles(){
     // dvojklik praskne civilní bublinu (role ne)
     b.el.addEventListener('dblclick', e=>{
       e.preventDefault();
-      if(b.role || b.absorb || alive() <= MIN_POP) return;
+      if(b.role || b.absorb || b.fade != null || alive() <= MIN_POP) return;
       puf(b.x, b.y, b.r);
       killBubble(b);
       stats.pops++; noteEvent('pop');
@@ -10199,8 +10412,20 @@ function initAuthBubbles(){
       mouse.x = e.clientX - rr.left; mouse.y = e.clientY - rr.top; mouse.on = true;
     });
     shell.addEventListener('pointerleave', ()=>{ mouse.on = false; });
+    // v0.9.0 mobil: tap = jemné odpláchnutí bublin od místa dotyku — žádný
+    // spawn ani praskání; impulz se sám rozplyne tlumením k ambientnímu tempu
+    shell.addEventListener('pointerdown', e=>{
+      if(mode !== 'mobile') return;
+      const rr = ring.getBoundingClientRect();
+      const px = e.clientX - rr.left, py = e.clientY - rr.top;
+      bubbles.forEach(b=>{
+        const dx = b.x - px, dy = b.y - py, d = Math.hypot(dx, dy) || 1;
+        const R = 160 + b.r;
+        if(d < R){ const im = (1 - d/R) * 110; b.vx += dx/d * im; b.vy += dy/d * im; }
+      });
+    });
     shell.addEventListener('click', e=>{
-      if(e.target !== shell || !spawned || alive() >= popCap) return;
+      if(mode !== 'desktop' || e.target !== shell || !spawned || alive() >= popCap) return;
       const rr = ring.getBoundingClientRect();
       const r = Math.max(7, rnd(10,16)*sizeK);
       const b = makeBubble(r, Math.max(r, Math.min(W - r, e.clientX - rr.left)), Math.max(r, Math.min(H - r, e.clientY - rr.top)), rnd(14,30));
@@ -10218,6 +10443,8 @@ function initAuthBubbles(){
     rafId = null;
     if(!visible()){ lastT = 0; setTimeout(schedule, 600); return; } // pauza: skrytý tab / po přihlášení
     if(!spawned){ spawned = spawn(); if(!spawned){ setTimeout(schedule, 600); return; } if(reduced) return; }
+    if(reduced) return; // statický režim se nesmí rozběhnout ani po visibilitychange
+    if(mode === 'mobile' && lastT && t - lastT < 31){ schedule(); return; } // mobil: ~30 fps přeskakováním snímků (v0.9.0)
     frame++;
     if(frame % 45 === 0){ W = ring.clientWidth; H = ring.clientHeight; refreshObstacles(); }
     const dt = lastT ? Math.min(0.05, (t - lastT)/1000) : 0.016;
@@ -10228,15 +10455,27 @@ function initAuthBubbles(){
   function schedule(){ if(rafId === null) rafId = requestAnimationFrame(loop); }
 
   document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) schedule(); });
-  window.addEventListener('resize', ()=>{ if(spawned){ W = ring.clientWidth; H = ring.clientHeight; refreshObstacles(); } });
+  // v0.9.0: resize/orientationchange — hned jen rozměry a překážky (ať fyzika
+  // nepracuje se starými), po ~300 ms klidu plný přepočet + přepnutí režimu
+  const onResize = ()=>{
+    if(!spawned) return;
+    W = ring.clientWidth; H = ring.clientHeight; refreshObstacles();
+    clearTimeout(resizeT);
+    resizeT = setTimeout(reflow, 300);
+  };
+  window.addEventListener('resize', onResize);
+  window.addEventListener('orientationchange', onResize);
   // testovací háček pro harness — simulace bez DOM/rAF (spawn + opakované step)
   initAuthBubbles._debug = {
-    bubbles, spawn, step, alive, stats, MIN_POP, MAX_POP, ABS_CAP, makeBubble,
+    bubbles, spawn, step, alive, stats, ABS_CAP, makeBubble, reflow,
+    get MIN_POP(){ return MIN_POP; }, get MAX_POP(){ return MAX_POP; }, // v0.9.0: dynamické podle hustoty
     get capR(){ return capR; }, get huntMax(){ return huntMax; }, get splitMinR(){ return splitMinR; },
     get civSplitR(){ return civSplitR; },
     get sizeK(){ return sizeK; }, get fryR(){ return fryR; },
     get popCap(){ return popCap; }, get W(){ return W; }, get H(){ return H; },
     get culling(){ return culling; }, VMAX, VTHROW,
+    get mode(){ return mode; }, get motherN(){ return motherN; }, get startPop(){ return startPop; },
+    get birthK(){ return birthK; }, MOB_MIN, MOB_MAX, MOB_RMAX,
   };
   schedule();
 }
