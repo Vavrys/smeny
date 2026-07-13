@@ -909,7 +909,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
      AUTH SCREEN
      ============================================================ -->
 <div class="auth-shell" id="auth-shell" style="display:none">
-  <!-- v0.8.7: bublinkový ekosystém s 2D fyzikou (odraz, kolize, drag & throw, role, choreografie, slučování, přetlakový ventil, tvrdý rychlostní strop; dělič dělí jen požírače) — plní je initAuthBubbles() -->
+  <!-- v0.8.8: bublinkový ekosystém s 2D fyzikou (odraz, kolize, drag & throw, role, choreografie, slučování, přetlakový ventil, tvrdý rychlostní strop; dělič dělí jen požírače) — plní je initAuthBubbles() -->
   <div class="auth-ring" id="auth-ring" aria-hidden="true"></div>
 
   <div class="auth-card">
@@ -9168,16 +9168,18 @@ document.getElementById('onboard-org-name').addEventListener('keydown', e=>{ if(
 // ÚVODNÍ BUBLINKY (v0.8.8) — „bublinkový ekosystém" bez knihovny.
 // Skleněné kuličky v syté smaragdové paletě (větší = tmavší, plná výplň,
 // odlesk, měkký stín — žádný blur). Populace 32–85 (start ~45), absolutní
-// strop poloměru 64 px. Kolize přes spatial grid (~150px buňky). Vážený
+// strop poloměru 58 px (v0.8.8: −10 % z 64; horní pásmo velkých bublin,
+// limit slučování, sytost i práh dělení škálují proporčně přes capR).
+// Kolize přes spatial grid (~150px buňky). Vážený
 // spawn do nejřidší buňky mřížky 6×4 + jemný anti-shluk drift; dostředivý
 // tah k orbitálnímu pásmu okolo login karty. Obyčejné bubliny se občas
 // při kontaktu slijí (plocha se sčítá, strop 60 % capR, cooldowny, pauza
 // při nízké populaci). Role dynamicky podle populace: požírači (1 na
-// započatých 12; loví menší civilní bubliny, nad ~48 px neloví, dokud je
+// započatých 12; loví menší civilní bubliny, nad ~43 px neloví, dokud je
 // dělič nezmenší; plocha se při pohlcení sčítá; po rozdělení 15 s zákaz
 // požírání — pohaslý prstenec, únik a vyhýbání děliči), děliči (1 na
 // započatých 10; v0.8.7: dělí VÝHRADNĚ požírače nad prahem (v0.8.8: 80 %
-// sytostní hranice huntMax, desktop ~38 px) — s každou
+// sytostní hranice huntMax, desktop ~35 px) — s každou
 // jinou bublinou jen elastický odraz; dělí i mimochodný kontakt, bez
 // cooldownu; plocha se zachová, role přechází na větší polovinu; na
 // rozděleného se vrací až po 15s ochraně; bez platného cíle volně pluje
@@ -9188,7 +9190,7 @@ document.getElementById('onboard-org-name').addEventListener('keydown', e=>{ if(
 // drobotiny (> 60 % pod 20 px → matky pauza, požírači berou nejmenší).
 // Přetlakový ventil (v0.8.5): populace na stropě → kultivace: matky
 // nerodí a pohlcují nejmenší drobotinu (nerostou z toho, jantarový glow),
-// požírači ztrácí sytost i práh ~48 px (strop 64 platí dál), slučování
+// požírači ztrácí sytost i práh ~43 px (strop 58 platí dál), slučování
 // s dvojnásobnou šancí; konec pod 70 % stropu nebo po 30 s. Dostředivý
 // tah úměrný poloměru + minimální odrazová rychlost (žádné kempování
 // u krajů). Choreografie: postupná zrození se spring scale-in (~60 ms
@@ -9197,10 +9199,10 @@ document.getElementById('onboard-org-name').addEventListener('keydown', e=>{ if(
 // porod / hon děliče), žádná dvakrát po sobě, min. 1× za ~22 s.
 // Interakce: drag & throw pro všechny, kurzor odpuzuje (~80 px brázda),
 // klik/tap do prázdna = nová bublina, dvojklik na civilní = prasknutí.
-// Rychlostní strop (v0.8.6): VMAX tvrdě ořezáván po každém kroku fyziky
-// (odrazy, impulzy dělení, únik požírače, boosty); hozená bublina má ~1 s
-// milost do VTHROW; šipky/komety/boosty škálovány ×0.75, ať zůstanou
-// relativně rychlejší, ale pod stropem.
+// Rychlostní strop (v0.8.6, v0.8.8: −15 % na 191): VMAX tvrdě ořezáván po
+// každém kroku fyziky (odrazy, impulzy dělení, únik požírače, boosty);
+// hozená bublina má ~1 s milost do VTHROW; šipky/komety/boosty škálovány
+// ×0.85 s novým stropem, ať zůstanou relativně rychlejší, ale pod stropem.
 // requestAnimationFrame; pauza při skrytém tabu / po přihlášení;
 // prefers-reduced-motion → statické bubliny bez rolí a událostí.
 // Testovací háček: initAuthBubbles._debug (spawn/step/bubbles/stats).
@@ -9218,12 +9220,12 @@ function initAuthBubbles(){
   const SHADES = ['106,231,168','47,218,138','29,175,109','16,132,84','8,94,62'];
   const DEEP = '4,68,46';
   const MIN_POP = 32, MAX_POP = 85; // tvrdé meze populace (v0.8.5: vyšší strop, brzdí přetlakový ventil)
-  const ABS_CAP = 64;               // absolutní strop poloměru — pro všechny vč. požírače
+  const ABS_CAP = 58;               // absolutní strop poloměru — pro všechny vč. požírače (v0.8.8: −10 % z 64)
   const EAT_BAN = 15;               // fair-play: zákaz požírání po rozdělení požírače (s)
-  const VMAX = 225;                 // globální rychlostní strop (v0.8.6: −25 % z dřívějších ~300),
+  const VMAX = 191;                 // globální rychlostní strop (v0.8.8: −15 % z 225 z v0.8.6),
                                     // tvrdě ořezáván po každém kroku fyziky
-  const VTHROW = 675;               // strop hodu myší (−25 % z 900) — ~1 s po puštění smí nad VMAX
-  const BOOST = 1.5;                // boost honu (dělič/požírač/intro) — v0.8.6: ×0.75 z 2, proporčně s VMAX
+  const VTHROW = 574;               // strop hodu myší (−15 % z 675) — ~1 s po puštění smí nad VMAX
+  const BOOST = 1.275;              // boost honu (dělič/požírač/intro) — v0.8.8: ×0.85 z 1.5, proporčně s VMAX
   const bubbles = [];
   const stats = { births: 0, eats: 0, splits: 0, merges: 0, comets: 0, pops: 0, hits: 0, cults: 0, culls: 0, splitViols: 0, eventTimes: [] };
   let W = 0, H = 0, spawned = false;
@@ -9231,8 +9233,8 @@ function initAuthBubbles(){
   let frame = 0, lastT = 0, rafId = null, simT = 0;
   let capR = ABS_CAP;    // efektivní strop poloměru (menší na stísněných displejích)
   let sizeK = 1;         // měřítko hejna = capR/64 — na mobilu vše úměrně menší
-  let huntMax = 48;      // nad tímto poloměrem požírač neloví, dokud ho dělič nezmenší
-  let splitMinR = 38;    // práh dělení požírače = 80 % sytostní hranice huntMax (v0.8.8)
+  let huntMax = 43.5;    // nad tímto poloměrem požírač neloví, dokud ho dělič nezmenší
+  let splitMinR = 34.8;  // práh dělení požírače = 80 % sytostní hranice huntMax (v0.8.8)
   let fryR = 20;         // hranice „drobotiny" pro regulaci populace
   let popCap = MAX_POP;  // efektivní max populace podle volné plochy
   let pending = [];      // naplánovaná zrození vstupní sekvence
@@ -9351,8 +9353,8 @@ function initAuthBubbles(){
     obstacles.forEach(o=>{ fitR = Math.min(fitR, Math.max(o.y, H - o.y - o.h, o.x, W - o.x - o.w) / 2 - 6); });
     capR = Math.round(Math.max(14, Math.min(ABS_CAP, fitR * 0.6))); // pohodlně se vejít do pruhu
     sizeK = capR / ABS_CAP; // celé hejno škáluje se stropem
-    huntMax = capR * 0.75;  // sytostní hranice — nad ní požírač aktivně neloví; desktop: 48
-    splitMinR = huntMax * 0.8; // práh dělení = 80 % sytostní hranice (v0.8.8) — dělič zasáhne těsně před zpasivněním požírače; desktop: ~38
+    huntMax = capR * 0.75;  // sytostní hranice — nad ní požírač aktivně neloví; desktop: ~43,5
+    splitMinR = huntMax * 0.8; // práh dělení = 80 % sytostní hranice (v0.8.8) — dělič zasáhne těsně před zpasivněním požírače; desktop: ~35
     fryR = Math.max(8, 20 * sizeK);
     // orbitální pásmo dostředivého tahu: ~150–350 px od okraje karty, na
     // stísněných displejích úměrně užší, ať se vejde do pruhu
@@ -9372,8 +9374,8 @@ function initAuthBubbles(){
       plan.push({ r: Math.max(8, rnd(22,30)*sizeK), base: rnd(12,18), role: 'mother' });
       plan.push({ r: Math.max(8, rnd(22,30)*sizeK), base: rnd(12,18), role: 'mother' });
     }
-    for(let i = 0, n = 1 + (Math.random()<0.5 ? 1 : 0); i<n; i++) plan.push({ r: Math.max(10, rnd(48,60)*sizeK), base: rnd(9,14) }); // velké, pomalé
-    for(let i = 0, n = 1 + (Math.random()<0.5 ? 1 : 0); i<n; i++) plan.push({ r: Math.min(rnd(13,17), Math.max(8, capR*0.5)), base: rnd(38,47), dart: true }); // „šipky" ~2× (v0.8.6: ×0.75, proporčně s VMAX)
+    for(let i = 0, n = 1 + (Math.random()<0.5 ? 1 : 0); i<n; i++) plan.push({ r: Math.max(10, rnd(43,54)*sizeK), base: rnd(9,14) }); // velké, pomalé (v0.8.8: ×0.9 se stropem)
+    for(let i = 0, n = 1 + (Math.random()<0.5 ? 1 : 0); i<n; i++) plan.push({ r: Math.min(rnd(13,17), Math.max(8, capR*0.5)), base: rnd(32,40), dart: true }); // „šipky" ~2× (v0.8.8: ×0.85, proporčně s VMAX)
     for(let i = plan.length, n = Math.min(popCap - 2, 44 + Math.floor(Math.random()*3)); i<n; i++)
       plan.push(Math.random() < 0.7 ? { r: Math.max(7, rnd(13,30)*sizeK), base: rnd(14,30) } : { r: Math.max(8, rnd(28,44)*sizeK), base: rnd(13,24) });
 
@@ -9572,7 +9574,7 @@ function initAuthBubbles(){
     const x = Math.max(r, Math.min(W - r, mother.x + Math.cos(ang)*(mother.r + r + 1)));
     const y = Math.max(r, Math.min(H - r, mother.y + Math.sin(ang)*(mother.r + r + 1)));
     const needDart = !bubbles.some(o=> o.dart && !o.absorb); // vždy aspoň jedna „šipka"
-    const b = makeBubble(r, x, y, needDart ? rnd(38,47) : rnd(14,30));
+    const b = makeBubble(r, x, y, needDart ? rnd(32,40) : rnd(14,30));
     b.dart = needDart;
     b.vx = Math.cos(ang) * Math.max(60, b.base); b.vy = Math.sin(ang) * Math.max(60, b.base);
     b.born = 0.5; b.scale = 0;
@@ -9826,12 +9828,12 @@ function initAuthBubbles(){
           y = st.y + rnd(-1,1)*(st.fit/2 - r - 8);
         } else y = rnd(H*0.15, H*0.85);
         const b = makeBubble(r, fromLeft ? r + 2 : W - r - 2, y, rnd(16,26));
-        b.vx = (fromLeft ? 1 : -1) * rnd(172,210); b.vy = rnd(-20,20); // v0.8.6: ×0.75, pod VMAX
+        b.vx = (fromLeft ? 1 : -1) * rnd(146,178); b.vy = rnd(-20,20); // v0.8.8: ×0.85, pod VMAX
         b.cruiseUntil = simT + 4; // pár sekund bez tlumení, pak se zklidní
         b.born = 0.3; b.scale = 0;
       } else { // u stropu populace: kometou se stane nejmenší civilní bublina
         let s = null; bubbles.forEach(b=>{ if(!b.role && !b.absorb && !b.dragging && (!s || b.r < s.r)) s = b; });
-        if(s){ const a2 = Math.random()*Math.PI*2; s.vx = Math.cos(a2)*195; s.vy = Math.sin(a2)*195; s.cruiseUntil = simT + 3; }
+        if(s){ const a2 = Math.random()*Math.PI*2; s.vx = Math.cos(a2)*166; s.vy = Math.sin(a2)*166; s.cruiseUntil = simT + 3; }
       }
       stats.comets++; noteEvent('comet');
     } else if(ev === 'pop'){ // tiché prasknutí nejstarší drobné bubliny
