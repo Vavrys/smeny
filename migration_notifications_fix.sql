@@ -8,45 +8,42 @@
 -- pod RLS volajícího (zaměstnanec vidí jen svůj vlastní řádek, takže
 -- ověření „příjemce je člen mé organizace" pro cizí user_id selhalo).
 --
--- Řešení: SECURITY DEFINER helpery obcházejí RLS na org_members jen pro
--- tyto dvě úzké kontroly členství. INSERT pak smí každý přihlášený člen
--- organizace, ale výhradně pro příjemce ze stejné organizace.
+-- Řešení: existující helper is_org_member (schema.sql) + nový SECURITY
+-- DEFINER helper is_user_org_member pro kontrolu příjemce — obchází RLS na
+-- org_members jen pro tuto úzkou kontrolu členství. INSERT pak smí každý
+-- přihlášený člen organizace, ale výhradně pro příjemce ze stejné organizace.
 -- SELECT/UPDATE zůstávají jen na vlastní notifikace (beze změny).
 -- ============================================================
 
--- Helper: je přihlášený uživatel členem organizace?
-CREATE OR REPLACE FUNCTION is_org_member(check_org uuid)
-RETURNS boolean
-LANGUAGE sql STABLE SECURITY DEFINER
-SET search_path = public
-AS $$
-  SELECT EXISTS (
-    SELECT 1 FROM org_members
-    WHERE org_id = check_org AND user_id = auth.uid()
-  );
-$$;
+-- Helper is_org_member(uuid) v DB UŽ EXISTUJE (schema.sql ř. 150, parametr
+-- check_org_id) — migrace ho NESMÍ předefinovávat (CREATE OR REPLACE s jiným
+-- názvem parametru padá na 42P13). Policies ho volají tak, jak je.
 
 -- Helper: je daný uživatel (příjemce notifikace) členem organizace?
 -- SECURITY DEFINER je nutný — bez něj by sub-select v policy běžel pod RLS
 -- volajícího a zaměstnanec by „neviděl" adminův řádek v org_members.
-CREATE OR REPLACE FUNCTION is_user_org_member(check_org uuid, check_user uuid)
+-- DROP předem = plná idempotence i po dřívějším částečně proběhlém běhu;
+-- policy, která na helperu závisí, musí spadnout DŘÍV, jinak DROP FUNCTION
+-- při opakovaném běhu selže na závislosti.
+DROP POLICY IF EXISTS "notif_insert_org" ON notifications;
+DROP FUNCTION IF EXISTS is_user_org_member(uuid, uuid);
+CREATE FUNCTION is_user_org_member(check_org_id uuid, check_user_id uuid)
 RETURNS boolean
 LANGUAGE sql STABLE SECURITY DEFINER
 SET search_path = public
 AS $$
   SELECT EXISTS (
     SELECT 1 FROM org_members
-    WHERE org_id = check_org AND user_id = check_user
+    WHERE org_id = check_org_id AND user_id = check_user_id
   );
 $$;
 
-GRANT EXECUTE ON FUNCTION is_org_member(uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION is_user_org_member(uuid, uuid) TO authenticated;
 
 -- INSERT: člen organizace smí vložit notifikaci kterémukoli členovi TÉŽE
 -- organizace (zaměstnanec → admin: žádost o volno; admin → zaměstnanec:
 -- publikování, rozhodnutí o žádosti; testovací notifikace sám sobě).
-DROP POLICY IF EXISTS "notif_insert_org" ON notifications;
+-- (DROP POLICY proběhl výše, před DROP FUNCTION.)
 CREATE POLICY "notif_insert_org" ON notifications
   FOR INSERT TO authenticated
   WITH CHECK (
