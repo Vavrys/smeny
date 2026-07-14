@@ -2,4 +2,10 @@
 !index.html
 !.gitignore
 !migration_notifications.sql
+!migration_notifications_fix.sql
 !migration_leave.sql
+!manifest.json
+!sw.js
+!CLAUDE.md
+!supabase/
+!supabase/**

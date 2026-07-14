@@ -1,0 +1,40 @@
+{
+  "name": "Směny",
+  "short_name": "Směny",
+  "description": "Chytrý plánovač směn pro provozovny s více pobočkami",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#F6F5F1",
+  "theme_color": "#2B6E4F",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='40' fill='%232b6e4f'/%3E%3Crect x='24' y='48' width='144' height='120' rx='16' fill='%23fff' opacity='.15'/%3E%3Crect x='24' y='48' width='144' height='120' rx='16' stroke='%23fff' stroke-width='8'/%3E%3Cline x1='24' y1='82' x2='168' y2='82' stroke='%23fff' stroke-width='7'/%3E%3Cline x1='60' y1='20' x2='60' y2='55' stroke='%23fff' stroke-width='9' stroke-linecap='round'/%3E%3Cline x1='132' y1='20' x2='132' y2='55' stroke='%23fff' stroke-width='9' stroke-linecap='round'/%3E%3Crect x='42' y='98' width='28' height='22' rx='6' fill='%23fff'/%3E%3Crect x='82' y='98' width='28' height='22' rx='6' fill='%23fff' opacity='.7'/%3E%3Crect x='122' y='98' width='28' height='22' rx='6' fill='%23fff' opacity='.4'/%3E%3Crect x='42' y='132' width='28' height='18' rx='6' fill='%23fff' opacity='.5'/%3E%3Crect x='82' y='132' width='28' height='18' rx='6' fill='%23fff'/%3E%3C/svg%3E",
+      "sizes": "48x48 72x72 96x96 144x144 192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' fill='%232b6e4f'/%3E%3Crect x='38' y='58' width='116' height='96' rx='13' fill='%23fff' opacity='.15'/%3E%3Crect x='38' y='58' width='116' height='96' rx='13' stroke='%23fff' stroke-width='7'/%3E%3Cline x1='38' y1='85' x2='154' y2='85' stroke='%23fff' stroke-width='6'/%3E%3Cline x1='67' y1='36' x2='67' y2='64' stroke='%23fff' stroke-width='8' stroke-linecap='round'/%3E%3Cline x1='125' y1='36' x2='125' y2='64' stroke='%23fff' stroke-width='8' stroke-linecap='round'/%3E%3Crect x='52' y='98' width='23' height='18' rx='5' fill='%23fff'/%3E%3Crect x='84' y='98' width='23' height='18' rx='5' fill='%23fff' opacity='.7'/%3E%3Crect x='116' y='98' width='23' height='18' rx='5' fill='%23fff' opacity='.4'/%3E%3Crect x='52' y='125' width='23' height='15' rx='5' fill='%23fff' opacity='.5'/%3E%3Crect x='84' y='125' width='23' height='15' rx='5' fill='%23fff'/%3E%3C/svg%3E",
+      "sizes": "48x48 72x72 96x96 144x144 192x192",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    },
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='100' fill='%232b6e4f'/%3E%3Crect x='56' y='120' width='400' height='330' rx='40' fill='%23fff' opacity='.15'/%3E%3Crect x='56' y='120' width='400' height='330' rx='40' stroke='%23fff' stroke-width='20'/%3E%3Cline x1='56' y1='210' x2='456' y2='210' stroke='%23fff' stroke-width='18'/%3E%3Cline x1='160' y1='50' x2='160' y2='140' stroke='%23fff' stroke-width='24' stroke-linecap='round'/%3E%3Cline x1='352' y1='50' x2='352' y2='140' stroke='%23fff' stroke-width='24' stroke-linecap='round'/%3E%3Crect x='110' y='255' width='76' height='60' rx='14' fill='%23fff'/%3E%3Crect x='218' y='255' width='76' height='60' rx='14' fill='%23fff' opacity='.7'/%3E%3Crect x='326' y='255' width='76' height='60' rx='14' fill='%23fff' opacity='.4'/%3E%3Crect x='110' y='345' width='76' height='52' rx='14' fill='%23fff' opacity='.5'/%3E%3Crect x='218' y='345' width='76' height='52' rx='14' fill='%23fff'/%3E%3C/svg%3E",
+      "sizes": "256x256 384x384 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' fill='%232b6e4f'/%3E%3Crect x='102' y='155' width='308' height='254' rx='34' fill='%23fff' opacity='.15'/%3E%3Crect x='102' y='155' width='308' height='254' rx='34' stroke='%23fff' stroke-width='17'/%3E%3Cline x1='102' y1='224' x2='410' y2='224' stroke='%23fff' stroke-width='15'/%3E%3Cline x1='182' y1='101' x2='182' y2='170' stroke='%23fff' stroke-width='20' stroke-linecap='round'/%3E%3Cline x1='330' y1='101' x2='330' y2='170' stroke='%23fff' stroke-width='20' stroke-linecap='round'/%3E%3Crect x='143' y='258' width='59' height='46' rx='12' fill='%23fff'/%3E%3Crect x='226' y='258' width='59' height='46' rx='12' fill='%23fff' opacity='.7'/%3E%3Crect x='309' y='258' width='59' height='46' rx='12' fill='%23fff' opacity='.4'/%3E%3Crect x='143' y='328' width='59' height='40' rx='12' fill='%23fff' opacity='.5'/%3E%3Crect x='226' y='328' width='59' height='40' rx='12' fill='%23fff'/%3E%3C/svg%3E",
+      "sizes": "256x256 384x384 512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "categories": ["productivity", "business"],
+  "lang": "cs"
+}

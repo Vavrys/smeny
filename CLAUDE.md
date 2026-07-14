@@ -1,5 +1,11 @@
 # Směny — pokyny pro práci s kódem
 
+## Verzování (release checklist)
+
+Při zvednutí verze appky VŽDY změň obě místa:
+1. `index.html` — `#app-version-label` (text `vX.Y.Z` v hlavičce).
+2. `sw.js` — konstanta `VERSION` (řídí název cache; bez bumpu zůstanou klienti na staré cache/buildu).
+
 ## Ikony
 
 Aplikace má centrální registr ikon `DEFAULT_ICONS`/`ICONS` v `index.html` (sekce `ICON REGISTRY`). Žádné emoji se nesmí používat natvrdo přímo v kódu.

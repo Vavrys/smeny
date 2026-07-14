@@ -456,14 +456,16 @@ table.data-table tr:hover td{background:var(--paper)}
 .icon-nav-btn{background:none;border:1px solid var(--line);border-radius:7px;width:28px;height:28px;font-size:15px;color:var(--ink-soft);transition:all .15s}
 .icon-nav-btn:hover{border-color:var(--accent);color:var(--accent-ink)}
 
-.sched-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:var(--radius-sm)}
+.sched-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line);border-radius:var(--radius-sm)}
 table.sched-table{border-collapse:collapse;font-size:var(--tbl-fs);width:100%;min-width:700px;table-layout:fixed}
 table.sched-table th, table.sched-table td{border-bottom:1px solid #ccc;border-right:1px solid #ccc}
 table.sched-table th:last-child, table.sched-table td:last-child{border-right:none}
 .sched-name-col{position:sticky;left:0;background:var(--surface);z-index:2;text-align:left;padding:4px 8px;width:160px;min-width:80px;max-width:280px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700;font-size:var(--tbl-name-fs);color:#111;border-right:2px solid #c8c8c4;box-sizing:border-box;vertical-align:middle}
 .sched-name-col-resize{position:absolute;right:-4px;top:0;width:8px;height:100%;cursor:col-resize;z-index:20;background:transparent;border-right:2px solid transparent;transition:border-color .15s}
 .sched-name-col-resize:hover, .sched-name-col-resize.dragging{border-right-color:var(--accent)}
-thead .sched-name-col{z-index:3;font-size:11px;font-weight:600;color:#333;position:relative !important;overflow:visible !important}
+/* v0.9.1 (B3): sticky i v hlavičce — dřív position:relative !important přebíjelo
+   inline sticky a sloupec jmen v záhlaví při horizontálním scrollu ujížděl */
+thead .sched-name-col{z-index:3;font-size:11px;font-weight:600;color:#333;position:sticky !important;left:0;overflow:visible !important}
 body.employee-view .sched-name-col{width:160px;min-width:80px;max-width:280px;padding:4px 8px}
 .sched-day-col{text-align:center;padding:3px 0;font-size:11px;color:#111;font-weight:900;overflow:hidden}
 .sched-day-col.weekend{background:#ede8df;color:#111}
@@ -589,6 +591,10 @@ body.employee-view .tab-btn[data-tab="branches"],
 body.employee-view .tab-btn[data-tab="rules"],
 body.employee-view .tab-btn[data-tab="gaps"] { display: none !important; }
 
+/* v0.9.1 (B1): Můj rozpis vidí jen zaměstnanec */
+.tab-btn[data-tab="myschedule"] { display: none; }
+body.employee-view .tab-btn[data-tab="myschedule"] { display: inline-block; }
+
 body.employee-view #pane-employees,
 body.employee-view #pane-branches,
 body.employee-view #pane-rules,
@@ -671,6 +677,24 @@ table.sched-table.density-airy .sched-stat-col{font-size:11px;padding:4px 6px}
 
 .loading-screen{position:fixed;inset:0;background:var(--paper);display:flex;align-items:center;justify-content:center;z-index:500}
 
+/* ── MŮJ ROZPIS + TÝM (v0.9.1 B1/B2) ── */
+.spinner-sm{width:16px;height:16px;border:2px solid var(--accent-soft);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;margin:8px 0 2px}
+.mysched-today-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.mysched-today-card{background:var(--paper);border:1.5px solid var(--line);border-radius:12px;padding:12px 14px}
+.mysched-today-label{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-soft)}
+.mysched-day-row{display:flex;align-items:center;gap:10px;padding:7px 12px;border-bottom:1px solid var(--line);font-size:13px}
+.mysched-day-row:last-child{border-bottom:none}
+.mysched-day-row.weekend{background:var(--paper)}
+.mysched-day-row.today{background:var(--accent-soft)}
+.mysched-sum-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-top:14px}
+.mysched-sum-card{background:var(--paper);border:1.5px solid var(--line);border-radius:12px;padding:12px 14px;text-align:center}
+.team-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line);border-radius:10px}
+.team-grid{border-collapse:collapse;font-size:11px;width:100%}
+.team-grid th,.team-grid td{border:1px solid var(--line);padding:3px 4px;text-align:center;white-space:nowrap;min-width:24px}
+.team-grid th.weekend,.team-grid td.weekend{background:var(--paper)}
+.team-grid .team-name{position:sticky;left:0;background:var(--surface);z-index:2;text-align:left;font-weight:700;max-width:150px;min-width:90px;overflow:hidden;text-overflow:ellipsis;padding:4px 8px;border-right:2px solid var(--line)}
+body.dark .team-grid .team-name{background:var(--surface)}
+
 @media (max-width:640px){
   .topbar,.tabbar,.main{padding-left:12px;padding-right:12px}
   .org-name{display:none}
@@ -679,16 +703,27 @@ table.sched-table.density-airy .sched-stat-col{font-size:11px;padding:4px 6px}
   .sched-toolbar .btn-accent .btn-label,
   .sched-toolbar .btn-outline .btn-label{ display:none }
   .sched-toolbar .btn-accent,.sched-toolbar .btn-outline{ padding:9px 11px;font-size:13px }
-  /* Modals full-width on mobile */
+  /* Modals full-width on mobile (v0.9.1 B3: + větší zavírací tlačítka pro palec) */
   .modal-overlay{ padding:10px }
   .modal{ max-width:100% !important;max-height:94vh;overflow-y:auto }
+  .modal .btn-ghost{ min-width:40px;min-height:40px }
   /* Tutorial bubbles — clamp to screen */
   #tut-bubble{ width:calc(100vw - 24px) !important;max-width:320px }
   #emp-tut-bubble{ width:calc(100vw - 24px) !important;max-width:290px }
-  /* Tab labels shorter */
-  .tab-btn{ padding:12px 10px;font-size:12.5px }
+  /* Tab labels shorter + horizontálně scrollovatelný tabbar (v0.9.1 B3) */
+  .tab-btn{ padding:12px 10px;font-size:12.5px;white-space:nowrap }
+  .tabbar{ overflow-x:auto;-webkit-overflow-scrolling:touch }
   /* hide some topbar elements */
   #org-code-badge{ display:none !important }
+  /* v0.9.1 (B3): hlavička nepřetéká — detaily uživatele pryč, přetékající
+     tlačítka sbalená do „···" menu */
+  #user-email-label,#user-display-name,#app-version-label{ display:none !important }
+  #search-btn,#tutorial-btn,#logout-btn,#emp-settings-btn,#admin-settings-btn{ display:none !important }
+  #topbar-more-wrap{ display:block !important }
+  .topbar-right{ gap:8px }
+  /* v0.9.1 (B3): score bar se zalamuje místo přetékání */
+  .score-bar-top{ flex-wrap:wrap }
+  .score-metrics{ grid-template-columns:1fr 1fr }
 }
 
 /* ── v0.6.0 NEW FEATURES ── */
@@ -1137,25 +1172,38 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
       <button class="btn-ghost" id="emp-settings-btn" onclick="openEmployeeSettings()" style="display:none"><span data-icon="set_profil">👤</span> Profil</button>
       <button class="btn-ghost" id="admin-settings-btn" onclick="openEmployeeSettings()" style="display:none"><span data-icon="set_profil">👤</span> Profil</button>
       <span id="org-code-badge" style="display:none;font-family:var(--font-mono);font-size:12px;font-weight:700;letter-spacing:1.5px;background:var(--paper);border:1.5px solid var(--line);padding:4px 10px;border-radius:6px;color:var(--ink-soft)" title="Kód firmy"></span>
-      <span id="app-version-label" title="Verze aplikace" onclick="handleVersionClick()" style="font-size:10px;color:var(--ink-faint);font-family:var(--font-mono);padding:0 4px;user-select:none;cursor:pointer">v0.9.0</span>
-      <button class="btn-ghost" onclick="openSearch()" title="Vyhledat (Ctrl+K)" style="padding:6px 10px;font-size:14px"><span data-icon="btn_hledat">🔍</span></button>
-      <button class="btn-ghost" onclick="openHelpCenter()" title="Nápověda" style="padding:6px 10px;font-size:14px"><span data-icon="btn_napoveda">❓</span></button>
+      <span id="app-version-label" title="Verze aplikace" onclick="handleVersionClick()" style="font-size:10px;color:var(--ink-faint);font-family:var(--font-mono);padding:0 4px;user-select:none;cursor:pointer">v0.9.1</span>
+      <button class="btn-ghost" id="search-btn" onclick="openSearch()" title="Vyhledat (Ctrl+K)" style="padding:6px 10px;font-size:14px"><span data-icon="btn_hledat">🔍</span></button>
+      <!-- v0.9.1 (A5): otazník na chatbota z hlavičky odstraněn — nápovědu otevírá plovoucí bublina vpravo dole -->
       <button class="btn-ghost" id="notif-btn" onclick="toggleNotifPanel()" title="Notifikace" style="position:relative;padding:6px 10px;font-size:16px;display:none;align-items:center;justify-content:center">
         <span data-icon="notif_bell">🔔</span>
         <span id="notif-badge" style="display:none;position:absolute;top:0;right:0;min-width:15px;height:15px;padding:0 3px;background:var(--red);color:#fff;border-radius:8px;border:2px solid var(--surface);font-size:9px;font-weight:700;line-height:1;align-items:center;justify-content:center"></span>
       </button>
       <button class="btn-ghost" id="tutorial-btn" onclick="openTutorialMenu()" title="Průvodce aplikací" style="font-size:15px;padding:6px 10px">?</button>
-      <button class="btn-ghost" onclick="doLogout()"><span data-icon="btn_odhlasit">🚪</span> Odhlásit</button>
+      <button class="btn-ghost" id="logout-btn" onclick="doLogout()"><span data-icon="btn_odhlasit">🚪</span> Odhlásit</button>
+      <!-- v0.9.1 (B3): na mobilu se přetékající tlačítka sbalí do tohoto menu -->
+      <div id="topbar-more-wrap" style="position:relative;display:none">
+        <button class="btn-ghost" id="topbar-more-btn" onclick="toggleTopbarMenu(event)" title="Menu" style="padding:6px 12px;font-size:16px;line-height:1"><span data-icon="btn_vice">···</span></button>
+        <div id="topbar-more-menu" style="display:none;position:absolute;top:calc(100% + 6px);right:0;background:var(--surface);border:1.5px solid var(--line);border-radius:10px;box-shadow:0 6px 20px rgba(30,34,48,.15);z-index:500;min-width:190px;padding:6px 0">
+          <div class="toolbar-menu-item" onclick="closeTopbarMenu();openSearch()"><span data-icon="btn_hledat">🔍</span> Vyhledat</div>
+          <div class="toolbar-menu-item" onclick="closeTopbarMenu();openEmployeeSettings()"><span data-icon="set_profil">👤</span> Profil</div>
+          <div class="toolbar-menu-item" onclick="closeTopbarMenu();openTutorialMenu()"><span data-icon="btn_napoveda">❓</span> Průvodce aplikací</div>
+          <div class="toolbar-menu-item" onclick="closeTopbarMenu();doLogout()"><span data-icon="btn_odhlasit">🚪</span> Odhlásit</div>
+        </div>
+      </div>
     </div>
   </div>
 
   <div class="tabbar">
+    <!-- v0.9.1 (B1): Můj rozpis — jen pro roli employee (viditelnost řídí CSS employee-view) -->
+    <button class="tab-btn" data-tab="myschedule" onclick="switchAppTab('myschedule')"><span data-icon="nav_muj_rozpis">📆</span> Můj rozpis</button>
     <button class="tab-btn active" data-tab="schedule" onclick="switchAppTab('schedule')"><span data-icon="nav_rozpis">📅</span> Rozpis</button>
     <button class="tab-btn" data-tab="branches" onclick="switchAppTab('branches')"><span data-icon="nav_pobocky">🏠</span> Pobočky</button>
     <button class="tab-btn" data-tab="employees" onclick="switchAppTab('employees')"><span data-icon="nav_zamestnanci">👤</span> Zaměstnanci</button>
     <button class="tab-btn" data-tab="gaps" onclick="switchAppTab('gaps')"><span data-icon="nav_mezery">📋</span> Mezery</button>
     <button class="tab-btn employee-hidden" data-tab="stats" onclick="switchAppTab('stats')"><span data-icon="nav_statistiky">📊</span> Statistiky</button>
-    <button class="tab-btn employee-hidden" data-tab="leaves" onclick="switchAppTab('leaves')"><span data-icon="nav_zadosti">🗓️</span> Žádosti</button>
+    <!-- v0.9.1 (B4): Žádosti vidí i zaměstnanec (jeho vlastní „Moje směny a volno") -->
+    <button class="tab-btn" data-tab="leaves" onclick="switchAppTab('leaves')"><span data-icon="nav_zadosti">🗓️</span> Žádosti</button>
     <button class="tab-btn" data-tab="rules" onclick="switchAppTab('rules')"><span data-icon="nav_pravidla">⚖️</span> Pravidla</button>
   </div>
 
@@ -1322,6 +1370,25 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
     </div>
 
     <!-- MEZERY -->
+    <!-- MŮJ ROZPIS (v0.9.1 B1/B2) — mobilní-first obrazovka zaměstnance -->
+    <div id="pane-myschedule" class="tab-pane" style="display:none">
+      <div class="panel">
+        <div class="panel-head" style="flex-wrap:wrap;gap:10px">
+          <div style="display:flex;gap:2px;background:var(--paper);border-radius:8px;padding:3px">
+            <button id="mysched-subtab-me" onclick="switchMySubTab('me')" style="border:none;border-radius:6px;padding:7px 14px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;background:var(--surface);color:var(--ink);box-shadow:var(--shadow)"><span data-icon="nav_muj_rozpis">📆</span> Můj rozpis</button>
+            <button id="mysched-subtab-team" onclick="switchMySubTab('team')" style="border:none;border-radius:6px;padding:7px 14px;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;background:none;color:var(--ink-soft)"><span data-icon="nav_tym">👥</span> Tým</button>
+          </div>
+          <div class="month-nav" style="margin-left:auto">
+            <button class="icon-nav-btn" onclick="changeMonth(-1)">‹</button>
+            <span class="month-label" id="mysched-month-label">—</span>
+            <button class="icon-nav-btn" onclick="changeMonth(1)">›</button>
+          </div>
+        </div>
+        <div id="myschedule-content"></div>
+        <div id="team-content" style="display:none"></div>
+      </div>
+    </div>
+
     <div id="pane-gaps" class="tab-pane" style="display:none">
       <div class="panel">
         <div class="panel-head">
@@ -1848,6 +1915,17 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
   </div>
 </div>
 
+<!-- v0.9.1 (C3): decentní zavíratelný hint „Přidat na plochu" pro mobilní návštěvníky -->
+<div id="pwa-install-banner" style="display:none;position:fixed;left:12px;right:76px;bottom:12px;z-index:550;background:var(--surface);border:1.5px solid var(--line);border-radius:12px;box-shadow:0 6px 20px rgba(30,34,48,.18);padding:10px 12px;align-items:center;gap:10px">
+  <span style="font-size:20px;flex-shrink:0"><span data-icon="pwa_install">📲</span></span>
+  <div style="flex:1;min-width:0">
+    <div style="font-size:12.5px;font-weight:700">Přidat Směny na plochu</div>
+    <div style="font-size:11px;color:var(--ink-soft)">Rychlý přístup jako appka — bez adresního řádku.</div>
+  </div>
+  <span id="pwa-install-action"></span>
+  <button onclick="dismissInstallHint()" title="Zavřít" style="background:none;border:none;font-size:15px;color:var(--ink-faint);cursor:pointer;padding:6px;flex-shrink:0">✕</button>
+</div>
+
 <!-- ============================================================
      HELP CENTER — tree-based, no AI, no API
      ============================================================ -->
@@ -2142,6 +2220,10 @@ const DEFAULT_ICONS = {
   // Navigace (tab bar)
   nav_rozpis: '📅', nav_pobocky: '🏠', nav_zamestnanci: '👤', nav_mezery: '📋',
   nav_statistiky: '📊', nav_zadosti: '🗓️', nav_pravidla: '⚖️',
+  nav_muj_rozpis: '📆', nav_tym: '👥',
+
+  // PWA (v0.9.1)
+  pwa_install: '📲',
 
   // Toolbar tlačítka (rozpis)
   btn_auto: '⚡', btn_publikovat: '📢', btn_kde_doplnit: '🔍',
@@ -2833,8 +2915,10 @@ async function bootstrapAfterAuth(){
 
     if(currentRole !== 'admin'){
       if(!currentEmployeeId && currentRole !== 'branch_manager'){
+        // A3 v0.9.1: účet je členem organizace, ale bez vazby na zaměstnanecký
+        // profil — dřív se tu matoucně ukazoval onboarding pro založení firmy
         document.getElementById('app-shell').style.display = 'none';
-        showOnboarding(null, true);
+        showEmployeeLinkError(user.email);
         return;
       }
       if(currentRole !== 'branch_manager') document.body.classList.add('employee-view');
@@ -2896,6 +2980,8 @@ async function bootstrapAfterAuth(){
     flushPendingActivityLog();
 
     initSchedule();
+    // v0.9.1 (B1): zaměstnanec startuje na Můj rozpis — jeho výchozí obrazovka
+    if(currentRole === 'employee') switchAppTab('myschedule');
     checkAndShowOnboarding();
     maybeStartTutorial();
   } catch(err){
@@ -2903,6 +2989,50 @@ async function bootstrapAfterAuth(){
     document.getElementById('auth-shell').style.display = 'flex';
     showAuthError('login', 'Nastala chyba při načítání: ' + (err && err.message ? err.message : String(err)));
   }
+}
+
+// A3 v0.9.1: celoobrazovková chyba pro zaměstnance bez vazby na profil —
+// bez ní by uživatel viděl prázdnou appku nebo matoucí onboarding.
+function showEmployeeLinkError(email){
+  let el = document.getElementById('emp-link-error');
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'emp-link-error';
+    el.style.cssText = 'position:fixed;inset:0;z-index:900;background:var(--paper);display:flex;align-items:center;justify-content:center;padding:20px';
+    document.body.appendChild(el);
+  }
+  el.innerHTML = `
+    <div style="background:var(--surface);border:1.5px solid var(--line);border-radius:16px;box-shadow:var(--shadow-lg);max-width:420px;width:100%;padding:32px;text-align:center">
+      <div style="font-size:40px;margin-bottom:14px">${ICONS.status_warning}</div>
+      <h2 style="font-family:var(--font-display);font-size:19px;margin:0 0 10px">Účet není propojený</h2>
+      <p style="font-size:13.5px;color:var(--ink-soft);line-height:1.55;margin:0 0 6px">
+        Tvůj účet${email?` <strong>${escapeHtml(email)}</strong>`:''} není propojený se zaměstnaneckým profilem — kontaktuj vedoucího, ať ti pošle nový pozvánkový odkaz nebo propojí účet v záložce Zaměstnanci.
+      </p>
+      <button class="btn-outline" onclick="doLogout()" style="margin-top:16px;padding:8px 18px"><span data-icon="btn_odhlasit">🚪</span> Odhlásit se</button>
+    </div>`;
+  el.style.display = 'flex';
+  applyIconSpans();
+}
+
+// B3 v0.9.1: mobilní „···" menu v hlavičce — sbalená tlačítka Vyhledat/Profil/Průvodce/Odhlásit
+function toggleTopbarMenu(e){
+  if(e) e.stopPropagation();
+  const menu = document.getElementById('topbar-more-menu');
+  if(!menu) return;
+  const willOpen = menu.style.display === 'none';
+  menu.style.display = willOpen ? 'block' : 'none';
+  if(willOpen){
+    setTimeout(()=>{
+      document.addEventListener('click', function close(ev){
+        if(!menu.contains(ev.target)){ menu.style.display = 'none'; }
+        else document.addEventListener('click', close, { once:true });
+      }, { once:true });
+    }, 0);
+  }
+}
+function closeTopbarMenu(){
+  const menu = document.getElementById('topbar-more-menu');
+  if(menu) menu.style.display = 'none';
 }
 
 // ============================================================
@@ -3107,6 +3237,20 @@ function switchAppTab(tab){
 // ============================================================
 let orgMembers = []; // cache of org_members rows
 
+// A4 v0.9.1: pojistka proti duplicitním osobám v renderu (Dashboard, rozpis,
+// detail dne…) — deduplikace podle klíče hned na datové vrstvě, aby žádný
+// render nemohl stejného člověka poskládat 2× (např. z employees + org_members).
+function dedupeByKey(rows, keyFn){
+  const seen = new Set();
+  return (rows||[]).filter(r=>{
+    const k = keyFn(r);
+    if(k == null) return true;
+    if(seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+}
+
 async function loadEmployees(){
   const { data, error } = await sb
     .from('employees')
@@ -3115,11 +3259,13 @@ async function loadEmployees(){
     .order('sort_order', { ascending: true });
 
   if(error){ toast('Chyba při načítání zaměstnanců'); return; }
-  employees = data || [];
+  employees = dedupeByKey(data, e=>e.id);
 
   // Also load org_members to show linked accounts
   const { data: members } = await sb.from('org_members').select('*').eq('org_id', currentOrg.id);
-  orgMembers = members || [];
+  // Jeden řádek na employee_id — duplicitní členství by zdvojilo osobu všude,
+  // kde se seznam lidí skládá přes vazbu org_members (A4 v0.9.1)
+  orgMembers = dedupeByKey(dedupeByKey(members, m=>m.id), m=>m.employee_id);
 
   renderEmployees();
 }
@@ -4078,6 +4224,7 @@ async function loadShiftsForMonth(forceRefresh=false){
     unavail = _shiftCache[cacheKey].unavail;
     renderCalendar();
     if(document.getElementById('pane-gaps')?.style.display !== 'none') renderGaps();
+    if(typeof renderMySchedule === 'function') renderMySchedule(); // v0.9.1 B1 — sám si hlídá viditelnost
     loadAndRenderOpenShifts().catch(()=>{});
     resetSessionTimer();
     return;
@@ -4104,6 +4251,7 @@ async function loadShiftsForMonth(forceRefresh=false){
 
   renderCalendar();
   if(document.getElementById('pane-gaps')?.style.display !== 'none') renderGaps();
+  if(typeof renderMySchedule === 'function') renderMySchedule(); // v0.9.1 B1 — sám si hlídá viditelnost
   // Load open shifts in background (non-critical, table may not exist yet)
   loadAndRenderOpenShifts().catch(()=>{});
   resetSessionTimer();
@@ -8327,7 +8475,11 @@ function toggleNotifPanel(){
   if(isOpen){
     panel.classList.remove('open');
   } else {
-    renderNotifPanel();
+    renderNotifPanel(); // okamžitě z cache…
+    // …a vždy čerstvá data z DB — badge i seznam bez nutnosti reloadu (A3 v0.9.1)
+    loadNotifications().then(()=>{
+      if(panel.classList.contains('open')) renderNotifPanel();
+    });
     panel.classList.add('open');
     // Close when clicking outside
     setTimeout(()=>{
@@ -8347,6 +8499,7 @@ function closeNotifOnOutside(e){
 }
 
 const NOTIF_LEAVE_TYPES = ['leave_request', 'leave_approved', 'leave_rejected'];
+const NOTIF_PUBLISH_TYPES = ['publish', 'publish_admin'];
 
 function renderNotifPanel(){
   const list = document.getElementById('notif-list');
@@ -8357,7 +8510,7 @@ function renderNotifPanel(){
   }
   list.innerHTML = _notifications.map((n,i)=>{
     const date = new Date(n.created_at).toLocaleDateString('cs-CZ',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
-    const clickable = NOTIF_LEAVE_TYPES.includes(n.type);
+    const clickable = NOTIF_LEAVE_TYPES.includes(n.type) || NOTIF_PUBLISH_TYPES.includes(n.type);
     // title/body jsou nové sloupce (migration_notifications.sql); message je legacy fallback
     const title = n.title ? `<div style="font-size:13px;font-weight:700;color:var(--ink);line-height:1.4">${escapeHtml(n.title)}</div>` : '';
     const body = escapeHtml(n.body || n.message || '');
@@ -8372,12 +8525,30 @@ function renderNotifPanel(){
   }).join('');
 }
 
+// B4 v0.9.1: klik na notifikaci vede na cíl —
+//  • žádost o volno / rozhodnutí → tab Žádosti (u zaměstnance jeho „Moje směny a volno")
+//  • publikování → Můj rozpis příslušného měsíce (employee) / rozpis měsíce (admin);
+//    cílový měsíc nese sloupec message ve tvaru 'month:RRRR-MM'
 async function handleNotifClick(i){
   const n = _notifications[i];
   if(!n) return;
   if(NOTIF_LEAVE_TYPES.includes(n.type)){
     toggleNotifPanel();
     switchAppTab('leaves');
+  } else if(NOTIF_PUBLISH_TYPES.includes(n.type)){
+    toggleNotifPanel();
+    const mk = (n.message||'').match(/^month:(\d{4})-(\d{2})$/);
+    if(mk){
+      const y = parseInt(mk[1]), m0 = parseInt(mk[2]) - 1;
+      if(y !== schedYear || m0 !== schedMonth){
+        schedYear = y; schedMonth = m0;
+        localStorage.setItem('sched_last_month', schedYear+'-'+schedMonth);
+        renderMonthLabel();
+        loadShiftsForMonth();
+        if(typeof updateArchiveBadge === 'function') updateArchiveBadge();
+      }
+    }
+    switchAppTab(currentRole === 'employee' ? 'myschedule' : 'schedule');
   }
   if(!n.read){
     n.read = true;
@@ -8486,29 +8657,39 @@ async function doPublishSchedule(){
   // In-app notifikace VŠEM členům organizace s účtem — včetně dalších adminů/vedoucích
   // (v0.7.9: blokace pro vedoucí zrušena). Publikující admin dostává souhrn níže.
   // Respektuje per-user preference (getNotifPref) z profilu → sekce Upozornění.
+  // Dedup podle user_id (A4 v0.9.1) — kdyby měl uživatel víc členství, dostal by notifikaci 2×
+  const seenRecipients = new Set();
   const memberRecipients = orgMembers.filter(m =>
-    m.user_id && m.user_id !== currentUser.id && getNotifPref(m.user_id, 'publish', 'inapp'));
+    m.user_id && m.user_id !== currentUser.id && getNotifPref(m.user_id, 'publish', 'inapp')
+    && !seenRecipients.has(m.user_id) && seenRecipients.add(m.user_id));
+  // message nese strojově čitelný cíl notifikace (klik → rozpis daného měsíce, B4 v0.9.1)
   const notifRows = memberRecipients.map(m => ({
     org_id: currentOrg.id,
     user_id: m.user_id,
     type: 'publish',
     title: `${ICONS.btn_publikovat} Nový rozpis`,
     body: `Byl publikován rozpis na ${monthLabel}.`,
+    message: 'month:' + key,
     read: false,
   }));
+  // Chyba notifikace nesmí zablokovat publikování, ale nesmí být neviditelná (A2 v0.9.1)
+  let notifFailed = false;
   if(notifRows.length > 0){
-    await sb.from('notifications').insert(notifRows);
+    const { error: notifErr } = await sb.from('notifications').insert(notifRows);
+    if(notifErr){ notifFailed = true; console.warn('notif insert failed', notifErr); }
   }
 
   // Confirm to the admin who published that it went through
-  await sb.from('notifications').insert({
+  const { error: adminNotifErr } = await sb.from('notifications').insert({
     org_id: currentOrg.id,
     user_id: currentUser.id,
     type: 'publish_admin',
     title: `${ICONS.status_ok} Rozpis publikován`,
     body: `Rozpis ${monthLabel} byl úspěšně publikován. ${memberRecipients.length > 0 ? `Upozorněno ${memberRecipients.length} členů týmu.` : 'Žádní další členové s účtem nebyli upozorněni.'}`,
+    message: 'month:' + key,
     read: false,
   });
+  if(adminNotifErr) console.warn('notif insert failed', adminNotifErr);
   loadNotifications();
 
   // Pro e-mail a log potřebujeme jména — spoj členy se zaměstnaneckými záznamy
@@ -8547,7 +8728,9 @@ async function doPublishSchedule(){
   }
   saveNotifLog(notifLog);
 
-  toast(`${ICONS.btn_publikovat} Rozpis ${monthLabel} publikován`, 'ok');
+  toast(notifFailed
+    ? `${ICONS.btn_publikovat} Rozpis ${monthLabel} publikován (upozornění týmu se nepodařilo doručit)`
+    : `${ICONS.btn_publikovat} Rozpis ${monthLabel} publikován`, 'ok');
   logActivity(`Rozpis ${monthLabel} byl publikován`);
   updatePublishBtn();
 }
@@ -10620,7 +10803,12 @@ function openTutorialMenu(){
   let menu = document.getElementById('tut-menu');
   if(menu){ menu.remove(); return; }
   const btn = document.getElementById('tutorial-btn');
-  const rect = btn.getBoundingClientRect();
+  let rect = btn ? btn.getBoundingClientRect() : null;
+  // v0.9.1 (B3): na mobilu je tlačítko skryté (menu „···") — ukotvi se k němu
+  if(!rect || (rect.width === 0 && rect.height === 0)){
+    const alt = document.getElementById('topbar-more-btn');
+    rect = alt && alt.offsetParent ? alt.getBoundingClientRect() : { bottom: 54, right: window.innerWidth - 12 };
+  }
   menu = document.createElement('div');
   menu.id = 'tut-menu';
   menu.style.cssText = `position:fixed;top:${rect.bottom+6}px;right:${window.innerWidth-rect.right}px;background:var(--surface);border:1.5px solid var(--line);border-radius:10px;box-shadow:0 6px 24px rgba(30,34,48,.15);z-index:8000;min-width:200px;overflow:hidden`;
@@ -11743,6 +11931,10 @@ function leaveDayCount(from, to){
 
 function openLeaveRequestModal(){
   if(window._leaveTableMissing){ toast('Systém dovolených vyžaduje spuštění migration_leave.sql v Supabase', 'error'); return; }
+  if(currentRole !== 'admin' && !currentEmployeeId){
+    toast('Tvůj účet není propojený se zaměstnaneckým profilem — kontaktuj vedoucího', 'error');
+    return;
+  }
   const sel = document.getElementById('leave-emp-select');
   if(currentRole === 'admin'){
     const ownEmp = currentEmployeeId ? employees.find(e=>e.id===currentEmployeeId) : null;
@@ -11824,10 +12016,11 @@ async function saveLeaveRequest(){
     notifyLeaveDecision(data, 'approved');
     renderCalendar();
   } else {
-    toast('Žádost odeslána');
-    // Notify org admins in-app so they know a request is waiting for them
+    // Notify org admins in-app so they know a request is waiting for them.
+    // Chyba notifikace nesmí zablokovat žádost, ale nesmí být neviditelná (A2 v0.9.1).
     const admins = orgMembers.filter(m => m.role === 'admin' && m.user_id && m.user_id !== currentUser?.id
       && getNotifPref(m.user_id, 'leave', 'inapp'));
+    let notifFailed = false;
     if(admins.length){
       const rows = admins.map(m => ({
         org_id: currentOrg.id,
@@ -11837,8 +12030,12 @@ async function saveLeaveRequest(){
         body: `${emp.name} žádá o volno ${fmtLeaveRange(from, to)}${reduction?` (−${reduction} směn)`:''}. Ke schválení →`,
         read: false,
       }));
-      sb.from('notifications').insert(rows).catch(()=>{});
+      const { error: notifErr } = await sb.from('notifications').insert(rows);
+      if(notifErr){ notifFailed = true; console.warn('notif insert failed', notifErr); }
     }
+    toast(notifFailed
+      ? 'Žádost odeslána (upozornění adminovi se nepodařilo doručit)'
+      : 'Žádost odeslána');
   }
   if(document.getElementById('pane-leaves').style.display !== 'none') renderLeaves();
 }
@@ -11988,7 +12185,8 @@ function leaveDayLabel(days){
 
 // Notifies the requesting employee in-app once their leave request is approved/rejected.
 // No-op if the employee has no linked user account, or when deciding own request.
-function notifyLeaveDecision(l, decision){
+// Chyba notifikace nesmí zablokovat rozhodnutí, ale nesmí být neviditelná (A2 v0.9.1).
+async function notifyLeaveDecision(l, decision){
   if(!currentOrg || !l.employee_id) return;
   const empUserId = userIdByEmpId(l.employee_id); // vazba přes org_members
   if(!empUserId || empUserId === currentUser?.id) return;
@@ -11996,7 +12194,7 @@ function notifyLeaveDecision(l, decision){
   const days = leaveDayLabel(leaveDayCount(l.date_from, l.date_to));
   if(!getNotifPref(empUserId, 'decision', 'inapp')) return;
   const approved = decision === 'approved';
-  sb.from('notifications').insert({
+  const { error } = await sb.from('notifications').insert({
     org_id: currentOrg.id,
     user_id: empUserId,
     type: approved ? 'leave_approved' : 'leave_rejected',
@@ -12005,7 +12203,11 @@ function notifyLeaveDecision(l, decision){
       ? `Tvoje žádost o volno ${range} (${days}) byla schválena.`
       : `Tvoje žádost o volno ${range} (${days}) byla zamítnuta.${l.decision_note ? ` Důvod: ${l.decision_note}` : ''}`,
     read: false,
-  }).catch(()=>{});
+  });
+  if(error){
+    console.warn('notif insert failed', error);
+    toast('Upozornění zaměstnanci se nepodařilo doručit', 'error');
+  }
 }
 
 // ── Feature 7: TISK VYLEPŠENÍ ────────────────────────────────
@@ -12397,12 +12599,75 @@ async function deleteOrgForReal(){
   }
 }
 
-// ── Feature 11: PWA ─────────────────────────────────────────
+// ── Feature 11: PWA (přepracováno v0.9.1 — C2/C3) ───────────
 
 function registerServiceWorker(){
-  if('serviceWorker' in navigator){
-    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  if(!('serviceWorker' in navigator)) return;
+  navigator.serviceWorker.register('sw.js').then(reg=>{
+    // Aktivní kontrola nové verze — při návratu do appky a pak každou hodinu,
+    // aby nikdo nezůstal na zamrzlém buildu
+    document.addEventListener('visibilitychange', ()=>{
+      if(document.visibilityState === 'visible') reg.update().catch(()=>{});
+    });
+    setInterval(()=>reg.update().catch(()=>{}), 60*60*1000);
+  }).catch(e=>console.warn('SW registration failed', e));
+
+  // Nová verze SW převzala kontrolu (skipWaiting + clients.claim) → jednorázový
+  // reload načte čerstvý shell z nové cache. První instalace se nereloaduje.
+  let hadController = !!navigator.serviceWorker.controller;
+  let reloaded = false;
+  navigator.serviceWorker.addEventListener('controllerchange', ()=>{
+    if(!hadController){ hadController = true; return; }
+    if(reloaded) return;
+    reloaded = true;
+    location.reload();
+  });
+}
+
+// ── C3: instalační hint „Přidat na plochu" pro mobilní návštěvníky ──
+let _deferredInstallPrompt = null;
+window.addEventListener('beforeinstallprompt', e=>{
+  e.preventDefault();
+  _deferredInstallPrompt = e;
+  maybeShowInstallHint();
+});
+
+function isStandalonePwa(){
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+}
+
+function maybeShowInstallHint(){
+  if(isStandalonePwa()) return;                                   // už nainstalováno
+  if(localStorage.getItem('pwa_hint_dismissed')) return;          // pamatuje si zavření
+  if(!/Android|iPhone|iPad|iPod|Mobi/i.test(navigator.userAgent)) return; // jen mobil
+  const el = document.getElementById('pwa-install-banner');
+  if(!el || el.style.display === 'flex') return;
+  const isIos = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const actionEl = document.getElementById('pwa-install-action');
+  if(actionEl){
+    if(_deferredInstallPrompt){
+      actionEl.innerHTML = `<button class="btn-accent" onclick="installPwa()" style="padding:7px 14px;font-size:12.5px;white-space:nowrap">${ICONS.pwa_install} Přidat</button>`;
+    } else if(isIos){
+      actionEl.innerHTML = `<span style="font-size:11.5px;color:var(--ink-soft)">Sdílet&nbsp;→ „Přidat na plochu"</span>`;
+    } else {
+      actionEl.innerHTML = `<span style="font-size:11.5px;color:var(--ink-soft)">V menu prohlížeče zvol „Přidat na plochu"</span>`;
+    }
   }
+  el.style.display = 'flex';
+}
+
+async function installPwa(){
+  if(!_deferredInstallPrompt) return;
+  _deferredInstallPrompt.prompt();
+  const { outcome } = await _deferredInstallPrompt.userChoice;
+  _deferredInstallPrompt = null;
+  if(outcome === 'accepted') dismissInstallHint(false);
+}
+
+function dismissInstallHint(remember = true){
+  const el = document.getElementById('pwa-install-banner');
+  if(el) el.style.display = 'none';
+  if(remember) localStorage.setItem('pwa_hint_dismissed', '1');
 }
 
 // ── Feature 12: KLÁVESOVÉ ZKRATKY ROZŠÍŘENÍ ─────────────────
@@ -13197,18 +13462,238 @@ function switchSettingsTab(tab){
 // ── APP TAB PATCH ────────────────────────────────────────────
 
 const _origSwitchAppTab = switchAppTab;
+// ============================================================
+// MŮJ ROZPIS + TÝM (v0.9.1 B1/B2) — mobilní-first pohled zaměstnance.
+// Zaměstnanec tu vidí VÝHRADNĚ publikované měsíce (orgSettings.published_months,
+// klíč 'RRRR-MM' — stejný zdroj, kterým publikuje doPublishSchedule).
+// ============================================================
+let mySubTab = 'me'; // 'me' | 'team'
+
+function isMonthPublished(y, m0){
+  const k = `${y}-${String(m0+1).padStart(2,'0')}`;
+  return (orgSettings['published_months']||[]).includes(k);
+}
+
+function switchMySubTab(tab){
+  mySubTab = tab;
+  [['mysched-subtab-me', tab==='me'], ['mysched-subtab-team', tab==='team']].forEach(([id,on])=>{
+    const btn = document.getElementById(id);
+    if(!btn) return;
+    btn.style.background = on ? 'var(--surface)' : 'none';
+    btn.style.color      = on ? 'var(--ink)' : 'var(--ink-soft)';
+    btn.style.boxShadow  = on ? 'var(--shadow)' : 'none';
+    btn.style.fontWeight = on ? '700' : '500';
+  });
+  const meEl = document.getElementById('myschedule-content');
+  const teamEl = document.getElementById('team-content');
+  if(meEl) meEl.style.display = tab==='me' ? '' : 'none';
+  if(teamEl) teamEl.style.display = tab==='team' ? '' : 'none';
+  renderMySchedule();
+}
+
+const MYSCHED_DOW = ['Ne','Po','Út','St','Čt','Pá','So'];
+
+// Stav jednoho dne zaměstnance: směna / dovolenkové X / žádanka X / volno
+function myDayCellHtml(empId, dateStr){
+  if(unavail[empId+':'+dateStr]) return `<span class="sched-chip x-chip">X</span><span style="font-size:11.5px;color:var(--ink-soft)">žádanka volna</span>`;
+  const s = shifts[empId+':'+dateStr];
+  if(!s || !s.shift_type_code) return `<span style="font-size:12px;color:var(--ink-faint)">volno</span>`;
+  if(s.shift_type_code === 'X'){
+    if(s.leave_request_id) return `<span class="sched-chip x-chip leave-x">X</span><span style="font-size:11.5px;color:var(--status-warn);font-weight:600">dovolená</span>`;
+    return `<span class="sched-chip x-chip">X</span><span style="font-size:11.5px;color:var(--ink-soft)">žádanka volna</span>`;
+  }
+  const bCode = parentBranchCode(s.shift_type_code);
+  const b = branches.find(x=>x.code===bCode);
+  return `<span class="sched-chip" style="background:${codeColor(s.shift_type_code)}">${escapeHtml(s.shift_type_code)}</span><span style="font-size:12px;font-weight:600">${escapeHtml(b?.name||'')}</span>`;
+}
+
+function renderMySchedule(){
+  const pane = document.getElementById('pane-myschedule');
+  if(!pane || pane.style.display === 'none') return;
+  const label = document.getElementById('mysched-month-label');
+  if(label) label.textContent = new Date(schedYear, schedMonth, 1).toLocaleDateString('cs-CZ',{month:'long',year:'numeric'});
+  if(mySubTab === 'team'){ renderTeamGrid(); return; }
+
+  const el = document.getElementById('myschedule-content');
+  if(!el) return;
+  if(!currentEmployeeId){
+    el.innerHTML = `<div class="empty-state"><div style="font-size:40px;margin-bottom:12px">${ICONS.status_warning}</div>
+      <p style="font-size:15px;font-weight:700;margin-bottom:6px">Účet není propojený</p>
+      <p style="font-size:13px;color:var(--ink-soft)">Tvůj účet není propojený se zaměstnaneckým profilem — kontaktuj vedoucího.</p></div>`;
+    return;
+  }
+  const emp = employees.find(e=>e.id===currentEmployeeId);
+  if(!emp){
+    el.innerHTML = `<div class="empty-state"><p style="font-size:13px;color:var(--ink-soft)">Zaměstnanecký profil nebyl nalezen — kontaktuj vedoucího.</p></div>`;
+    return;
+  }
+
+  // Karta Dnes / Zítra — plní se async z DB (dnešek nemusí ležet v zobrazeném měsíci)
+  let html = `<div class="mysched-today-grid" id="mysched-today-cards">
+    <div class="mysched-today-card"><div class="mysched-today-label">Dnes</div><div class="spinner-sm"></div></div>
+    <div class="mysched-today-card"><div class="mysched-today-label">Zítra</div><div class="spinner-sm"></div></div>
+  </div>`;
+
+  const published = isMonthPublished(schedYear, schedMonth);
+  if(currentRole === 'employee' && !published){
+    el.innerHTML = html + `<div class="empty-state"><div style="font-size:40px;margin-bottom:12px">${ICONS.status_pending}</div>
+      <p style="font-size:15px;font-weight:700;margin-bottom:6px">Rozpis pro tento měsíc zatím nebyl zveřejněn</p>
+      <p style="font-size:13px;color:var(--ink-soft)">Jakmile ho vedoucí publikuje, uvidíš ho tady a přijde ti notifikace.</p></div>`;
+    loadMyTodayCards(emp);
+    return;
+  }
+
+  const daysInMonth = new Date(schedYear, schedMonth+1, 0).getDate();
+  const now = new Date();
+  const todayStr = isoDate(now.getFullYear(), now.getMonth()+1, now.getDate());
+
+  // Seznam dní měsíce
+  let daysHtml = '';
+  let worked=0, planned=0, xUsed=0;
+  for(let d=1; d<=daysInMonth; d++){
+    const dateStr = isoDate(schedYear, schedMonth+1, d);
+    const dow = new Date(schedYear, schedMonth, d).getDay();
+    const isWE = dow===0 || dow===6;
+    const isToday = dateStr === todayStr;
+    const s = shifts[emp.id+':'+dateStr];
+    if(unavail[emp.id+':'+dateStr]) xUsed++;
+    else if(s && s.shift_type_code === 'X' && !s.leave_request_id) xUsed++;
+    else if(s && s.shift_type_code && s.shift_type_code !== 'X'){
+      if(dateStr < todayStr) worked++; else planned++;
+    }
+    daysHtml += `<div class="mysched-day-row${isWE?' weekend':''}${isToday?' today':''}">
+      <span style="width:64px;flex-shrink:0;font-weight:${isWE?'700':'500'};color:${isWE?'var(--ink)':'var(--ink-soft)'}">${d}. ${MYSCHED_DOW[dow]}${isToday?' <span style="font-size:9px;background:var(--accent);color:#fff;border-radius:4px;padding:1px 4px;font-weight:700;vertical-align:middle">DNES</span>':''}</span>
+      <span style="display:flex;align-items:center;gap:8px;flex:1">${myDayCellHtml(emp.id, dateStr)}</span>
+    </div>`;
+  }
+
+  // Souhrn dole — efektivní limity (schválená dovolená snižuje min/cíl/max)
+  const eff = effectiveLimits(emp, schedYear, schedMonth);
+  const total = worked + planned;
+  const remX = Math.max(0, (emp.max_x||0) - xUsed);
+  const weekendBlocks = collectWeekendBlocks(daysInMonth);
+  let freeWE = 0;
+  weekendBlocks.forEach(wb=>{
+    const allFree = wb.every(ds=>{
+      const key = emp.id+':'+ds;
+      if(unavail[key]) return true;
+      const s = shifts[key];
+      return !s || s.shift_type_code==='X';
+    });
+    if(allFree) freeWE++;
+  });
+  const sumCard = (val, lbl, sub='') => `<div class="mysched-sum-card">
+    <div style="font-size:22px;font-weight:800;font-family:var(--font-display);color:var(--accent-ink)">${val}</div>
+    <div style="font-size:10.5px;color:var(--ink-faint);font-weight:600;text-transform:uppercase;margin-top:2px">${lbl}</div>
+    ${sub?`<div style="font-size:11px;color:var(--ink-soft);margin-top:2px">${sub}</div>`:''}
+  </div>`;
+  html += `<div style="border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-bottom:4px">${daysHtml}</div>
+    <div class="mysched-sum-grid">
+      ${sumCard(`${worked} / ${total}`, 'Odpracováno / plán')}
+      ${sumCard(`${total} / ${eff.target}`, 'Směny vs. cíl', `min ${eff.min} · max ${eff.max}${eff.reduction?` · −${eff.reduction} dovolená`:''}`)}
+      ${sumCard(remX, 'Zbývající žádanky X', `využito ${xUsed} z ${emp.max_x||0}`)}
+      ${sumCard(freeWE, 'Volné víkendy', emp.min_free_weekends?`min ${emp.min_free_weekends}`:'')}
+    </div>`;
+  el.innerHTML = html;
+  loadMyTodayCards(emp);
+}
+
+// Karta Dnes/Zítra — vlastní dotaz do DB (nezávisí na zobrazeném měsíci)
+async function loadMyTodayCards(emp){
+  const now = new Date();
+  const tomorrow = new Date(now); tomorrow.setDate(tomorrow.getDate()+1);
+  const t1 = isoDate(now.getFullYear(), now.getMonth()+1, now.getDate());
+  const t2 = isoDate(tomorrow.getFullYear(), tomorrow.getMonth()+1, tomorrow.getDate());
+  let rows = [];
+  const { data, error } = await sb.from('shifts').select('*')
+    .eq('org_id', currentOrg.id).eq('employee_id', emp.id).in('shift_date', [t1, t2]);
+  if(error) console.warn('today card load failed', error); else rows = data || [];
+  const el = document.getElementById('mysched-today-cards');
+  if(!el) return;
+  const card = (lbl, dateStr, d) => {
+    const dayLabel = d.toLocaleDateString('cs-CZ',{weekday:'long', day:'numeric', month:'numeric'});
+    let content;
+    if(currentRole==='employee' && !isMonthPublished(d.getFullYear(), d.getMonth())){
+      content = `<span style="font-size:12px;color:var(--ink-faint)">rozpis nezveřejněn</span>`;
+    } else {
+      const s = rows.find(r=>r.shift_date===dateStr);
+      if(s && s.shift_type_code && s.shift_type_code!=='X'){
+        const b = branches.find(x=>x.code===parentBranchCode(s.shift_type_code));
+        content = `<span class="sched-chip" style="background:${codeColor(s.shift_type_code)}">${escapeHtml(s.shift_type_code)}</span> <span style="font-size:13px;font-weight:700">${escapeHtml(b?.name||'')}</span>`;
+      } else if(s && s.shift_type_code==='X' && s.leave_request_id){
+        content = `<span style="font-size:13px;font-weight:700;color:var(--status-warn)">Dovolená</span>`;
+      } else {
+        content = `<span style="font-size:13px;font-weight:700;color:var(--accent-ink)">Volno</span>`;
+      }
+    }
+    return `<div class="mysched-today-card">
+      <div class="mysched-today-label">${lbl} · ${escapeHtml(dayLabel)}</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:6px">${content}</div>
+    </div>`;
+  };
+  el.innerHTML = card('Dnes', t1, now) + card('Zítra', t2, tomorrow);
+}
+
+// B2: zjednodušená mřížka celého publikovaného rozpisu — jen pro čtení,
+// bez skóre a admin tlačítek; zamrzlý sloupec jmen + horizontální scroll
+function renderTeamGrid(){
+  const el = document.getElementById('team-content');
+  if(!el) return;
+  if(currentRole === 'employee' && !isMonthPublished(schedYear, schedMonth)){
+    el.innerHTML = `<div class="empty-state"><div style="font-size:40px;margin-bottom:12px">${ICONS.status_pending}</div>
+      <p style="font-size:15px;font-weight:700;margin-bottom:6px">Rozpis pro tento měsíc zatím nebyl zveřejněn</p>
+      <p style="font-size:13px;color:var(--ink-soft)">Jakmile ho vedoucí publikuje, uvidíš tady rozpis celého týmu.</p></div>`;
+    return;
+  }
+  const daysInMonth = new Date(schedYear, schedMonth+1, 0).getDate();
+  let head = `<tr><th class="team-name">Jméno</th>`;
+  for(let d=1; d<=daysInMonth; d++){
+    const dow = new Date(schedYear, schedMonth, d).getDay();
+    const isWE = dow===0 || dow===6;
+    head += `<th${isWE?' class="weekend"':''}>${d}<br><span style="font-weight:400;color:var(--ink-faint)">${MYSCHED_DOW[dow]}</span></th>`;
+  }
+  head += '</tr>';
+  const body = employees.map(emp=>{
+    const isMe = emp.id === currentEmployeeId;
+    let row = `<td class="team-name"${isMe?' style="color:var(--accent-ink)"':''}>${escapeHtml(emp.name)}${isMe?' ·':''}</td>`;
+    for(let d=1; d<=daysInMonth; d++){
+      const dateStr = isoDate(schedYear, schedMonth+1, d);
+      const dow = new Date(schedYear, schedMonth, d).getDay();
+      const isWE = dow===0 || dow===6;
+      const s = shifts[emp.id+':'+dateStr];
+      const isUna = unavail[emp.id+':'+dateStr];
+      let inner = '';
+      // Cizí X (žádanky/dovolené) zůstávají skryté — stejné soukromí jako hlavní mřížka
+      if(isUna || (s && s.shift_type_code==='X')){
+        if(isMe) inner = `<span class="sched-chip x-chip${s?.leave_request_id?' leave-x':''}">X</span>`;
+      } else if(s && s.shift_type_code){
+        inner = `<span class="sched-chip" style="background:${codeColor(s.shift_type_code)}">${escapeHtml(s.shift_type_code)}</span>`;
+      }
+      row += `<td${isWE?' class="weekend"':''}>${inner}</td>`;
+    }
+    return `<tr${isMe?' style="background:var(--accent-soft)"':''}>${row}</tr>`;
+  }).join('');
+  el.innerHTML = `<div class="team-scroll"><table class="team-grid"><thead>${head}</thead><tbody>${body}</tbody></table></div>`;
+}
+
 function switchAppTab(tab){
-  if(currentRole && currentRole!=='admin' && !['schedule','leaves'].includes(tab)) return;
+  if(currentRole === 'employee' && !['myschedule','schedule','leaves'].includes(tab)) return;
+  if(currentRole === 'branch_manager' && !['schedule','gaps','leaves'].includes(tab)) return;
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
   document.querySelectorAll('.tab-pane').forEach(p=>p.style.display='none');
   const pane = document.getElementById('pane-'+tab);
   if(pane) pane.style.display='block';
   if(tab==='gaps') renderGaps();
   if(tab==='stats') renderStats();
+  if(tab==='myschedule') renderMySchedule();
   if(tab==='leaves') {
     // Show request button based on role
     document.getElementById('leaves-request-btn').style.display = currentRole==='admin' ? 'flex' : 'none';
     document.getElementById('leaves-request-emp-btn').style.display = currentRole!=='admin' ? 'flex' : 'none';
+    const sub = document.getElementById('leaves-count-label');
+    if(sub) sub.textContent = currentRole==='admin'
+      ? 'Žádosti zaměstnanců o volno čekající na schválení.'
+      : 'Tvoje žádosti o volno a dovolené.';
     renderLeaves(); // okamžitě z cache…
     loadLeaveRequests().then(renderLeaves); // …a pak refresh z DB (nové žádosti od zaměstnanců)
   }
@@ -13238,6 +13723,8 @@ document.addEventListener('smeny:afterBootstrap', ()=>{
   loadShiftNotes();
   loadUserOrgs();
   registerServiceWorker();
+  // v0.9.1 (C3): iOS nikdy nevystřelí beforeinstallprompt — hint zobraz i tak
+  setTimeout(maybeShowInstallHint, 1500);
   // Hide org settings tab for non-admins
   const orgTab = document.getElementById('stab-org');
   if(orgTab) orgTab.style.display = currentRole==='admin' ? '' : 'none';
@@ -13703,7 +14190,12 @@ async function notifyEligibleEmployees(shiftCode, dateStr, msg){
     .filter(e=>!e.is_fixed && userIdByEmpId(e.id))
     .map(e=>({ org_id: currentOrg.id, user_id: userIdByEmpId(e.id), type: 'open_shift', title: `${ICONS.btn_otevrene_smeny} Otevřená směna`, body: msg, read: false }));
   if(!notifRows.length) return;
-  try { await sb.from('notifications').insert(notifRows); } catch(e){}
+  // Chyba notifikace nesmí zablokovat vytvoření směny, ale nesmí být neviditelná (A2 v0.9.1)
+  const { error } = await sb.from('notifications').insert(notifRows);
+  if(error){
+    console.warn('notif insert failed', error);
+    toast('Upozornění zaměstnancům se nepodařilo doručit', 'error');
+  }
 }
 
 // ════════════════════════════════════════════════════════════════
