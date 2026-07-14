@@ -1172,7 +1172,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
       <button class="btn-ghost" id="emp-settings-btn" onclick="openEmployeeSettings()" style="display:none"><span data-icon="set_profil">👤</span> Profil</button>
       <button class="btn-ghost" id="admin-settings-btn" onclick="openEmployeeSettings()" style="display:none"><span data-icon="set_profil">👤</span> Profil</button>
       <span id="org-code-badge" style="display:none;font-family:var(--font-mono);font-size:12px;font-weight:700;letter-spacing:1.5px;background:var(--paper);border:1.5px solid var(--line);padding:4px 10px;border-radius:6px;color:var(--ink-soft)" title="Kód firmy"></span>
-      <span id="app-version-label" title="Verze aplikace" onclick="handleVersionClick()" style="font-size:10px;color:var(--ink-faint);font-family:var(--font-mono);padding:0 4px;user-select:none;cursor:pointer">v0.9.1</span>
+      <span id="app-version-label" title="Verze aplikace" onclick="handleVersionClick()" style="font-size:10px;color:var(--ink-faint);font-family:var(--font-mono);padding:0 4px;user-select:none;cursor:pointer">v0.9.2</span>
       <button class="btn-ghost" id="search-btn" onclick="openSearch()" title="Vyhledat (Ctrl+K)" style="padding:6px 10px;font-size:14px"><span data-icon="btn_hledat">🔍</span></button>
       <!-- v0.9.1 (A5): otazník na chatbota z hlavičky odstraněn — nápovědu otevírá plovoucí bublina vpravo dole -->
       <button class="btn-ghost" id="notif-btn" onclick="toggleNotifPanel()" title="Notifikace" style="position:relative;padding:6px 10px;font-size:16px;display:none;align-items:center;justify-content:center">
@@ -12060,8 +12060,23 @@ async function applyLeaveX(l){
     });
   }
   if(toInsert.length){
-    const { error } = await sb.from('shifts').upsert(toInsert, { onConflict: 'org_id,employee_id,shift_date' });
-    if(error) toast('X dny se nepodařilo vložit: ' + error.message, 'error');
+    // v0.9.2: dovolená má přednost nad existující směnou — upsert ji přepíše
+    // na X; napřed zjisti (a zaloguj), kolik směn v období přepisujeme
+    const { data: existing } = await sb.from('shifts').select('shift_date, shift_type_code')
+      .eq('org_id', currentOrg.id).eq('employee_id', l.employee_id)
+      .gte('shift_date', l.date_from).lte('shift_date', l.date_to)
+      .neq('shift_type_code', 'X');
+    // v0.9.2 HOTFIX: unique constraint na shifts je (employee_id, shift_date) —
+    // dřívější trojice 'org_id,employee_id,shift_date' neodpovídala žádnému
+    // constraintu a upsert tiše padal (X dny se nikdy nevložily)
+    const { error } = await sb.from('shifts').upsert(toInsert, { onConflict: 'employee_id,shift_date' });
+    if(error){
+      console.error('applyLeaveX failed', error);
+      toast('X dny se nepodařilo vložit: ' + error.message, 'error');
+    } else if(existing?.length){
+      console.info(`[applyLeaveX] Dovolená ${l.date_from}–${l.date_to} přepsala ${existing.length} existujících směn na X: `
+        + existing.map(s=>`${s.shift_date} (${s.shift_type_code})`).join(', '));
+    }
     await loadShiftsForMonth(true);
   }
 }
@@ -14144,10 +14159,13 @@ async function resolveOpenShift(id, newStatus){
     const { error } = await sb.from('open_shifts').update({ status: newStatus }).eq('id', id);
     if(error) throw error;
     if(newStatus==='approved' && os?.claimed_by && os?.shift_date && os?.shift_type_code){
-      await sb.from('shifts').upsert({
+      // v0.9.2: bez onConflict se upsert choval jako insert a při existující
+      // směně v ten den tiše padal na unique (employee_id, shift_date)
+      const { error: shiftErr } = await sb.from('shifts').upsert({
         org_id: currentOrg.id, employee_id: os.claimed_by,
         shift_date: os.shift_date, shift_type_code: os.shift_type_code, is_auto: false
-      });
+      }, { onConflict: 'employee_id,shift_date' });
+      if(shiftErr){ console.error('resolveOpenShift shift upsert failed', shiftErr); throw shiftErr; }
       await loadShiftsForMonth();
     }
     toast(newStatus==='approved' ? 'Schváleno a přiřazeno do rozpisu' : 'Odmítnuto');
