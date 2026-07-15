@@ -1172,7 +1172,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
       <button class="btn-ghost" id="emp-settings-btn" onclick="openEmployeeSettings()" style="display:none"><span data-icon="set_profil">👤</span> Profil</button>
       <button class="btn-ghost" id="admin-settings-btn" onclick="openEmployeeSettings()" style="display:none"><span data-icon="set_profil">👤</span> Profil</button>
       <span id="org-code-badge" style="display:none;font-family:var(--font-mono);font-size:12px;font-weight:700;letter-spacing:1.5px;background:var(--paper);border:1.5px solid var(--line);padding:4px 10px;border-radius:6px;color:var(--ink-soft)" title="Kód firmy"></span>
-      <span id="app-version-label" title="Verze aplikace" onclick="handleVersionClick()" style="font-size:10px;color:var(--ink-faint);font-family:var(--font-mono);padding:0 4px;user-select:none;cursor:pointer">v0.9.2</span>
+      <span id="app-version-label" title="Verze aplikace" onclick="handleVersionClick()" style="font-size:10px;color:var(--ink-faint);font-family:var(--font-mono);padding:0 4px;user-select:none;cursor:pointer">v0.9.3</span>
       <button class="btn-ghost" id="search-btn" onclick="openSearch()" title="Vyhledat (Ctrl+K)" style="padding:6px 10px;font-size:14px"><span data-icon="btn_hledat">🔍</span></button>
       <!-- v0.9.1 (A5): otazník na chatbota z hlavičky odstraněn — nápovědu otevírá plovoucí bublina vpravo dole -->
       <button class="btn-ghost" id="notif-btn" onclick="toggleNotifPanel()" title="Notifikace" style="position:relative;padding:6px 10px;font-size:16px;display:none;align-items:center;justify-content:center">
@@ -1958,7 +1958,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
 <div class="modal-overlay" id="leave-modal-overlay" onclick="if(event.target===this)this.classList.remove('open')">
   <div class="modal" style="max-width:420px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-      <h3 style="margin:0"><span data-icon="nav_zadosti">🗓️</span> Žádost o volno</h3>
+      <h3 style="margin:0" id="leave-modal-title"><span data-icon="nav_zadosti">🗓️</span> Žádost o volno</h3>
       <button class="btn-ghost" onclick="document.getElementById('leave-modal-overlay').classList.remove('open')" style="padding:5px 10px">✕</button>
     </div>
     <div class="field"><label>Zaměstnanec</label>
@@ -1976,7 +1976,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
     <div class="field"><label>Poznámka</label><textarea id="leave-note" rows="2" placeholder="Nepovinné…" style="width:100%;padding:9px;border:1.5px solid var(--line);border-radius:8px;font-size:13.5px;font-family:inherit;resize:vertical;color:var(--ink);background:var(--surface)"></textarea></div>
     <div style="display:flex;gap:10px;margin-top:4px">
       <button class="btn-outline" style="flex:1" onclick="document.getElementById('leave-modal-overlay').classList.remove('open')">Zrušit</button>
-      <button class="btn-accent" style="flex:1" onclick="saveLeaveRequest()">Odeslat žádost</button>
+      <button class="btn-accent" style="flex:1" id="leave-modal-submit" onclick="saveLeaveRequest()">Odeslat žádost</button>
     </div>
   </div>
 </div>
@@ -3152,7 +3152,7 @@ function renderOnboardingStep() {
       </div>
       <ul style="list-style:none;padding:0;margin:0">${branchList}</ul>`;
   } else if (obStep === 2) {
-    const empList = employees.map(e => `<li style="padding:6px 0;border-bottom:1px solid var(--line)">${e.full_name}</li>`).join('') || '<li style="color:var(--ink-soft);padding:6px 0">Zatím žádní zaměstnanci</li>';
+    const empList = employees.map(e => `<li style="padding:6px 0;border-bottom:1px solid var(--line)">${escapeHtml(e.name)}</li>`).join('') || '<li style="color:var(--ink-soft);padding:6px 0">Zatím žádní zaměstnanci</li>';
     html = `
       <h3 style="font-size:18px;font-weight:700;margin:0 0 8px">Přidejte zaměstnance</h3>
       <p style="color:var(--ink-soft);margin:0 0 16px;font-size:14px">Zaměstnanci budou přiřazeni ke směnám. Pozvat je můžeš pozvánkovým kódem organizace.</p>
@@ -3201,12 +3201,14 @@ async function onboardingAddEmployee() {
   const nameIn  = document.getElementById('ob-emp-name');
   const emailIn = document.getElementById('ob-emp-email');
   if (!nameIn || !nameIn.value.trim()) return;
-  const full_name = nameIn.value.trim();
+  const name = nameIn.value.trim();
   const email = emailIn ? emailIn.value.trim() : '';
   if (!currentOrg) return;
-  const payload = { org_id: currentOrg.id, full_name };
-  if (email) payload.email = email;
-  if (branches.length > 0) payload.branch_id = branches[0].id;
+  // v0.9.3: employees nemá full_name/email/branch_id — jméno patří do name,
+  // e-mail do notes a pobočka se přiřazuje přes branch_limits (jsonb dle kódu)
+  const payload = { org_id: currentOrg.id, name, sort_order: employees.length };
+  if (email) payload.notes = 'E-mail: ' + email;
+  if (branches.length > 0) payload.branch_limits = { [branches[0].code]: { shiftTypes: {} } };
   const { data, error } = await sb.from('employees').insert(payload).select().single();
   if (error) { toast('Chyba při přidávání zaměstnance: ' + error.message, 'error'); return; }
   employees.push(data);
@@ -11810,6 +11812,7 @@ async function saveEmpExtras(empId, extras){
 // nahrazuje starý localStorage systém; stará data se jednorázově přenesou.
 // ════════════════════════════════════════════════════════════
 let leaveRequests = []; // cache řádků leave_requests pro aktuální org (RLS: zaměstnanec vidí jen své)
+let editingLeaveId = null; // v0.9.3: id pending žádosti otevřené v modalu k úpravě (null = nová žádost)
 
 async function loadLeaveRequests(){
   if(!currentOrg) return;
@@ -11935,6 +11938,8 @@ function openLeaveRequestModal(){
     toast('Tvůj účet není propojený se zaměstnaneckým profilem — kontaktuj vedoucího', 'error');
     return;
   }
+  editingLeaveId = null;
+  setLeaveModalMode(false);
   const sel = document.getElementById('leave-emp-select');
   if(currentRole === 'admin'){
     const ownEmp = currentEmployeeId ? employees.find(e=>e.id===currentEmployeeId) : null;
@@ -11978,6 +11983,45 @@ function onLeaveEmpSelectChange(){
   if(hintEl) hintEl.innerHTML = emp ? leaveQuotaHintHtml(emp) : '';
 }
 
+// Přepne titulek a tlačítko modalu mezi „nová žádost" a „úprava" (v0.9.3)
+function setLeaveModalMode(editing){
+  const title = document.getElementById('leave-modal-title');
+  const submit = document.getElementById('leave-modal-submit');
+  if(title) title.innerHTML = `${ICONS.nav_zadosti} ${editing ? 'Upravit žádost o volno' : 'Žádost o volno'}`;
+  if(submit) submit.textContent = editing ? 'Uložit změny' : 'Odeslat žádost';
+}
+
+// Úprava pending žádosti (v0.9.3): autor i admin — otevře modal předvyplněný
+// hodnotami žádosti, uložení jde přes UPDATE (saveLeaveRequest). Schválené a
+// zamítnuté žádosti se needitují (schválenou lze jen zrušit — cancelLeave).
+function editLeaveRequest(id){
+  const l = leaveRequests.find(x=>x.id===id);
+  if(!l || l.status !== 'pending'){ toast('Upravit lze jen čekající žádost','error'); return; }
+  const sel = document.getElementById('leave-emp-select');
+  const emp = employees.find(e=>e.id===l.employee_id);
+  sel.innerHTML = `<option value="${l.employee_id||''}">${emp?escapeHtml(emp.name):'—'}</option>`;
+  sel.parentElement.style.display = 'none'; // zaměstnanec žádosti se při úpravě nemění
+  document.getElementById('leave-from').value = l.date_from;
+  document.getElementById('leave-to').value = l.date_to;
+  document.getElementById('leave-note').value = l.note || '';
+  const redEl = document.getElementById('leave-reduction');
+  if(redEl) redEl.value = l.shift_reduction || '';
+  const hintEl = document.getElementById('leave-quota-hint');
+  if(hintEl) hintEl.innerHTML = emp ? leaveQuotaHintHtml(emp) : '';
+  editingLeaveId = id;
+  setLeaveModalMode(true);
+  document.getElementById('leave-modal-overlay').classList.add('open');
+}
+
+// Překryv s existující pending/approved žádostí téhož zaměstnance (v0.9.3,
+// prevence duplicit). Vrací první kolizní žádost, nebo null.
+function findOverlappingLeave(empId, from, to, ignoreId){
+  return leaveRequests.find(x =>
+    x.employee_id === empId && x.id !== ignoreId
+    && (x.status === 'pending' || x.status === 'approved')
+    && !(to < x.date_from || from > x.date_to)) || null;
+}
+
 async function saveLeaveRequest(){
   const empId = document.getElementById('leave-emp-select').value || currentEmployeeId;
   const from = document.getElementById('leave-from').value;
@@ -11988,6 +12032,43 @@ async function saveLeaveRequest(){
   if(from > to){ toast('Od musí být před Do','error'); return; }
   const emp = employees.find(x=>x.id===empId);
   if(!emp){ toast('Zaměstnanec nenalezen','error'); return; }
+
+  // ── Úprava existující pending žádosti (v0.9.3) ──
+  if(editingLeaveId){
+    const l = leaveRequests.find(x=>x.id===editingLeaveId);
+    if(!l || l.status !== 'pending'){ toast('Žádost už nelze upravit','error'); editingLeaveId = null; return; }
+    const patch = { date_from: from, date_to: to, shift_reduction: reduction, note: note || null };
+    // .select().single() je záměrně: když RLS update tiše zahodí (zaměstnanci
+    // chybí policy z migration_leave_edit.sql), vrátí se 0 řádků = chyba
+    const { data, error } = await sb.from('leave_requests').update(patch).eq('id', editingLeaveId).select().single();
+    if(error || !data){
+      toast('Úpravu se nepodařilo uložit: ' + (error?.message || 'chybí oprávnění — spusť migration_leave_edit.sql'), 'error');
+      return;
+    }
+    Object.assign(l, data);
+    editingLeaveId = null;
+    document.getElementById('leave-modal-overlay').classList.remove('open');
+    logAudit(`Žádost o volno upravena: ${emp.name} ${from}–${to}${reduction?` (−${reduction} směn)`:''}`);
+    toast('Žádost upravena');
+    if(document.getElementById('pane-leaves').style.display !== 'none') renderLeaves();
+    return;
+  }
+
+  // ── Prevence duplicit (v0.9.3): překryv s pending/approved žádostí ──
+  const overlap = findOverlappingLeave(empId, from, to, null);
+  if(overlap){
+    if(overlap.status === 'approved'){
+      toast(`Období se překrývá se schválenou dovolenou ${fmtLeaveRange(overlap.date_from, overlap.date_to)} — nejdřív ji zruš, nebo uprav data`, 'error');
+      return;
+    }
+    if(confirm(`${emp.name} už má čekající žádost ${fmtLeaveRange(overlap.date_from, overlap.date_to)}.\n\nUpravit existující žádost hodnotami z formuláře místo vytvoření druhé?`)){
+      editingLeaveId = overlap.id;
+      await saveLeaveRequest();
+    } else {
+      toast('Žádost nebyla vytvořena — uprav existující v seznamu žádostí');
+    }
+    return;
+  }
 
   // Zadává-li volno admin, je rovnou schválené (bod 2c)
   const isAdminDirect = currentRole === 'admin';
@@ -12055,7 +12136,8 @@ async function applyLeaveX(l){
       // POZOR: ne toISOString() — to převádí lokální půlnoc do UTC a v CEST
       // by posunulo všechny dny o jeden zpět
       shift_date: isoDate(d.getFullYear(), d.getMonth()+1, d.getDate()),
-      shift_type_code: 'X', branch_id: null, is_auto: false,
+      // v0.9.3: shifts nemá sloupec branch_id — pole navíc = PGRST204 a tichý fail
+      shift_type_code: 'X', is_auto: false,
       leave_request_id: l.id,
     });
   }
@@ -12121,7 +12203,11 @@ function renderLeaves(){
   // RLS už zaměstnanci vrací jen jeho žádosti; filtr je jen pojistka pro admin-view
   const visible = currentRole==='admin' ? leaveRequests : leaveRequests.filter(l=>l.employee_id===currentEmployeeId);
   const sorted = [...visible].sort((a,b)=>(b.created_at||'').localeCompare(a.created_at||''));
-  el.innerHTML = sorted.map(l=>`
+  const rowHtml = l => {
+    // Upravit smí autor žádosti i admin, ale jen dokud žádost čeká (v0.9.3)
+    const canEdit = l.status==='pending' && (currentRole==='admin'
+      || l.requested_by===currentUser?.id || l.employee_id===currentEmployeeId);
+    return `
     <div class="leave-request-row">
       <div style="flex:1">
         <div style="font-weight:600">${escapeHtml(leaveEmpName(l))}${l.shift_reduction?` <span class="code-pill" title="Snížení počtu směn v dotčeném měsíci">−${l.shift_reduction} směn</span>`:''}</div>
@@ -12129,6 +12215,9 @@ function renderLeaves(){
         ${l.status==='rejected'&&l.decision_note?`<div style="color:var(--red);font-size:12px;margin-top:2px">Poznámka: ${escapeHtml(l.decision_note)}</div>`:''}
       </div>
       <span class="leave-status ${l.status}">${l.status==='pending'?ICONS.status_pending+' čeká':l.status==='approved'?ICONS.status_ok+' schváleno':ICONS.status_error+' zamítnuto'}</span>
+      ${canEdit?`
+        <button class="btn-ghost" style="padding:4px 10px;font-size:12px;margin-left:8px" onclick="editLeaveRequest('${l.id}')">Upravit</button>
+      `:''}
       ${currentRole==='admin'&&l.status==='pending'?`
         <button class="btn-accent" style="padding:4px 10px;font-size:12px;margin-left:8px" onclick="approveLeave('${l.id}')">Schválit</button>
         <button class="btn-ghost" style="padding:4px 10px;font-size:12px;color:var(--red);border-color:var(--red)" onclick="rejectLeave('${l.id}')">Zamítnout</button>
@@ -12136,7 +12225,27 @@ function renderLeaves(){
       ${currentRole==='admin'&&l.status==='approved'?`
         <button class="btn-ghost" style="padding:4px 10px;font-size:12px;margin-left:8px" title="Zruší dovolenou — odebere X dny a vrátí limity" onclick="cancelLeave('${l.id}')">Zrušit</button>
       `:''}
-    </div>`).join('');
+    </div>`;
+  };
+  // v0.9.3: vizuální oddělení — Čekající nahoře, Historie (schválené) pod nimi,
+  // zamítnuté/zrušené sbalené v <details>
+  const pending  = sorted.filter(l=>l.status==='pending');
+  const approved = sorted.filter(l=>l.status==='approved');
+  const closed   = sorted.filter(l=>l.status==='rejected');
+  const sectionHead = txt => `<div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--ink-soft);margin:14px 0 8px">${txt}</div>`;
+  let html = '';
+  if(pending.length) html += sectionHead(`${ICONS.status_pending} Čekající (${pending.length})`) + pending.map(rowHtml).join('');
+  if(approved.length || closed.length){
+    html += sectionHead(`${ICONS.nav_zadosti} Historie`);
+    html += approved.map(rowHtml).join('');
+    if(closed.length){
+      html += `<details style="margin-top:6px">
+        <summary style="cursor:pointer;font-size:12.5px;color:var(--ink-soft);padding:4px 0">${ICONS.status_error} Zamítnuté a zrušené (${closed.length})</summary>
+        ${closed.map(rowHtml).join('')}
+      </details>`;
+    }
+  }
+  el.innerHTML = html;
 }
 
 async function approveLeave(id){
@@ -14309,13 +14418,18 @@ async function submitShiftSwap(){
     toast('Výměna nabídnuta — čeká na schválení');
     document.getElementById('swap-modal-overlay').classList.remove('open');
     if(targetEmpId){
-      const targetEmp = employees.find(e=>e.id===targetEmpId);
       const requesterEmp = employees.find(e=>e.id===currentEmployeeId);
-      if(targetEmp){
-        await sb.from('notifications').insert({
-          org_id: currentOrg.id, employee_id: targetEmpId,
-          message: `${requesterEmp?.name||'Kolega'} nabídl výměnu směny ${reqCode} (${reqDate})`, read: false
+      // v0.9.3: notifications nemá employee_id a user_id je povinné — adresuj
+      // auth účet cílového zaměstnance (vazba přes org_members); bez účtu neposílej
+      const targetUserId = userIdByEmpId(targetEmpId);
+      if(targetUserId){
+        const { error: notifErr } = await sb.from('notifications').insert({
+          org_id: currentOrg.id, user_id: targetUserId, type: 'swap_offer',
+          title: `${ICONS.btn_vymeny} Nabídka výměny`,
+          body: `${requesterEmp?.name||'Kolega'} nabídl výměnu směny ${reqCode} (${reqDate})`,
+          read: false
         });
+        if(notifErr) console.warn('notif insert failed', notifErr);
       }
     }
     logActivity(`Výměna směny ${reqCode} ${reqDate} nabídnuta`);
