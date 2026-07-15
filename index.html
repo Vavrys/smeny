@@ -1004,7 +1004,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
         </div>
 
         <!-- Two-way toggle: found org OR create new -->
-        <div style="display:flex;border:1.5px solid var(--line);border-radius:10px;overflow:hidden;margin:12px 0 4px">
+        <div id="signup-mode-switch" style="display:flex;border:1.5px solid var(--line);border-radius:10px;overflow:hidden;margin:12px 0 4px">
           <button type="button" id="mode-join-btn" onclick="setSignupMode('join')"
             style="flex:1;padding:9px 8px;font-size:13px;font-weight:600;border:none;background:var(--accent);color:#fff;cursor:pointer;transition:all .15s">
             Přidávám se k firmě
@@ -1076,13 +1076,14 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
       <button class="btn-primary" id="onboard-btn" onclick="createOrgFromOnboarding()">Založit firmu</button>
     </div>
 
-    <!-- Employee: no membership yet → waiting for admin to link account -->
+    <!-- Employee: no membership yet, OR member without a linked profile → waiting -->
     <div id="onboard-waiting-section" style="display:none">
       <h2 class="auth-title">Čekám na přiřazení</h2>
-      <p class="auth-sub">Tvůj účet ještě není přiřazen k žádné firmě.</p>
+      <p class="auth-sub" id="waiting-intro">Tvůj účet ještě není přiřazen k žádné firmě.</p>
 
-      <!-- Primary: show emp_code for admin to use -->
-      <div style="background:var(--accent-soft);border:1.5px solid var(--accent)33;border-radius:12px;padding:18px;margin:14px 0;text-align:center">
+      <!-- Primary (B2 v0.9.5): jen když je uživatel už členem organizace —
+           má emp_code a stačí ho poslat vedoucímu. -->
+      <div id="waiting-empcode-card" style="display:none;background:var(--accent-soft);border:1.5px solid var(--accent)33;border-radius:12px;padding:18px;margin:14px 0;text-align:center">
         <div style="font-size:12px;color:var(--ink-soft);margin-bottom:8px;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Tvůj kód zaměstnance</div>
         <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:6px">
           <div style="font-size:32px;font-family:var(--font-mono);font-weight:700;letter-spacing:5px;color:var(--accent-ink);user-select:all;cursor:text" id="waiting-emp-code">—</div>
@@ -1091,11 +1092,17 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
             <span data-icon="btn_kopirovat">📋</span>
           </button>
         </div>
-        <div style="font-size:12px;color:var(--ink-soft);margin-top:8px">Pošli tento kód vedoucímu — zadá ho v záložce Zaměstnanci → <span data-icon="btn_pozvanka">🔑</span></div>
+        <div class="field" style="text-align:left;margin-top:10px">
+          <label for="waiting-name" style="font-size:12px">Tvoje jméno <span style="font-weight:400;color:var(--ink-faint)">(ať vedoucí ví, kdo čeká)</span></label>
+          <input type="text" id="waiting-name" placeholder="Jméno a příjmení" oninput="scheduleSaveWaitingName()" onblur="saveWaitingName()">
+          <div id="waiting-name-saved" style="font-size:11px;color:var(--accent-ink);margin-top:4px;display:none"><span data-icon="status_ok">✅</span> Uloženo</div>
+        </div>
+        <div style="font-size:12px;color:var(--ink-soft);margin-top:10px">Pošli tento kód vedoucímu — zadá ho v záložce Zaměstnanci → <span data-icon="btn_pozvanka">🔑</span></div>
+        <div style="font-size:12px;color:var(--ink-soft);margin-top:4px">Jakmile tě vedoucí přiřadí, uvidíš tady svůj rozpis.</div>
       </div>
 
-      <!-- Secondary: enter org code yourself -->
-      <div style="background:var(--paper);border:1.5px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px">
+      <!-- Secondary: enter org code yourself (jen dokud uživatel v žádné firmě není) -->
+      <div id="waiting-joincode-card" style="background:var(--paper);border:1.5px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px">
         <div style="font-size:13px;font-weight:600;margin-bottom:6px">Nebo zadej kód firmy</div>
         <div style="font-size:12px;color:var(--ink-soft);margin-bottom:8px">Pokud máš 6-místný kód od vedoucího:</div>
         <div style="display:flex;gap:6px">
@@ -1112,8 +1119,8 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
 
       <button class="btn-primary" onclick="checkMembershipAndReload()" style="width:100%"><span data-icon="btn_kontrolovat">🔄</span> Zkontrolovat znovu</button>
 
-      <!-- Tertiary: create own org -->
-      <div style="margin-top:16px;padding-top:16px;border-top:1.5px solid var(--line);text-align:center">
+      <!-- Tertiary: create own org (jen dokud uživatel v žádné firmě není) -->
+      <div id="waiting-createorg-wrap" style="margin-top:16px;padding-top:16px;border-top:1.5px solid var(--line);text-align:center">
         <div style="font-size:12px;color:var(--ink-soft);margin-bottom:8px">Jsi vedoucí a chceš založit vlastní firmu?</div>
         <button onclick="document.getElementById('waiting-create-org-section').style.display='block';this.style.display='none'"
           style="background:none;border:1.5px solid var(--line);border-radius:8px;padding:8px 16px;font-size:13px;font-weight:600;color:var(--ink);cursor:pointer;width:100%">
@@ -1172,7 +1179,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
       <button class="btn-ghost" id="emp-settings-btn" onclick="openEmployeeSettings()" style="display:none"><span data-icon="set_profil">👤</span> Profil</button>
       <button class="btn-ghost" id="admin-settings-btn" onclick="openEmployeeSettings()" style="display:none"><span data-icon="set_profil">👤</span> Profil</button>
       <span id="org-code-badge" style="display:none;font-family:var(--font-mono);font-size:12px;font-weight:700;letter-spacing:1.5px;background:var(--paper);border:1.5px solid var(--line);padding:4px 10px;border-radius:6px;color:var(--ink-soft)" title="Kód firmy"></span>
-      <span id="app-version-label" title="Verze aplikace" onclick="handleVersionClick()" style="font-size:10px;color:var(--ink-faint);font-family:var(--font-mono);padding:0 4px;user-select:none;cursor:pointer">v0.9.4</span>
+      <span id="app-version-label" title="Verze aplikace" onclick="handleVersionClick()" style="font-size:10px;color:var(--ink-faint);font-family:var(--font-mono);padding:0 4px;user-select:none;cursor:pointer">v0.9.5</span>
       <button class="btn-ghost" id="search-btn" onclick="openSearch()" title="Vyhledat (Ctrl+K)" style="padding:6px 10px;font-size:14px"><span data-icon="btn_hledat">🔍</span></button>
       <!-- v0.9.1 (A5): otazník na chatbota z hlavičky odstraněn — nápovědu otevírá plovoucí bublina vpravo dole -->
       <button class="btn-ghost" id="notif-btn" onclick="toggleNotifPanel()" title="Notifikace" style="position:relative;padding:6px 10px;font-size:16px;display:none;align-items:center;justify-content:center">
@@ -1974,9 +1981,11 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
       <div class="field-hint">O kolik směn se v dotčeném měsíci sníží minimum, cíl i maximum. Orientačně počet směn, které by jinak v období připadly. Při přesahu do dalšího měsíce se snížení rozdělí poměrně.</div>
     </div>
     <div class="field"><label>Poznámka</label><textarea id="leave-note" rows="2" placeholder="Nepovinné…" style="width:100%;padding:9px;border:1.5px solid var(--line);border-radius:8px;font-size:13.5px;font-family:inherit;resize:vertical;color:var(--ink);background:var(--surface)"></textarea></div>
-    <div style="display:flex;gap:10px;margin-top:4px">
+    <div style="display:flex;gap:10px;margin-top:4px;flex-wrap:wrap">
       <button class="btn-outline" style="flex:1" onclick="document.getElementById('leave-modal-overlay').classList.remove('open')">Zrušit</button>
       <button class="btn-accent" style="flex:1" id="leave-modal-submit" onclick="saveLeaveRequest()">Odeslat žádost</button>
+      <!-- C2 v0.9.5: admin může úpravu pending žádosti rovnou schválit -->
+      <button class="btn-accent" style="flex:1;display:none" id="leave-modal-approve" onclick="saveLeaveRequest(true)">Uložit a schválit</button>
     </div>
   </div>
 </div>
@@ -2526,6 +2535,18 @@ async function doLogin(){
     return;
   }
   setLoginAttemptState(email, { count: 0, lockedUntil: 0 });
+
+  // A3 v0.9.5: uživatel s pozvánkovým odkazem, který už má účet, se může
+  // přihlásit místo registrace — odkaz se přiřadí stejně jako při signupu.
+  const pendingInvite = (() => { try { return JSON.parse(sessionStorage.getItem('pending_invite')||'null'); } catch(e){ return null; } })();
+  if(pendingInvite?.token && pendingInvite?.empId){
+    sessionStorage.removeItem('pending_invite');
+    window.history.replaceState({}, '', window.location.pathname);
+    await processInviteToken(pendingInvite.token, pendingInvite.empId);
+    logActivity('Přihlášení uživatele ' + email);
+    return;
+  }
+
   await bootstrapAfterAuth();
   logActivity('Přihlášení uživatele ' + email);
 }
@@ -2562,13 +2583,21 @@ async function doSignup(){
   const orgCode  = (document.getElementById('signup-orgcode')?.value||'').trim().toUpperCase();
   const orgName  = (document.getElementById('signup-orgname')?.value||'').trim();
 
+  // A1 v0.9.5: pozvánkový odkaz (?invite=&emp=) se čte PŘED validací kódu/názvu
+  // firmy — dřív validace běžela první a platný odkaz blokovala hláškou
+  // "Zadej 6-místný kód firmy", protože pole zůstávalo prázdné (skryté v UI).
+  const pendingInvite = (() => { try { return JSON.parse(sessionStorage.getItem('pending_invite')||'null'); } catch(e){ return null; } })();
+
   if(!email || !password){ showAuthError('signup','Vyplň e-mail i heslo.'); return; }
   if(password.length < 6){ showAuthError('signup','Heslo musí mít alespoň 6 znaků.'); return; }
-  if(signupMode === 'join' && orgCode.length !== 6){ showAuthError('signup','Zadej 6-místný kód firmy od vedoucího.'); return; }
-  if(signupMode === 'create' && !orgName){ showAuthError('signup','Zadej název firmy.'); return; }
+  if(!pendingInvite){
+    if(signupMode === 'join' && orgCode.length !== 6){ showAuthError('signup','Zadej 6-místný kód firmy od vedoucího.'); return; }
+    if(signupMode === 'create' && !orgName){ showAuthError('signup','Zadej název firmy.'); return; }
+  }
 
   const btn = document.getElementById('signup-btn');
-  btn.disabled = true; btn.textContent = signupMode === 'create' ? 'Zakládám firmu…' : 'Připojuji k firmě…';
+  btn.disabled = true;
+  btn.textContent = pendingInvite ? 'Přiřazuji účet…' : (signupMode === 'create' ? 'Zakládám firmu…' : 'Připojuji k firmě…');
 
   try{
     let { data: signUpData, error: signUpError } = await sb.auth.signUp({ email, password });
@@ -2582,8 +2611,7 @@ async function doSignup(){
       }
     }
 
-    // Check for pending invite from sessionStorage (from invite link)
-    const pendingInvite = (() => { try { return JSON.parse(sessionStorage.getItem('pending_invite')||'null'); } catch(e){ return null; } })();
+    // Pozvánkový odkaz přebíjí volbu režimu join/create úplně (A1/A2 v0.9.5)
     if(pendingInvite?.token && pendingInvite?.empId){
       sessionStorage.removeItem('pending_invite');
       window.history.replaceState({}, '', window.location.pathname);
@@ -2641,6 +2669,7 @@ async function joinOrgByCode(orgCode){
 async function doLogout(){
   clearTimeout(_sessionWarnTimer);
   clearTimeout(_sessionLogoutTimer);
+  stopWaitingRoomPoll(); // B3 v0.9.5: odhlášení z čekárny nesmí nechat běžet pozadí polling
   const banner = document.getElementById('session-timeout-banner');
   if(banner) banner.style.display = 'none';
   await sb.auth.signOut();
@@ -2653,7 +2682,10 @@ async function doLogout(){
 // ============================================================
 // ONBOARDING: shown when a logged-in user has no organization yet
 // ============================================================
-function showOnboarding(prefillName, isWaiting=false){
+// memberOrgName v0.9.5 (B1): předej název firmy, pokud je uživatel už
+// org_members (jen bez employee_id) — jinak (genuinely bez firmy) nech
+// prázdné. Mění text i to, které sekce (kód firmy / založit firmu) dávají smysl.
+function showOnboarding(prefillName, isWaiting=false, memberOrgName=null){
   document.getElementById('loading-screen').style.display = 'none';
   document.getElementById('auth-shell').style.display = 'none';
   document.getElementById('app-shell').style.display = 'none';
@@ -2662,32 +2694,100 @@ function showOnboarding(prefillName, isWaiting=false){
   if(isWaiting){
     document.getElementById('onboard-admin-section').style.display = 'none';
     document.getElementById('onboard-waiting-section').style.display = 'block';
-    // Load emp_code for this user from org_members
-    const loadEmpCode = async () => {
-      const { data: { user } } = await sb.auth.getUser();
-      if(!user) return;
-      // Check if user has any org_member record (even without employee_id)
-      const { data: members } = await sb.from('org_members').select('id, emp_code, employee_id').eq('user_id', user.id).limit(1);
-      let empCode = members?.[0]?.emp_code;
-      if(!empCode){
-        // Generate and save emp_code if none exists (shouldn't happen but fallback)
-        empCode = Math.random().toString(36).slice(2,9).toUpperCase().slice(0,7);
-      }
-      const el = document.getElementById('waiting-emp-code');
-      if(el) el.textContent = empCode || '—';
-    };
-    loadEmpCode();
+
+    const introEl = document.getElementById('waiting-intro');
+    const empCodeCard = document.getElementById('waiting-empcode-card');
+    const joinCodeCard = document.getElementById('waiting-joincode-card');
+    const createOrgWrap = document.getElementById('waiting-createorg-wrap');
+
+    if(memberOrgName){
+      if(introEl) introEl.innerHTML = `${ICONS.status_ok} Jsi připojený k firmě <strong>${escapeHtml(memberOrgName)}</strong>. Vedoucí tě teď přiřadí ke tvému profilu — pošli mu svůj osobní kód:`;
+      if(empCodeCard) empCodeCard.style.display = 'block';
+      if(joinCodeCard) joinCodeCard.style.display = 'none';
+      if(createOrgWrap) createOrgWrap.style.display = 'none';
+
+      // Načti emp_code + dřív uložené jméno z org_members (řádek jistě
+      // existuje — memberOrgName přijde jen z bootstrapAfterAuth, který
+      // ho už načetl).
+      const loadWaitingInfo = async () => {
+        const { data: { user } } = await sb.auth.getUser();
+        if(!user) return;
+        const { data: members } = await sb.from('org_members').select('emp_code, pending_name').eq('user_id', user.id).limit(1);
+        const m = members?.[0];
+        const codeEl = document.getElementById('waiting-emp-code');
+        if(codeEl) codeEl.textContent = m?.emp_code || '—';
+        const nameEl = document.getElementById('waiting-name');
+        if(nameEl && m?.pending_name) nameEl.value = m.pending_name;
+      };
+      loadWaitingInfo();
+      startWaitingRoomPoll(); // B4: sama se překlopí do appky, jakmile admin přiřadí
+    } else {
+      if(introEl) introEl.textContent = 'Tvůj účet ještě není přiřazen k žádné firmě.';
+      if(empCodeCard) empCodeCard.style.display = 'none';
+      if(joinCodeCard) joinCodeCard.style.display = 'block';
+      if(createOrgWrap) createOrgWrap.style.display = 'block';
+      stopWaitingRoomPoll();
+    }
+
     // Check for invite token in URL
     const params = new URLSearchParams(window.location.search);
     const inviteToken = params.get('invite');
     const inviteEmpId = params.get('emp');
     if(inviteToken && inviteEmpId) processInviteToken(inviteToken, inviteEmpId);
   } else {
+    stopWaitingRoomPoll();
     document.getElementById('onboard-admin-section').style.display = 'block';
     document.getElementById('onboard-waiting-section').style.display = 'none';
     document.getElementById('onboard-org-name').value = prefillName || '';
     document.getElementById('onboard-error').style.display = 'none';
   }
+}
+
+// ── B4 v0.9.5: čekárna se sama překlopí do appky, jakmile admin přiřadí ──
+// Poll à 20 s + kontrola při návratu do okna (visibilitychange) — uživatel
+// nemusí hádat, kdy se to stalo, ani mačkat "Zkontrolovat znovu" ručně.
+let _waitingPollTimer = null;
+function startWaitingRoomPoll(){
+  stopWaitingRoomPoll();
+  _waitingPollTimer = setInterval(silentCheckMembership, 20000);
+  document.addEventListener('visibilitychange', onWaitingVisibilityChange);
+}
+function stopWaitingRoomPoll(){
+  if(_waitingPollTimer){ clearInterval(_waitingPollTimer); _waitingPollTimer = null; }
+  document.removeEventListener('visibilitychange', onWaitingVisibilityChange);
+}
+function onWaitingVisibilityChange(){
+  if(document.visibilityState === 'visible') silentCheckMembership();
+}
+// "Přiřazeno" = má employee_id, nebo je admin/branch_manager (ti employee_id
+// nepotřebují) — stejné kritérium jako bootstrapAfterAuth. Pouhá existence
+// org_members řádku NESTAČÍ: v čekárně po připojení kódem firmy už řádek
+// existuje od začátku, takže by to reload smyčkoval hned po prvním checku.
+function _memberHasFullAccess(m){
+  return !!(m && (m.employee_id || m.role !== 'employee'));
+}
+async function silentCheckMembership(){
+  if(!currentUser || document.getElementById('onboard-waiting-section')?.style.display === 'none') return;
+  const { data: memberRows } = await sb.from('org_members').select('employee_id, role').eq('user_id', currentUser.id);
+  if((memberRows||[]).some(_memberHasFullAccess)) location.reload();
+}
+
+// ── B2 v0.9.5: jméno pro admina, uloží se přes RPC (org_members RLS
+// nedovolí zaměstnanci přímý update vlastního řádku — jen SECURITY
+// DEFINER funkce set_pending_name, viz migration_waiting_room.sql) ──
+let _saveWaitingNameTimer = null;
+function scheduleSaveWaitingName(){
+  clearTimeout(_saveWaitingNameTimer);
+  _saveWaitingNameTimer = setTimeout(saveWaitingName, 800);
+}
+async function saveWaitingName(){
+  clearTimeout(_saveWaitingNameTimer);
+  const name = (document.getElementById('waiting-name')?.value || '').trim();
+  if(!name) return;
+  const { error } = await sb.rpc('set_pending_name', { p_name: name });
+  const savedEl = document.getElementById('waiting-name-saved');
+  if(error){ console.warn('set_pending_name failed', error); return; }
+  if(savedEl){ savedEl.style.display = 'block'; clearTimeout(savedEl._hideTimer); savedEl._hideTimer = setTimeout(()=>savedEl.style.display='none', 2000); }
 }
 
 async function processInviteToken(token, empId){
@@ -2708,13 +2808,6 @@ async function processInviteToken(token, empId){
   window.history.replaceState({}, '', window.location.pathname);
   await bootstrapAfterAuth();
   return true;
-}
-
-function saveWaitingName(){
-  const name = document.getElementById('waiting-name')?.value || '';
-  const email = currentUser?.email || '';
-  // Save as JSON so admin can see it when linking
-  localStorage.setItem('smeny_pending_identity_'+currentUser?.id, JSON.stringify({ email, name }));
 }
 
 async function joinByOrgCodeFromWaiting(){
@@ -2738,12 +2831,17 @@ async function checkMembershipAndReload(){
   if(btn){ btn.textContent = ICONS.status_pending + ' Kontroluji…'; btn.disabled = true; }
 
   try {
+    // B4 v0.9.5 oprava: pouhá EXISTENCE org_members řádku nestačí — v
+    // čekárně po připojení kódem firmy existuje od začátku, takže by
+    // tlačítko vždy hned hlásilo falešné "přiřazení nalezeno". Kritérium
+    // musí být stejné jako v bootstrapAfterAuth: employee_id, nebo role
+    // admin/branch_manager (ti employee_id nepotřebují).
     const { data: memberRows } = await sb
       .from('org_members')
-      .select('*, organizations(*)')
+      .select('employee_id, role')
       .eq('user_id', currentUser.id);
 
-    if(memberRows && memberRows.length > 0){
+    if((memberRows||[]).some(_memberHasFullAccess)){
       toast('✓ Přiřazení nalezeno! Načítám…');
       setTimeout(()=>location.reload(), 800);
     } else {
@@ -2900,10 +2998,13 @@ async function bootstrapAfterAuth(){
 
     if(currentRole !== 'admin'){
       if(!currentEmployeeId && currentRole !== 'branch_manager'){
-        // A3 v0.9.1: účet je členem organizace, ale bez vazby na zaměstnanecký
-        // profil — dřív se tu matoucně ukazoval onboarding pro založení firmy
+        // B1 v0.9.5: účet je členem organizace, ale bez vazby na zaměstnanecký
+        // profil — dřív se tu ukazovala slepá celoobrazovková hláška bez
+        // funkčního odhlášení; teď stejná čekárna jako pro čerstvě
+        // zaregistrovaný účet (showOnboarding), jen s vyplněným názvem
+        // firmy, ať je jasné, že připojení proběhlo a chybí jen přiřazení.
         document.getElementById('app-shell').style.display = 'none';
-        showEmployeeLinkError(user.email);
+        showOnboarding(null, true, currentOrg.name);
         return;
       }
       if(currentRole !== 'branch_manager') document.body.classList.add('employee-view');
@@ -2974,29 +3075,6 @@ async function bootstrapAfterAuth(){
     document.getElementById('auth-shell').style.display = 'flex';
     showAuthError('login', 'Nastala chyba při načítání: ' + (err && err.message ? err.message : String(err)));
   }
-}
-
-// A3 v0.9.1: celoobrazovková chyba pro zaměstnance bez vazby na profil —
-// bez ní by uživatel viděl prázdnou appku nebo matoucí onboarding.
-function showEmployeeLinkError(email){
-  let el = document.getElementById('emp-link-error');
-  if(!el){
-    el = document.createElement('div');
-    el.id = 'emp-link-error';
-    el.style.cssText = 'position:fixed;inset:0;z-index:900;background:var(--paper);display:flex;align-items:center;justify-content:center;padding:20px';
-    document.body.appendChild(el);
-  }
-  el.innerHTML = `
-    <div style="background:var(--surface);border:1.5px solid var(--line);border-radius:16px;box-shadow:var(--shadow-lg);max-width:420px;width:100%;padding:32px;text-align:center">
-      <div style="font-size:40px;margin-bottom:14px">${ICONS.status_warning}</div>
-      <h2 style="font-family:var(--font-display);font-size:19px;margin:0 0 10px">Účet není propojený</h2>
-      <p style="font-size:13.5px;color:var(--ink-soft);line-height:1.55;margin:0 0 6px">
-        Tvůj účet${email?` <strong>${escapeHtml(email)}</strong>`:''} není propojený se zaměstnaneckým profilem — kontaktuj vedoucího, ať ti pošle nový pozvánkový odkaz nebo propojí účet v záložce Zaměstnanci.
-      </p>
-      <button class="btn-outline" onclick="doLogout()" style="margin-top:16px;padding:8px 18px"><span data-icon="btn_odhlasit">🚪</span> Odhlásit se</button>
-    </div>`;
-  el.style.display = 'flex';
-  applyIconSpans();
 }
 
 // B3 v0.9.1: mobilní „···" menu v hlavičce — sbalená tlačítka Vyhledat/Profil/Průvodce/Odhlásit
@@ -3271,6 +3349,44 @@ function userIdByEmpId(empId){
   return orgMembers.find(mm=>mm.employee_id===empId)?.user_id || null;
 }
 
+// B5 v0.9.5: kdokoli je org_members bez employee_id čeká na přiřazení —
+// ať přišel přes kód firmy, nebo mu ještě nikdo neodpověděl na pozvánkový
+// odkaz. Admin ho tu vidí (jméno/e-mail/emp_code) a propojí na dva kroky:
+// vybrat zaměstnance ze selectu + kliknout Přiřadit.
+function renderWaitingMembers(){
+  // role==='employee' záměrně: admin/branch_manager legitimně nemají
+  // employee_id a nečekají na nic (stejné kritérium jako _memberHasFullAccess).
+  const waiting = orgMembers.filter(m=>!m.employee_id && m.role==='employee');
+  if(!waiting.length) return '';
+  // Jen zaměstnanci bez už propojeného účtu — jinak by výběr tiše vytvořil
+  // druhou vazbu na stejného zaměstnance (employee_id nemá unique constraint).
+  const linkableEmployees = employees.filter(e=>!orgMembers.some(m=>m.employee_id===e.id));
+  const empOptions = linkableEmployees.map(e=>`<option value="${e.id}">${escapeHtml(e.name)}</option>`).join('');
+  const rows = waiting.map(m=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--accent)22;flex-wrap:wrap">
+      <div style="flex:1;min-width:160px">
+        <strong>${escapeHtml(m.pending_name || 'Bez jména')}</strong>
+        <div style="font-size:11.5px;color:var(--ink-soft)">${escapeHtml(m.email || '—')} • kód <span style="font-family:var(--font-mono);letter-spacing:1px">${escapeHtml(m.emp_code || '—')}</span></div>
+      </div>
+      <select id="waitmember-emp-${m.id}" style="padding:6px 8px;border:1.5px solid var(--line);border-radius:6px;font-size:12.5px;font-family:inherit;max-width:180px">
+        <option value="">Vyber zaměstnance…</option>
+        ${empOptions}
+      </select>
+      <button class="btn-accent" style="padding:6px 12px;font-size:12.5px" onclick="linkWaitingMember('${m.id}')">Přiřadit</button>
+    </div>`).join('');
+  return `<div style="background:var(--accent-soft);border:1.5px solid var(--accent)55;border-radius:10px;padding:12px 14px;margin-bottom:14px">
+    <div style="font-size:13px;font-weight:700;margin-bottom:6px">${ICONS.status_pending} Čeká na přiřazení (${waiting.length})</div>
+    ${rows}
+  </div>`;
+}
+
+async function linkWaitingMember(memberId){
+  const sel = document.getElementById('waitmember-emp-'+memberId);
+  const empId = sel?.value;
+  if(!empId){ toast('Vyber zaměstnance', 'error'); return; }
+  await linkMemberToEmployee(memberId, empId);
+}
+
 function renderEmployees(){
   const wrap = document.getElementById('employees-table-wrap');
   const typeFilter = document.getElementById('emp-type-filter')?.value || '';
@@ -3279,8 +3395,10 @@ function renderEmployees(){
   document.getElementById('employees-count-label').textContent =
     employees.length ? `${filtered.length === employees.length ? employees.length : `${filtered.length} z ${employees.length}`} ${employees.length===1?'zaměstnanec':employees.length<5?'zaměstnanci':'zaměstnanců'}` : 'Zatím žádní zaměstnanci';
 
+  const waitingBanner = renderWaitingMembers();
+
   if(!employees.length){
-    wrap.innerHTML = `<div class="empty-state">
+    wrap.innerHTML = waitingBanner + `<div class="empty-state">
       <div style="font-size:40px;margin-bottom:12px">${ICONS.help_zamestnanci}</div>
       <p style="font-size:16px;font-weight:700;margin-bottom:6px">Zatím žádní zaměstnanci</p>
       <p style="font-size:13px;color:var(--ink-soft);margin-bottom:20px">Přidej první zaměstnance a začni stavět tým.<br>Každý dostane pozvánkový odkaz pro přístup do appky.</p>
@@ -3290,7 +3408,7 @@ function renderEmployees(){
   }
 
   if(!filtered.length){
-    wrap.innerHTML = `<p style="text-align:center;color:var(--ink-faint);padding:24px 0;font-size:13px">Žádný zaměstnanec tohoto typu úvazku</p>`;
+    wrap.innerHTML = waitingBanner + `<p style="text-align:center;color:var(--ink-faint);padding:24px 0;font-size:13px">Žádný zaměstnanec tohoto typu úvazku</p>`;
     return;
   }
 
@@ -3338,7 +3456,7 @@ function renderEmployees(){
       </div>`
     : '';
 
-  wrap.innerHTML = noBranchWarning + `<table class="data-table" role="table" aria-label="Seznam zaměstnanců">
+  wrap.innerHTML = waitingBanner + noBranchWarning + `<table class="data-table" role="table" aria-label="Seznam zaměstnanců">
     <thead><tr><th>Jméno</th><th>Směny min–max</th><th>Cíl</th><th>Přístup</th><th></th></tr></thead>
     <tbody>${rows}</tbody>
   </table>`;
@@ -8485,7 +8603,7 @@ function closeNotifOnOutside(e){
   }
 }
 
-const NOTIF_LEAVE_TYPES = ['leave_request', 'leave_approved', 'leave_rejected'];
+const NOTIF_LEAVE_TYPES = ['leave_request', 'leave_approved', 'leave_rejected', 'leave_restored'];
 const NOTIF_PUBLISH_TYPES = ['publish', 'publish_admin'];
 
 function renderNotifPanel(){
@@ -10689,13 +10807,18 @@ initAuthBubbles();
     document.getElementById('loading-screen').style.display = 'none';
     document.getElementById('auth-shell').style.display = 'flex';
 
-    // If invite link — switch to signup tab, hide org code field, show clear message
+    // If invite link — switch to signup tab, hide mode switch + org code /
+    // org name fields (A2 v0.9.5, uživatel nemá co vyplňovat), show clear message
     if(inviteToken && inviteEmpId){
       switchAuthTab('signup');
       sessionStorage.setItem('pending_invite', JSON.stringify({ token: inviteToken, empId: inviteEmpId }));
-      // Hide org code field — not needed when using invite link
-      const orgWrap = document.getElementById('signup-orgcode-wrap');
-      if(orgWrap) orgWrap.style.display = 'none';
+      // id byl dřív "signup-orgcode-wrap" (neexistuje) — pole se tak nikdy neschovalo
+      const modeSwitch = document.getElementById('signup-mode-switch');
+      const joinSec = document.getElementById('signup-join-section');
+      const createSec = document.getElementById('signup-create-section');
+      if(modeSwitch) modeSwitch.style.display = 'none';
+      if(joinSec) joinSec.style.display = 'none';
+      if(createSec) createSec.style.display = 'none';
       // Show success banner
       const errEl = document.getElementById('signup-error');
       if(errEl){
@@ -11968,12 +12091,16 @@ function onLeaveEmpSelectChange(){
   if(hintEl) hintEl.innerHTML = emp ? leaveQuotaHintHtml(emp) : '';
 }
 
-// Přepne titulek a tlačítko modalu mezi „nová žádost" a „úprava" (v0.9.3)
-function setLeaveModalMode(editing){
+// Přepne titulek a tlačítka modalu mezi „nová žádost" a „úprava" (v0.9.3).
+// canApprove (v0.9.5): admin edituje pending žádost → navíc nabídne
+// "Uložit a schválit" (C2), aby úpravu nemusel ukládat na dvakrát.
+function setLeaveModalMode(editing, canApprove){
   const title = document.getElementById('leave-modal-title');
   const submit = document.getElementById('leave-modal-submit');
+  const approveBtn = document.getElementById('leave-modal-approve');
   if(title) title.innerHTML = `${ICONS.nav_zadosti} ${editing ? 'Upravit žádost o volno' : 'Žádost o volno'}`;
   if(submit) submit.textContent = editing ? 'Uložit změny' : 'Odeslat žádost';
+  if(approveBtn) approveBtn.style.display = (editing && canApprove) ? '' : 'none';
 }
 
 // Úprava pending žádosti (v0.9.3): autor i admin — otevře modal předvyplněný
@@ -11994,7 +12121,7 @@ function editLeaveRequest(id){
   const hintEl = document.getElementById('leave-quota-hint');
   if(hintEl) hintEl.innerHTML = emp ? leaveQuotaHintHtml(emp) : '';
   editingLeaveId = id;
-  setLeaveModalMode(true);
+  setLeaveModalMode(true, currentRole==='admin');
   document.getElementById('leave-modal-overlay').classList.add('open');
 }
 
@@ -12007,7 +12134,7 @@ function findOverlappingLeave(empId, from, to, ignoreId){
     && !(to < x.date_from || from > x.date_to)) || null;
 }
 
-async function saveLeaveRequest(){
+async function saveLeaveRequest(approve){
   const empId = document.getElementById('leave-emp-select').value || currentEmployeeId;
   const from = document.getElementById('leave-from').value;
   const to = document.getElementById('leave-to').value;
@@ -12018,23 +12145,53 @@ async function saveLeaveRequest(){
   const emp = employees.find(x=>x.id===empId);
   if(!emp){ toast('Zaměstnanec nenalezen','error'); return; }
 
-  // ── Úprava existující pending žádosti (v0.9.3) ──
+  // ── Úprava existující pending žádosti (v0.9.3), volitelně rovnou se
+  //    schválením (approve, C2 v0.9.5) ──
   if(editingLeaveId){
     const l = leaveRequests.find(x=>x.id===editingLeaveId);
     if(!l || l.status !== 'pending'){ toast('Žádost už nelze upravit','error'); editingLeaveId = null; return; }
+    if(approve && currentRole !== 'admin'){ toast('Jen admin může žádost schválit','error'); return; }
+
+    // Uloží se, jen když se admin skutečně od žádosti odchýlil — jinak
+    // by "schváleno se změnou" hlásilo i u žádosti schválené beze změny.
+    const changed = from !== l.date_from || to !== l.date_to || reduction !== (l.shift_reduction||0);
+
+    if(approve && changed && reduction > 0){
+      const warn = branchMinWarning(emp, { date_from: from, date_to: to, shift_reduction: reduction });
+      if(warn && !confirm(`${warn}\n\nPřesto schválit?`)) return;
+    }
+
     const patch = { date_from: from, date_to: to, shift_reduction: reduction, note: note || null };
+    if(approve){
+      Object.assign(patch, {
+        status: 'approved',
+        decided_by: currentUser?.id || null,
+        decided_at: new Date().toISOString(),
+        orig_date_from: changed ? l.date_from : null,
+        orig_date_to: changed ? l.date_to : null,
+        orig_shift_reduction: changed ? (l.shift_reduction||0) : null,
+      });
+    }
     // .select().single() je záměrně: když RLS update tiše zahodí (zaměstnanci
     // chybí policy z migration_leave_edit.sql), vrátí se 0 řádků = chyba
     const { data, error } = await sb.from('leave_requests').update(patch).eq('id', editingLeaveId).select().single();
     if(error || !data){
-      toast('Úpravu se nepodařilo uložit: ' + (error?.message || 'chybí oprávnění — spusť migration_leave_edit.sql'), 'error');
+      toast('Úpravu se nepodařilo uložit: ' + (error?.message || 'chybí oprávnění — spusť migration_leave_edit.sql / migration_leave_changes.sql'), 'error');
       return;
     }
     Object.assign(l, data);
     editingLeaveId = null;
     document.getElementById('leave-modal-overlay').classList.remove('open');
-    logAudit(`Žádost o volno upravena: ${emp.name} ${from}–${to}${reduction?` (−${reduction} směn)`:''}`);
-    toast('Žádost upravena');
+    if(approve){
+      await applyLeaveX(l);
+      logAudit(`Žádost schválena${changed?' se změnou':''}: ${emp.name} ${from}–${to}${reduction?` (−${reduction} směn)`:''}`);
+      toast(changed ? 'Žádost schválena se změnou, volno přidáno do rozpisu' : 'Žádost schválena, volno přidáno do rozpisu');
+      notifyLeaveDecision(l, 'approved');
+      renderCalendar();
+    } else {
+      logAudit(`Žádost o volno upravena: ${emp.name} ${from}–${to}${reduction?` (−${reduction} směn)`:''}`);
+      toast('Žádost upravena');
+    }
     if(document.getElementById('pane-leaves').style.display !== 'none') renderLeaves();
     return;
   }
@@ -12192,12 +12349,17 @@ function renderLeaves(){
     // Upravit smí autor žádosti i admin, ale jen dokud žádost čeká (v0.9.3)
     const canEdit = l.status==='pending' && (currentRole==='admin'
       || l.requested_by===currentUser?.id || l.employee_id===currentEmployeeId);
+    // C3 v0.9.5: schválení se změnou (viz saveLeaveRequest) musí být vidět
+    // přímo u žádosti, ne jen v notifikaci — tohle je jediné "detailní"
+    // zobrazení žádosti, které appka má.
+    const hasChange = l.status==='approved' && (l.orig_date_from || l.orig_date_to || l.orig_shift_reduction != null);
     return `
     <div class="leave-request-row">
       <div style="flex:1">
         <div style="font-weight:600">${escapeHtml(leaveEmpName(l))}${l.shift_reduction?` <span class="code-pill" title="Snížení počtu směn v dotčeném měsíci">−${l.shift_reduction} směn</span>`:''}</div>
         <div style="color:var(--ink-soft);font-size:12px">${l.date_from} – ${l.date_to} (${leaveDayLabel(leaveDayCount(l.date_from,l.date_to))})${l.note?' • '+escapeHtml(l.note):''}</div>
         ${l.status==='rejected'&&l.decision_note?`<div style="color:var(--red);font-size:12px;margin-top:2px">Poznámka: ${escapeHtml(l.decision_note)}</div>`:''}
+        ${hasChange?`<div style="color:var(--status-warn);font-size:12px;margin-top:2px">${ICONS.status_warning} Schváleno se změnou — žádáno: ${fmtLeaveRange(l.orig_date_from||l.date_from, l.orig_date_to||l.date_to)}${l.orig_shift_reduction?` (−${l.orig_shift_reduction} směn)`:''}</div>`:''}
       </div>
       <span class="leave-status ${l.status}">${l.status==='pending'?ICONS.status_pending+' čeká':l.status==='approved'?ICONS.status_ok+' schváleno':ICONS.status_error+' zamítnuto'}</span>
       ${canEdit?`
@@ -12208,7 +12370,12 @@ function renderLeaves(){
         <button class="btn-ghost" style="padding:4px 10px;font-size:12px;color:var(--red);border-color:var(--red)" onclick="rejectLeave('${l.id}')">Zamítnout</button>
       `:''}
       ${currentRole==='admin'&&l.status==='approved'?`
+        <button class="btn-ghost" style="padding:4px 10px;font-size:12px;margin-left:8px" onclick="restoreLeave('${l.id}')">Obnovit</button>
         <button class="btn-ghost" style="padding:4px 10px;font-size:12px;margin-left:8px" title="Zruší dovolenou — odebere X dny a vrátí limity" onclick="cancelLeave('${l.id}')">Zrušit</button>
+      `:''}
+      ${currentRole==='admin'&&l.status==='rejected'?`
+        <button class="btn-ghost" style="padding:4px 10px;font-size:12px;margin-left:8px" onclick="restoreLeave('${l.id}')">Obnovit</button>
+        <button class="btn-ghost" style="padding:4px 10px;font-size:12px;margin-left:8px;color:var(--red);border-color:var(--red)" onclick="deleteLeaveRequest('${l.id}')">Smazat</button>
       `:''}
     </div>`;
   };
@@ -12226,6 +12393,7 @@ function renderLeaves(){
     if(closed.length){
       html += `<details style="margin-top:6px">
         <summary style="cursor:pointer;font-size:12.5px;color:var(--ink-soft);padding:4px 0">${ICONS.status_error} Zamítnuté a zrušené (${closed.length})</summary>
+        ${currentRole==='admin'?`<button class="btn-ghost" style="padding:4px 10px;font-size:12px;color:var(--red);border-color:var(--red);margin:2px 0 6px" onclick="clearLeaveHistory()">${ICONS.btn_smazat} Vymazat historii</button>`:''}
         ${closed.map(rowHtml).join('')}
       </details>`;
     }
@@ -12288,6 +12456,57 @@ async function cancelLeave(id){
   notifyLeaveDecision(l, 'rejected');
 }
 
+// C1 v0.9.5: obnovení approved/rejected žádosti zpět na pending — schválenou
+// dovolenou nejdřív "odschválí" stejně jako cancelLeave (X dny pryč, limity
+// se vrátí, protože effectiveLimits počítá jen approved žádosti).
+async function restoreLeave(id){
+  const l = leaveRequests.find(x=>x.id===id);
+  if(!l || (l.status !== 'approved' && l.status !== 'rejected')) return;
+  const wasApproved = l.status === 'approved';
+  if(!confirm(`Obnovit žádost ${leaveEmpName(l)} (${l.date_from} – ${l.date_to}) k novému posouzení?${wasApproved?'\nOdeberou se X dny z rozpisu a limity směn se vrátí na původní hodnoty.':''}`)) return;
+  if(wasApproved){
+    const { error: delErr } = await sb.from('shifts').delete().eq('org_id', currentOrg.id).eq('leave_request_id', id);
+    if(delErr){ toast('Chyba při mazání X dnů: ' + delErr.message, 'error'); return; }
+  }
+  const patch = { status:'pending', decision_note: null, decided_by: null, decided_at: null,
+    orig_date_from: null, orig_date_to: null, orig_shift_reduction: null };
+  const { error } = await sb.from('leave_requests').update(patch).eq('id', id);
+  if(error){ toast('Chyba: ' + error.message, 'error'); return; }
+  Object.assign(l, patch);
+  if(wasApproved) await loadShiftsForMonth(true);
+  renderLeaves();
+  renderCalendar();
+  toast('Žádost obnovena k novému posouzení');
+  logAudit(`Žádost obnovena: ${leaveEmpName(l)} ${l.date_from}–${l.date_to}`);
+  notifyLeaveRestored(l);
+}
+
+// C4 v0.9.5: úklid historie — jednotlivě, nebo hromadně (migration_leave_changes.sql
+// přidává DELETE policy jen pro status='rejected', takže pending/approved smazat nejde).
+async function deleteLeaveRequest(id){
+  const l = leaveRequests.find(x=>x.id===id);
+  if(!l || l.status !== 'rejected') return;
+  if(!confirm(`Trvale smazat záznam ${leaveEmpName(l)} (${l.date_from} – ${l.date_to}) z historie?`)) return;
+  const { error } = await sb.from('leave_requests').delete().eq('id', id);
+  if(error){ toast('Chyba: ' + (error.message||'chybí oprávnění — spusť migration_leave_changes.sql'), 'error'); return; }
+  leaveRequests = leaveRequests.filter(x=>x.id!==id);
+  renderLeaves();
+  toast('Záznam smazán');
+  logAudit(`Záznam žádosti smazán: ${leaveEmpName(l)} ${l.date_from}–${l.date_to}`);
+}
+
+async function clearLeaveHistory(){
+  const closed = leaveRequests.filter(l=>l.status==='rejected');
+  if(!closed.length){ toast('Historie je prázdná'); return; }
+  if(!confirm(`Trvale smazat celou historii zamítnutých a zrušených žádostí (${closed.length})?`)) return;
+  const { error } = await sb.from('leave_requests').delete().eq('org_id', currentOrg.id).eq('status', 'rejected');
+  if(error){ toast('Chyba: ' + (error.message||'chybí oprávnění — spusť migration_leave_changes.sql'), 'error'); return; }
+  leaveRequests = leaveRequests.filter(l=>l.status!=='rejected');
+  renderLeaves();
+  toast('Historie vymazána');
+  logAudit(`Historie zamítnutých/zrušených žádostí vymazána (${closed.length})`);
+}
+
 function leaveDayLabel(days){
   return `${days} ${days===1?'den':days<5?'dny':'dní'}`;
 }
@@ -12303,14 +12522,47 @@ async function notifyLeaveDecision(l, decision){
   const days = leaveDayLabel(leaveDayCount(l.date_from, l.date_to));
   if(!getNotifPref(empUserId, 'decision', 'inapp')) return;
   const approved = decision === 'approved';
+  // C3 v0.9.5: schválení se změnou musí v notifikaci obsahovat konkrétní
+  // rozdíl (co bylo žádáno vs. co bylo schváleno) + poznámku vedoucího.
+  const hasChange = approved && (l.orig_date_from || l.orig_date_to || l.orig_shift_reduction != null);
+  let title, body;
+  if(hasChange){
+    const origRange = fmtLeaveRangeShort(l.orig_date_from || l.date_from, l.orig_date_to || l.date_to);
+    title = `${ICONS.status_ok} Volno schváleno se změnou`;
+    body = `Volno schváleno se změnou: ${range} (žádal jsi ${origRange})${l.shift_reduction?`, snížení −${l.shift_reduction} směn`:''}.${l.note ? ` Poznámka vedoucího: ${l.note}` : ''}`;
+  } else {
+    title = approved ? `${ICONS.status_ok} Žádost schválena` : `${ICONS.status_error} Žádost zamítnuta`;
+    body = approved
+      ? `Tvoje žádost o volno ${range} (${days}) byla schválena.`
+      : `Tvoje žádost o volno ${range} (${days}) byla zamítnuta.${l.decision_note ? ` Důvod: ${l.decision_note}` : ''}`;
+  }
   const { error } = await sb.from('notifications').insert({
     org_id: currentOrg.id,
     user_id: empUserId,
     type: approved ? 'leave_approved' : 'leave_rejected',
-    title: approved ? `${ICONS.status_ok} Žádost schválena` : `${ICONS.status_error} Žádost zamítnuta`,
-    body: approved
-      ? `Tvoje žádost o volno ${range} (${days}) byla schválena.`
-      : `Tvoje žádost o volno ${range} (${days}) byla zamítnuta.${l.decision_note ? ` Důvod: ${l.decision_note}` : ''}`,
+    title,
+    body,
+    read: false,
+  });
+  if(error){
+    console.warn('notif insert failed', error);
+    toast('Upozornění zaměstnanci se nepodařilo doručit', 'error');
+  }
+}
+
+// C1 v0.9.5: notifikace při vrácení žádosti (approved/rejected → pending)
+async function notifyLeaveRestored(l){
+  if(!currentOrg || !l.employee_id) return;
+  const empUserId = userIdByEmpId(l.employee_id);
+  if(!empUserId || empUserId === currentUser?.id) return;
+  if(!getNotifPref(empUserId, 'decision', 'inapp')) return;
+  const range = fmtLeaveRangeShort(l.date_from, l.date_to);
+  const { error } = await sb.from('notifications').insert({
+    org_id: currentOrg.id,
+    user_id: empUserId,
+    type: 'leave_restored',
+    title: `${ICONS.status_pending} Žádost vrácena k posouzení`,
+    body: `Tvoje žádost o volno ${range} byla vrácena k novému posouzení.`,
     read: false,
   });
   if(error){

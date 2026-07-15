@@ -6,6 +6,8 @@
 !migration_leave.sql
 !migration_leave_edit.sql
 !migration_join_org.sql
+!migration_waiting_room.sql
+!migration_leave_changes.sql
 !manifest.json
 !sw.js
 !CLAUDE.md
