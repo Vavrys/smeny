@@ -1172,7 +1172,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
       <button class="btn-ghost" id="emp-settings-btn" onclick="openEmployeeSettings()" style="display:none"><span data-icon="set_profil">👤</span> Profil</button>
       <button class="btn-ghost" id="admin-settings-btn" onclick="openEmployeeSettings()" style="display:none"><span data-icon="set_profil">👤</span> Profil</button>
       <span id="org-code-badge" style="display:none;font-family:var(--font-mono);font-size:12px;font-weight:700;letter-spacing:1.5px;background:var(--paper);border:1.5px solid var(--line);padding:4px 10px;border-radius:6px;color:var(--ink-soft)" title="Kód firmy"></span>
-      <span id="app-version-label" title="Verze aplikace" onclick="handleVersionClick()" style="font-size:10px;color:var(--ink-faint);font-family:var(--font-mono);padding:0 4px;user-select:none;cursor:pointer">v0.9.3</span>
+      <span id="app-version-label" title="Verze aplikace" onclick="handleVersionClick()" style="font-size:10px;color:var(--ink-faint);font-family:var(--font-mono);padding:0 4px;user-select:none;cursor:pointer">v0.9.4</span>
       <button class="btn-ghost" id="search-btn" onclick="openSearch()" title="Vyhledat (Ctrl+K)" style="padding:6px 10px;font-size:14px"><span data-icon="btn_hledat">🔍</span></button>
       <!-- v0.9.1 (A5): otazník na chatbota z hlavičky odstraněn — nápovědu otevírá plovoucí bublina vpravo dole -->
       <button class="btn-ghost" id="notif-btn" onclick="toggleNotifPanel()" title="Notifikace" style="position:relative;padding:6px 10px;font-size:16px;display:none;align-items:center;justify-content:center">
@@ -2613,44 +2613,29 @@ async function doSignup(){
 }
 
 async function joinOrgByCode(orgCode){
-  // Find org with this invite_code
-  const { data: orgs, error } = await sb.from('organizations')
-    .select('id, name, invite_expires_at')
-    .eq('invite_code', orgCode.toUpperCase())
-    .limit(1);
+  // RPC je SECURITY DEFINER — nový uživatel bez členství nemá přes RLS
+  // na organizations/org_members žádná práva, takže přímý select/insert
+  // by tiše selhal (viz migration_join_org.sql).
+  const { data, error } = await sb.rpc('join_org_by_code', { code: orgCode });
 
-  if(error || !orgs || !orgs.length){
-    showAuthError('signup', `Kód firmy "${orgCode}" nebyl nalezen. Zkontroluj kód u svého vedoucího.`);
+  if(error){
+    showAuthError('signup', 'Nepodařilo se připojit k firmě: ' + error.message);
     return false;
   }
 
-  const org = orgs[0];
-
-  // Check invite expiry
-  if(org.invite_expires_at && new Date(org.invite_expires_at) < new Date()){
-    showAuthError('signup', t('invite.expired'));
+  if(!data || !data.ok){
+    const reason = data && data.reason;
+    if(reason === 'expired'){
+      showAuthError('signup', t('invite.expired'));
+    } else if(reason === 'not_found'){
+      showAuthError('signup', `Kód firmy "${orgCode}" nebyl nalezen. Zkontroluj kód u svého vedoucího.`);
+    } else {
+      showAuthError('signup', 'Nepodařilo se připojit k firmě.');
+    }
     return false;
   }
-  const { data: { user } } = await sb.auth.getUser();
 
-  // Check if already member
-  const { data: existing } = await sb.from('org_members')
-    .select('id').eq('org_id', org.id).eq('user_id', user.id).limit(1);
-  if(existing && existing.length){
-    return true; // already member, continue
-  }
-
-  // Generate emp_code for this new member
-  const empCode = Math.random().toString(36).slice(2,9).toUpperCase().slice(0,7);
-
-  const { error: insertError } = await sb.from('org_members').insert({
-    org_id: org.id, user_id: user.id, role: 'employee', emp_code: empCode
-  });
-  if(insertError){
-    showAuthError('signup', 'Nepodařilo se připojit k firmě: ' + insertError.message);
-    return false;
-  }
-  return true;
+  return true; // ok (nový člen nebo už byl členem)
 }
 
 async function doLogout(){

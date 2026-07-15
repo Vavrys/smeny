@@ -5,6 +5,7 @@
 !migration_notifications_fix.sql
 !migration_leave.sql
 !migration_leave_edit.sql
+!migration_join_org.sql
 !manifest.json
 !sw.js
 !CLAUDE.md
