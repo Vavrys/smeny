@@ -1,9 +1,9 @@
-// Směny — service worker (v0.9.6)
+// Směny — service worker (v0.9.7)
 // VERSION drž v synchronu s verzí appky (index.html #app-version-label).
 // Změna verze = nový název cache → při aktivaci se stará cache smaže a klienti
 // dostanou čerstvý build (skipWaiting + clients.claim, reload řeší registrace
 // v index.html přes controllerchange) — nikdo nezůstane na zamrzlém buildu.
-const VERSION = '0.9.6';
+const VERSION = '0.9.7';
 const CACHE = 'smeny-v' + VERSION;         // shell (cache-first)
 const DATA_CACHE = CACHE + '-data';        // Supabase GET data (network-first, offline fallback)
 const PRECACHE = ['./', './index.html', './manifest.json'];

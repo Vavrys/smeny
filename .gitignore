@@ -9,6 +9,7 @@
 !migration_waiting_room.sql
 !migration_leave_changes.sql
 !migration_v096_integrity.sql
+!migration_v097_swaps_rls.sql
 !manifest.json
 !sw.js
 !CLAUDE.md
