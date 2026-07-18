@@ -6,6 +6,35 @@ Při zvednutí verze appky VŽDY změň obě místa:
 1. `index.html` — `#app-version-label` (text `vX.Y.Z` v hlavičce).
 2. `sw.js` — konstanta `VERSION` (řídí název cache; bez bumpu zůstanou klienti na staré cache/buildu).
 
+## Migrace databáze (Supabase)
+
+**Po pullu vždy zkontroluj, že jsou všechny migrace spuštěné v Supabase SQL editoru.**
+Rychlá kontrola přímo v appce: Nastavení → Organizace → „Zkontrolovat databázi" (admin;
+zeleně/červeně ukáže chybějící tabulky/sloupce a kterou migraci spustit).
+
+Seznam migračních souborů v repu (pořadí = doporučené pořadí spuštění):
+1. `migration_notifications.sql` — notifications, audit_log, help_feedback
+2. `migration_notifications_fix.sql` — SECURITY DEFINER helper pro notif RLS
+3. `migration_leave.sql` — leave_requests (žádosti o volno)
+4. `migration_leave_edit.sql` — RLS: úprava vlastní pending žádosti
+5. `migration_leave_changes.sql` — orig_* sloupce, DELETE policy pro rejected
+6. `migration_join_org.sql` — RPC join_org_by_code (registrace kódem firmy)
+7. `migration_waiting_room.sql` — čekárna, RPC set_pending_name
+8. `migration_v096_integrity.sql` — login_attempts, unique constrainty (duplicity), ON DELETE kaskády
+
+Nová migrace = nový soubor `migration_*.sql` + výjimka v `.gitignore` (je to whitelist!)
++ řádek do tohoto seznamu + případně do `EXPECTED_DB_SCHEMA` v index.html (diagnostika).
+Pozor: nikdy `CREATE OR REPLACE` na funkce z původního schema.sql (42P13 při jiném
+názvu parametru) a DROP závislých policies PŘED `DROP FUNCTION`.
+
+## Práce s DB v kódu
+
+Všechna Supabase volání vedou (postupně) přes centrální vrstvu v index.html:
+`dbRun` / `dbInsert` / `dbUpdate` / `dbUpsert` / `dbDelete` / `dbRpc` (sekce „A2 v0.9.6").
+Loguje chyby s kontextem a přes `{ action: 'Popis akce' }` zobrazí uživateli toast.
+Zákaz `.catch(()=>{})` a ignorování `{ error }` — Supabase JS nevyhazuje, chyby
+chodí v návratové hodnotě. Prázdné/chybové stavy panelů: `uiEmptyState()` / `uiErrorState()`.
+
 ## Ikony
 
 Aplikace má centrální registr ikon `DEFAULT_ICONS`/`ICONS` v `index.html` (sekce `ICON REGISTRY`). Žádné emoji se nesmí používat natvrdo přímo v kódu.

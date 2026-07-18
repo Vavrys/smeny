@@ -446,6 +446,12 @@ table.data-table tr:hover td{background:var(--paper)}
 
 .spinner-lg{width:22px;height:22px;border:2.5px solid var(--accent-soft);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto}
 
+/* B2 v0.9.6 — jednotné prázdné/chybové stavy panelů (žádná mrtvá bílá plocha) */
+.ui-state{text-align:center;padding:38px 18px;color:var(--ink-soft)}
+.ui-state-icon{font-size:30px;margin-bottom:10px;opacity:.85}
+.ui-state-title{font-family:var(--font-display);font-weight:600;font-size:15px;color:var(--ink);margin-bottom:4px}
+.ui-state-hint{font-size:12.5px;color:var(--ink-faint);max-width:420px;margin:0 auto;line-height:1.5}
+
 /* ============================================================
    SCHEDULE / CALENDAR
    ============================================================ */
@@ -1179,7 +1185,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
       <button class="btn-ghost" id="emp-settings-btn" onclick="openEmployeeSettings()" style="display:none"><span data-icon="set_profil">👤</span> Profil</button>
       <button class="btn-ghost" id="admin-settings-btn" onclick="openEmployeeSettings()" style="display:none"><span data-icon="set_profil">👤</span> Profil</button>
       <span id="org-code-badge" style="display:none;font-family:var(--font-mono);font-size:12px;font-weight:700;letter-spacing:1.5px;background:var(--paper);border:1.5px solid var(--line);padding:4px 10px;border-radius:6px;color:var(--ink-soft)" title="Kód firmy"></span>
-      <span id="app-version-label" title="Verze aplikace" onclick="handleVersionClick()" style="font-size:10px;color:var(--ink-faint);font-family:var(--font-mono);padding:0 4px;user-select:none;cursor:pointer">v0.9.5</span>
+      <span id="app-version-label" title="Verze aplikace" onclick="handleVersionClick()" style="font-size:10px;color:var(--ink-faint);font-family:var(--font-mono);padding:0 4px;user-select:none;cursor:pointer">v0.9.6</span>
       <button class="btn-ghost" id="search-btn" onclick="openSearch()" title="Vyhledat (Ctrl+K)" style="padding:6px 10px;font-size:14px"><span data-icon="btn_hledat">🔍</span></button>
       <!-- v0.9.1 (A5): otazník na chatbota z hlavičky odstraněn — nápovědu otevírá plovoucí bublina vpravo dole -->
       <button class="btn-ghost" id="notif-btn" onclick="toggleNotifPanel()" title="Notifikace" style="position:relative;padding:6px 10px;font-size:16px;display:none;align-items:center;justify-content:center">
@@ -2199,13 +2205,26 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
 <script>
 // ============================================================
 // GLOBAL ERROR HANDLERS
+// B1 v0.9.6: nezachycená chyba nesmí skončit tichou smrtí ani bílou
+// obrazovkou — detail jde do konzole, uživatel dostane nenápadný toast.
+// Toast je throttlovaný (max 1× za 8 s), aby chybová smršť nespamovala.
 // ============================================================
+let _lastGlobalErrToast = 0;
+function _globalErrorToast(){
+  const now = Date.now();
+  if(now - _lastGlobalErrToast < 8000) return;
+  _lastGlobalErrToast = now;
+  // toast() je definován až později ve skriptu — při chybě během načítání ještě nemusí existovat
+  try { if(typeof toast === 'function') toast('Něco se nepovedlo — zkus akci znovu. Detail je v konzoli (F12).', 'error'); } catch(e){}
+}
 window.onerror = (msg, src, line, col, err) => {
   console.error('Global error:', msg, err);
+  _globalErrorToast();
   return false;
 };
 window.addEventListener('unhandledrejection', e => {
   console.error('Unhandled promise rejection:', e.reason);
+  _globalErrorToast();
 });
 
 // ============================================================
@@ -2276,6 +2295,7 @@ const DEFAULT_ICONS = {
 
   // Různé
   archiv: '📦', admin_badge: '👑', audit_log: '🕵️', logo_upload: '📎',
+  db_diag: '🩺',
   kod_zamestnance: '🔢', odkaz: '🔗', poznamka: '💬', tpl_rovnomerne: '📐',
   tpl_weekend_peak: '🍺', tpl_workweek: '💼', dash_prehled: '📊',
   icon_klavesy: '⌨️', icon_import: '📂', sec_podminky: '📋', empty_inbox: '📭',
@@ -2458,6 +2478,56 @@ function toastOk(msg){ toast('✓ ' + msg, 'ok'); }
 // (unhandledrejection handler is registered at top of script)
 
 // ============================================================
+// A2 v0.9.6 — CENTRÁLNÍ DB VRSTVA
+// Tenká obálka nad Supabase voláními: KAŽDÁ chyba se zaloguje do konzole
+// s kontextem (operace + tabulka) a operace vyvolané uživatelem dostanou
+// srozumitelný toast. Konec `.catch(()=>{})` — tiché polykání chyb je zakázané.
+//
+// Použití:
+//   dbInsert('shifts', row, { action:'Uložení směny' })   → toast při chybě
+//   dbInsert('audit_log', row)                            → jen log do konzole
+//   dbRun(sb.from('x').update(p).eq('id',id).select(), 'update x', { action:'…' })
+// Vrací vždy { data, error } — nikdy nevyhazuje (i síťová výjimka se převede
+// na error objekt), volající tedy stačí zkontrolovat `error`.
+// ============================================================
+async function dbRun(query, ctx, opts = {}){
+  let res;
+  try { res = await query; }
+  catch(err){ res = { data: null, error: { message: (err && err.message) || String(err), code: 'EXCEPTION' } }; }
+  if(!res) res = { data: null, error: null };
+  if(res.error){
+    console.error(`[DB] ${ctx} selhalo (${res.error.code || '?'}): ${res.error.message}`, res.error);
+    if(opts.action && typeof toast === 'function') toast(`${opts.action} se nepodařilo: ${res.error.message}`, 'error');
+  }
+  return res;
+}
+function _dbMatch(q, match){ Object.entries(match || {}).forEach(([k, v]) => { q = q.eq(k, v); }); return q; }
+const dbInsert = (table, rows, opts = {}) => dbRun(sb.from(table).insert(rows), `insert ${table}`, opts);
+const dbUpsert = (table, rows, conflict, opts = {}) => dbRun(sb.from(table).upsert(rows, conflict ? { onConflict: conflict } : undefined), `upsert ${table}`, opts);
+const dbUpdate = (table, patch, match, opts = {}) => dbRun(_dbMatch(sb.from(table).update(patch), match), `update ${table}`, opts);
+const dbDelete = (table, match, opts = {}) => dbRun(_dbMatch(sb.from(table).delete(), match), `delete ${table}`, opts);
+const dbRpc = (fn, args, opts = {}) => dbRun(sb.rpc(fn, args), `rpc ${fn}`, opts);
+
+// ── B2 v0.9.6: jednotné prázdné / chybové stavy obrazovek ──
+// Žádná mrtvá bílá plocha: každý hlavní panel umí říct "nic tu není",
+// "nepovedlo se načíst (Zkusit znovu)" nebo "nemáš oprávnění".
+function uiEmptyState(icon, title, hint){
+  return `<div class="ui-state">
+    <div class="ui-state-icon">${icon}</div>
+    <div class="ui-state-title">${title}</div>
+    ${hint ? `<div class="ui-state-hint">${hint}</div>` : ''}
+  </div>`;
+}
+function uiErrorState(msg, retryJs){
+  return `<div class="ui-state">
+    <div class="ui-state-icon">${ICONS.status_error || '⚠️'}</div>
+    <div class="ui-state-title">Data se nepodařilo načíst</div>
+    <div class="ui-state-hint">${escapeHtml(msg || 'Neznámá chyba')}</div>
+    ${retryJs ? `<button class="btn-outline" style="margin-top:10px" onclick="${retryJs}">↻ Zkusit znovu</button>` : ''}
+  </div>`;
+}
+
+// ============================================================
 // AUTH SCREEN TABS
 // ============================================================
 function switchAuthTab(which){
@@ -2502,7 +2572,9 @@ function setLoginAttemptState(email, state){
 // are visible server-side too, not just in this browser's localStorage. See
 // the schema note near the audit_log comment for the table/RLS policy needed.
 function logFailedLogin(email, reason){
-  sb.from('login_attempts').insert({ email, success: false, reason, created_at: new Date().toISOString() }).catch(()=>{});
+  // v0.9.6: tabulku zakládá migration_v096_integrity.sql; bez ní se chyba
+  // aspoň zaloguje do konzole (dbInsert), ale login flow nikdy neblokuje
+  dbInsert('login_attempts', { email, success: false, reason, created_at: new Date().toISOString() });
 }
 
 async function doLogin(){
@@ -2976,8 +3048,8 @@ async function bootstrapAfterAuth(){
     // Ensure new orgs get an invite expiry (7 days from now if not set)
     if(currentRole === 'admin' && !currentOrg.invite_expires_at && currentOrg.id){
       const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
-      sb.from('organizations').update({ invite_expires_at: expiresAt }).eq('id', currentOrg.id).then(() => {
-        currentOrg.invite_expires_at = expiresAt;
+      dbUpdate('organizations', { invite_expires_at: expiresAt }, { id: currentOrg.id }).then(({ error }) => {
+        if(!error) currentOrg.invite_expires_at = expiresAt;
       });
     }
 
@@ -3118,13 +3190,13 @@ function logActivity(msg) {
     const userName = (typeof currentUser !== 'undefined' && currentUser)
       ? (document.getElementById('user-display-name')?.textContent || currentUser.email || '')
       : '';
-    sb.from('audit_log').insert({
+    dbInsert('audit_log', {
       org_id: currentOrg.id,
       user_id: (typeof currentUser !== 'undefined' && currentUser) ? currentUser.id : null,
       user_name: userName,
       message: msg,
-    }).then(()=>{}, ()=>{});
-  } catch(e){}
+    });
+  } catch(e){ console.warn('[DB] audit_log insert se nepodařilo připravit', e); }
 }
 
 function flushPendingActivityLog(){
@@ -3267,6 +3339,9 @@ async function onboardingAddEmployee() {
   const name = nameIn.value.trim();
   const email = emailIn ? emailIn.value.trim() : '';
   if (!currentOrg) return;
+  // C1 v0.9.6: stejná ochrana proti duplicitnímu jménu jako v saveEmployee
+  const dupOb = employees.find(x=>_normName(x.name) === _normName(name));
+  if(dupOb && !confirm(`Zaměstnanec se jménem "${dupOb.name}" už existuje.\n\nOpravdu přidat druhého se stejným jménem?`)) return;
   // v0.9.3: employees nemá full_name/email/branch_id — jméno patří do name,
   // e-mail do notes a pobočka se přiřazuje přes branch_limits (jsonb dle kódu)
   const payload = { org_id: currentOrg.id, name, sort_order: employees.length };
@@ -3292,7 +3367,7 @@ function switchAppTab(tab){
   const pane = document.getElementById('pane-'+tab);
   if(pane) pane.style.display='block';
   if(tab==='gaps') renderGaps();
-  if(tab==='schedule' && currentOrg) loadAndRenderOpenShifts().catch(()=>{});
+  if(tab==='schedule' && currentOrg) loadAndRenderOpenShifts().catch(e=>console.error('[DB] load open_shifts selhalo', e));
   // Trigger contextual tutorial on first visit to each tab
   if(!tutActive) maybeStartTabTutorial(tab);
 }
@@ -3316,18 +3391,28 @@ function dedupeByKey(rows, keyFn){
   });
 }
 
+// C1 v0.9.6: normalizace jména pro detekci duplicit (diakritika, mezery, velikost)
+function _normName(s){
+  return (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim();
+}
+
 async function loadEmployees(){
-  const { data, error } = await sb
+  const { data, error } = await dbRun(sb
     .from('employees')
     .select('*')
     .eq('org_id', currentOrg.id)
-    .order('sort_order', { ascending: true });
+    .order('sort_order', { ascending: true }), 'select employees');
 
-  if(error){ toast('Chyba při načítání zaměstnanců'); return; }
+  if(error){
+    toast('Chyba při načítání zaměstnanců: ' + error.message, 'error');
+    const wrap = document.getElementById('employees-table-wrap');
+    if(wrap) wrap.innerHTML = uiErrorState(error.message, 'loadEmployees()'); // B2 v0.9.6
+    return;
+  }
   employees = dedupeByKey(data, e=>e.id);
 
   // Also load org_members to show linked accounts
-  const { data: members } = await sb.from('org_members').select('*').eq('org_id', currentOrg.id);
+  const { data: members } = await dbRun(sb.from('org_members').select('*').eq('org_id', currentOrg.id), 'select org_members');
   // Jeden řádek na employee_id — duplicitní členství by zdvojilo osobu všude,
   // kde se seznam lidí skládá přes vazbu org_members (A4 v0.9.1)
   orgMembers = dedupeByKey(dedupeByKey(members, m=>m.id), m=>m.employee_id);
@@ -3639,6 +3724,10 @@ async function saveEmployee(){
     }
     toast('Uloženo');
   } else {
+    // C1 v0.9.6: ochrana proti duplicitám (Linda/Vojtěch 2×) — stejné jméno
+    // v organizaci skoro vždy znamená omylem přidaného člověka podruhé
+    const dup = employees.find(x=>_normName(x.name) === _normName(name));
+    if(dup && !confirm(`Zaměstnanec se jménem "${dup.name}" už existuje.\n\nOpravdu přidat druhého se stejným jménem?`)) return;
     payload.org_id = currentOrg.id;
     payload.sort_order = employees.length;
     const { data: newEmp, error } = await sb.from('employees').insert(payload).select().single();
@@ -3657,11 +3746,20 @@ async function saveEmployee(){
 async function deleteEmployee(id){
   const e = employees.find(x=>x.id===id);
   if(!confirm(`Smazat ${e.name}? Tím se smažou i jeho směny a žádanky o volno.`)) return;
-  const { error } = await sb.from('employees').delete().eq('id', id);
-  if(error){ toast('Smazání se nezdařilo'); return; }
+  // C2 v0.9.6: úklid závislých řádků v kódu (belt & suspenders k ON DELETE
+  // pravidlům z migration_v096_integrity.sql) — žádné osiřelé směny/žádosti/členství
+  await dbUpdate('org_members', { employee_id: null }, { employee_id: id });
+  await dbDelete('shifts', { employee_id: id });
+  await dbDelete('unavailability', { employee_id: id });
+  await dbDelete('leave_requests', { employee_id: id });
+  await dbRun(sb.from('shift_swaps').delete().or(`requester_id.eq.${id},target_id.eq.${id}`), 'delete shift_swaps (employee cleanup)');
+  await dbRun(sb.from('open_shifts').update({ claimed_by: null, status: 'open' }).eq('claimed_by', id), 'update open_shifts (release claims)');
+  const { error } = await dbDelete('employees', { id }, { action: 'Smazání zaměstnance' });
+  if(error) return;
   toast('Zaměstnanec smazán');
   await loadEmployees();
-  await loadShiftsForMonth(); // refresh calendar so deleted employee disappears
+  await loadLeaveRequests();
+  await loadShiftsForMonth(true); // refresh calendar so deleted employee disappears
 }
 
 // ============================================================
@@ -3697,13 +3795,18 @@ let schedViewMode = 'employee'; // 'employee' | 'branch'
 let empXMode    = false; // employee X-entry mode
 
 async function loadBranches(){
-  const { data, error } = await sb
+  const { data, error } = await dbRun(sb
     .from('branches')
     .select('*')
     .eq('org_id', currentOrg.id)
-    .order('sort_order', { ascending: true });
+    .order('sort_order', { ascending: true }), 'select branches');
 
-  if(error){ toast('Chyba při načítání poboček: ' + error.message); return; }
+  if(error){
+    toast('Chyba při načítání poboček: ' + error.message, 'error');
+    const wrap = document.getElementById('branches-table-wrap');
+    if(wrap) wrap.innerHTML = uiErrorState(error.message, 'loadBranches()'); // B2 v0.9.6
+    return;
+  }
   branches = data || [];
 
   // Load shift types alongside branches so picker always has them
@@ -3727,14 +3830,16 @@ async function resetDefaultColors(){
   for(const st of shiftTypes){
     const def = DEFAULT_COLORS[st.code];
     if(def && st.color !== def){
-      await sb.from('shift_types').update({ color: def }).eq('id', st.id);
+      const { error } = await dbUpdate('shift_types', { color: def }, { id: st.id }, { action: 'Obnovení barvy' });
+      if(error) continue;
       st.color = def; fixed++;
     }
   }
   for(const b of branches){
     const def = DEFAULT_COLORS[b.code];
     if(def && b.color !== def){
-      await sb.from('branches').update({ color: def }).eq('id', b.id);
+      const { error } = await dbUpdate('branches', { color: def }, { id: b.id }, { action: 'Obnovení barvy' });
+      if(error) continue;
       b.color = def; fixed++;
     }
   }
@@ -3853,12 +3958,13 @@ async function syncShiftTypeAddedToEmployees(branchCode, stCode){
     return bl && !(bl.shiftTypes && bl.shiftTypes[stCode]);
   });
   if(!affected.length) return;
-  await Promise.all(affected.map(e=>{
+  const res = await Promise.all(affected.map(e=>{
     const bl = e.branch_limits[branchCode];
     if(!bl.shiftTypes) bl.shiftTypes = {};
     bl.shiftTypes[stCode] = {}; // empty = bez omezení
-    return sb.from('employees').update({ branch_limits: e.branch_limits }).eq('id', e.id);
+    return dbUpdate('employees', { branch_limits: e.branch_limits }, { id: e.id });
   }));
+  if(res.some(r=>r.error)) toast('Přiřazení typu směny se u části zaměstnanců nepodařilo uložit', 'error');
 }
 
 async function syncShiftTypeRemovedFromEmployees(branchCode, stCode){
@@ -3867,10 +3973,11 @@ async function syncShiftTypeRemovedFromEmployees(branchCode, stCode){
     return bl && bl.shiftTypes && bl.shiftTypes[stCode];
   });
   if(!affected.length) return;
-  await Promise.all(affected.map(e=>{
+  const res = await Promise.all(affected.map(e=>{
     delete e.branch_limits[branchCode].shiftTypes[stCode];
-    return sb.from('employees').update({ branch_limits: e.branch_limits }).eq('id', e.id);
+    return dbUpdate('employees', { branch_limits: e.branch_limits }, { id: e.id });
   }));
+  if(res.some(r=>r.error)) toast('Odebrání typu směny se u části zaměstnanců nepodařilo uložit', 'error');
 }
 
 async function syncShiftTypeRenamedForEmployees(branchCode, oldCode, newCode){
@@ -3880,12 +3987,13 @@ async function syncShiftTypeRenamedForEmployees(branchCode, oldCode, newCode){
     return bl && bl.shiftTypes && bl.shiftTypes[oldCode];
   });
   if(!affected.length) return;
-  await Promise.all(affected.map(e=>{
+  const res = await Promise.all(affected.map(e=>{
     const sts = e.branch_limits[branchCode].shiftTypes;
     sts[newCode] = sts[oldCode];
     delete sts[oldCode];
-    return sb.from('employees').update({ branch_limits: e.branch_limits }).eq('id', e.id);
+    return dbUpdate('employees', { branch_limits: e.branch_limits }, { id: e.id });
   }));
+  if(res.some(r=>r.error)) toast('Přejmenování typu směny se u části zaměstnanců nepodařilo uložit', 'error');
 }
 
 async function updateShiftTypeField(id, field, value){
@@ -3988,15 +4096,27 @@ async function saveBranch(){
 async function deleteBranch(id){
   const b = branches.find(x=>x.id===id);
   if(!confirm(`Opravdu chcete smazat pobočku "${b.name}"?\n\nPozor: Tímto se smažou i všechny směny této pobočky v rozpisu. Tato akce je nevratná.`)) return;
-  const { error } = await sb.from('branches').delete().eq('id', id);
-  if(error){ toast('Smazání se nezdařilo'); return; }
+  // C2 v0.9.6: confirm sliboval smazání směn pobočky, ale kód je nikdy nemazal —
+  // zůstávaly osiřelé směny s kódy, které už nikam nepatří. Smaž je (a otevřené
+  // sloty) podle kódu pobočky + kódů jejích typů směn, DŘÍV než zmizí typy.
+  const branchCodes = [b.code, ...shiftTypes.filter(st=>st.branch_id===id).map(st=>st.code)];
+  const { error: shiftsErr } = await dbRun(
+    sb.from('shifts').delete().eq('org_id', currentOrg.id).in('shift_type_code', branchCodes),
+    'delete shifts (branch cleanup)', { action: 'Smazání směn pobočky' });
+  if(shiftsErr) return;
+  await dbRun(sb.from('open_shifts').delete().eq('org_id', currentOrg.id).in('shift_type_code', branchCodes),
+    'delete open_shifts (branch cleanup)');
+  const { error } = await dbDelete('branches', { id }, { action: 'Smazání pobočky' });
+  if(error) return;
   // Unassign the deleted branch from every employee who had it
   const affected = employees.filter(e=>(e.branch_limits||{})[b.code]);
-  await Promise.all(affected.map(e=>{
+  const res = await Promise.all(affected.map(e=>{
     delete e.branch_limits[b.code];
-    return sb.from('employees').update({ branch_limits: e.branch_limits }).eq('id', e.id);
+    return dbUpdate('employees', { branch_limits: e.branch_limits }, { id: e.id });
   }));
+  if(res.some(r=>r.error)) toast('Odebrání pobočky se u části zaměstnanců nepodařilo uložit', 'error');
   toast('Pobočka smazána');
+  await loadShiftsForMonth(true);
   await loadBranches();
 }
 
@@ -4228,7 +4348,7 @@ async function migrateEmployeeBranchLimitsV2(){
   });
 
   if(updates.length){
-    await Promise.all(updates.map(e=>sb.from('employees').update({ branch_limits: e.branch_limits }).eq('id', e.id)));
+    await Promise.all(updates.map(e=>dbUpdate('employees', { branch_limits: e.branch_limits }, { id: e.id })));
     renderEmployees();
   }
 
@@ -4330,20 +4450,35 @@ async function loadShiftsForMonth(forceRefresh=false){
     renderCalendar();
     if(document.getElementById('pane-gaps')?.style.display !== 'none') renderGaps();
     if(typeof renderMySchedule === 'function') renderMySchedule(); // v0.9.1 B1 — sám si hlídá viditelnost
-    loadAndRenderOpenShifts().catch(()=>{});
+    loadAndRenderOpenShifts().catch(e=>console.error('[DB] load open_shifts selhalo', e));
     resetSessionTimer();
     return;
   }
 
+  // B3 v0.9.6: viditelné načítání — kalendář nesmí vypadat zaseknutě
+  const loadTbody = document.getElementById('sched-tbody');
+  if(loadTbody && !loadTbody.dataset.loaded){
+    loadTbody.innerHTML = `<tr><td colspan="40" style="padding:34px;text-align:center"><div class="spinner-lg"></div></td></tr>`;
+  }
+
   const [{ data: shiftRows, error: shiftErr }, { data: unavRows, error: unavErr }] = await Promise.all([
-    sb.from('shifts').select('*').eq('org_id', currentOrg.id)
-      .gte('shift_date', from).lte('shift_date', to),
-    sb.from('unavailability').select('*').eq('org_id', currentOrg.id)
-      .gte('unavail_date', from).lte('unavail_date', to),
+    dbRun(sb.from('shifts').select('*').eq('org_id', currentOrg.id)
+      .gte('shift_date', from).lte('shift_date', to), 'select shifts (month)'),
+    dbRun(sb.from('unavailability').select('*').eq('org_id', currentOrg.id)
+      .gte('unavail_date', from).lte('unavail_date', to), 'select unavailability (month)'),
   ]);
 
-  if(shiftErr){ toast('Chyba načítání směn: '+shiftErr.message); return; }
-  if(unavErr){ toast('Chyba načítání volna: '+unavErr.message); return; }
+  // B2 v0.9.6: chyba načtení = chybový stav s tlačítkem, ne mrtvá plocha
+  const loadErr = shiftErr || unavErr;
+  if(loadErr){
+    const errHtml = uiErrorState(loadErr.message, 'loadShiftsForMonth(true)');
+    if(loadTbody){ loadTbody.innerHTML = `<tr><td colspan="40">${errHtml}</td></tr>`; delete loadTbody.dataset.loaded; }
+    const myEl = document.getElementById('myschedule-content');
+    if(myEl && document.getElementById('pane-myschedule')?.style.display !== 'none') myEl.innerHTML = errHtml;
+    toast('Chyba načítání rozpisu: '+loadErr.message, 'error');
+    return;
+  }
+  if(loadTbody) loadTbody.dataset.loaded = '1';
 
   shifts  = {};
   unavail = {};
@@ -4358,7 +4493,7 @@ async function loadShiftsForMonth(forceRefresh=false){
   if(document.getElementById('pane-gaps')?.style.display !== 'none') renderGaps();
   if(typeof renderMySchedule === 'function') renderMySchedule(); // v0.9.1 B1 — sám si hlídá viditelnost
   // Load open shifts in background (non-critical, table may not exist yet)
-  loadAndRenderOpenShifts().catch(()=>{});
+  loadAndRenderOpenShifts().catch(e=>console.error('[DB] load open_shifts selhalo', e));
   resetSessionTimer();
 }
 
@@ -5229,7 +5364,8 @@ async function pickShift(empId, dateStr, code){
   if(code==='X'){
     // Store as unavailability row
     if(shifts[key]){
-      await sb.from('shifts').delete().eq('id', shifts[key].id);
+      const { error: delErr } = await dbDelete('shifts', { id: shifts[key].id }, { action: 'Odebrání směny' });
+      if(delErr) return;
       delete shifts[key];
     }
     if(!unavail[key]){
@@ -5244,8 +5380,9 @@ async function pickShift(empId, dateStr, code){
 
   // Regular shift — check daily capacity BEFORE inserting
   if(unavail[key]){
-    await sb.from('unavailability').delete()
-      .eq('employee_id', empId).eq('unavail_date', dateStr).eq('org_id', currentOrg.id);
+    const { error: unavErr } = await dbDelete('unavailability',
+      { employee_id: empId, unavail_date: dateStr, org_id: currentOrg.id }, { action: 'Zrušení volna X' });
+    if(unavErr) return;
     delete unavail[key];
   }
 
@@ -5290,7 +5427,8 @@ async function pickShift(empId, dateStr, code){
         const occupantName = occupantEmp?.name || 'jiný zaměstnanec';
         const day = parseInt(dateStr.split('-')[2]);
         if(confirm(`${code} je na ${day}. již obsazen/a ${occupantName}.\n\nNahradit ${occupantName} za ${employees.find(e=>e.id===empId)?.name}?`)){
-          await sb.from('shifts').delete().eq('id', slotOccupant.id);
+          const { error: replErr } = await dbDelete('shifts', { id: slotOccupant.id }, { action: 'Nahrazení směny' });
+          if(replErr) return;
           delete shifts[slotOccupant.employee_id+':'+dateStr];
           const { data, error } = await sb.from('shifts').insert({
             org_id: currentOrg.id, employee_id: empId,
@@ -5330,8 +5468,9 @@ async function clearAutoShifts(){
   if(!currentOrg) return;
   const from = isoDate(schedYear, schedMonth+1, 1);
   const to   = isoDate(schedYear, schedMonth+1, new Date(schedYear, schedMonth+1, 0).getDate());
-  await sb.from('shifts').delete().eq('org_id', currentOrg.id).eq('is_auto', true)
-    .gte('shift_date', from).lte('shift_date', to);
+  const { error } = await dbRun(sb.from('shifts').delete().eq('org_id', currentOrg.id).eq('is_auto', true)
+    .gte('shift_date', from).lte('shift_date', to), 'delete shifts (auto)', { action: 'Smazání automatických směn' });
+  if(error) return;
   await loadShiftsForMonth();
   toast('Automatické směny smazány');
 }
@@ -5340,8 +5479,9 @@ async function clearAllShifts(){
   if(!confirm('Smazat VŠECHNY směny v tomto měsíci?')) return;
   const from = isoDate(schedYear, schedMonth+1, 1);
   const to   = isoDate(schedYear, schedMonth+1, new Date(schedYear, schedMonth+1, 0).getDate());
-  await sb.from('shifts').delete().eq('org_id', currentOrg.id)
-    .gte('shift_date', from).lte('shift_date', to);
+  const { error } = await dbRun(sb.from('shifts').delete().eq('org_id', currentOrg.id)
+    .gte('shift_date', from).lte('shift_date', to), 'delete shifts (month)', { action: 'Smazání směn' });
+  if(error) return;
   await loadShiftsForMonth();
   toast('Všechny směny smazány');
 }
@@ -5951,8 +6091,11 @@ async function runAutoSchedule(){
     checkScheduleInvariants(chosen, daysInMonth);
     const from = isoDate(schedYear, schedMonth+1, 1);
     const to   = isoDate(schedYear, schedMonth+1, daysInMonth);
-    await sb.from('shifts').delete().eq('org_id', currentOrg.id).eq('is_auto', true)
-      .gte('shift_date', from).lte('shift_date', to);
+    // v0.9.6: bez kontroly chyby by po neúspěšném delete následující insert
+    // narazil na unique (employee_id, shift_date) a rozpis by se uložil napůl
+    const { error: clearErr } = await dbRun(sb.from('shifts').delete().eq('org_id', currentOrg.id).eq('is_auto', true)
+      .gte('shift_date', from).lte('shift_date', to), 'delete shifts (auto, pre-save)', { action: 'Uložení rozpisu' });
+    if(clearErr) return;
 
     const toInsert = Object.values(chosen).filter(s=>s && s.is_auto).map(s=>({
       org_id: currentOrg.id,
@@ -7273,10 +7416,11 @@ async function runImport(){
       const { data: existing } = await sb.from('shift_types').select('id')
         .eq('branch_id',branchId).eq('code',st.code).maybeSingle();
       if(!existing){
-        await sb.from('shift_types').insert({
+        const { error: stErr } = await sb.from('shift_types').insert({
           org_id:currentOrg.id, branch_id:branchId,
           code:st.code, label:st.label, color:st.color, sort_order:st.sort_order
         });
+        if(stErr) throw new Error('Typ směny '+st.code+': '+stErr.message);
       }
     }
 
@@ -7395,12 +7539,11 @@ async function onRowDrop(e){
   employees.splice(destIdx, 0, moved);
 
   // Update sort_order in DB for all employees (batch)
-  const updates = employees.map((emp,i)=>
-    sb.from('employees').update({ sort_order:i }).eq('id', emp.id)
-  );
-  await Promise.all(updates);
-
+  const results = await Promise.all(employees.map((emp,i)=>
+    dbUpdate('employees', { sort_order:i }, { id: emp.id })
+  ));
   renderCalendar();
+  if(results.some(r=>r.error)){ toast('Pořadí se nepodařilo celé uložit — zkus to znovu', 'error'); return; }
   toast('Pořadí uloženo');
 }
 
@@ -7807,7 +7950,8 @@ async function dayDetailReplace(oldEmpId, newEmpId, dateStr, slotCode, day){
   // Remove old
   const existing = shifts[oldEmpId+':'+dateStr];
   if(existing){
-    await sb.from('shifts').delete().eq('id', existing.id);
+    const { error: delErr } = await dbDelete('shifts', { id: existing.id }, { action: 'Nahrazení směny' });
+    if(delErr) return;
     delete shifts[oldEmpId+':'+dateStr];
   }
   // Add new
@@ -8555,12 +8699,12 @@ let _notifications = [];
 
 async function loadNotifications(){
   if(!currentUser || !currentOrg) return;
-  const { data } = await sb.from('notifications')
+  const { data } = await dbRun(sb.from('notifications')
     .select('*')
     .eq('org_id', currentOrg.id)
     .eq('user_id', currentUser.id)
     .order('created_at', { ascending: false })
-    .limit(30);
+    .limit(30), 'select notifications');
   _notifications = data || [];
   updateNotifBadge();
 }
@@ -8658,14 +8802,14 @@ async function handleNotifClick(i){
   if(!n.read){
     n.read = true;
     updateNotifBadge();
-    await sb.from('notifications').update({ read: true }).eq('id', n.id);
+    await dbUpdate('notifications', { read: true }, { id: n.id });
   }
 }
 
 async function markAllNotifsRead(){
   const unreadIds = _notifications.filter(n=>!n.read).map(n=>n.id);
   if(unreadIds.length === 0) return;
-  await sb.from('notifications').update({ read: true }).in('id', unreadIds);
+  await dbRun(sb.from('notifications').update({ read: true }).in('id', unreadIds), 'update notifications (read all)');
   _notifications = _notifications.map(n=>({...n, read:true}));
   updateNotifBadge();
   renderNotifPanel();
@@ -8748,6 +8892,19 @@ function publishSchedule(){
 }
 
 async function doPublishSchedule(){
+  // B3 v0.9.6: viditelný průběh — tlačítko nesmí vypadat, že „nic nedělá"
+  const pubBtn = document.getElementById('publish-btn');
+  const pubBtnHtml = pubBtn ? pubBtn.innerHTML : '';
+  if(pubBtn){ pubBtn.disabled = true; pubBtn.innerHTML = `<span class="spinner-sm" style="display:inline-block;vertical-align:middle"></span> Publikuji…`; }
+  const restoreBtn = ()=>{ if(pubBtn){ pubBtn.disabled = false; pubBtn.innerHTML = pubBtnHtml; applyIcons && applyIcons(); } };
+  try {
+    await _doPublishScheduleInner();
+  } finally {
+    restoreBtn();
+  }
+}
+
+async function _doPublishScheduleInner(){
   const key = `${schedYear}-${String(schedMonth+1).padStart(2,'0')}`;
   const monthLabel = new Date(schedYear, schedMonth, 1)
     .toLocaleDateString('cs-CZ',{month:'long',year:'numeric'});
@@ -9067,10 +9224,14 @@ async function generateInviteLink(empId){
 
 
 async function linkMemberToEmployee(memberId, empId){
-  const { error } = await sb.from('org_members')
-    .update({ employee_id: empId })
-    .eq('id', memberId);
-  if(error){ toast('Chyba: '+error.message); return; }
+  // C1 v0.9.6: jeden zaměstnanec = max jeden účet — duplicitní vazba by
+  // člověka zdvojila všude, kde se skládá seznam přes org_members
+  const { data: taken } = await dbRun(
+    sb.from('org_members').select('id').eq('org_id', currentOrg.id).eq('employee_id', empId).neq('id', memberId).limit(1),
+    'select org_members (link guard)');
+  if(taken && taken.length){ toast('Tento zaměstnanec už je propojen s jiným účtem', 'error'); return; }
+  const { error } = await dbUpdate('org_members', { employee_id: empId }, { id: memberId }, { action: 'Propojení účtu' });
+  if(error) return;
   toast('✓ Účet propojen');
   await loadEmployees();
   openAccessModal(empId); // refresh modal
@@ -11561,9 +11722,9 @@ async function renderStats(){
     el.innerHTML = '<div class="spinner-lg" style="margin:40px auto"></div>';
     const from = isoDate(first.y, first.m0+1, 1);
     const to = isoDate(last.y, last.m0+1, new Date(last.y, last.m0+1, 0).getDate());
-    const { data, error } = await sb.from('shifts').select('*')
-      .eq('org_id', currentOrg.id).gte('shift_date', from).lte('shift_date', to);
-    if(error){ el.innerHTML = `<p style="font-size:13px;color:var(--status-bad)">Chyba načítání dat: ${escapeHtml(error.message)}</p>`; return; }
+    const { data, error } = await dbRun(sb.from('shifts').select('*')
+      .eq('org_id', currentOrg.id).gte('shift_date', from).lte('shift_date', to), 'select shifts (stats range)');
+    if(error){ el.innerHTML = uiErrorState(error.message, 'renderStats()'); return; } // B2 v0.9.6
     shiftList = data || [];
     daysInPeriod = months.reduce((a,{y,m0})=>a+new Date(y, m0+1, 0).getDate(), 0);
   } else {
@@ -11624,7 +11785,11 @@ async function renderStats(){
       ${employees.map(e=>{
         const count = empCounts[e.id]||0;
         const effS = !isRange ? effectiveLimits(e, schedYear, schedMonth) : null; // dovolená (v0.8.0)
-        const monthMax = isRange ? (e.max_shifts||20)*months.length : (effS.max||20);
+        // C3 v0.9.6: i víceměsíční rozsah počítá s efektivními limity (dovolená
+        // snižuje max v dotčených měsících) — jeden zdroj pravdy, žádný vlastní výpočet
+        const monthMax = isRange
+          ? months.reduce((a,{y,m0})=>a+(effectiveLimits(e, y, m0).max||20), 0)
+          : (effS.max||20);
         const maxVal = Math.max(monthMax, count);
         const pct = Math.round((count/maxVal)*100);
         const cls = !isRange ? (count < effS.min ? 'under' : count > effS.max ? 'over' : '') : '';
@@ -11864,10 +12029,12 @@ async function loadTemplate(templateId){
   });
   const from = isoDate(schedYear, schedMonth+1, 1);
   const to   = isoDate(schedYear, schedMonth+1, daysInCurrMonth);
-  await sb.from('shifts').delete().eq('org_id',currentOrg.id).gte('shift_date',from).lte('shift_date',to);
+  const { error: clearErr } = await dbRun(sb.from('shifts').delete().eq('org_id',currentOrg.id).gte('shift_date',from).lte('shift_date',to),
+    'delete shifts (template load)', { action: 'Načtení šablony' });
+  if(clearErr) return;
   if(toInsert.length){
-    const { error } = await sb.from('shifts').insert(toInsert.map(s=>{ const r={...s}; delete r.id; return r; }));
-    if(error){ toast('Chyba při načítání šablony','error'); return; }
+    const { error } = await dbInsert('shifts', toInsert.map(s=>{ const r={...s}; delete r.id; return r; }), { action: 'Načtení šablony' });
+    if(error){ await loadShiftsForMonth(); return; }
   }
   await loadShiftsForMonth();
   toast(`Šablona "${tpl.name}" načtena`);
@@ -11924,15 +12091,20 @@ let editingLeaveId = null; // v0.9.3: id pending žádosti otevřené v modalu k
 
 async function loadLeaveRequests(){
   if(!currentOrg) return;
-  const { data, error } = await sb.from('leave_requests').select('*')
-    .eq('org_id', currentOrg.id).order('created_at', { ascending:false });
+  const { data, error } = await dbRun(sb.from('leave_requests').select('*')
+    .eq('org_id', currentOrg.id).order('created_at', { ascending:false }), 'select leave_requests');
   if(error){
-    // Tabulka ještě neexistuje (migrace nespuštěna) — appka běží dál bez dovolených
-    window._leaveTableMissing = true;
+    // B2 v0.9.6: rozlišuj „tabulka neexistuje" (migrace nespuštěna — appka běží
+    // dál bez dovolených) od skutečné chyby načtení (síť, RLS) — ta nesmí
+    // vypadat jako neaktivní systém dovolených
+    const missing = error.code === 'PGRST205' || error.code === '42P01' || /find the table/i.test(error.message||'');
+    window._leaveTableMissing = missing;
+    window._leaveLoadError = missing ? null : error.message;
     leaveRequests = [];
     return;
   }
   window._leaveTableMissing = false;
+  window._leaveLoadError = null;
   leaveRequests = data || [];
 }
 
@@ -12332,6 +12504,11 @@ function leaveEmpName(l){
 function renderLeaves(){
   const el = document.getElementById('leaves-content');
   if(!el) return;
+  if(window._leaveLoadError){
+    // B2 v0.9.6: skutečná chyba načtení — nabídni opakování
+    el.innerHTML = uiErrorState(window._leaveLoadError, 'loadLeaveRequests().then(renderLeaves)');
+    return;
+  }
   if(window._leaveTableMissing){
     el.innerHTML = `<div class="empty-state"><div style="font-size:40px;margin-bottom:12px">${ICONS.status_warning}</div>
       <p style="font-size:15px;font-weight:700;margin-bottom:6px">Systém dovolených není aktivní</p>
@@ -12825,7 +13002,7 @@ function renderOrgSettings(){
           <option value="UTC" ${tz==='UTC'?'selected':''}>UTC</option>
         </select>
       </div>
-      <button class="btn-accent" onclick="saveOrgSettings()">${ICONS.btn_ulozit} Uložit nastavení organizace</button>
+      <button class="btn-accent" onclick="saveOrgProfileSettings()">${ICONS.btn_ulozit} Uložit nastavení organizace</button>
       <button class="btn-ghost" onclick="openAuditLog()" style="margin-top:4px">${ICONS.audit_log} Historie změn</button>
       <button class="btn-ghost" onclick="openHelpFeedbackAdmin()" style="margin-top:4px">${ICONS.help_thumbs_up} Zpětná vazba nápovědy</button>
       <div style="margin-top:8px;padding-top:14px;border-top:1px solid var(--line)">
@@ -12834,11 +13011,86 @@ function renderOrgSettings(){
         <div id="notif-test-log"></div>
       </div>
       <div style="margin-top:8px;padding-top:14px;border-top:1px solid var(--line)">
+        <label style="font-weight:600">${ICONS.db_diag} Stav databáze <span style="font-weight:400;color:var(--ink-faint);font-size:11.5px">(kontrola tabulek a sloupců po migracích)</span></label>
+        <p style="font-size:12px;color:var(--ink-soft);margin:6px 0 8px">Zkontroluje, že v Supabase existují všechny tabulky a sloupce, které appka používá — ušetří hádání „proč to nejde" po pullu bez spuštěných migrací.</p>
+        <button class="btn-outline" onclick="runDbDiagnostics()">${ICONS.db_diag} Zkontrolovat databázi</button>
+        <div id="db-diag-result" style="margin-top:10px"></div>
+      </div>
+      <div style="margin-top:8px;padding-top:14px;border-top:1px solid var(--line)">
         <p style="font-size:12.5px;color:var(--ink-soft);margin:0 0 10px">${ICONS.status_warning} Smazání organizace je nevratné. Smažou se všechna data.</p>
         <button onclick="confirmDeleteOrg()" style="background:none;border:1.5px solid var(--red);color:var(--red);border-radius:8px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">${ICONS.btn_smazat} Smazat organizaci</button>
       </div>
     </div>`;
   renderNotifTestLog();
+}
+
+// ════════════════════════════════════════════════════════════
+// A3 v0.9.6 — DIAGNOSTIKA „STAV DATABÁZE" (jen admin)
+// Očekávané schéma = přesně ta pole, která kód reálně čte/zapisuje
+// (audit A1 v0.9.6 proti živé DB). Když kód začne používat nový sloupec,
+// doplň ho i sem — jinak ho diagnostika nehlídá.
+// ════════════════════════════════════════════════════════════
+const EXPECTED_DB_SCHEMA = {
+  organizations:      { cols: ['id','name','slug','invite_code','invite_expires_at'] },
+  org_members:        { cols: ['id','org_id','user_id','role','employee_id','emp_code','email','pending_name','managed_branches'] },
+  org_settings:       { cols: ['org_id','settings'] },
+  employees:          { cols: ['id','org_id','name','min_shifts','target_shifts','max_shifts','max_x','max_consec','min_rest','ideal_rest','min_free_weekends','notes','branch_limits','is_fixed','employment_type','sort_order'] },
+  branches:           { cols: ['id','org_id','code','name','color','min_weekday','min_weekend','max_per_day','month_min','month_max','weekly_pattern','sort_order'] },
+  shift_types:        { cols: ['id','org_id','branch_id','code','label','color','sort_order'] },
+  shifts:             { cols: ['id','org_id','employee_id','shift_date','shift_type_code','is_auto','leave_request_id'] },
+  unavailability:     { cols: ['id','org_id','employee_id','unavail_date'] },
+  leave_requests:     { cols: ['id','org_id','employee_id','date_from','date_to','shift_reduction','note','status','decision_note','requested_by','decided_by','decided_at','orig_date_from','orig_date_to','orig_shift_reduction','created_at'], migration: 'migration_leave.sql + migration_leave_edit.sql + migration_leave_changes.sql' },
+  notifications:      { cols: ['id','org_id','user_id','type','title','body','message','read','created_at'], migration: 'migration_notifications.sql + migration_notifications_fix.sql' },
+  audit_log:          { cols: ['id','org_id','user_id','user_name','message','created_at'], migration: 'migration_notifications.sql' },
+  help_feedback:      { cols: ['id','org_id','user_id','question','article','verdict','created_at'], migration: 'migration_notifications.sql' },
+  support_requests:   { cols: ['id','org_id','name','email','phone','message','created_at'] },
+  schedule_templates: { cols: ['id','org_id','name','pattern','created_at'] },
+  open_shifts:        { cols: ['id','org_id','shift_date','shift_type_code','status','claimed_by','note','created_at'] },
+  shift_swaps:        { cols: ['id','org_id','requester_id','target_id','requester_date','requester_code','target_date','open_offer','note','status','created_at'] },
+  login_attempts:     { cols: ['id','email','success','reason','created_at'], optional: true, migration: 'migration_v096_integrity.sql' },
+};
+
+async function runDbDiagnostics(){
+  const el = document.getElementById('db-diag-result');
+  if(!el) return;
+  el.innerHTML = '<div class="spinner-lg" style="margin:14px auto"></div>';
+  const rows = [];
+  const problems = [];
+  for(const [table, spec] of Object.entries(EXPECTED_DB_SCHEMA)){
+    // jeden select se všemi očekávanými sloupci: chybějící sloupec/tabulka se
+    // pozná z chybové hlášky PostgRESTu, RLS "permission denied" = struktura OK
+    let res;
+    try { res = await sb.from(table).select(spec.cols.join(',')).limit(1); }
+    catch(e){ res = { error: { message: String(e && e.message || e) } }; }
+    const err = res && res.error;
+    let status = 'ok', detail = '';
+    if(err){
+      const m = err.message || '';
+      if(err.code === 'PGRST205' || /find the table/i.test(m)){
+        status = spec.optional ? 'optional' : 'missing';
+        detail = spec.optional ? 'tabulka neexistuje (volitelná)' : 'tabulka neexistuje';
+      } else if(err.code === '42703' || /column .* does not exist/i.test(m) || /find the '.*' column/i.test(m)){
+        status = 'missing';
+        detail = m;
+      } else if(err.code === '42501' || /permission denied/i.test(m)){
+        status = 'ok'; detail = 'RLS aktivní (struktura OK)';
+      } else {
+        status = 'warn'; detail = m;
+      }
+    }
+    if(status === 'missing') problems.push(`${table}: ${detail}${spec.migration ? ` → spusť ${spec.migration}` : ''}`);
+    const icon = status==='ok' ? '🟢' : status==='optional' ? '⚪' : status==='warn' ? '🟠' : '🔴';
+    rows.push(`<div style="display:flex;gap:8px;align-items:baseline;padding:4px 0;border-bottom:1px solid var(--line);font-size:12.5px">
+      <span>${icon}</span><strong style="min-width:140px">${table}</strong>
+      <span style="color:var(--ink-faint);font-size:11.5px">${escapeHtml(detail || spec.cols.length + ' sloupců OK')}${status!=='ok' && spec.migration ? ` — <em>${escapeHtml(spec.migration)}</em>` : ''}</span>
+    </div>`);
+  }
+  console.log('[DB diagnostika]', problems.length ? problems : 'vše OK');
+  el.innerHTML = `
+    ${problems.length
+      ? `<p style="font-size:12.5px;color:var(--red);font-weight:600;margin:0 0 6px">${ICONS.status_error} Nalezeno ${problems.length} problémů — spusť uvedené migrace v Supabase SQL editoru.</p>`
+      : `<p style="font-size:12.5px;color:var(--accent-ink,green);font-weight:600;margin:0 0 6px">${ICONS.status_ok} Vše v pořádku — schéma odpovídá tomu, co appka očekává.</p>`}
+    ${rows.join('')}`;
 }
 
 async function handleOrgLogoUpload(input){
@@ -12858,7 +13110,7 @@ async function handleOrgLogoUpload(input){
 async function removeOrgLogo(){
   const newSettings = { ...orgSettings };
   delete newSettings.org_logo;
-  const { error } = await sb.from('org_settings').update({ settings: newSettings }).eq('org_id', currentOrg.id);
+  const { error } = await dbUpdate('org_settings', { settings: newSettings }, { org_id: currentOrg.id }, { action: 'Odebrání loga' });
   if(!error){ orgSettings = newSettings; toast('Logo odebráno'); renderOrgSettings(); updateOrgLogoDisplay(); }
 }
 
@@ -12873,15 +13125,20 @@ function updateOrgLogoDisplay(){
   else { img.removeAttribute('src'); img.style.display = 'none'; }
 }
 
-async function saveOrgSettings(){
+// A1 v0.9.6: PŘEJMENOVÁNO z saveOrgSettings — druhá definice stejného jména
+// stínila tu obecnou (jen settings, řádek ~4290). Každé interní await
+// saveOrgSettings() (např. uložení notifikačních preferencí zaměstnance) tak
+// omylem četlo formulář organizace a hlásilo „Nastavení organizace uloženo".
+async function saveOrgProfileSettings(){
   const name = document.getElementById('org-name-input')?.value.trim();
   const tz = document.getElementById('org-tz-select')?.value;
   if(name && name !== currentOrg.name){
-    const { error } = await sb.from('organizations').update({ name }).eq('id', currentOrg.id);
+    const { error } = await dbUpdate('organizations', { name }, { id: currentOrg.id }, { action: 'Přejmenování organizace' });
     if(!error){ currentOrg.name = name; document.getElementById('org-name-label').textContent = name; }
   }
   const newSettings = { ...orgSettings, org_timezone: tz };
-  await sb.from('org_settings').update({ settings: newSettings }).eq('org_id', currentOrg.id);
+  const { error: setErr } = await dbUpdate('org_settings', { settings: newSettings }, { org_id: currentOrg.id }, { action: 'Uložení nastavení organizace' });
+  if(setErr) return;
   orgSettings = newSettings;
   toast('Nastavení organizace uloženo');
   logAudit('Nastavení organizace upraveno');
@@ -13199,16 +13456,23 @@ async function onCellDrop(e, empId, dateStr){
   if(!srcShift){ _dragEmpId=null; _dragDate=null; return; }
   if(!confirm(`Přesunout směnu ${srcShift.shift_type_code||''} z ${_dragDate} na ${dateStr}${_dragEmpId!==empId?' (jiný zaměstnanec)':''}?`)){ _dragEmpId=null; _dragDate=null; return; }
 
-  // Delete source, upsert destination
-  await sb.from('shifts').delete().eq('id', srcShift.id);
+  // Delete source, upsert destination — v0.9.6: každý krok kontrolovaný,
+  // ať přesun neskončí napůl (smazaný zdroj, nevložený cíl) bez jediné hlášky
+  const srcDate = _dragDate;
+  _dragEmpId=null; _dragDate=null;
+  const { error: srcErr } = await dbDelete('shifts', { id: srcShift.id }, { action: 'Přesun směny' });
+  if(srcErr) return;
   const newShift = { ...srcShift, employee_id: empId, shift_date: dateStr, is_auto: false };
   delete newShift.id;
-  if(dstShift) await sb.from('shifts').delete().eq('id', dstShift.id);
-  await sb.from('shifts').insert(newShift);
-  _dragEmpId=null; _dragDate=null;
+  if(dstShift){
+    const { error: dstErr } = await dbDelete('shifts', { id: dstShift.id }, { action: 'Přesun směny' });
+    if(dstErr){ await loadShiftsForMonth(); return; }
+  }
+  const { error: insErr } = await dbInsert('shifts', newShift, { action: 'Přesun směny' });
   await loadShiftsForMonth();
+  if(insErr) return;
   toast('Směna přesunuta');
-  logAudit(`Směna přesunuta: ${_dragDate}→${dateStr}`);
+  logAudit(`Směna přesunuta: ${srcDate}→${dateStr}`);
 }
 
 // ── Feature 15: OPAKUJÍCÍ SE VOLNO ──────────────────────────
@@ -13542,14 +13806,14 @@ function helpFeedback(positive){
     const cat = HELP_TOPICS[helpState.catKey];
     const parentItem = cat?.items?.[helpState.itemIdx];
     const item = helpState.screen==='follow' ? parentItem?.follow?.[helpState.followIdx] : parentItem;
-    sb.from('help_feedback').insert({
+    dbInsert('help_feedback', {
       org_id: currentOrg?.id || null,
       user_id: currentUser?.id || null,
       question: item?.q || '',
       article: `${cat?.label||''}${parentItem&&parentItem!==item?' › '+parentItem.q:''}`,
       verdict: positive ? 'up' : 'down',
-    }).then(()=>{}, ()=>{});
-  } catch(e){}
+    });
+  } catch(e){ console.warn('[DB] help_feedback insert se nepodařilo připravit', e); }
 }
 
 function helpMatchesQuery(item, q){
@@ -13659,12 +13923,16 @@ async function submitSupportRequest(){
   const btn = document.getElementById('contact-submit-btn');
   btn.disabled = true; btn.textContent = 'Odesílám…';
   try{
-    await sb.from('support_requests').insert({
+    // v0.9.6: Supabase nevyhazuje — bez kontroly error by uživatel viděl
+    // „Zpráva odeslána!" i když se nic neuložilo
+    const { error: reqErr } = await dbInsert('support_requests', {
       org_id: currentOrg?.id || null,
       name, email, phone: phone || null, message,
     });
+    if(reqErr) throw new Error(reqErr.message);
     // Best-effort email notification via Edge Function — failure here doesn't block the saved request.
-    sb.functions.invoke('smeny-support', { body: { org_id: currentOrg?.id, name, email, phone, message } }).catch(()=>{});
+    sb.functions.invoke('smeny-support', { body: { org_id: currentOrg?.id, name, email, phone, message } })
+      .catch(e=>console.warn('[DB] Edge Function smeny-support selhala (zpráva je uložená, jen e-mail neodešel)', e));
     document.getElementById('help-body').innerHTML = `
       <div class="help-easter">
         <span class="help-easter-emoji">${ICONS.status_ok}</span>
@@ -13689,7 +13957,7 @@ const ICON_GROUPS = [
   { label:'Help center', keys:['help_rozpis','help_zamestnanci','help_pobocky','help_pravidla','help_notifikace','help_nastaveni','help_search','help_thumbs_up','help_thumbs_down','help_home','help_zpet_start'] },
   { label:'Notifikace', keys:['notif_bell','notif_rozpis','notif_pozvanka'] },
   { label:'Nastavení', keys:['set_profil','set_vzhled','set_notifikace','set_jazyk','set_org','set_ikony'] },
-  { label:'Různé', keys:['archiv','admin_badge','audit_log','logo_upload','kod_zamestnance','odkaz','poznamka','tpl_rovnomerne','tpl_weekend_peak','tpl_workweek','dash_prehled','icon_klavesy','icon_import','sec_podminky','empty_inbox','icon_font','icon_density','set_dark_mode'] },
+  { label:'Různé', keys:['archiv','admin_badge','audit_log','db_diag','logo_upload','kod_zamestnance','odkaz','poznamka','tpl_rovnomerne','tpl_weekend_peak','tpl_workweek','dash_prehled','icon_klavesy','icon_import','sec_podminky','empty_inbox','icon_font','icon_density','set_dark_mode'] },
 ];
 
 // ── Předpřipravené sady ikon. Overrides se aplikují nad DEFAULT_ICONS; klíče
@@ -14096,8 +14364,11 @@ document.addEventListener('smeny:afterBootstrap', ()=>{
   // Load managed_branches for branch_manager role
   if(currentRole === 'branch_manager'){
     sb.from('org_members').select('managed_branches').eq('org_id', currentOrg?.id).eq('user_id', window._supabaseUser?.id||'').single()
-      .then(({data})=>{ window._currentManagedBranches = data?.managed_branches || []; })
-      .catch(()=>{});
+      .then(({data, error})=>{
+        if(error) console.error('[DB] select org_members (managed_branches) selhalo', error);
+        window._currentManagedBranches = data?.managed_branches || [];
+      })
+      .catch(e=>console.error('[DB] select org_members (managed_branches) selhalo', e));
   }
 });
 
@@ -14522,11 +14793,10 @@ async function resolveOpenShift(id, newStatus){
 
 async function deleteOpenShift(id){
   if(!confirm('Smazat tuto otevřenou směnu?')) return;
-  try {
-    await sb.from('open_shifts').delete().eq('id', id);
-    await loadAndRenderOpenShifts();
-    toast('Smazáno');
-  } catch(e){ toast('Chyba: '+(e.message||e), 'error'); }
+  const { error } = await dbDelete('open_shifts', { id }, { action: 'Smazání otevřené směny' });
+  if(error) return;
+  await loadAndRenderOpenShifts();
+  toast('Smazáno');
 }
 
 async function openOpenShiftsAdmin(){
@@ -14714,22 +14984,37 @@ async function resolveSwap(id, newStatus){
     const { data: sw } = await sb.from('shift_swaps').select('*').eq('id', id).single();
     const { error } = await sb.from('shift_swaps').update({ status: newStatus }).eq('id', id);
     if(error) throw error;
-    if(newStatus==='approved' && sw?.requester_id && sw?.target_id && sw?.requester_date && sw?.target_date){
-      // Swap the shifts in the shifts table
-      const reqKey  = sw.requester_id+':'+sw.requester_date;
-      const tgtKey  = sw.target_id+':'+sw.target_date;
-      const reqShift = shifts[reqKey];
-      const tgtShift = shifts[tgtKey];
+    if(newStatus==='approved' && sw?.requester_id && sw?.target_id && sw?.requester_date){
+      // A1 v0.9.6: formulář target_date nikdy nevyplňoval (sloupec v DB existuje,
+      // ale zůstává null), takže stará podmínka `sw.target_date` znamenala, že
+      // schválená výměna NIKDY nepřepsala rozpis. Sémantika teď: cílový kolega
+      // přebírá směnu žadatele v daný den; má-li ten den vlastní směnu, prohodí se.
+      // Směny čteme z DB (ne z in-memory `shifts` — výměna může být v jiném měsíci).
+      const { data: dayShifts, error: dayErr } = await dbRun(
+        sb.from('shifts').select('*').eq('org_id', currentOrg.id).eq('shift_date', sw.requester_date)
+          .in('employee_id', [sw.requester_id, sw.target_id]),
+        'select shifts (swap resolve)', { action: 'Schválení výměny' });
+      if(dayErr) return;
+      const reqShift = (dayShifts||[]).find(s=>s.employee_id===sw.requester_id && s.shift_type_code && s.shift_type_code!=='X');
+      const tgtShift = (dayShifts||[]).find(s=>s.employee_id===sw.target_id && s.shift_type_code && s.shift_type_code!=='X');
       if(reqShift && tgtShift){
-        await sb.from('shifts').update({ employee_id: sw.target_id  }).eq('id', reqShift.id);
-        await sb.from('shifts').update({ employee_id: sw.requester_id }).eq('id', tgtShift.id);
-        await loadShiftsForMonth();
+        const [{ error: eA }, { error: eB }] = await Promise.all([
+          dbUpdate('shifts', { employee_id: sw.target_id,    is_auto: false }, { id: reqShift.id }, { action: 'Výměna směn' }),
+          dbUpdate('shifts', { employee_id: sw.requester_id, is_auto: false }, { id: tgtShift.id }, { action: 'Výměna směn' }),
+        ]);
+        if(eA || eB){ await loadShiftsForMonth(true); return; }
+        await loadShiftsForMonth(true);
         toast('Směny vyměněny a uloženy do rozpisu');
+      } else if(reqShift){
+        const { error: eT } = await dbUpdate('shifts', { employee_id: sw.target_id, is_auto: false }, { id: reqShift.id }, { action: 'Převod směny' });
+        if(eT) return;
+        await loadShiftsForMonth(true);
+        toast('Schváleno — směna převedena na kolegu (ten den žádnou vlastní neměl)');
       } else {
-        toast('Schváleno — ale nenašly se obě směny ke přepsání. Zkontroluj ručně.');
+        toast('Schváleno — ale směna žadatele už v rozpisu není. Zkontroluj ručně.', 'error');
       }
     } else {
-      toast(newStatus==='approved' ? 'Schváleno' : 'Odmítnuto');
+      toast(newStatus==='approved' ? 'Schváleno — otevřená nabídka, směnu předej ručně v rozpisu' : 'Odmítnuto');
     }
     logAudit(`Výměna směny ${id}: ${newStatus}`);
     await loadSwapRequests();
@@ -14861,7 +15146,7 @@ async function exportFullBackup(){
       sb.from('org_settings').select('*').eq('org_id', currentOrg.id).limit(1),
       sb.from('shift_types').select('*').eq('org_id', currentOrg.id),
       sb.from('org_members').select('id,role,email,emp_code,employee_id,managed_branches').eq('org_id', currentOrg.id),
-      sb.from('schedule_templates').select('*').eq('org_id', currentOrg.id).catch(()=>({ data:[] })),
+      dbRun(sb.from('schedule_templates').select('*').eq('org_id', currentOrg.id), 'select schedule_templates (backup)'),
     ]);
 
     const backup = {
