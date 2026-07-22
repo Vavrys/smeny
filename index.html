@@ -1185,7 +1185,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
       <button class="btn-ghost" id="emp-settings-btn" onclick="openEmployeeSettings()" style="display:none"><span data-icon="set_profil">👤</span> Profil</button>
       <button class="btn-ghost" id="admin-settings-btn" onclick="openEmployeeSettings()" style="display:none"><span data-icon="set_profil">👤</span> Profil</button>
       <span id="org-code-badge" style="display:none;font-family:var(--font-mono);font-size:12px;font-weight:700;letter-spacing:1.5px;background:var(--paper);border:1.5px solid var(--line);padding:4px 10px;border-radius:6px;color:var(--ink-soft)" title="Kód firmy"></span>
-      <span id="app-version-label" title="Verze aplikace" onclick="handleVersionClick()" style="font-size:10px;color:var(--ink-faint);font-family:var(--font-mono);padding:0 4px;user-select:none;cursor:pointer">v0.9.7</span>
+      <span id="app-version-label" title="Verze aplikace" onclick="handleVersionClick()" style="font-size:10px;color:var(--ink-faint);font-family:var(--font-mono);padding:0 4px;user-select:none;cursor:pointer">v0.9.8</span>
       <button class="btn-ghost" id="search-btn" onclick="openSearch()" title="Vyhledat (Ctrl+K)" style="padding:6px 10px;font-size:14px"><span data-icon="btn_hledat">🔍</span></button>
       <!-- v0.9.1 (A5): otazník na chatbota z hlavičky odstraněn — nápovědu otevírá plovoucí bublina vpravo dole -->
       <button class="btn-ghost" id="notif-btn" onclick="toggleNotifPanel()" title="Notifikace" style="position:relative;padding:6px 10px;font-size:16px;display:none;align-items:center;justify-content:center">
@@ -1536,6 +1536,20 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
             <label>Výchozí minimum volných víkendů</label>
             <input type="number" id="rule-default-minwe" min="0" max="8" value="2" style="max-width:120px">
             <div class="field-hint">Použije se pro zaměstnance, kteří nemají vlastní minimum volných víkendů nastavené ve svém profilu (0 = bez nastavení).</div>
+          </div>
+        </div>
+
+        <hr class="rules-section-sep">
+
+        <!-- 2b. Výměny směn (v0.9.8) -->
+        <div id="swap-rules-panel" style="margin-bottom:0">
+          <p class="rules-section-title"><span data-icon="btn_vymeny">🔄</span> Výměny směn</p>
+          <div class="field" style="max-width:580px;margin-bottom:0">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+              <input type="checkbox" id="rule-swap-approval" checked style="width:16px;height:16px" onchange="saveSwapApprovalMode(this)">
+              <span style="font-size:13px">Výměny směn mezi zaměstnanci musí schválit vedoucí</span>
+            </label>
+            <div class="field-hint">Vypnuto: přijatá výměna se rovnou zapíše do rozpisu, vedoucí dostane jen upozornění.</div>
           </div>
         </div>
 
@@ -2268,6 +2282,7 @@ const DEFAULT_ICONS = {
   btn_hotovo: '✅', btn_pozvanka: '🔑', btn_kopirovat: '📋', btn_odeslat: '📨',
   btn_kontrolovat: '🔄', btn_odhlasit: '🚪', btn_hledat: '🔍', btn_napoveda: '❓',
   btn_zobrazit: '👁️', btn_skryt: '⊙', btn_zastavit: '⏹️', btn_proc: '❓',
+  btn_odpojit: '🔓',
 
   // Stavy a indikátory
   status_ok: '✅', status_warning: '⚠️', status_error: '❌', status_info: 'ℹ️',
@@ -2518,6 +2533,18 @@ const dbUpsert = (table, rows, conflict, opts = {}) => dbRun(sb.from(table).upse
 const dbUpdate = (table, patch, match, opts = {}) => dbRun(_dbMatch(sb.from(table).update(patch), match), `update ${table}`, opts);
 const dbDelete = (table, match, opts = {}) => dbRun(_dbMatch(sb.from(table).delete(), match), `delete ${table}`, opts);
 const dbRpc = (fn, args, opts = {}) => dbRun(sb.rpc(fn, args), `rpc ${fn}`, opts);
+
+// v0.9.8: insert notifikací s ref_id — sloupec zakládá migration_v098_swap_flow.sql.
+// Když migrace ještě neproběhla (PGRST204 „column not found"), pošli notifikaci
+// aspoň bez ref_id — nebude klikací, ale dorazí (pole navíc = jinak tichý fail).
+async function dbInsertNotif(rows, opts = {}){
+  const arr = Array.isArray(rows) ? rows : [rows];
+  let res = await dbInsert('notifications', arr, opts);
+  if(res.error && res.error.code === 'PGRST204' && arr.some(r => 'ref_id' in r)){
+    res = await dbInsert('notifications', arr.map(({ ref_id, ...rest }) => rest), opts);
+  }
+  return res;
+}
 
 // ── B2 v0.9.6: jednotné prázdné / chybové stavy obrazovek ──
 // Žádná mrtvá bílá plocha: každý hlavní panel umí říct "nic tu není",
@@ -3534,7 +3561,7 @@ function renderEmployees(){
       </td>
       <td><span class="code-pill">${e.min_shifts}–${e.max_shifts}</span></td>
       <td>${e.target_shifts}</td>
-      <td>${accessBadge}</td>
+      <td>${accessBadge}<div style="font-size:11.5px;color:var(--ink-soft)">${escapeHtml(member?.email || '—')}</div></td>
       <td>
         <div class="row-actions">
           <button class="icon-btn" title="Přístup / pozvánka" onclick="openAccessModal('${e.id}')" aria-label="Přístup / pozvánka pro ${escapeHtml(e.name)}">${ICONS.btn_pozvanka}</button>
@@ -4316,12 +4343,22 @@ async function saveOrgSettings(){
   if(error){ toast('Chyba ukládání nastavení: '+error.message); }
 }
 
+// v0.9.8: přepínač schvalování výměn — ukládá se hned při kliknutí (bez tlačítka Uložit)
+async function saveSwapApprovalMode(el){
+  orgSettings['swap_approval_mode'] = el.checked ? 'approval' : 'auto';
+  await saveOrgSettings();
+  toast(el.checked ? 'Výměny směn musí schválit vedoucí' : 'Výměny směn se zapíší hned po přijetí kolegou');
+}
+
 async function loadOrgSettings(){
   // org_settings has ONE row per org with a jsonb 'settings' column
   const { data } = await sb.from('org_settings').select('settings').eq('org_id', currentOrg.id).maybeSingle();
   orgSettings = (data && data.settings) || {};
   document.getElementById('rule-weekend-priority').checked = orgSettings['weekend_priority'] !== false && orgSettings['weekend_priority'] !== 'false';
   document.getElementById('rule-default-minwe').value = parseInt(orgSettings['default_min_free_weekends'])||0;
+  // v0.9.8: režim výměn — 'approval' (výchozí) = schvaluje vedoucí, 'auto' = zapíše se hned
+  const swapApprovalEl = document.getElementById('rule-swap-approval');
+  if(swapApprovalEl) swapApprovalEl.checked = (orgSettings['swap_approval_mode'] || 'approval') === 'approval';
   loadScoringUI(); // load scoring weights and hard constraints
 }
 
@@ -8760,6 +8797,7 @@ function closeNotifOnOutside(e){
 
 const NOTIF_LEAVE_TYPES = ['leave_request', 'leave_approved', 'leave_rejected', 'leave_restored'];
 const NOTIF_PUBLISH_TYPES = ['publish', 'publish_admin'];
+const NOTIF_SWAP_TYPES = ['swap_offer', 'swap_accepted', 'swap_resolved'];
 
 function renderNotifPanel(){
   const list = document.getElementById('notif-list');
@@ -8770,7 +8808,7 @@ function renderNotifPanel(){
   }
   list.innerHTML = _notifications.map((n,i)=>{
     const date = new Date(n.created_at).toLocaleDateString('cs-CZ',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
-    const clickable = NOTIF_LEAVE_TYPES.includes(n.type) || NOTIF_PUBLISH_TYPES.includes(n.type);
+    const clickable = NOTIF_LEAVE_TYPES.includes(n.type) || NOTIF_PUBLISH_TYPES.includes(n.type) || NOTIF_SWAP_TYPES.includes(n.type);
     // title/body jsou nové sloupce (migration_notifications.sql); message je legacy fallback
     const title = n.title ? `<div style="font-size:13px;font-weight:700;color:var(--ink);line-height:1.4">${escapeHtml(n.title)}</div>` : '';
     const body = escapeHtml(n.body || n.message || '');
@@ -8809,6 +8847,15 @@ async function handleNotifClick(i){
       }
     }
     switchAppTab(currentRole === 'employee' ? 'myschedule' : 'schedule');
+  } else if(NOTIF_SWAP_TYPES.includes(n.type)){
+    // v0.9.8: nabídka výměny → reakční modal cílového kolegy;
+    // vedoucí místo toho dostane přehled žádostí o výměnu
+    toggleNotifPanel();
+    if(n.type === 'swap_offer' && n.ref_id && currentRole === 'employee'){
+      openSwapResponse(n.ref_id);
+    } else if(currentRole === 'admin' || currentRole === 'branch_manager'){
+      openSwapRequestsModal();
+    }
   }
   if(!n.read){
     n.read = true;
@@ -13059,7 +13106,7 @@ const EXPECTED_DB_SCHEMA = {
   shifts:             { cols: ['id','org_id','employee_id','shift_date','shift_type_code','is_auto','leave_request_id'] },
   unavailability:     { cols: ['id','org_id','employee_id','unavail_date'] },
   leave_requests:     { cols: ['id','org_id','employee_id','date_from','date_to','shift_reduction','note','status','decision_note','requested_by','decided_by','decided_at','orig_date_from','orig_date_to','orig_shift_reduction','created_at'], migration: 'migration_leave.sql + migration_leave_edit.sql + migration_leave_changes.sql' },
-  notifications:      { cols: ['id','org_id','user_id','type','title','body','message','read','created_at'], migration: 'migration_notifications.sql + migration_notifications_fix.sql' },
+  notifications:      { cols: ['id','org_id','user_id','type','title','body','message','read','created_at','ref_id'], migration: 'migration_notifications.sql + migration_notifications_fix.sql + migration_v098_swap_flow.sql' },
   audit_log:          { cols: ['id','org_id','user_id','user_name','message','created_at'], migration: 'migration_notifications.sql' },
   help_feedback:      { cols: ['id','org_id','user_id','question','article','verdict','created_at'], migration: 'migration_notifications.sql' },
   support_requests:   { cols: ['id','org_id','name','email','phone','message','created_at'] },
@@ -13978,7 +14025,7 @@ async function submitSupportRequest(){
 const ICON_GROUPS = [
   { label:'Navigace', keys:['nav_rozpis','nav_pobocky','nav_zamestnanci','nav_mezery','nav_statistiky','nav_zadosti','nav_pravidla'] },
   { label:'Toolbar tlačítka', keys:['btn_auto','btn_publikovat','btn_kde_doplnit','btn_pobocky_prehled','btn_zamestnanci_prehled','btn_smazat_auto','btn_smazat_vse','btn_vice','btn_import_json','btn_export_json','btn_export_excel','btn_export_ics','btn_sablony','btn_opakujici_volno','btn_tisk','btn_mzdy','btn_vymeny','btn_otevrene_smeny','btn_zaloha'] },
-  { label:'Akce', keys:['btn_pridat','btn_ulozit','btn_zrusit','btn_upravit','btn_smazat','btn_export_pdf','btn_zpet','btn_dalsi','btn_hotovo','btn_pozvanka','btn_kopirovat','btn_odeslat','btn_kontrolovat','btn_odhlasit','btn_hledat','btn_napoveda','btn_zobrazit','btn_skryt','btn_zastavit','btn_proc'] },
+  { label:'Akce', keys:['btn_pridat','btn_ulozit','btn_zrusit','btn_upravit','btn_smazat','btn_export_pdf','btn_zpet','btn_dalsi','btn_hotovo','btn_pozvanka','btn_kopirovat','btn_odeslat','btn_kontrolovat','btn_odhlasit','btn_hledat','btn_napoveda','btn_zobrazit','btn_skryt','btn_zastavit','btn_proc','btn_odpojit'] },
   { label:'Stavy a indikátory', keys:['status_ok','status_warning','status_error','status_info','status_pending','status_locked','status_claimed'] },
   { label:'Tutoriál', keys:['tut_uvod','tut_rozpis','tut_pobocky','tut_zamestnanci','tut_mezery','tut_pravidla_tvrdá','tut_pravidla_mekka','tut_pravidla_vaha','tut_pravidla_pary','tut_pravidla_vikendy','tut_ulozit','tut_navigace_mesic','tut_skore','tut_legenda','tut_sirka_sloupce','tut_klik','tut_dalsi_krok','tut_kod_firmy','tut_smerovani'] },
   { label:'Help center', keys:['help_rozpis','help_zamestnanci','help_pobocky','help_pravidla','help_notifikace','help_nastaveni','help_search','help_thumbs_up','help_thumbs_down','help_home','help_zpet_start'] },
@@ -14948,7 +14995,8 @@ async function submitShiftSwap(){
   // v0.9.7: payload odpovídá živému schématu shift_swaps (ověřeno sondou) —
   // dřívější catch polykal JAKOUKOLI chybu (typicky RLS 42501) a lhal
   // „tabulka neexistuje". dbInsert chybu zaloguje s kontextem sám.
-  const { error } = await dbInsert('shift_swaps', {
+  // v0.9.8: .select().single() — id vložené výměny putuje do notifikací jako ref_id
+  const { data: swapRow, error } = await dbRun(sb.from('shift_swaps').insert({
     org_id: currentOrg.id,
     requester_id: currentEmployeeId,
     target_id: targetEmpId,
@@ -14957,32 +15005,44 @@ async function submitShiftSwap(){
     open_offer: isOpen,
     note,
     status: 'pending',
-  });
+  }).select().single(), 'insert shift_swaps');
   if(error){
     toast(isMissingTableError(error)
       ? 'Tabulka shift_swaps neexistuje — spusť SQL migraci (migration_v097_swaps_rls.sql)'
       : 'Výměnu se nepodařilo uložit: ' + error.message, 'error');
     return;
   }
-  toast('Výměna nabídnuta — čeká na schválení');
+  const swapMode = orgSettings['swap_approval_mode'] || 'approval';
+  toast(swapMode === 'approval' ? 'Výměna nabídnuta — čeká na přijetí a schválení' : 'Výměna nabídnuta — čeká na přijetí kolegou');
   document.getElementById('swap-modal-overlay').classList.remove('open');
   // Notifikace zvlášť — její selhání nesmí shodit už uloženou výměnu
   try {
+    const requesterEmp = employees.find(e=>e.id===currentEmployeeId);
+    const targetEmp = targetEmpId ? employees.find(e=>e.id===targetEmpId) : null;
     if(targetEmpId){
-      const requesterEmp = employees.find(e=>e.id===currentEmployeeId);
       // v0.9.3: notifications nemá employee_id a user_id je povinné — adresuj
       // auth účet cílového zaměstnance (vazba přes org_members); bez účtu neposílej
       const targetUserId = userIdByEmpId(targetEmpId);
       if(targetUserId){
-        const { error: notifErr } = await dbInsert('notifications', {
+        const { error: notifErr } = await dbInsertNotif({
           org_id: currentOrg.id, user_id: targetUserId, type: 'swap_offer',
           title: `${ICONS.btn_vymeny} Nabídka výměny`,
           body: `${requesterEmp?.name||'Kolega'} nabídl výměnu směny ${reqCode} (${reqDate})`,
-          read: false
+          read: false, ref_id: swapRow?.id
         });
         if(notifErr) toast('Výměna uložena, ale upozornění kolegovi se nepodařilo doručit', 'error');
       }
     }
+    // v0.9.8: vedoucí se o nové nabídce dozvědí hned z notifikace
+    const managerRows = orgMembers
+      .filter(m => (m.role==='admin' || m.role==='branch_manager') && m.user_id && m.user_id !== currentUser?.id)
+      .map(m => ({
+        org_id: currentOrg.id, user_id: m.user_id, type: 'swap_offer',
+        title: `${ICONS.btn_vymeny} Nová nabídka výměny`,
+        body: `${requesterEmp?.name||'Kolega'} nabídl ${reqCode} (${reqDate})${targetEmp ? ` kolegovi ${targetEmp.name}` : ' — otevřená nabídka'}`,
+        read: false, ref_id: swapRow?.id
+      }));
+    if(managerRows.length) await dbInsertNotif(managerRows);
   } catch(e){ console.error('swap notif error', e); }
   logActivity(`Výměna směny ${reqCode} ${reqDate} nabídnuta`);
 }
@@ -15012,7 +15072,7 @@ async function loadSwapRequests(){
       const req = employees.find(e=>e.id===sw.requester_id);
       const tgt = sw.target_id ? employees.find(e=>e.id===sw.target_id) : null;
       const statusColor = {pending:'var(--amber)', accepted:'var(--accent)', approved:'var(--accent)', rejected:'var(--red)'}[sw.status]||'var(--ink)';
-      const statusLabel = {pending:'Čeká', accepted:'Přijato', approved:'Schváleno', rejected:'Odmítnuto'}[sw.status]||sw.status;
+      const statusLabel = {pending:'Čeká na kolegu', accepted:'Přijato kolegou — čeká na schválení', approved:'Schváleno', rejected:'Odmítnuto'}[sw.status]||sw.status;
       return `<div class="swap-item pending">
         <div class="swap-status-dot pending" style="background:${statusColor}"></div>
         <div style="flex:1">
@@ -15021,7 +15081,7 @@ async function loadSwapRequests(){
           ${sw.note ? `<div style="font-size:12px;color:var(--ink-soft);margin-top:2px">${escapeHtml(sw.note)}</div>` : ''}
           <div style="font-size:11px;color:var(--ink-faint);margin-top:2px">${statusLabel}</div>
         </div>
-        ${sw.status==='pending' ? `
+        ${(sw.status==='pending' || sw.status==='accepted') ? `
           <button onclick="resolveSwap('${sw.id}','approved')" class="claim-btn" style="font-size:12px;padding:5px 10px">✓</button>
           <button onclick="resolveSwap('${sw.id}','rejected')" class="btn-outline" style="font-size:12px;padding:5px 8px;color:var(--red);border-color:var(--red)">✕</button>
         ` : ''}
@@ -15033,46 +15093,182 @@ async function loadSwapRequests(){
   }
 }
 
+// v0.9.8: přepis rozpisu podle výměny — vytaženo z resolveSwap, aby ho mohl
+// volat i respondToSwap v režimu bez schvalování. Sémantika beze změny (A1
+// v0.9.6): cílový kolega přebírá směnu žadatele v daný den; má-li ten den
+// vlastní směnu, prohodí se. Směny čteme z DB (ne z in-memory `shifts` —
+// výměna může být v jiném měsíci).
+async function applySwapToSchedule(sw){
+  const { data: dayShifts, error: dayErr } = await dbRun(
+    sb.from('shifts').select('*').eq('org_id', currentOrg.id).eq('shift_date', sw.requester_date)
+      .in('employee_id', [sw.requester_id, sw.target_id]),
+    'select shifts (swap resolve)', { action: 'Schválení výměny' });
+  if(dayErr) return;
+  const reqShift = (dayShifts||[]).find(s=>s.employee_id===sw.requester_id && s.shift_type_code && s.shift_type_code!=='X');
+  const tgtShift = (dayShifts||[]).find(s=>s.employee_id===sw.target_id && s.shift_type_code && s.shift_type_code!=='X');
+  if(reqShift && tgtShift){
+    const [{ error: eA }, { error: eB }] = await Promise.all([
+      dbUpdate('shifts', { employee_id: sw.target_id,    is_auto: false }, { id: reqShift.id }, { action: 'Výměna směn' }),
+      dbUpdate('shifts', { employee_id: sw.requester_id, is_auto: false }, { id: tgtShift.id }, { action: 'Výměna směn' }),
+    ]);
+    if(eA || eB){ await loadShiftsForMonth(true); return; }
+    await loadShiftsForMonth(true);
+    toast('Směny vyměněny a uloženy do rozpisu');
+  } else if(reqShift){
+    const { error: eT } = await dbUpdate('shifts', { employee_id: sw.target_id, is_auto: false }, { id: reqShift.id }, { action: 'Převod směny' });
+    if(eT) return;
+    await loadShiftsForMonth(true);
+    toast('Schváleno — směna převedena na kolegu (ten den žádnou vlastní neměl)');
+  } else {
+    toast('Schváleno — ale směna žadatele už v rozpisu není. Zkontroluj ručně.', 'error');
+  }
+}
+
 async function resolveSwap(id, newStatus){
   try {
     const { data: sw } = await sb.from('shift_swaps').select('*').eq('id', id).single();
     const { error } = await sb.from('shift_swaps').update({ status: newStatus }).eq('id', id);
     if(error) throw error;
     if(newStatus==='approved' && sw?.requester_id && sw?.target_id && sw?.requester_date){
-      // A1 v0.9.6: formulář target_date nikdy nevyplňoval (sloupec v DB existuje,
-      // ale zůstává null), takže stará podmínka `sw.target_date` znamenala, že
-      // schválená výměna NIKDY nepřepsala rozpis. Sémantika teď: cílový kolega
-      // přebírá směnu žadatele v daný den; má-li ten den vlastní směnu, prohodí se.
-      // Směny čteme z DB (ne z in-memory `shifts` — výměna může být v jiném měsíci).
-      const { data: dayShifts, error: dayErr } = await dbRun(
-        sb.from('shifts').select('*').eq('org_id', currentOrg.id).eq('shift_date', sw.requester_date)
-          .in('employee_id', [sw.requester_id, sw.target_id]),
-        'select shifts (swap resolve)', { action: 'Schválení výměny' });
-      if(dayErr) return;
-      const reqShift = (dayShifts||[]).find(s=>s.employee_id===sw.requester_id && s.shift_type_code && s.shift_type_code!=='X');
-      const tgtShift = (dayShifts||[]).find(s=>s.employee_id===sw.target_id && s.shift_type_code && s.shift_type_code!=='X');
-      if(reqShift && tgtShift){
-        const [{ error: eA }, { error: eB }] = await Promise.all([
-          dbUpdate('shifts', { employee_id: sw.target_id,    is_auto: false }, { id: reqShift.id }, { action: 'Výměna směn' }),
-          dbUpdate('shifts', { employee_id: sw.requester_id, is_auto: false }, { id: tgtShift.id }, { action: 'Výměna směn' }),
-        ]);
-        if(eA || eB){ await loadShiftsForMonth(true); return; }
-        await loadShiftsForMonth(true);
-        toast('Směny vyměněny a uloženy do rozpisu');
-      } else if(reqShift){
-        const { error: eT } = await dbUpdate('shifts', { employee_id: sw.target_id, is_auto: false }, { id: reqShift.id }, { action: 'Převod směny' });
-        if(eT) return;
-        await loadShiftsForMonth(true);
-        toast('Schváleno — směna převedena na kolegu (ten den žádnou vlastní neměl)');
-      } else {
-        toast('Schváleno — ale směna žadatele už v rozpisu není. Zkontroluj ručně.', 'error');
-      }
+      await applySwapToSchedule(sw);
     } else {
       toast(newStatus==='approved' ? 'Schváleno — otevřená nabídka, směnu předej ručně v rozpisu' : 'Odmítnuto');
     }
+    // v0.9.8: rozhodnutí vedoucího → notifikace oběma stranám (selhání
+    // notifikace nesmí shodit už provedené rozhodnutí)
+    try {
+      const verdict = newStatus==='approved' ? 'schválena' : 'zamítnuta';
+      const rows = [];
+      [sw?.requester_id, sw?.target_id].forEach(empId=>{
+        const uid = userIdByEmpId(empId);
+        if(uid) rows.push({
+          org_id: currentOrg.id, user_id: uid, type: 'swap_resolved',
+          title: `${ICONS.btn_vymeny} Výměna ${verdict}`,
+          body: `Výměna směny ${sw?.requester_code} (${sw?.requester_date}) byla ${verdict}`,
+          read: false, ref_id: sw?.id
+        });
+      });
+      if(rows.length) await dbInsertNotif(rows);
+    } catch(e){ console.error('swap resolve notif error', e); }
     logAudit(`Výměna směny ${id}: ${newStatus}`);
     await loadSwapRequests();
   } catch(e){ toast('Chyba: '+(e.message||e), 'error'); }
+}
+
+// v0.9.8: modal reakce cílového kolegy na nabídku výměny (klik na notifikaci).
+// Záměrně NE openSwapRequestsModal — ten je manažerský a ukazuje celou frontu.
+async function openSwapResponse(swapId){
+  const { data: sw, error } = await dbRun(
+    sb.from('shift_swaps').select('*').eq('id', swapId).maybeSingle(),
+    'select shift_swaps (response)', { action: 'Načtení výměny' });
+  if(error) return;
+  if(!sw){ toast('Nabídka výměny už neexistuje', 'error'); return; }
+  if(sw.status !== 'pending'){
+    const done = {accepted:'už je přijatá', approved:'už je schválená', rejected:'už je odmítnutá'}[sw.status];
+    toast(`Tahle nabídka ${done || 'už není aktivní'}`);
+    return;
+  }
+  if(sw.target_id && sw.target_id !== currentEmployeeId){
+    toast('Tahle nabídka je určená jinému kolegovi');
+    return;
+  }
+  const overlay = document.getElementById('swap-response-overlay');
+  const body = document.getElementById('swap-response-body');
+  if(!overlay || !body) return;
+  const requesterEmp = employees.find(e=>e.id===sw.requester_id);
+  const dateFmt = new Date(sw.requester_date+'T00:00:00').toLocaleDateString('cs-CZ', { weekday:'long', day:'numeric', month:'long' });
+  body.innerHTML = `
+    <p style="font-size:14px;margin:0 0 6px"><strong>${escapeHtml(requesterEmp?.name||'Kolega')}</strong> ti nabízí svoji směnu:</p>
+    <div style="background:var(--paper);border:1.5px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:10px">
+      <div style="font-size:15px;font-weight:700"><span class="code-pill">${escapeHtml(sw.requester_code)}</span> ${escapeHtml(dateFmt)}</div>
+      <div style="font-size:12px;color:var(--ink-soft);margin-top:3px">${escapeHtml(sw.requester_date)}</div>
+      ${sw.note ? `<div style="font-size:12.5px;color:var(--ink-soft);margin-top:6px;font-style:italic">„${escapeHtml(sw.note)}"</div>` : ''}
+    </div>
+    <p style="font-size:12.5px;color:var(--ink-soft);margin:0 0 14px">Když přijmeš a máš ten den vlastní směnu, směny se prohodí; jinak směnu převezmeš.</p>
+    <div style="display:flex;gap:10px">
+      <button class="btn-outline" style="flex:1;color:var(--red);border-color:var(--red)" onclick="respondToSwap('${sw.id}','rejected')">✕ Odmítnout</button>
+      <button class="btn-accent" style="flex:1" onclick="respondToSwap('${sw.id}','accepted')">✓ Přijmout</button>
+    </div>`;
+  overlay.classList.add('open');
+}
+
+// v0.9.8: rozhodnutí cílového kolegy. Větví se podle režimu schvalování:
+// 'approval' (výchozí) → status accepted, rozpis přepíše až vedoucí v resolveSwap;
+// 'auto' → rozpis se přepíše hned a vedoucí dostane jen informativní notifikaci.
+async function respondToSwap(swapId, decision){
+  const { data: sw, error: swErr } = await dbRun(
+    sb.from('shift_swaps').select('*').eq('id', swapId).maybeSingle(),
+    'select shift_swaps (respond)', { action: 'Načtení výměny' });
+  if(swErr) return;
+  const overlay = document.getElementById('swap-response-overlay');
+  if(!sw){ toast('Nabídka výměny už neexistuje', 'error'); overlay?.classList.remove('open'); return; }
+  if(sw.status !== 'pending'){ toast('Nabídka už byla vyřízena'); overlay?.classList.remove('open'); return; }
+  // otevřená nabídka nemá target_id — přebírá ji ten, kdo odpovídá
+  if(!sw.target_id) sw.target_id = currentEmployeeId;
+
+  const swapMode = orgSettings['swap_approval_mode'] || 'approval';
+  const requesterEmp = employees.find(e=>e.id===sw.requester_id);
+  const targetEmp = employees.find(e=>e.id===sw.target_id);
+  const requesterUid = userIdByEmpId(sw.requester_id);
+  const managers = orgMembers.filter(m => (m.role==='admin' || m.role==='branch_manager') && m.user_id);
+  const codeDate = `${sw.requester_code} (${sw.requester_date})`;
+
+  if(decision === 'rejected'){
+    const { error } = await dbUpdate('shift_swaps', { status: 'rejected' }, { id: swapId }, { action: 'Odmítnutí výměny' });
+    if(error) return;
+    try {
+      if(requesterUid) await dbInsertNotif({
+        org_id: currentOrg.id, user_id: requesterUid, type: 'swap_resolved',
+        title: `${ICONS.btn_vymeny} Výměna odmítnuta`,
+        body: `${targetEmp?.name||'Kolega'} výměnu směny ${codeDate} odmítl`,
+        read: false, ref_id: swapId
+      });
+    } catch(e){ console.error('swap respond notif error', e); }
+    toast('Nabídka odmítnuta');
+  } else if(swapMode === 'approval'){
+    const { error } = await dbUpdate('shift_swaps', { status: 'accepted' }, { id: swapId }, { action: 'Přijetí výměny' });
+    if(error) return;
+    try {
+      const rows = managers.map(m => ({
+        org_id: currentOrg.id, user_id: m.user_id, type: 'swap_accepted',
+        title: `${ICONS.btn_vymeny} Výměna čeká na schválení`,
+        body: `${targetEmp?.name||'Kolega'} přijal výměnu ${codeDate} od ${requesterEmp?.name||'kolegy'}`,
+        read: false, ref_id: swapId
+      }));
+      if(requesterUid) rows.push({
+        org_id: currentOrg.id, user_id: requesterUid, type: 'swap_accepted',
+        title: `${ICONS.btn_vymeny} Výměna přijata`,
+        body: `${targetEmp?.name||'Kolega'} přijal, výměna ${codeDate} čeká na schválení vedoucím`,
+        read: false, ref_id: swapId
+      });
+      if(rows.length) await dbInsertNotif(rows);
+    } catch(e){ console.error('swap respond notif error', e); }
+    toast('Přijato — výměna čeká na schválení vedoucím');
+  } else {
+    // auto režim: rozpis hned (applySwapToSchedule si toastne sám), vedoucí jen informativně
+    await applySwapToSchedule(sw);
+    const { error } = await dbUpdate('shift_swaps', { status: 'approved' }, { id: swapId }, { action: 'Dokončení výměny' });
+    if(error) return;
+    try {
+      const rows = managers.map(m => ({
+        org_id: currentOrg.id, user_id: m.user_id, type: 'swap_resolved',
+        title: `${ICONS.btn_vymeny} Výměna proběhla`,
+        body: `Výměna ${codeDate} proběhla: ${requesterEmp?.name||'?'} ↔ ${targetEmp?.name||'?'}`,
+        read: false, ref_id: swapId
+      }));
+      [requesterUid, userIdByEmpId(sw.target_id)].forEach(uid=>{
+        if(uid) rows.push({
+          org_id: currentOrg.id, user_id: uid, type: 'swap_resolved',
+          title: `${ICONS.btn_vymeny} Výměna schválena`,
+          body: `Výměna směny ${codeDate} proběhla a je zapsaná v rozpisu`,
+          read: false, ref_id: swapId
+        });
+      });
+      if(rows.length) await dbInsertNotif(rows);
+    } catch(e){ console.error('swap respond notif error', e); }
+  }
+  overlay?.classList.remove('open');
+  await loadNotifications();
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -15295,6 +15491,17 @@ function applyAccessibilityAttributes(){
       <button class="btn-outline" style="flex:1" onclick="document.getElementById('swap-modal-overlay').classList.remove('open')">✕ Zrušit</button>
       <button class="btn-accent" style="flex:1" id="swap-confirm-btn" onclick="submitShiftSwap()"><span data-icon="btn_vymeny">🔄</span> Nabídnout výměnu</button>
     </div>
+  </div>
+</div>
+
+<!-- ── v0.9.8: reakce cílového kolegy na nabídku výměny ──────────── -->
+<div class="modal-overlay" id="swap-response-overlay" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal" style="max-width:460px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <h3 style="margin:0;font-family:var(--font-display)"><span data-icon="btn_vymeny">🔄</span> Nabídka výměny</h3>
+      <button onclick="document.getElementById('swap-response-overlay').classList.remove('open')" class="btn-outline" style="padding:5px 12px">✕</button>
+    </div>
+    <div id="swap-response-body"></div>
   </div>
 </div>
 

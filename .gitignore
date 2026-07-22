@@ -10,6 +10,8 @@
 !migration_leave_changes.sql
 !migration_v096_integrity.sql
 !migration_v097_swaps_rls.sql
+!migration_member_emails.sql
+!migration_v098_swap_flow.sql
 !manifest.json
 !sw.js
 !CLAUDE.md
