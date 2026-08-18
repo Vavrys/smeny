@@ -2248,7 +2248,7 @@ window.addEventListener('unhandledrejection', e => {
 // Badge v hlavičce (#app-version-label) se plní odsud, ručně ho
 // nepřepisuj. sw.js VERSION drž v synchronu (řídí název cache).
 // ============================================================
-const APP_VERSION = '0.9.12';
+const APP_VERSION = '0.9.13';
 (() => { const el = document.getElementById('app-version-label'); if(el) el.textContent = 'v' + APP_VERSION; })();
 
 // ============================================================
@@ -6669,20 +6669,41 @@ function buildSchedule(daysInMonth, prevMonthShifts){
         const scoreDate = days[0];
         const empsSorted = [...nonFixed].sort((a,bEmp)=>
           candidateScore(bEmp, codes[0], scoreDate) - candidateScore(a, codes[0], scoreDate));
-        for(const emp of empsSorted){
-          // Soft (4. pozice nad minimem): jen komu ještě chybí do jeho cíle směn —
-          // volitelný slot se nikdy nevnutí spokojenému. Minimum volných víkendů
-          // NENÍ brána, žije v candidateScore jako měkká priorita.
-          if(soft && empShiftCount(emp.id) >= emp.min_shifts) continue;
-          const code = codes.find(c=>
+
+        // Plán pro kandidáta: přednostně JEDEN sdílený kód přes všechny dny bloku
+        // (kontinuita). Když žádný takový není (např. část bloku je ručně obsazená),
+        // vrátí per-day plán pokrývající co nejvíc dní — jedna ruční směna už
+        // nevoidí celý víkend.
+        function planFor(emp){
+          if(soft && empShiftCount(emp.id) >= emp.min_shifts) return null;
+          const shared = codes.find(c=>
             (!subtype || days.every(ds=>countFilled(ds, c)===0)) &&
             days.every(ds=>canWork(emp, ds, c)) &&
             blockRespectsLimits(emp, days.length, c)
           );
-          if(!code) continue;
-          days.forEach(ds=>setShift(emp.id, ds, code));
-          break;
+          if(shared) return days.map(ds=>({ ds, code: shared }));
+          const plan = [];
+          for(const ds of days){
+            const c = codes.find(cc=>
+              (!subtype || countFilled(ds, cc)===0) &&
+              canWork(emp, ds, cc) &&
+              branchLimitAllows(emp, cc)
+            );
+            if(c) plan.push({ ds, code: c });
+          }
+          return plan.length ? plan : null;
         }
+
+        // Přednost má kandidát pokrývající CELÝ blok (a je nejlíp skórovaný, protože
+        // empsSorted je seřazený); jinak ten, kdo pokryje nejvíc dní.
+        let best = null;
+        for(const emp of empsSorted){
+          const plan = planFor(emp);
+          if(!plan) continue;
+          if(plan.length === days.length){ best = { emp, plan }; break; }
+          if(!best || plan.length > best.plan.length) best = { emp, plan };
+        }
+        if(best) best.plan.forEach(p=>setShift(best.emp.id, p.ds, p.code));
       });
     });
   }
