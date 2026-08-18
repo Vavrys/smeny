@@ -2248,7 +2248,7 @@ window.addEventListener('unhandledrejection', e => {
 // Badge v hlavičce (#app-version-label) se plní odsud, ručně ho
 // nepřepisuj. sw.js VERSION drž v synchronu (řídí název cache).
 // ============================================================
-const APP_VERSION = '0.9.10';
+const APP_VERSION = '0.9.11';
 (() => { const el = document.getElementById('app-version-label'); if(el) el.textContent = 'v' + APP_VERSION; })();
 
 // ============================================================
@@ -6510,10 +6510,11 @@ function buildSchedule(daysInMonth, prevMonthShifts){
     const minWE = emp.min_free_weekends || defaultMinWE;
     const freeWEs = weekendBlocks.filter(w =>
       w.length===3 && w.every(ds=>!isWorking(emp.id+':'+ds))).length;
-    const weSurplus = Math.max(0, freeWEs - minWE);
+    const isWEday = [0,6].includes(new Date(dateStr+'T00:00:00').getDay());
+    const weTerm = isWEday ? (freeWEs - minWE) : 0;
     const recentLoad = consecutiveBefore(emp.id, dateStr);
     const toTarget = (emp.target_shifts||0) - cnt;
-    return W_MIN*belowMin + W_WEEKEND*weSurplus - W_RECENT*recentLoad
+    return W_MIN*belowMin + W_WEEKEND*weTerm - W_RECENT*recentLoad
          + W_TARGET*toTarget
          + (typeof shiftTypeNeedBonus==='function' ? shiftTypeNeedBonus(emp, code) : 0)
          + (typeof weekendContinuationBonus==='function' ? weekendContinuationBonus(emp, dateStr, code) : 0)
@@ -6639,57 +6640,48 @@ function buildSchedule(daysInMonth, prevMonthShifts){
       // already and count against the demand, so nobody is ever put next to a slot
       // someone already holds. Whole-block lanes = min of the three days' remaining
       // demand; extra Sat+Sun-only demand gets its own 2-day lane.
-      const lanes = []; // { codes, days, subtype }
+      const lanes = []; // { codes, days, subtype, soft } — soft = pozice nad denním MINimem (do targetu)
       branches.forEach(b=>{
         const sts = shiftTypes.filter(s=>s.branch_id===b.id);
         const codes = sts.length ? sts.map(s=>s.code) : [b.code];
         const subtype = !!sts.length;
-        const remOn = ds => {
+        const remOn = (ds, lvl) => {
           const dowL = new Date(ds+'T00:00:00').getDay();
-          const need = subtype ? Math.min(getBranchDayMin(b, dowL), codes.length) : getBranchDayMin(b, dowL);
-          const got = subtype ? codes.filter(c=>countFilled(ds, c)>0).length : countFilled(ds, b.code);
+          const raw = lvl==='target' ? getBranchDayTarget(b, dowL) : getBranchDayMin(b, dowL);
+          const need = subtype ? Math.min(raw, codes.length) : raw;
+          const got  = subtype ? codes.filter(c=>countFilled(ds, c)>0).length : countFilled(ds, b.code);
           return Math.max(0, need - got);
         };
-        const remFri = remOn(friDs), remSat = remOn(satDs), remSun = remOn(sunDs);
-        const fullLanes = Math.min(remFri, remSat, remSun);
-        for(let i=0;i<fullLanes;i++) lanes.push({ codes, days:wb, subtype });
-        const extraLanes = Math.min(remSat, remSun) - fullLanes;
-        for(let i=0;i<extraLanes;i++) lanes.push({ codes, days:[satDs, sunDs], subtype });
+        const laneCounts = lvl => {
+          const rF=remOn(friDs,lvl), rS=remOn(satDs,lvl), rN=remOn(sunDs,lvl);
+          const full  = Math.min(rF, rS, rN);
+          const extra = Math.max(0, Math.min(rS, rN) - full);
+          return { full, extra };
+        };
+        const mn = laneCounts('min'), tg = laneCounts('target');
+        for(let i=0;i<tg.full;i++)  lanes.push({ codes, days:wb,             subtype, soft: i>=mn.full });
+        for(let i=0;i<tg.extra;i++) lanes.push({ codes, days:[satDs, sunDs], subtype, soft: i>=mn.extra });
       });
       if(!lanes.length) return;
 
       lanes.forEach(lane=>{
-        const { codes, days, subtype } = lane;
-        // Round 1: only offer the block to employees who still have free-weekend slack
-        // to spare. Round 2 (only if round 1 found nobody): assign it anyway — an
-        // unfilled required slot is worse than one employee dipping into their free
-        // weekends, and canWork() below still guarantees this only happens when the
-        // employee can physically work all of this lane's days.
-        for(const strict of [true, false]){
-          const empsSorted = shuffle([...nonFixed]);
-          let assigned = false;
-          for(const emp of empsSorted){
-            if(strict){
-              const minWE = emp.min_free_weekends||defaultMinWE;
-              const freeWEs = weekendBlocks.filter(w2=>
-                w2.length===3 && w2.every(ds=>!isWorking(emp.id+':'+ds))
-              ).length;
-              if(freeWEs <= minWE) continue;
-            }
-            // First code (in sort_order) that is open on ALL lane days (subtypes: no
-            // shift of that type anywhere in the lane) and workable by this employee.
-            const code = codes.find(c=>
-              (!subtype || days.every(ds=>countFilled(ds, c)===0)) &&
-              days.every(ds=>canWork(emp, ds, c)) &&
-              blockRespectsLimits(emp, days.length, c)
-            );
-            if(!code) continue;
-
-            days.forEach(ds=>setShift(emp.id, ds, code));
-            assigned = true;
-            break;
-          }
-          if(assigned) break;
+        const { codes, days, subtype, soft } = lane;
+        const scoreDate = days[0];
+        const empsSorted = [...nonFixed].sort((a,bEmp)=>
+          candidateScore(bEmp, codes[0], scoreDate) - candidateScore(a, codes[0], scoreDate));
+        for(const emp of empsSorted){
+          // Soft (4. pozice nad minimem): jen komu ještě chybí do jeho cíle směn —
+          // volitelný slot se nikdy nevnutí spokojenému. Minimum volných víkendů
+          // NENÍ brána, žije v candidateScore jako měkká priorita.
+          if(soft && empShiftCount(emp.id) >= emp.target_shifts) continue;
+          const code = codes.find(c=>
+            (!subtype || days.every(ds=>countFilled(ds, c)===0)) &&
+            days.every(ds=>canWork(emp, ds, c)) &&
+            blockRespectsLimits(emp, days.length, c)
+          );
+          if(!code) continue;
+          days.forEach(ds=>setShift(emp.id, ds, code));
+          break;
         }
       });
     });
