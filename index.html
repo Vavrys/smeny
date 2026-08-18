@@ -2248,7 +2248,7 @@ window.addEventListener('unhandledrejection', e => {
 // Badge v hlavičce (#app-version-label) se plní odsud, ručně ho
 // nepřepisuj. sw.js VERSION drž v synchronu (řídí název cache).
 // ============================================================
-const APP_VERSION = '0.9.11';
+const APP_VERSION = '0.9.12';
 (() => { const el = document.getElementById('app-version-label'); if(el) el.textContent = 'v' + APP_VERSION; })();
 
 // ============================================================
@@ -6673,7 +6673,7 @@ function buildSchedule(daysInMonth, prevMonthShifts){
           // Soft (4. pozice nad minimem): jen komu ještě chybí do jeho cíle směn —
           // volitelný slot se nikdy nevnutí spokojenému. Minimum volných víkendů
           // NENÍ brána, žije v candidateScore jako měkká priorita.
-          if(soft && empShiftCount(emp.id) >= emp.target_shifts) continue;
+          if(soft && empShiftCount(emp.id) >= emp.min_shifts) continue;
           const code = codes.find(c=>
             (!subtype || days.every(ds=>countFilled(ds, c)===0)) &&
             days.every(ds=>canWork(emp, ds, c)) &&
