@@ -2248,7 +2248,7 @@ window.addEventListener('unhandledrejection', e => {
 // Badge v hlavičce (#app-version-label) se plní odsud, ručně ho
 // nepřepisuj. sw.js VERSION drž v synchronu (řídí název cache).
 // ============================================================
-const APP_VERSION = '0.9.9';
+const APP_VERSION = '0.9.10';
 (() => { const el = document.getElementById('app-version-label'); if(el) el.textContent = 'v' + APP_VERSION; })();
 
 // ============================================================
@@ -6487,6 +6487,39 @@ function buildSchedule(daysInMonth, prevMonthShifts){
     return (s && s.shift_type_code === code) ? 4 : 0;
   }
 
+  // Sdílené skóre kandidáta pro všechny passy: pod-minimum dominuje (W_MIN),
+  // pak rezerva volných víkendů nad osobním minimem, penalizace čerstvé série
+  // a slabý dorovnávač k cíli. Vyšší skóre = přednost při obsazování.
+  const W_MIN = 100;      // váha za každou směnu chybějící do min_shifts
+  const W_WEEKEND = 20;   // váha za každý volný víkend NAD osobním minimem
+  const W_RECENT = 8;     // penalizace za každý den čerstvé série před tímto dnem
+  const W_TARGET = 1;     // slabý dorovnávač k cíli
+  const NOISE = 1.5;      // rozseknutí shody
+
+  function consecutiveBefore(empId, dateStr){
+    const dayIdx = parseInt(dateStr.split('-')[2]);
+    const LOOKBACK_LIMIT = 1 - 7;
+    let cb = 0;
+    for(let i=dayIdx-1;i>=LOOKBACK_LIMIT;i--){ if(isWorkingAt(empId, i)) cb++; else break; }
+    return cb;
+  }
+
+  function candidateScore(emp, code, dateStr){
+    const cnt = empShiftCount(emp.id);
+    const belowMin = Math.max(0, (emp.min_shifts||0) - cnt);
+    const minWE = emp.min_free_weekends || defaultMinWE;
+    const freeWEs = weekendBlocks.filter(w =>
+      w.length===3 && w.every(ds=>!isWorking(emp.id+':'+ds))).length;
+    const weSurplus = Math.max(0, freeWEs - minWE);
+    const recentLoad = consecutiveBefore(emp.id, dateStr);
+    const toTarget = (emp.target_shifts||0) - cnt;
+    return W_MIN*belowMin + W_WEEKEND*weSurplus - W_RECENT*recentLoad
+         + W_TARGET*toTarget
+         + (typeof shiftTypeNeedBonus==='function' ? shiftTypeNeedBonus(emp, code) : 0)
+         + (typeof weekendContinuationBonus==='function' ? weekendContinuationBonus(emp, dateStr, code) : 0)
+         + Math.random()*NOISE;
+  }
+
   // Check the employee's per-branch monthly limit. A branch the employee isn't assigned
   // to at all is always forbidden (see FEATURE 13); max=0 explicitly forbids an assigned
   // branch; shift-type-level max (M1/M2/…) is enforced here too since it's also hard.
@@ -6701,7 +6734,7 @@ function buildSchedule(daysInMonth, prevMonthShifts){
         let best = null, bestScore = -Infinity;
         for(const emp of eligible){
           const code = assignableCodeFor(emp, r.slot.dateStr, r.slot);
-          const score = emp.target_shifts - empShiftCount(emp.id) + shiftTypeNeedBonus(emp, code) + weekendContinuationBonus(emp, r.slot.dateStr, code) + Math.random()*1.5;
+          const score = candidateScore(emp, code, r.slot.dateStr);
           if(score > bestScore){ bestScore = score; best = { emp, code }; }
         }
         setShift(best.emp.id, r.slot.dateStr, best.code);
@@ -6738,7 +6771,9 @@ function buildSchedule(daysInMonth, prevMonthShifts){
   // PASS 2b: Pursue employee per-branch monthly minimums (branch_limits.min)
   // v0.7.8: runs BEFORE the generic target top-up (PASS 2) — targeted commitments
   // must not find their capacity already spent on generic filler shifts.
-  shuffle([...nonFixed]).forEach(emp=>{
+  [...nonFixed].sort((a,bEmp)=>
+    candidateScore(bEmp, null, isoDate(schedYear,schedMonth+1,1))
+    - candidateScore(a, null, isoDate(schedYear,schedMonth+1,1))).forEach(emp=>{
     if(couldFillAnyMissingSlot(emp)) return; // their remaining capacity is reserved for a min-slot
     const limits = emp.branch_limits || {};
     Object.entries(limits).forEach(([branchCode, bl])=>{
@@ -6778,7 +6813,9 @@ function buildSchedule(daysInMonth, prevMonthShifts){
   });
 
   // PASS 2c: Pursue employee per-shift-type monthly minimums (branch_limits[branch].shiftTypes[code].min)
-  shuffle([...nonFixed]).forEach(emp=>{
+  [...nonFixed].sort((a,bEmp)=>
+    candidateScore(bEmp, null, isoDate(schedYear,schedMonth+1,1))
+    - candidateScore(a, null, isoDate(schedYear,schedMonth+1,1))).forEach(emp=>{
     if(couldFillAnyMissingSlot(emp)) return; // their remaining capacity is reserved for a min-slot
     const limits = emp.branch_limits || {};
     Object.values(limits).forEach(bl=>{
@@ -6813,7 +6850,9 @@ function buildSchedule(daysInMonth, prevMonthShifts){
   // PASS 2: Balance toward employee target shift count. v0.7.8: runs AFTER the
   // personal branch/type minimum passes (2b/2c) — generic top-up only spends what
   // the targeted commitments left over.
-  shuffle([...nonFixed]).forEach(emp=>{
+  [...nonFixed].sort((a,bEmp)=>
+    candidateScore(bEmp, null, isoDate(schedYear,schedMonth+1,1))
+    - candidateScore(a, null, isoDate(schedYear,schedMonth+1,1))).forEach(emp=>{
     if(couldFillAnyMissingSlot(emp)) return; // their remaining capacity is reserved for a min-slot
     const cnt = empShiftCount(emp.id);
     if(cnt >= emp.target_shifts) return;
@@ -6826,7 +6865,7 @@ function buildSchedule(daysInMonth, prevMonthShifts){
       if(S[emp.id+':'+dateStr] || !canWork(emp, dateStr)) continue;
       // Find an available slot on this day. Bare branch: below branch day max (as
       // before). Subtype branch (v0.7.7): additions above the day's minimum are capped
-      // at min(day target, day max, subtype count) distinct types, every type ≤1×;
+      // at min(day max, subtype count) distinct types, every type ≤1×;
       // the added type is the first open one in sort_order.
       const dow2 = new Date(dateStr+'T00:00:00').getDay();
       const avail = [];
@@ -6842,7 +6881,7 @@ function buildSchedule(daysInMonth, prevMonthShifts){
           // Floor at the day's need — legacy subtype branches often keep max_per_day
           // at 1 from before v0.7.7, when day min/max meant nothing for them
           const needN = Math.min(getBranchDayMin(b, dow2), bCodes.length);
-          const cap = Math.min(Math.max(getBranchDayTarget(b, dow2), needN), Math.max(getBranchDayMax(b, dow2), needN), bCodes.length);
+          const cap = Math.min(Math.max(getBranchDayMax(b, dow2), needN), bCodes.length);
           if(bCodes.filter(c=>countFilled(dateStr, c)>0).length >= cap) return;
           const c = bCodes.find(c=>countFilled(dateStr, c)===0 && branchLimitAllows(emp, c));
           if(c) avail.push(c);
@@ -6859,7 +6898,27 @@ function buildSchedule(daysInMonth, prevMonthShifts){
   // v0.7.7: subtype branches participate too — the target counts DISTINCT covered
   // types, additions pick the first open type in sort_order, never above the day max
   // nor more than once per type.
-  const dayOrder2 = shuffle(Array.from({length:daysInMonth},(_,i)=>i+1));
+  // Deficit pokrytí dne vůči cíli (stav před PASS 3) — nejhůř pokryté dny se
+  // doplňují první, aby kapacitu lidí nespotřebovaly dny, kterým chybí málo.
+  function dayDeficit(d){
+    const ds = isoDate(schedYear,schedMonth+1,d);
+    const dowD = new Date(ds+'T00:00:00').getDay();
+    let deficit = 0;
+    branches.forEach(b=>{
+      const bSts = shiftTypes.filter(s=>s.branch_id===b.id);
+      if(!bSts.length){
+        deficit += Math.max(0, getBranchDayTarget(b, dowD) - countFilled(ds, b.code));
+      } else {
+        const bCodes = bSts.map(s=>s.code);
+        const needN = Math.min(getBranchDayMin(b, dowD), bCodes.length);
+        const tgt = Math.min(Math.max(getBranchDayTarget(b, dowD), needN), Math.max(getBranchDayMax(b, dowD), needN), bCodes.length);
+        deficit += Math.max(0, tgt - bCodes.filter(c=>countFilled(ds, c)>0).length);
+      }
+    });
+    return deficit;
+  }
+  const dayOrder2 = Array.from({length:daysInMonth},(_,i)=>i+1)
+    .sort((x,y)=>dayDeficit(y)-dayDeficit(x) || Math.random()-0.5);
   dayOrder2.forEach(d=>{
     const dateStr = isoDate(schedYear,schedMonth+1,d);
     if(fullWeekendDays.has(dateStr)) return; // don't sneak an extra day into a reserved weekend block
@@ -6875,9 +6934,8 @@ function buildSchedule(daysInMonth, prevMonthShifts){
           !S[emp.id+':'+dateStr] && canWork(emp, dateStr, b.code) && empShiftCount(emp.id) < emp.max_shifts
           && !couldFillAnyMissingSlot(emp) // capacity reserved for a min-slot
         );
-        eligible.sort((a,bEmp)=>{ // prefer employees below their target
-          return (bEmp.target_shifts - empShiftCount(bEmp.id)) - (a.target_shifts - empShiftCount(a.id));
-        });
+        eligible.sort((a,bEmp)=>
+          candidateScore(bEmp, b.code, dateStr) - candidateScore(a, b.code, dateStr));
         for(let i=0; i<Math.min(need, eligible.length); i++){
           setShift(eligible[i].id, dateStr, b.code);
         }
@@ -6891,9 +6949,8 @@ function buildSchedule(daysInMonth, prevMonthShifts){
           !S[emp.id+':'+dateStr] && empShiftCount(emp.id) < emp.max_shifts
           && !couldFillAnyMissingSlot(emp) // capacity reserved for a min-slot
         );
-        eligible.sort((a,bEmp)=>{ // prefer employees below their target
-          return (bEmp.target_shifts - empShiftCount(bEmp.id)) - (a.target_shifts - empShiftCount(a.id));
-        });
+        eligible.sort((a,bEmp)=>
+          candidateScore(bEmp, bCodes[0], dateStr) - candidateScore(a, bCodes[0], dateStr));
         for(const emp of eligible){
           if(covered >= tgt) break;
           const c = bCodes.find(c=>countFilled(dateStr, c)===0 && canWork(emp, dateStr, c));
