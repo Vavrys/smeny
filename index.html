@@ -2248,7 +2248,7 @@ window.addEventListener('unhandledrejection', e => {
 // Badge v hlavičce (#app-version-label) se plní odsud, ručně ho
 // nepřepisuj. sw.js VERSION drž v synchronu (řídí název cache).
 // ============================================================
-const APP_VERSION = '0.9.13';
+const APP_VERSION = '0.9.14';
 (() => { const el = document.getElementById('app-version-label'); if(el) el.textContent = 'v' + APP_VERSION; })();
 
 // ============================================================
@@ -6934,7 +6934,6 @@ function buildSchedule(daysInMonth, prevMonthShifts){
     .sort((x,y)=>dayDeficit(y)-dayDeficit(x) || Math.random()-0.5);
   dayOrder2.forEach(d=>{
     const dateStr = isoDate(schedYear,schedMonth+1,d);
-    if(fullWeekendDays.has(dateStr)) return; // don't sneak an extra day into a reserved weekend block
     const dow3 = new Date(dateStr+'T00:00:00').getDay();
     branches.forEach(b=>{
       const bSts = shiftTypes.filter(s=>s.branch_id===b.id);
@@ -6968,6 +6967,11 @@ function buildSchedule(daysInMonth, prevMonthShifts){
           if(covered >= tgt) break;
           const c = bCodes.find(c=>countFilled(dateStr, c)===0 && canWork(emp, dateStr, c));
           if(!c) continue;
+          // Weekend: above the day minimum, only people still below their own
+          // min_shifts get the extra position (same rule as PASS 0 soft lanes).
+          const isWEday = fullWeekendDays.has(dateStr);
+          const belowMin = covered < needN;
+          if(isWEday && !belowMin && empShiftCount(emp.id) >= emp.min_shifts) continue;
           setShift(emp.id, dateStr, c);
           covered++;
         }
