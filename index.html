@@ -2248,7 +2248,7 @@ window.addEventListener('unhandledrejection', e => {
 // Badge v hlavičce (#app-version-label) se plní odsud, ručně ho
 // nepřepisuj. sw.js VERSION drž v synchronu (řídí název cache).
 // ============================================================
-const APP_VERSION = '0.9.17';
+const APP_VERSION = '0.9.18';
 (() => { const el = document.getElementById('app-version-label'); if(el) el.textContent = 'v' + APP_VERSION; })();
 
 // ============================================================
@@ -6496,6 +6496,7 @@ function buildSchedule(daysInMonth, prevMonthShifts){
   const W_WEEKEND = 20;   // váha za každý volný víkend NAD osobním minimem
   const W_RECENT = 8;     // penalizace za každý den čerstvé série před tímto dnem
   const W_TARGET = 1;     // slabý dorovnávač k cíli
+  const W_SCARCE = 12;    // váha za každý kód, který zaměstnanec NESMÍ (laditelné)
   const NOISE = 1.5;      // rozseknutí shody
 
   function consecutiveBefore(empId, dateStr){
@@ -6505,6 +6506,38 @@ function buildSchedule(daysInMonth, prevMonthShifts){
     for(let i=dayIdx-1;i>=LOOKBACK_LIMIT;i--){ if(isWorkingAt(empId, i)) cb++; else break; }
     return cb;
   }
+
+  // Statická vzácnost: kolik různých kódů smí každý zaměstnanec vůbec dělat
+  // (pobočka přiřazená + branch max != 0 + type max != 0). Méně = vzácnější.
+  const allOrgCodes = (() => {
+    const codes = [];
+    branches.forEach(b=>{
+      const sts = shiftTypes.filter(s=>s.branch_id===b.id);
+      if(sts.length) sts.forEach(s=>codes.push(s.code));
+      else codes.push(b.code);
+    });
+    return codes;
+  })();
+  function allowedCodeCount(emp){
+    const bl = emp.branch_limits||{};
+    let n = 0;
+    for(const code of allOrgCodes){
+      const branchCode = slotBranchCode(code);
+      const b = bl[branchCode];
+      if(!b) continue;                                  // pobočka nepřiřazená
+      if(b.max !== undefined && b.max <= 0) continue;   // pobočka zakázaná (max 0)
+      const st = shiftTypes.find(s=>s.code===code);
+      if(st){
+        const stLim = b.shiftTypes && b.shiftTypes[code];
+        if(stLim && stLim.max !== undefined && stLim.max <= 0) continue; // typ zakázaný
+      }
+      n++;
+    }
+    return n;
+  }
+  const scarceMap = {};
+  nonFixed.forEach(e=>{ scarceMap[e.id] = allowedCodeCount(e); });
+  const maxOrgCodes = allOrgCodes.length;
 
   function candidateScore(emp, code, dateStr){
     const cnt = empShiftCount(emp.id);
@@ -6518,6 +6551,7 @@ function buildSchedule(daysInMonth, prevMonthShifts){
     const toTarget = (emp.target_shifts||0) - cnt;
     return W_MIN*belowMin + W_WEEKEND*weTerm - W_RECENT*recentLoad
          + W_TARGET*toTarget
+         + W_SCARCE * (maxOrgCodes - (scarceMap[emp.id] ?? maxOrgCodes))
          + (typeof shiftTypeNeedBonus==='function' ? shiftTypeNeedBonus(emp, code) : 0)
          + (typeof weekendContinuationBonus==='function' ? weekendContinuationBonus(emp, dateStr, code) : 0)
          + Math.random()*NOISE;
