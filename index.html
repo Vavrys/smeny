@@ -2248,7 +2248,7 @@ window.addEventListener('unhandledrejection', e => {
 // Badge v hlavičce (#app-version-label) se plní odsud, ručně ho
 // nepřepisuj. sw.js VERSION drž v synchronu (řídí název cache).
 // ============================================================
-const APP_VERSION = '0.9.18';
+const APP_VERSION = '0.9.19';
 (() => { const el = document.getElementById('app-version-label'); if(el) el.textContent = 'v' + APP_VERSION; })();
 
 // ============================================================
@@ -7257,6 +7257,47 @@ function buildSchedule(daysInMonth, prevMonthShifts){
               progressedS = true; placed = true; break;
             } else {
               S[bKey] = bs; invalidateCaches(); // restore, zkus dalšího B
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // ── BALANCE SWAP PASS ───────────────────────────────────
+  // Prohodí typy mezi dvěma pracujícími lidmi v týž den, když to zmenší
+  // nepoměr balance páru. Nemění počty směn ani pokrytí. Jen auto směny.
+  if(ENABLE_SWAP){
+    const balancePairs = (orgSettings['balance_pairs'] || [])
+      .map(p => ({ a: p[0], b: p[1] })).filter(p => p.a && p.b);
+    if(balancePairs.length){
+      let iterB = 0, progressedB = true;
+      while(progressedB && iterB < 400){
+        progressedB = false;
+        for(const pair of balancePairs){
+          const cA = pair.a, cB = pair.b;
+          for(let dd=1; dd<=daysInMonth; dd++){
+            if(iterB >= 400) break;
+            const dateStr = isoDate(schedYear, schedMonth+1, dd);
+            const workA = nonFixed.filter(e=>{ const s=S[e.id+':'+dateStr]; return s && s.is_auto && s.shift_type_code===cA; });
+            const workB = nonFixed.filter(e=>{ const s=S[e.id+':'+dateStr]; return s && s.is_auto && s.shift_type_code===cB; });
+            let swapped = false;
+            for(const X of shuffle(workA)){
+              for(const Y of shuffle(workB)){
+                iterB++;
+                const xA=empShiftTypeCountS(X.id,cA), xB=empShiftTypeCountS(X.id,cB);
+                const yA=empShiftTypeCountS(Y.id,cA), yB=empShiftTypeCountS(Y.id,cB);
+                const before = Math.abs(xA-xB) + Math.abs(yA-yB);
+                const after  = Math.abs((xA-1)-(xB+1)) + Math.abs((yA+1)-(yB-1));
+                if(after < before
+                   && shiftTypeLimitAllows(X, cB) && branchLimitAllows(X, cB)
+                   && shiftTypeLimitAllows(Y, cA) && branchLimitAllows(Y, cA)){
+                  setShift(X.id, dateStr, cB);
+                  setShift(Y.id, dateStr, cA);
+                  progressedB = true; swapped = true; break;
+                }
+              }
+              if(swapped) break;
             }
           }
         }
