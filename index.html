@@ -2248,7 +2248,7 @@ window.addEventListener('unhandledrejection', e => {
 // Badge v hlavičce (#app-version-label) se plní odsud, ručně ho
 // nepřepisuj. sw.js VERSION drž v synchronu (řídí název cache).
 // ============================================================
-const APP_VERSION = '0.9.20';
+const APP_VERSION = '0.9.21';
 (() => { const el = document.getElementById('app-version-label'); if(el) el.textContent = 'v' + APP_VERSION; })();
 
 // ============================================================
@@ -7296,9 +7296,14 @@ function buildSchedule(daysInMonth, prevMonthShifts){
               for(const Y of shuffle(workB)){
                 const xA=empShiftTypeCountS(X.id,cA), xB=empShiftTypeCountS(X.id,cB);
                 const yA=empShiftTypeCountS(Y.id,cA), yB=empShiftTypeCountS(Y.id,cB);
-                const before = Math.abs(xA-xB) + Math.abs(yA-yB);
-                const after  = Math.abs((xA-1)-(xB+1)) + Math.abs((yA+1)-(yB-1));
-                if(after < before && canHaveCode(X, cB) && canHaveCode(Y, cA)){
+                const dX0 = Math.abs(xA-xB),        dY0 = Math.abs(yA-yB);
+                const dX1 = Math.abs((xA-1)-(xB+1)), dY1 = Math.abs((yA+1)-(yB-1));
+                const sumBefore = dX0 + dY0, sumAfter = dX1 + dY1;
+                const worstBefore = Math.max(dX0, dY0), worstAfter = Math.max(dX1, dY1);
+                // Přijmi, když (a) klesne součet, NEBO (b) klesne nejhorší z dvojice
+                // a součet se nezhorší (férové vyrovnání extrému bez celkové ztráty).
+                const improves = sumAfter < sumBefore || (worstAfter < worstBefore && sumAfter <= sumBefore);
+                if(improves && canHaveCode(X, cB) && canHaveCode(Y, cA)){
                   setShift(X.id, dateStr, cB);
                   setShift(Y.id, dateStr, cA);
                   progressedB = true; swapped = true; break;
