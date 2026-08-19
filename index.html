@@ -2248,7 +2248,7 @@ window.addEventListener('unhandledrejection', e => {
 // Badge v hlavičce (#app-version-label) se plní odsud, ručně ho
 // nepřepisuj. sw.js VERSION drž v synchronu (řídí název cache).
 // ============================================================
-const APP_VERSION = '0.9.21';
+const APP_VERSION = '0.9.22';
 (() => { const el = document.getElementById('app-version-label'); if(el) el.textContent = 'v' + APP_VERSION; })();
 
 // ============================================================
@@ -4757,6 +4757,75 @@ function slotMaxOnDay(dateStr, slotCode, isWE){
   return 1;
 }
 
+// ════════════════════════════════════════════════════════════════
+// v0.9.22 — RUČNÍ PŘIŘAZOVÁNÍ: jeden zdroj pravdy o kapacitě slotu
+// ════════════════════════════════════════════════════════════════
+// Typový slot (M1, U1…) = 1 osoba/den (každý slot je unikátní).
+// Holá pobočka (K, U)   = DENNÍ maximum z weekly_pattern (getBranchDayMax),
+//                         NE legacy týdenní branch.max_per_day.
+function manualSlotMax(dateStr, code){
+  if(shiftTypes.find(s=>s.code===code)) return 1;
+  const b = branches.find(x=>x.code===code);
+  if(b) return getBranchDayMax(b, new Date(dateStr+'T00:00:00').getDay());
+  return 1;
+}
+
+// Kdo už ten den tento slot drží. Typový slot → přesná shoda kódu,
+// holá pobočka → kdokoli na téže pobočce. excludeEmpId = koho nepočítat.
+function slotOccupantsOnDay(dateStr, code, excludeEmpId){
+  const st = shiftTypes.find(s=>s.code===code);
+  const bCode = st ? branches.find(b=>b.id===st.branch_id)?.code : code;
+  return Object.values(shifts).filter(s=>{
+    if(s.shift_date !== dateStr) return false;
+    if(excludeEmpId && s.employee_id === excludeEmpId) return false;
+    if(!s.shift_type_code || s.shift_type_code==='X') return false;
+    if(st) return s.shift_type_code === code;
+    const xst = shiftTypes.find(y=>y.code===s.shift_type_code);
+    const xbc = xst ? branches.find(b=>b.id===xst.branch_id)?.code : s.shift_type_code;
+    return xbc === bCode;
+  });
+}
+
+// Stav slotu pro ruční přiřazení — používá ho popup (slotInfo) i všechny
+// klikací zápisové cesty (pickShift, fillModeAssign, dayDetailAssign).
+function manualSlotState(dateStr, code, excludeEmpId){
+  const occupants = slotOccupantsOnDay(dateStr, code, excludeEmpId);
+  const max = manualSlotMax(dateStr, code);
+  return { occupants, filled: occupants.length, max, full: occupants.length >= max };
+}
+
+// Potvrzení před přepisem/smazáním RUČNÍ směny (is_auto:false) nebo směny
+// FIXNÍHO zaměstnance. Auto směny (is_auto:true) se mění bez ptaní.
+function confirmOverwriteManual(shift, actionLabel){
+  if(!shift) return true;
+  const emp = employees.find(e=>e.id===shift.employee_id);
+  const isManual = shift.is_auto === false;
+  const isFixed  = !!(emp && emp.is_fixed);
+  if(!isManual && !isFixed) return true;
+  const who = emp ? emp.name : 'zaměstnanec';
+  const why = (isManual && isFixed) ? 'byla zadaná ručně a patří fixnímu zaměstnanci'
+            : isManual ? 'byla zadaná ručně' : 'patří fixnímu zaměstnanci';
+  return confirm(`${shift.shift_type_code||'Směna'} — ${who}: tato směna ${why}.\n\nOpravdu ji chceš ${actionLabel||'přepsat'}?`);
+}
+
+// Uvolnění slotu před ručním vložením — společné pro všechny klikací cesty.
+// Vrací { ok:false } když uživatel zrušil potvrzení nebo mazání selhalo,
+// jinak { ok:true, replaced: jméno nahrazeného | null }.
+async function ensureSlotFree(dateStr, code, empId){
+  const cap = manualSlotState(dateStr, code, empId);
+  if(!cap.full || !cap.occupants.length) return { ok: true, replaced: null };
+  const occupant = cap.occupants[0];
+  const occName  = employees.find(e=>e.id===occupant.employee_id)?.name || 'jiný zaměstnanec';
+  const newName  = employees.find(e=>e.id===empId)?.name || 'nového zaměstnance';
+  const day = parseInt(dateStr.split('-')[2]);
+  if(!confirm(`${code} je na ${day}. již obsazen/a ${occName}.\n\nNahradit ${occName} za ${newName}?`)) return { ok: false, replaced: null };
+  if(!confirmOverwriteManual(occupant, 'přepsat')) return { ok: false, replaced: null };
+  const { error } = await dbDelete('shifts', { id: occupant.id }, { action: 'Nahrazení směny' });
+  if(error) return { ok: false, replaced: null };
+  delete shifts[occupant.employee_id+':'+dateStr];
+  return { ok: true, replaced: occName };
+}
+
 function renderCalendar(){
   const thead = document.getElementById('sched-thead');
   const tbody = document.getElementById('sched-tbody');
@@ -5276,31 +5345,16 @@ function openPicker(cell){
     const existingShift = shifts[empId+':'+dateStr];
     const isOverwrite = !!(existingShift && existingShift.shift_type_code && existingShift.shift_type_code!=='X');
 
-    // Check daily capacity (max_per_day for the branch)
-    const b = branches.find(x=>x.code===bCode);
-    if(b){
-      // Count how many people are already on this branch/slot today (excluding this employee if overwriting)
-      const st = shiftTypes.find(s=>s.code===code);
-      let dayCount;
-      if(st){
-        // Slot-based: count this specific slot
-        dayCount = Object.values(shifts).filter(s=>
-          s.shift_date===dateStr && s.shift_type_code===code &&
-          s.employee_id !== (isOverwrite ? empId : null)
-        ).length;
-        if(dayCount >= 1 && !isOverwrite)
-          return { allowed: true, warn: `${ICONS.status_warning} Slot ${code} je obsazen — kliknutím nahradíš`, warnLevel: 'warn' };
-      } else {
-        // Branch-code: count total on this branch today
-        dayCount = Object.values(shifts).filter(s=>{
-          if(s.shift_date!==dateStr) return false;
-          if(isOverwrite && s.employee_id===empId) return false;
-          const xst = shiftTypes.find(y=>y.code===s.shift_type_code);
-          const xbc = xst ? branches.find(bx=>bx.id===xst.branch_id)?.code : s.shift_type_code;
-          return xbc===bCode;
-        }).length;
-        if(dayCount >= b.max_per_day && !isOverwrite)
-          return { allowed: true, warn: `${ICONS.status_warning} ${bCode} plná — kliknutím nahradíš`, warnLevel: 'warn' };
+    // Denní kapacita slotu — v0.9.22 JEDEN zdroj pravdy s pickShift():
+    // manualSlotState() (typový slot = 1 osoba/den, holá pobočka = denní max
+    // z weekly_pattern, ne legacy branch.max_per_day)
+    if(!isOverwrite){
+      const cap = manualSlotState(dateStr, code, empId);
+      if(cap.full && cap.occupants.length){
+        const isTyped = !!shiftTypes.find(s=>s.code===code);
+        return { allowed: true, warnLevel: 'warn',
+          warn: isTyped ? `${ICONS.status_warning} Slot ${code} je obsazen — kliknutím nahradíš`
+                        : `${ICONS.status_warning} ${bCode} plná — kliknutím nahradíš` };
       }
     }
 
@@ -5404,6 +5458,10 @@ function closePicker(){
 }
 
 async function fillModeAssign(empId, dateStr, slotCode){
+  // v0.9.22 — stejná slot-vědomá kapacita jako pickShift: plný slot = nahrazení,
+  // ne přidání druhého člověka (dřív holý INSERT bez kontroly)
+  const free = await ensureSlotFree(dateStr, slotCode, empId);
+  if(!free.ok) return;
   const { data, error } = await sb.from('shifts').insert({
     org_id: currentOrg.id, employee_id: empId,
     shift_date: dateStr, shift_type_code: slotCode, is_auto: false
@@ -5411,7 +5469,7 @@ async function fillModeAssign(empId, dateStr, slotCode){
   if(error){ toast('Chyba: '+error.message); return; }
   shifts[empId+':'+dateStr] = data;
   renderCalendar();
-  toast(`✓ ${slotCode} přiřazeno`);
+  toast(free.replaced ? `✓ ${slotCode}: ${free.replaced} nahrazen/a` : `✓ ${slotCode} přiřazeno`);
 }
 
 async function pickShift(empId, dateStr, code){
@@ -5420,6 +5478,8 @@ async function pickShift(empId, dateStr, code){
 
   if(code==='__clear__'){
     if(shifts[key]){
+      // v0.9.22 — smazání RUČNÍ/FIXNÍ směny jen po potvrzení (auto beze změny)
+      if(!confirmOverwriteManual(shifts[key], 'smazat')) return;
       const { error } = await sb.from('shifts').delete().eq('id', shifts[key].id);
       if(error){ toast('Chyba mazání: '+error.message); return; }
       delete shifts[key];
@@ -5436,6 +5496,8 @@ async function pickShift(empId, dateStr, code){
   if(code==='X'){
     // Store as unavailability row
     if(shifts[key]){
+      // v0.9.22 — smazání RUČNÍ/FIXNÍ směny jen po potvrzení (auto beze změny)
+      if(!confirmOverwriteManual(shifts[key], 'smazat')) return;
       const { error: delErr } = await dbDelete('shifts', { id: shifts[key].id }, { action: 'Odebrání směny' });
       if(delErr) return;
       delete shifts[key];
@@ -5460,63 +5522,20 @@ async function pickShift(empId, dateStr, code){
 
   const existing = shifts[key];
 
-  // If not overwriting own shift, check if slot/branch is at capacity
+  // v0.9.22 — SLOT-VĚDOMÁ KAPACITA: typový slot = 1 osoba/den, holá pobočka =
+  // denní max z weekly_pattern. Je-li slot plný, okupanta NAHRADÍME (dřív se
+  // porovnávalo s branch.max_per_day přes celou pobočku → propadlo to na INSERT
+  // a na jednoslotové pobočce vznikli dva lidé).
+  let replacedName = null;
   if(!existing){
-    // Determine branch code for the slot being assigned
-    const st = shiftTypes.find(x=>x.code===code);
-    const bCode = st ? branches.find(b=>b.id===st.branch_id)?.code : code;
-    const branch = branches.find(b=>b.code===bCode);
-
-    // Find who already occupies this specific slot or branch today
-    const slotOccupant = Object.values(shifts).find(s=>{
-      if(s.shift_date !== dateStr) return false;
-      if(s.employee_id === empId) return false;
-      if(!s.shift_type_code || s.shift_type_code==='X') return false;
-
-      if(st){
-        // It's a typed slot (M1, P1...) — exact match only
-        return s.shift_type_code === code;
-      } else {
-        // It's a branch code (K, U) — find shifts on same branch
-        const xst = shiftTypes.find(y=>y.code===s.shift_type_code);
-        const xbc = xst ? branches.find(b=>b.id===xst.branch_id)?.code : s.shift_type_code;
-        return xbc === bCode;
-      }
-    });
-
-    // Only trigger replace if branch is actually at capacity
-    if(slotOccupant && branch){
-      const shiftsOnBranch = Object.values(shifts).filter(s=>{
-        if(s.shift_date!==dateStr || s.employee_id===empId) return false;
-        if(!s.shift_type_code || s.shift_type_code==='X') return false;
-        const xst = shiftTypes.find(y=>y.code===s.shift_type_code);
-        const xbc = xst ? branches.find(b=>b.id===xst.branch_id)?.code : s.shift_type_code;
-        return xbc===bCode;
-      });
-
-      if(shiftsOnBranch.length >= branch.max_per_day){
-        const occupantEmp = employees.find(e=>e.id===slotOccupant.employee_id);
-        const occupantName = occupantEmp?.name || 'jiný zaměstnanec';
-        const day = parseInt(dateStr.split('-')[2]);
-        if(confirm(`${code} je na ${day}. již obsazen/a ${occupantName}.\n\nNahradit ${occupantName} za ${employees.find(e=>e.id===empId)?.name}?`)){
-          const { error: replErr } = await dbDelete('shifts', { id: slotOccupant.id }, { action: 'Nahrazení směny' });
-          if(replErr) return;
-          delete shifts[slotOccupant.employee_id+':'+dateStr];
-          const { data, error } = await sb.from('shifts').insert({
-            org_id: currentOrg.id, employee_id: empId,
-            shift_date: dateStr, shift_type_code: code, is_auto: false
-          }).select().single();
-          if(error){ toast('Chyba: '+error.message); return; }
-          if(data) shifts[key] = data;
-          renderCalendar();
-          toast(`✓ ${occupantName} nahrazen/a`);
-        }
-        return;
-      }
-    }
+    const free = await ensureSlotFree(dateStr, code, empId);
+    if(!free.ok) return;
+    replacedName = free.replaced;
   }
 
   if(existing){
+    // Přepis vlastní směny — u RUČNÍ/FIXNÍ se ptáme (auto beze změny)
+    if(!confirmOverwriteManual(existing, 'přepsat')) return;
     const { data, error } = await sb.from('shifts').update({
       shift_type_code: code, is_auto: false
     }).eq('id', existing.id).select().single();
@@ -5531,6 +5550,7 @@ async function pickShift(empId, dateStr, code){
     if(data) shifts[key] = data;
   }
   renderCalendar();
+  if(replacedName) toast(`✓ ${replacedName} nahrazen/a`);
 }
 
 // ============================================================
@@ -8205,6 +8225,10 @@ function openDayDetail(day, replaceEmpId=null){
 }
 
 async function dayDetailAssign(empId, dateStr, slotCode, day){
+  // v0.9.22 — stejná slot-vědomá kapacita jako pickShift: plný slot = nahrazení,
+  // ne přidání druhého člověka (dřív holý INSERT bez kontroly)
+  const free = await ensureSlotFree(dateStr, slotCode, empId);
+  if(!free.ok) return;
   const { data, error } = await sb.from('shifts').insert({
     org_id: currentOrg.id, employee_id: empId,
     shift_date: dateStr, shift_type_code: slotCode, is_auto: false
@@ -8213,7 +8237,9 @@ async function dayDetailAssign(empId, dateStr, slotCode, day){
   shifts[empId+':'+dateStr] = data;
   renderCalendar();
   openDayDetail(day || parseInt(dateStr.split('-')[2]));
-  toast(`✓ ${slotCode} přiřazeno — ${employees.find(e=>e.id===empId)?.name}`);
+  toast(free.replaced
+    ? `✓ ${slotCode}: ${free.replaced} nahrazen/a — ${employees.find(e=>e.id===empId)?.name}`
+    : `✓ ${slotCode} přiřazeno — ${employees.find(e=>e.id===empId)?.name}`);
 }
 
 // Open picker for a specific employee+date (used from day detail "change slot")
@@ -8230,6 +8256,8 @@ function openPickerByIds(empId, dateStr){
 async function dayDetailRemove(empId, dateStr, day){
   const existing = shifts[empId+':'+dateStr];
   if(!existing) return;
+  // v0.9.22 — smazání RUČNÍ/FIXNÍ směny jen po potvrzení (auto beze změny)
+  if(!confirmOverwriteManual(existing, 'smazat')) return;
   const { error } = await sb.from('shifts').delete().eq('id', existing.id);
   if(error){ toast('Chyba: '+error.message); return; }
   delete shifts[empId+':'+dateStr];
@@ -8241,6 +8269,8 @@ async function dayDetailRemove(empId, dateStr, day){
 async function dayDetailReplace(oldEmpId, newEmpId, dateStr, slotCode, day){
   // Remove old
   const existing = shifts[oldEmpId+':'+dateStr];
+  // v0.9.22 — přepis RUČNÍ/FIXNÍ směny jen po potvrzení (auto beze změny)
+  if(existing && !confirmOverwriteManual(existing, 'přepsat')) return;
   if(existing){
     const { error: delErr } = await dbDelete('shifts', { id: existing.id }, { action: 'Nahrazení směny' });
     if(delErr) return;
