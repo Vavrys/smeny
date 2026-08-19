@@ -2248,7 +2248,7 @@ window.addEventListener('unhandledrejection', e => {
 // Badge v hlavičce (#app-version-label) se plní odsud, ručně ho
 // nepřepisuj. sw.js VERSION drž v synchronu (řídí název cache).
 // ============================================================
-const APP_VERSION = '0.9.15';
+const APP_VERSION = '0.9.16';
 (() => { const el = document.getElementById('app-version-label'); if(el) el.textContent = 'v' + APP_VERSION; })();
 
 // ============================================================
@@ -4440,9 +4440,10 @@ async function saveRules(){
     .eq('org_id', currentOrg.id);
   if(error){ toast('Chyba ukládání pravidel: '+error.message); return; }
   orgSettings = newSettings;
-  const tag = document.getElementById('rules-saved');
-  tag.style.display = 'inline';
-  setTimeout(()=>tag.style.display='none', 2000);
+  // #rules-saved neexistuje — potvrzení jde přes sdílený tag u tlačítka
+  // „Uložit všechna pravidla" (stejný mechanismus jako saveScoring).
+  const tag = document.getElementById('scoring-saved');
+  if(tag){ tag.style.display = 'inline'; setTimeout(()=>tag.style.display='none', 2000); }
 }
 
 // ============================================================
@@ -11179,7 +11180,7 @@ initAuthBubbles();
      TUTORIAL SYSTEM v2 — layered contextual guides
      ============================================================ -->
 <div id="tut-overlay" style="display:none;position:fixed;inset:0;z-index:9000;pointer-events:none">
-  <div id="tut-backdrop" style="position:absolute;inset:0;pointer-events:all"></div>
+  <div id="tut-backdrop" style="position:absolute;inset:0;pointer-events:none"></div>
   <div id="tut-spotlight" style="position:absolute;border-radius:10px;pointer-events:none;transition:all .22s cubic-bezier(.4,0,.2,1);box-shadow:none"></div>
   <div id="tut-bubble" style="position:absolute;background:var(--surface);border:1.5px solid var(--line);border-radius:14px;box-shadow:0 8px 32px rgba(30,34,48,.18);width:320px;padding:22px;pointer-events:all;transition:top .22s,left .22s">
     <div id="tut-arrow" style="position:absolute;width:12px;height:12px;background:var(--surface);border:1.5px solid var(--line);transform:rotate(45deg);display:none"></div>
@@ -11446,6 +11447,8 @@ function endTutorial(){
   document.getElementById('tut-overlay').style.display = 'none';
   const sp = document.getElementById('tut-spotlight');
   sp.style.boxShadow = 'none'; sp.style.display = 'none';
+  const bd = document.getElementById('tut-backdrop');
+  if(bd) bd.style.boxShadow = '';
   if(tutPhase) localStorage.setItem('tut_done_'+tutPhase, '1');
   tutPhase = '';
 }
