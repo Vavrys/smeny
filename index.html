@@ -2248,7 +2248,7 @@ window.addEventListener('unhandledrejection', e => {
 // Badge v hlavičce (#app-version-label) se plní odsud, ručně ho
 // nepřepisuj. sw.js VERSION drž v synchronu (řídí název cache).
 // ============================================================
-const APP_VERSION = '0.9.16';
+const APP_VERSION = '0.9.17';
 (() => { const el = document.getElementById('app-version-label'); if(el) el.textContent = 'v' + APP_VERSION; })();
 
 // ============================================================
@@ -6344,6 +6344,7 @@ function showFeasibilityModal(){
 // SCHEDULE BUILDER (single run)
 // ============================================================
 function buildSchedule(daysInMonth, prevMonthShifts){
+  const ENABLE_SWAP = true; // false = předchozí chování (záchranná brzda)
   prevMonthShifts = prevMonthShifts || {}; // no previous-month data (e.g. first month ever) → just proceed normally
   // Working copy — preserve manual shifts; key → {employee_id, shift_date, shift_type_code, is_auto}
   const S = {};
@@ -7170,6 +7171,58 @@ function buildSchedule(daysInMonth, prevMonthShifts){
               setShift(emp.id, dateStr, newCode);
               if(takeover) setShift(takeover.id, dateStr, oldCode);
               deficit--; progressed3 = true;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // ── SWAP PASS (min-satisfaction) ─────────────────────────────
+  // Dá směnu člověku pod jeho min_shifts tím, že ji převezme od někoho nad
+  // jeho minimem — buď přímo (dárce ztratí směnu), nebo řetězem (dárce se
+  // přesune na jiný otevřený slot, beneficiář vezme jeho). Jen auto směny.
+  // Nevolá computeQuality; každý tah je lokálně monotónní zlepšení minim.
+  if(ENABLE_SWAP){
+    let iterS = 0, progressedS = true;
+    while(progressedS && iterS < 400){
+      progressedS = false;
+      const below = shuffle([...nonFixed]).filter(a => empShiftCount(a.id) < (a.min_shifts||0));
+      for(const A of below){
+        if(empShiftCount(A.id) >= (A.min_shifts||0)) continue;
+        let placed = false;
+        for(const d of shuffle(Array.from({length:daysInMonth},(_,i)=>i+1))){
+          if(iterS >= 400 || placed) break;
+          const dateStr = isoDate(schedYear, schedMonth+1, d);
+          if(S[A.id+':'+dateStr]) continue; // A ten den nemá volno
+          for(const B of shuffle([...nonFixed])){
+            if(B.id === A.id) continue;
+            const bKey = B.id+':'+dateStr;
+            const bs = S[bKey];
+            if(!bs || !bs.is_auto || bs.shift_type_code==='X') continue;
+            const c = bs.shift_type_code;
+            if(!canWork(A, dateStr, c)) continue;
+            iterS++;
+            // (i) přímé převzetí: B je nad svým minimem → prostě předej A
+            if(empShiftCount(B.id) > (B.min_shifts||0)){
+              clearShift(bKey);
+              setShift(A.id, dateStr, c);
+              progressedS = true; placed = true; break;
+            }
+            // (ii) řetěz: B se přesune na jiný otevřený slot, A vezme jeho c
+            clearShift(bKey);
+            let reloc = null;
+            for(const b of branches){
+              const c2 = openCodeOnBranch(b, dateStr, B);
+              if(!c2 || c2===c) continue;
+              if(canWork(B, dateStr, c2)){ reloc = c2; break; }
+            }
+            if(reloc){
+              setShift(A.id, dateStr, c);
+              setShift(B.id, dateStr, reloc);
+              progressedS = true; placed = true; break;
+            } else {
+              S[bKey] = bs; invalidateCaches(); // restore, zkus dalšího B
             }
           }
         }
