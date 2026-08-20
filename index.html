@@ -653,7 +653,10 @@ table.sched-table { --branch-hdr-h: 26px; }
   box-shadow: inset 0 -1px 0 #ccc;
   border-bottom: hidden !important;
 }
-.branch-day-header td.sched-name-col { left: 0; z-index: 5; }
+/* v0.9.25: overflow:visible — táhlo šířky sedí na right:-4px a base
+   .sched-name-col{overflow:hidden} by ho uřízlo (v thead to řešil
+   samostatný override na ř. ~474, ten teď na tuhle buňku nedosáhne). */
+.branch-day-header td.sched-name-col { left: 0; z-index: 5; overflow: visible; }
 body.dark .branch-day-header td { box-shadow: inset 0 -1px 0 #3a3d55; }
 .branch-group-spacer td { border-bottom: none !important; background: var(--paper) !important; }
 #branch-view-btn.active { background: rgba(29,78,216,0.10); color: #1d4ed8; border-color: #1d4ed8; border-width: 2px; font-weight: 700; }
@@ -2284,7 +2287,7 @@ window.addEventListener('unhandledrejection', e => {
 // Badge v hlavičce (#app-version-label) se plní odsud, ručně ho
 // nepřepisuj. sw.js VERSION drž v synchronu (řídí název cache).
 // ============================================================
-const APP_VERSION = '0.9.24';
+const APP_VERSION = '0.9.25';
 (() => { const el = document.getElementById('app-version-label'); if(el) el.textContent = 'v' + APP_VERSION; })();
 
 // ============================================================
@@ -5202,20 +5205,16 @@ function renderCalendarBranch(thead, tbody, daysInMonth, DOW_SHORT){
   if(existingCG) existingCG.remove();
   table.insertAdjacentHTML('afterbegin', colHtml);
 
-  // Header row
-  // v0.9.23: roh nad sloupcem jmen zůstává prázdný — nadpis „Zaměstnanec" byl zbytečný
-  // a mátl se s názvy poboček v sekčních hlavičkách pod ním.
-  let hRow = `<tr><th class="sched-name-col" id="sched-name-th" style="position:sticky;left:0;z-index:3"><div class="sched-name-col-resize" id="name-col-resize-handle"></div></th>`;
-  for(let d=1; d<=daysInMonth; d++){
-    const dow = new Date(schedYear, schedMonth, d).getDay();
-    const isWE = dow===0 || dow===6;
-    hRow += `<th class="sched-day-col${isWE?' weekend':''}">${d}<br><span class="dow">${DOW_SHORT[dow]}</span></th>`;
-  }
-  hRow += '</tr>';
-  thead.innerHTML = hRow;
+  // v0.9.25: GLOBÁLNÍ řádek dnů ZRUŠEN. Od v0.9.23 má vlastní sticky řádek dnů
+  // každá pobočková sekce, takže nahoře stála druhá, skoro identická kopie —
+  // a hned pod ní ta samá u první pobočky. thead proto zůstává prázdný a první,
+  // co uživatel vidí, je barevný pruh pobočky a pod ním její řádek dnů.
+  // Táhlo šířky sloupce jmen (#name-col-resize-handle) i cíl tutoriálu
+  // (#sched-name-th) se stěhují do hlavičky PRVNÍ sekce — jinde by se ID
+  // duplikovalo. initNameColResize() proto až ZA smyčkou přes pobočky.
+  thead.innerHTML = '';
 
   applyNameColWidth(nameColWidth);
-  initNameColResize();
   renderLegend();
 
   tbody.innerHTML = '';
@@ -5251,7 +5250,12 @@ function renderCalendarBranch(thead, tbody, daysInMonth, DOW_SHORT){
     // vidí datum přímo u sekce bez rolování nahoru. Sloupce sedí díky <colgroup>.
     const dayHdrTr = document.createElement('tr');
     dayHdrTr.className = 'branch-day-header';
-    let dayCells = `<td class="sched-name-col"></td>`;
+    // v0.9.25: roh PRVNÍ sekce zastupuje zrušenou hlavičku tabulky — nese táhlo
+    // šířky sloupce jmen a je cílem kroku tutoriálu „Šířka sloupce jmen".
+    const cornerAttrs = bIdx === 0 ? ' id="sched-name-th"' : '';
+    const cornerInner = bIdx === 0
+      ? `<div class="sched-name-col-resize" id="name-col-resize-handle"></div>` : '';
+    let dayCells = `<td class="sched-name-col"${cornerAttrs}>${cornerInner}</td>`;
     for(let d=1; d<=daysInMonth; d++){
       const dow  = new Date(schedYear, schedMonth, d).getDay();
       const isWE = dow===0 || dow===6;
@@ -5320,6 +5324,9 @@ function renderCalendarBranch(thead, tbody, daysInMonth, DOW_SHORT){
       tbody.appendChild(spacerTr);
     }
   });
+
+  // v0.9.25: až teď — táhlo vzniká s hlavičkou první pobočky, ne v thead
+  initNameColResize();
 
   renderScoreBar();
   renderLaborCost();
