@@ -3,7 +3,7 @@
 // Změna verze = nový název cache → při aktivaci se stará cache smaže a klienti
 // dostanou čerstvý build (skipWaiting + clients.claim, reload řeší registrace
 // v index.html přes controllerchange) — nikdo nezůstane na zamrzlém buildu.
-const VERSION = '0.9.23';
+const VERSION = '0.9.24';
 const CACHE = 'smeny-v' + VERSION;         // shell (cache-first)
 const DATA_CACHE = CACHE + '-data';        // Supabase GET data (network-first, offline fallback)
 const PRECACHE = ['./', './index.html', './manifest.json'];
@@ -37,7 +37,10 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // Ostatní cross-origin necháváme bez zásahu
+  // Ostatní cross-origin necháváme bez zásahu — CDN skripty (supabase-js, xlsx,
+  // @floating-ui/core+dom od v0.9.24, Google Fonts) řeší HTTP cache prohlížeče.
+  // Do SW cache je ZÁMĚRNĚ netaháme: opaque response nejde ověřit a zafixovala by
+  // se napevno pod verzí cache.
   if (url.origin !== location.origin) return;
 
   // Shell — cache-first (novou verzi shellu přinese nová verze SW s novou cache)

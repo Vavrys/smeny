@@ -15,6 +15,12 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<!-- v0.9.24: Floating UI — pozicování plovoucích prvků (viz positionFloating()).
+     Pořadí je závazné: UMD build @floating-ui/dom čte globál FloatingUICore.
+     Exporty končí na window.FloatingUICore / window.FloatingUIDOM.
+     Cross-origin → service worker je nechává mimo cache (stejně jako supabase/xlsx). -->
+<script src="https://cdn.jsdelivr.net/npm/@floating-ui/core@1.8.0"></script>
+<script src="https://cdn.jsdelivr.net/npm/@floating-ui/dom@1.8.0"></script>
 <style>
 /* ============================================================
    DESIGN TOKENS
@@ -504,9 +510,14 @@ thead .sched-stat-col{white-space:normal;line-height:1.3;font-size:10px;font-wei
 .auto-progress-track{background:#d8ebe1;border-radius:4px;height:6px;overflow:hidden;margin-top:6px}
 .auto-progress-fill{height:100%;background:var(--accent);border-radius:4px;transition:width .15s}
 
-.picker{position:fixed;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px;z-index:500;display:none;flex-direction:column;gap:4px;min-width:200px;max-width:260px;box-shadow:var(--shadow-lg);max-height:80vh;overflow-y:auto}
+/* v0.9.24: z-index 500 → 700 (nad #notif-panel a .help-panel, oba 600) */
+.picker{position:fixed;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px;z-index:700;display:none;flex-direction:column;gap:4px;min-width:200px;max-width:260px;box-shadow:var(--shadow-lg);max-height:80vh;overflow-y:auto}
 .picker.open{display:flex}
-.picker-overlay{position:fixed;inset:0;z-index:499;display:none}
+/* v0.9.24: overlay UŽ NECHYTÁ vstup — jako klikací vrstva přes celý viewport
+   polykal i wheel, takže .sched-scroll pod ním nescrolloval a picker zůstal
+   viset odpojený od buňky. Zavírání klikem mimo řeší pickerOutsideMouseDown(),
+   scroll teď projde na tabulku a autoUpdate() drží picker u kotvy. */
+.picker-overlay{position:fixed;inset:0;z-index:699;display:none;pointer-events:none}
 .picker-overlay.open{display:block}
 .picker-group{display:flex;flex-wrap:wrap;gap:4px}
 .picker-label{font-size:10px;color:var(--ink-faint);font-weight:600;text-transform:uppercase;letter-spacing:.03em;margin-top:2px}
@@ -734,6 +745,10 @@ body.dark .team-grid .team-name{background:var(--surface)}
   /* Tutorial bubbles — clamp to screen */
   #tut-bubble{ width:calc(100vw - 24px) !important;max-width:320px }
   #emp-tut-bubble{ width:calc(100vw - 24px) !important;max-width:290px }
+  /* v0.9.24: picker se vejde na šířku displeje (dosud jediný plovoucí prvek
+     bez mobilního pravidla). max-height ZÁMĚRNĚ bez !important — size()
+     z Floating UI ho smí inline ještě zmenšit podle volného místa. */
+  .picker{ width:calc(100vw - 24px) !important;max-width:calc(100vw - 24px) !important;min-width:0 !important;max-height:70vh }
   /* Tab labels shorter + horizontálně scrollovatelný tabbar (v0.9.1 B3) */
   .tab-btn{ padding:12px 10px;font-size:12.5px;white-space:nowrap }
   .tabbar{ overflow-x:auto;-webkit-overflow-scrolling:touch }
@@ -2231,7 +2246,10 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
 <!-- ============================================================
      CELL PICKER (calendar manual edit)
      ============================================================ -->
-<div class="picker-overlay" id="picker-overlay" onclick="closePicker()"></div>
+<!-- v0.9.24: bez onclick — overlay je pointer-events:none, klik mimo řeší
+     pickerOutsideMouseDown(). Element zůstává jako marker otevřeného pickeru
+     (print CSS ř. ~552, initOverlayCloseGuard). -->
+<div class="picker-overlay" id="picker-overlay"></div>
 <div class="picker" id="picker"></div>
 
 <div class="toast" id="toast"></div>
@@ -2266,7 +2284,7 @@ window.addEventListener('unhandledrejection', e => {
 // Badge v hlavičce (#app-version-label) se plní odsud, ručně ho
 // nepřepisuj. sw.js VERSION drž v synchronu (řídí název cache).
 // ============================================================
-const APP_VERSION = '0.9.23';
+const APP_VERSION = '0.9.24';
 (() => { const el = document.getElementById('app-version-label'); if(el) el.textContent = 'v' + APP_VERSION; })();
 
 // ============================================================
@@ -4487,7 +4505,8 @@ function initKeyboardShortcuts(){
       if(document.getElementById('tut-overlay')?.style.display === 'block') { endTutorial(); return; }
       document.querySelectorAll('.modal-overlay.open').forEach(m => m.classList.remove('open'));
       const picker = document.getElementById('picker');
-      if(picker?.classList.contains('open')) picker.classList.remove('open');
+      // v0.9.24 — přes closePicker(), jinak by zůstal běžet autoUpdate
+      if(picker?.classList.contains('open')) closePicker();
       return;
     }
     if(modalOpen) return;
@@ -5336,6 +5355,99 @@ function renderLegend(){
 }
 
 // ============================================================
+// SDÍLENÉ POZICOVÁNÍ PLOVOUCÍCH PRVKŮ (v0.9.24)
+// Jeden zdroj pravdy místo ručních getBoundingClientRect + magických konstant.
+// Staví na Floating UI (UMD z CDN, window.FloatingUIDOM):
+//   offset(6)  — mezera mezi kotvou a prvkem
+//   flip()     — překlopení podle SKUTEČNĚ naměřené velikosti prvku
+//   shift()    — posun podél osy, ať prvek nevyleze z viewportu
+//   size()     — maxWidth/maxHeight podle volného místa + vnitřní scroll
+//   autoUpdate — přepočet při scrollu (i uvnitř .sched-scroll) a resize
+// Vrací cleanup funkci — MUSÍ se zavolat při zavření prvku, jinak autoUpdate
+// drží scroll/resize listenery a observery na už odstraněné kotvě.
+// ZATÍM napojen jen #picker; tutorial bubliny, #tut-menu, CSS dropdowny
+// a #notif-panel si vlastní pozicování drží dál a migrují se samostatně.
+// ============================================================
+const FLOAT_PAD = 8;
+let pickerCleanup = null;   // cleanup autoUpdate pro #picker
+
+function positionFloating(anchorEl, floatingEl, opts = {}){
+  if(!floatingEl) return () => {};
+  const placement = opts.placement || 'bottom-start';
+  const pad       = opts.padding != null ? opts.padding : FLOAT_PAD;
+  const gap       = opts.offset  != null ? opts.offset  : 6;
+  const FUI       = window.FloatingUIDOM;
+  const isElement = !!anchorEl && anchorEl.nodeType === 1;
+
+  // CDN nedoběhlo, nebo nemáme reálnou kotvu (buňka není v DOM) →
+  // vycentruj do viewportu. Degradace, ne pád: prvek je vždy celý vidět,
+  // jen ztratí vazbu na kotvu.
+  if(!FUI || typeof FUI.computePosition !== 'function' || !isElement){
+    Object.assign(floatingEl.style, {
+      position: 'fixed', left: '50%', top: '50%',
+      transform: 'translate(-50%, -50%)',
+      maxWidth:  `calc(100vw - ${pad*2}px)`,
+      maxHeight: `calc(100vh - ${pad*2}px)`,
+      overflowY: 'auto'
+    });
+    return () => {};
+  }
+
+  floatingEl.style.position  = 'fixed';   // shodné se strategy:'fixed'
+  floatingEl.style.transform = '';        // po případném fallbacku výše
+  // border-box: bez něj by max-height platilo na content box a prvek by byl
+  // o padding+border vyšší než volné místo (u .picker o 26 px → ořez).
+  floatingEl.style.boxSizing = 'border-box';
+
+  // Návrhový strop z CSS čteme JEDNOU, ještě před prvním apply(). Bez toho by
+  // size() přepsal max-width:260px dostupnou šířkou a popup by se při dostatku
+  // místa roztáhl přes půl obrazovky; a čtení uvnitř apply() by zase každým
+  // během autoUpdate zužovalo výsledek předchozího.
+  const cs      = getComputedStyle(floatingEl);
+  const cssMaxW = parseFloat(cs.maxWidth)  || Infinity;
+  const cssMaxH = parseFloat(cs.maxHeight) || Infinity;
+
+  const update = () => FUI.computePosition(anchorEl, floatingEl, {
+    strategy: 'fixed',
+    placement,
+    middleware: [
+      FUI.offset(gap),
+      FUI.flip({ padding: pad }),
+      FUI.shift({ padding: pad }),
+      FUI.size({
+        padding: pad,
+        apply({ availableWidth, availableHeight, elements }){
+          Object.assign(elements.floating.style, {
+            maxWidth:  Math.min(cssMaxW, Math.max(opts.minWidth  || 180, availableWidth))  + 'px',
+            maxHeight: Math.min(cssMaxH, Math.max(opts.minHeight || 120, availableHeight)) + 'px',
+            overflowY: 'auto'
+          });
+        }
+      })
+    ]
+  }).then(({ x, y }) => {
+    Object.assign(floatingEl.style, { left: x + 'px', top: y + 'px' });
+  });
+
+  return FUI.autoUpdate(anchorEl, floatingEl, update);
+}
+
+// Smaže inline styly, které positionFloating() nastavil — bez toho by si prvek
+// nesl maxHeight/transform z minulého otevření do dalšího výpočtu.
+function resetFloating(floatingEl){
+  if(!floatingEl) return;
+  ['left','top','transform','maxWidth','maxHeight','overflowY','boxSizing']
+    .forEach(k => { floatingEl.style[k] = ''; });
+}
+
+// Klik mimo picker ho zavře — náhrada za klikací .picker-overlay (viz CSS ř. ~509).
+// Capture fáze, ať to funguje i nad prvky s vlastním stopPropagation.
+function pickerOutsideMouseDown(e){
+  const picker = document.getElementById('picker');
+  if(picker && !picker.contains(e.target)) closePicker();
+}
+
+// ============================================================
 // CELL PICKER
 // ============================================================
 function openPicker(cell){
@@ -5476,18 +5588,27 @@ function openPicker(cell){
 
   picker.innerHTML = html;
 
-  const rect = cell.getBoundingClientRect();
-  let top = rect.bottom + 4, left = rect.left;
-  if(top + 380 > window.innerHeight) top = rect.top - 384;
-  if(left + 220 > window.innerWidth)  left = window.innerWidth - 228;
-  picker.style.top = top+'px'; picker.style.left = left+'px';
+  // v0.9.24 — .open PŘED pozicováním: dokud je picker display:none, má nulové
+  // rozměry a flip/shift/size by neměly co měřit. Přesně tohle byla příčina
+  // ořezávání a náhodného překlápění — starý kód hádal 380×220 px, zatímco
+  // reálně je popup až 260 px široký a 80vh vysoký.
   picker.classList.add('open');
   overlay.classList.add('open');
+
+  if(pickerCleanup) pickerCleanup();
+  resetFloating(picker);
+  pickerCleanup = positionFloating(cell, picker, { placement: 'bottom-start' });
+  document.addEventListener('mousedown', pickerOutsideMouseDown, true);
 }
 
 function closePicker(){
-  document.getElementById('picker').classList.remove('open');
-  document.getElementById('picker-overlay').classList.remove('open');
+  // Cleanup MUSÍ proběhnout i při zavření z Esc — proto sem vede každá cesta.
+  if(pickerCleanup){ pickerCleanup(); pickerCleanup = null; }
+  document.removeEventListener('mousedown', pickerOutsideMouseDown, true);
+  const picker  = document.getElementById('picker');
+  const overlay = document.getElementById('picker-overlay');
+  if(picker){ picker.classList.remove('open'); resetFloating(picker); }
+  if(overlay) overlay.classList.remove('open');
 }
 
 async function fillModeAssign(empId, dateStr, slotCode){
@@ -8280,10 +8401,10 @@ function openPickerByIds(empId, dateStr){
   // Find the TD cell in the calendar
   const cell = document.querySelector(`td[data-emp="${empId}"][data-date="${dateStr}"]`);
   if(cell){ openPicker(cell); return; }
-  // Fallback: construct a fake cell object
-  openPicker({ dataset: { emp: empId, date: dateStr },
-    getBoundingClientRect: ()=>({ bottom: window.innerHeight/2, top: window.innerHeight/2-320, left: window.innerWidth/2-100 })
-  });
+  // v0.9.24 — buňka není v DOM (jiný měsíc, filtr, pobočkový přehled bez řádku).
+  // Žádný falešný getBoundingClientRect s natvrdo psanými souřadnicemi:
+  // bez reálné kotvy si positionFloating() popup vycentruje do viewportu.
+  openPicker({ dataset: { emp: empId, date: dateStr } });
 }
 
 async function dayDetailRemove(empId, dateStr, day){
@@ -13689,7 +13810,8 @@ function initKeyboardShortcuts(){
       if(document.getElementById('tut-overlay')?.style.display==='block'){ endTutorial(); return; }
       document.querySelectorAll('.modal-overlay.open').forEach(m=>m.classList.remove('open'));
       const picker = document.getElementById('picker');
-      if(picker?.classList.contains('open')) picker.classList.remove('open');
+      // v0.9.24 — přes closePicker(), jinak by zůstal běžet autoUpdate
+      if(picker?.classList.contains('open')) closePicker();
       return;
     }
 
