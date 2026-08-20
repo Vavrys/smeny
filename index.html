@@ -561,6 +561,8 @@ tr.dragging{opacity:.4}
   .sched-cell { height: 18px !important; }
   .sched-stat-col { font-size: 8px !important; padding: 2px 4px !important; }
   .drag-handle { display: none !important; }
+  /* v0.9.23: v tisku sticky nechceme — sekční hlavičky poboček tisknout staticky */
+  .branch-group-header td, .branch-day-header td { position: static !important; box-shadow: none !important; }
   /* Print header */
   #print-header { display: block !important; }
   @page { size: A4 landscape; margin: 8mm; }
@@ -626,6 +628,22 @@ body.employee-view #fill-mode-slot-wrap { display: none !important; }
 
 /* Branch view */
 .branch-group-header td { border-bottom: hidden !important; border-right: hidden !important; }
+/* v0.9.23: per-sekční hlavička pobočky = barevný pruh + řádek dnů, oboje sticky
+   ve scrollovaném kontejneru (.sched-scroll má díky overflow-x:auto i svislý
+   scrollport, jakmile je nastavená max-height táhlem výšky tabulky). */
+table.sched-table { --branch-hdr-h: 26px; }
+.branch-group-header td {
+  position: sticky; top: 0; z-index: 6;
+  height: var(--branch-hdr-h); line-height: var(--branch-hdr-h); padding: 0 10px !important;
+}
+.branch-day-header td {
+  position: sticky; top: var(--branch-hdr-h); z-index: 4;
+  background: var(--surface);
+  box-shadow: inset 0 -1px 0 #ccc;
+  border-bottom: hidden !important;
+}
+.branch-day-header td.sched-name-col { left: 0; z-index: 5; }
+body.dark .branch-day-header td { box-shadow: inset 0 -1px 0 #3a3d55; }
 .branch-group-spacer td { border-bottom: none !important; background: var(--paper) !important; }
 #branch-view-btn.active { background: rgba(29,78,216,0.10); color: #1d4ed8; border-color: #1d4ed8; border-width: 2px; font-weight: 700; }
 /* Table width drag handle */
@@ -2248,7 +2266,7 @@ window.addEventListener('unhandledrejection', e => {
 // Badge v hlavičce (#app-version-label) se plní odsud, ručně ho
 // nepřepisuj. sw.js VERSION drž v synchronu (řídí název cache).
 // ============================================================
-const APP_VERSION = '0.9.22';
+const APP_VERSION = '0.9.23';
 (() => { const el = document.getElementById('app-version-label'); if(el) el.textContent = 'v' + APP_VERSION; })();
 
 // ============================================================
@@ -5166,7 +5184,9 @@ function renderCalendarBranch(thead, tbody, daysInMonth, DOW_SHORT){
   table.insertAdjacentHTML('afterbegin', colHtml);
 
   // Header row
-  let hRow = `<tr><th class="sched-name-col" id="sched-name-th" style="position:sticky;left:0;z-index:3">Zaměstnanec<div class="sched-name-col-resize" id="name-col-resize-handle"></div></th>`;
+  // v0.9.23: roh nad sloupcem jmen zůstává prázdný — nadpis „Zaměstnanec" byl zbytečný
+  // a mátl se s názvy poboček v sekčních hlavičkách pod ním.
+  let hRow = `<tr><th class="sched-name-col" id="sched-name-th" style="position:sticky;left:0;z-index:3"><div class="sched-name-col-resize" id="name-col-resize-handle"></div></th>`;
   for(let d=1; d<=daysInMonth; d++){
     const dow = new Date(schedYear, schedMonth, d).getDay();
     const isWE = dow===0 || dow===6;
@@ -5203,10 +5223,23 @@ function renderCalendarBranch(thead, tbody, daysInMonth, DOW_SHORT){
     const noEmpsNote = branchEmps.length === 0
       ? ' <span style="opacity:0.75;font-weight:400;font-size:11px">— žádné směny tento měsíc</span>' : '';
     headerTr.innerHTML = `<td colspan="${totalCols}"
-      style="background:${branch.color||'#888'};color:#fff;font-weight:700;font-size:12px;padding:5px 10px;font-family:var(--font-display);letter-spacing:0.02em">
+      style="background:${branch.color||'#888'};color:#fff;font-weight:700;font-size:12px;font-family:var(--font-display);letter-spacing:0.02em">
       ${escapeHtml(branch.code)} — ${escapeHtml(branch.name)}${noEmpsNote}
     </td>`;
     tbody.appendChild(headerTr);
+
+    // v0.9.23: řádek s čísly dnů zopakovaný pod pruhem každé pobočky — uživatel
+    // vidí datum přímo u sekce bez rolování nahoru. Sloupce sedí díky <colgroup>.
+    const dayHdrTr = document.createElement('tr');
+    dayHdrTr.className = 'branch-day-header';
+    let dayCells = `<td class="sched-name-col"></td>`;
+    for(let d=1; d<=daysInMonth; d++){
+      const dow  = new Date(schedYear, schedMonth, d).getDay();
+      const isWE = dow===0 || dow===6;
+      dayCells += `<td class="sched-day-col${isWE?' weekend':''}">${d}<br><span class="dow">${DOW_SHORT[dow]}</span></td>`;
+    }
+    dayHdrTr.innerHTML = dayCells;
+    tbody.appendChild(dayHdrTr);
 
     // 8px breathing room between branch header and first employee row
     const gapTr = document.createElement('tr');
