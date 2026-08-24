@@ -1683,7 +1683,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
       </div>
     </div>
     <div class="field" id="emp-minwe-field">
-      <label>Min. volných víkendů (Pá–Ne) / měsíc</label>
+      <label>Min. volných víkendů (So–Ne) / měsíc</label>
       <input type="number" id="employee-minwe" value="0" min="0" max="8">
     </div>
 
@@ -2287,7 +2287,7 @@ window.addEventListener('unhandledrejection', e => {
 // Badge v hlavičce (#app-version-label) se plní odsud, ručně ho
 // nepřepisuj. sw.js VERSION drž v synchronu (řídí název cache).
 // ============================================================
-const APP_VERSION = '0.9.25';
+const APP_VERSION = '0.9.26';
 (() => { const el = document.getElementById('app-version-label'); if(el) el.textContent = 'v' + APP_VERSION; })();
 
 // ============================================================
@@ -4965,7 +4965,7 @@ function renderCalendar(){
   const activePairs = allPairs.filter(p => p[2] !== false);
 
   if(currentRole === 'admin' || currentRole === 'manager'){
-    hRow += `<th class="sched-stat-col" title="Aktuální počet směn / maximum (min je v tooltipu)">Směny</th><th class="sched-stat-col" title="Volné víkendy (Pá–Ne) / minimum">Volné<br>víkendy</th>`;
+    hRow += `<th class="sched-stat-col" title="Aktuální počet směn / maximum (min je v tooltipu)">Směny</th><th class="sched-stat-col" title="Volné víkendy (So–Ne) / minimum">Volné<br>víkendy</th>`;
     activePairs.forEach(pair=>{
       const c1 = pair[0], c2 = pair[1];
       hRow += `<th class="sched-stat-col" title="Vyváženost: ${c1} vs ${c2}" style="font-size:9.5px">${c1}/${c2}</th>`;
@@ -4980,7 +4980,7 @@ function renderCalendar(){
   renderLegend();
 
   tbody.innerHTML = '';
-  const weekendBlocks = collectWeekendBlocks(daysInMonth);
+  const weekendPairs = collectWeekendPairs(daysInMonth);
 
   employees.forEach(emp => {
     const tr = document.createElement('tr');
@@ -5117,7 +5117,7 @@ function renderCalendar(){
     // lives in `unavail`, not `shifts`, so this must be an OR, not an AND-with-negation
     // (the previous `!unavail[key] && (...)` required unavail to be UNSET to count as
     // free, which is backwards — it made every žádanka-covered weekend look "worked").
-    weekendBlocks.forEach(wb => {
+    weekendPairs.forEach(wb => {
       const allFree = wb.every(ds=>{
         const key = emp.id+':'+ds;
         if(unavail[key]) return true;
@@ -5126,7 +5126,7 @@ function renderCalendar(){
       });
       if(allFree) freeWeekendCount++;
       if(window.SMENY_DEBUG_WEEKENDS){
-        console.log(`[smeny] ${emp.name} blok [${wb.join(', ')}]: ${allFree?'VOLNÝ':'pracovní'} — `+
+        console.log(`[smeny] ${emp.name} víkend [${wb.join(', ')}]: ${allFree?'VOLNÝ':'pracovní'} — `+
           wb.map(ds=>{
             const key = emp.id+':'+ds;
             const s = shifts[key];
@@ -5345,6 +5345,21 @@ function collectWeekendBlocks(daysInMonth){
     }
   }
   return blocks;
+}
+
+// Measurement unit for "free weekends": the Sat+Sun pair of one weekend. Friday is
+// irrelevant here, and a lone Sat or Sun at a month edge (its other half falls in the
+// neighbouring month) forms no pair and is never counted. Occupancy still uses the
+// Fri–Sun block from collectWeekendBlocks().
+function collectWeekendPairs(daysInMonth){
+  const pairs = [];
+  for(let d=1; d<=daysInMonth; d++){
+    const date = new Date(schedYear, schedMonth, d);
+    if(date.getDay()===6 && d+1<=daysInMonth){   // Saturday + Sunday, both inside this month
+      pairs.push([isoDate(schedYear,schedMonth+1,d), isoDate(schedYear,schedMonth+1,d+1)]);
+    }
+  }
+  return pairs;
 }
 
 function renderLegend(){
@@ -5798,7 +5813,7 @@ function computeQuality(shiftsMap, unavailMap){
   const daysInMonth = new Date(schedYear, schedMonth+1, 0).getDate();
   const nonFixed = employees.filter(e=>!e.is_fixed)
     .map(e=>withEffectiveLimits(e, schedYear, schedMonth)); // v0.8.0: metriky počítají s efektivními limity (dovolená)
-  const weekendBlocks = collectWeekendBlocks(daysInMonth);
+  const weekendPairs = collectWeekendPairs(daysInMonth);
   const defaultMinWE = parseInt(orgSettings['default_min_free_weekends'])||0;
 
   function isWorking(key){
@@ -5857,7 +5872,7 @@ function computeQuality(shiftsMap, unavailMap){
     if(!minWE) return;
     weMetMinMax++;
     let free=0;
-    weekendBlocks.forEach(wb=>{ if(wb.every(ds=>!isWorking(emp.id+':'+ds))) free++; });
+    weekendPairs.forEach(pair=>{ if(pair.every(ds=>!isWorking(emp.id+':'+ds))) free++; });
     const ok = free>=minWE;
     if(ok) weMetMin++;
     weDetails.push({ name:emp.name, free, min:minWE, ok });
@@ -6180,7 +6195,7 @@ function checkScheduleInvariants(scheduleMap, daysInMonth){
   const wastedCandidates = [];
   const nonFixed = employees.filter(e=>!e.is_fixed && Object.keys(e.branch_limits||{}).length>0)
     .map(e=>withEffectiveLimits(e, schedYear, schedMonth)); // v0.8.0: schválená dovolená snižuje min/cíl/max jen v tomto měsíci
-  const weekendBlocks3 = collectWeekendBlocks(daysInMonth).filter(wb=>wb.length===3);
+  const weekendPairs = collectWeekendPairs(daysInMonth);
   const defaultMinWE = parseInt(orgSettings['default_min_free_weekends'])||0;
   const isWorking = (empId, dateStr)=>{ const s=scheduleMap[empId+':'+dateStr]; return !!(s && s.shift_type_code && s.shift_type_code!=='X'); };
   const hasX = (empId, dateStr)=> !!(unavail[empId+':'+dateStr] || (scheduleMap[empId+':'+dateStr]?.shift_type_code==='X'));
@@ -6215,10 +6230,10 @@ function checkScheduleInvariants(scheduleMap, daysInMonth){
           if(hasX(emp.id, dateStr) || scheduleMap[emp.id+':'+dateStr]) return;
           if(!openCodes.some(c=>empCanWorkSlot(emp, c))) return;
           if(shiftCount[emp.id] >= emp.max_shifts) return;
-          const wb = weekendBlocks3.find(w=>w.includes(dateStr));
-          if(wb && wb.every(ds=>!isWorking(emp.id, ds))){
+          const pair = weekendPairs.find(p=>p.includes(dateStr));
+          if(pair && pair.every(ds=>!isWorking(emp.id, ds))){
             const minWE = emp.min_free_weekends||defaultMinWE;
-            const free = weekendBlocks3.filter(w2=>w2.every(ds=>!isWorking(emp.id, ds))).length;
+            const free = weekendPairs.filter(p2=>p2.every(ds=>!isWorking(emp.id, ds))).length;
             if(free <= minWE) return; // taking the day would eat a protected free weekend
           }
           wastedCandidates.push(`${d}. ${g.branchCode} ← ${emp.name}`);
@@ -6543,6 +6558,7 @@ function buildSchedule(daysInMonth, prevMonthShifts){
   const defaultMinWE = parseInt(orgSettings['default_min_free_weekends'])||0;
   const weekendPriority = orgSettings['weekend_priority'] !== false && orgSettings['weekend_priority'] !== 'false';
   const weekendBlocks = collectWeekendBlocks(daysInMonth);
+  const weekendPairs = collectWeekendPairs(daysInMonth); // MEASURING free weekends (Sat+Sun); weekendBlocks above stays for OCCUPANCY
   // Days that belong to a full (Fri+Sat+Sun) weekend block, reserved for PASS 0 to own —
   // later passes must not sneak in single-day "extra" shifts here, or a block that PASS 0
   // gave whole to one employee (or deliberately left whole-free) ends up half-worked.
@@ -6724,8 +6740,7 @@ function buildSchedule(daysInMonth, prevMonthShifts){
     const cnt = empShiftCount(emp.id);
     const belowMin = Math.max(0, (emp.min_shifts||0) - cnt);
     const minWE = emp.min_free_weekends || defaultMinWE;
-    const freeWEs = weekendBlocks.filter(w =>
-      w.length===3 && w.every(ds=>!isWorking(emp.id+':'+ds))).length;
+    const freeWEs = weekendPairs.filter(p => p.every(ds=>!isWorking(emp.id+':'+ds))).length;
     const isWEday = [0,6].includes(new Date(dateStr+'T00:00:00').getDay());
     const weTerm = isWEday ? (freeWEs - minWE) : 0;
     const recentLoad = consecutiveBefore(emp.id, dateStr);
@@ -7225,15 +7240,17 @@ function buildSchedule(daysInMonth, prevMonthShifts){
       return countFilled(ds, code) > g.need;
     }
     function freeWeekendCount(emp){
-      return weekendBlocks.filter(wb=> wb.length===3 && wb.every(ds=>!isWorking(emp.id+':'+ds))).length;
+      return weekendPairs.filter(p=> p.every(ds=>!isWorking(emp.id+':'+ds))).length;
     }
-    // Adding a shift on a full-weekend day must not tear a whole-free block into a
-    // partial one below the employee's protected free-weekend minimum.
+    // Adding a shift on a Sat/Sun must not tear a whole-free Sat+Sun pair into a
+    // partial one below the employee's protected free-weekend minimum. Fridays and
+    // weekdays are irrelevant to this measure, so they never gate.
     function weekendSafeToAdd(emp, dateStr){
-      if(!fullWeekendDays.has(dateStr)) return true;
-      const wb = weekendBlocks.find(w=>w.length===3 && w.includes(dateStr));
-      if(!wb) return true;
-      if(!wb.every(ds=>!isWorking(emp.id+':'+ds))) return true; // already works part of it
+      const dow = new Date(dateStr+'T00:00:00').getDay();
+      if(dow!==0 && dow!==6) return true;              // Fri/weekday can never eat a free weekend
+      const pair = weekendPairs.find(p=>p.includes(dateStr));
+      if(!pair) return true;                           // Sat/Sun without its other half in this month
+      if(!pair.every(ds=>!isWorking(emp.id+':'+ds))) return true; // pair is not a free weekend anyway
       const minWE = emp.min_free_weekends||defaultMinWE;
       return freeWeekendCount(emp) > minWE;
     }
@@ -14712,9 +14729,9 @@ function renderMySchedule(){
   const eff = effectiveLimits(emp, schedYear, schedMonth);
   const total = worked + planned;
   const remX = Math.max(0, (emp.max_x||0) - xUsed);
-  const weekendBlocks = collectWeekendBlocks(daysInMonth);
+  const weekendPairs = collectWeekendPairs(daysInMonth);
   let freeWE = 0;
-  weekendBlocks.forEach(wb=>{
+  weekendPairs.forEach(wb=>{
     const allFree = wb.every(ds=>{
       const key = emp.id+':'+ds;
       if(unavail[key]) return true;
