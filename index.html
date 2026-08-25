@@ -524,6 +524,40 @@ thead .sched-stat-col{white-space:normal;line-height:1.3;font-size:10px;font-wei
 .pick-btn{border:none;border-radius:6px;padding:6px 9px;font-size:11.5px;font-weight:600;color:#fff;font-family:var(--font-mono);transition:transform .1s}
 .pick-btn:hover{transform:scale(1.05)}
 .pick-btn.pick-clear{font-family:var(--font-body);background:#7D8797;color:#fff;width:100%}
+
+/* ── v0.9.28 — MOBILNÍ BOTTOM SHEET pro #picker ──────────────────────────
+   Na úzké obrazovce (<=640px) se picker neotvírá u buňky: popup u kotvy
+   překryl přesně tu buňku, se kterou uživatel pracuje, a vnitřní scroll pod
+   Floating UI nefungoval. Místo toho vyjede zespodu jako lišta. Třídu
+   .as-sheet nasazuje openPicker(); positionFloating() se v tom režimu VŮBEC
+   nevolá (žádný autoUpdate, žádné inline left/top), takže sheet zůstává dole
+   nezávisle na buňce. Desktopová cesta je beze změny. */
+.picker.as-sheet{
+  position:fixed !important;left:0 !important;right:0 !important;top:auto !important;
+  bottom:0 !important;width:100% !important;max-width:100% !important;min-width:0 !important;
+  border-radius:16px 16px 0 0;border-bottom:none;
+  padding:0 14px calc(14px + env(safe-area-inset-bottom,0px));
+  max-height:75vh;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  overscroll-behavior:contain;                 /* scroll se nepřelije na tabulku pod overlayem */
+  box-shadow:0 -8px 32px rgba(15,20,35,.28);
+  transform:translateY(100%);transition:transform .22s ease-out}
+.picker.as-sheet.sheet-in{transform:translateY(0)}
+.picker.as-sheet.sheet-drag{transition:none}   /* při tahu prstem řídí transform JS */
+/* grabber + lepivá kontextová hlavička (kdo/kdy se upravuje) */
+.picker-sheet-grip{width:40px;height:4px;border-radius:2px;background:var(--line);margin:8px auto 2px;flex:none}
+.picker-sheet-head{position:sticky;top:0;z-index:1;background:var(--surface);display:flex;align-items:center;gap:10px;padding:4px 0 8px;margin-bottom:6px;border-bottom:1px solid var(--line);flex:none}
+.picker-sheet-ctx{flex:1;min-width:0}
+.picker-sheet-title{font-size:14px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.picker-sheet-sub{font-size:11px;color:var(--ink-faint);margin-top:1px}
+.picker-sheet-close{flex:none;min-width:44px;min-height:44px;border:1px solid var(--line);border-radius:10px;background:transparent;color:var(--ink-soft);font-size:15px;cursor:pointer}
+/* velké cíle na prst — jen v sheetu, desktop velikost neměníme */
+.picker.as-sheet .pick-btn{min-height:44px;padding:10px 14px;font-size:13px}
+.picker.as-sheet .pick-btn:hover{transform:none}
+.picker.as-sheet .pick-btn.pick-clear{min-height:44px}
+.picker.as-sheet .picker-group{gap:6px}
+/* overlay v sheet režimu ztmavne a chytá vstup (tap = zavřít, blokuje scroll tabulky pod ním) */
+.picker-overlay.as-sheet{background:rgba(15,20,35,.45);pointer-events:auto;touch-action:none}
+@media (prefers-reduced-motion: reduce){ .picker.as-sheet{transition:none} }
 /* Drag & drop rows */
 .drag-handle{cursor:grab;color:var(--ink-faint);margin-right:4px;font-size:13px;user-select:none;display:inline-block;vertical-align:middle}
 .drag-handle:active{cursor:grabbing}
@@ -2287,7 +2321,7 @@ window.addEventListener('unhandledrejection', e => {
 // Badge v hlavičce (#app-version-label) se plní odsud, ručně ho
 // nepřepisuj. sw.js VERSION drž v synchronu (řídí název cache).
 // ============================================================
-const APP_VERSION = '0.9.26';
+const APP_VERSION = '0.9.28';
 (() => { const el = document.getElementById('app-version-label'); if(el) el.textContent = 'v' + APP_VERSION; })();
 
 // ============================================================
@@ -2364,6 +2398,7 @@ const DEFAULT_ICONS = {
   tpl_weekend_peak: '🍺', tpl_workweek: '💼', dash_prehled: '📊',
   icon_klavesy: '⌨️', icon_import: '📂', sec_podminky: '📋', empty_inbox: '📭',
   icon_font: '📝', icon_density: '📐', set_dark_mode: '🌙',
+  picker_zavrit: '✕',   // v0.9.28 — křížek Zavřít v mobilním bottom sheetu pickeru
 };
 
 const ICONS_STORAGE_KEY = 'smeny_icon_overrides';
@@ -5469,6 +5504,83 @@ function pickerOutsideMouseDown(e){
   if(picker && !picker.contains(e.target)) closePicker();
 }
 
+// ── v0.9.28 — MOBILNÍ BOTTOM SHEET pro #picker ─────────────────────────────
+// Šířka <= 640px (stejný breakpoint jako CSS @media v celé appce) → picker se
+// otevře jako lišta zespodu místo popupu u buňky. Desktop beze změny.
+let pickerSheetCleanup = null;   // odpojení touch listenerů sheetu
+
+function pickerIsSheetMode(){
+  return window.matchMedia('(max-width:640px)').matches;
+}
+
+// „15. 9. (Po)" do kontextové hlavičky sheetu
+function pickerDateLabel(dateStr){
+  const p = String(dateStr||'').split('-');
+  if(p.length !== 3) return escapeHtml(String(dateStr||''));
+  const d = new Date(+p[0], +p[1]-1, +p[2]);
+  const dow = ['Ne','Po','Út','St','Čt','Pá','So'][d.getDay()];
+  return `${+p[2]}. ${+p[1]}. (${dow})`;
+}
+
+// Zavření tahem dolů. Tah se chytá jen když je sheet vyscrollovaný nahoru
+// (scrollTop === 0) nebo když prst začal na gripu/hlavičce — jinak by swipe
+// požíral vnitřní scroll seznamu poboček.
+function attachPickerSheet(picker, overlay){
+  let startY = 0, dy = 0, dragging = false, fromHandle = false;
+
+  const onStart = (e)=>{
+    if(e.touches.length !== 1) return;
+    startY = e.touches[0].clientY; dy = 0; dragging = false;
+    fromHandle = !!(e.target.closest && e.target.closest('.picker-sheet-grip,.picker-sheet-head'));
+  };
+  const onMove = (e)=>{
+    if(e.touches.length !== 1) return;
+    const delta = e.touches[0].clientY - startY;
+    if(!dragging){
+      if(delta <= 4) return;                            // tah nahoru = vnitřní scroll
+      if(!fromHandle && picker.scrollTop > 0) return;    // seznam ještě scrolluje
+      dragging = true;
+      picker.classList.add('sheet-drag');
+    }
+    dy = Math.max(0, delta);
+    picker.style.transform = `translateY(${dy}px)`;
+    e.preventDefault();                                 // listener je {passive:false}
+  };
+  const onEnd = ()=>{
+    if(!dragging){ dy = 0; return; }
+    picker.classList.remove('sheet-drag');
+    picker.style.transform = '';
+    dragging = false;
+    if(dy > 80) closePicker();
+    dy = 0;
+  };
+  const onOverlayTap = ()=> closePicker();
+
+  picker.addEventListener('touchstart', onStart, { passive:true });
+  picker.addEventListener('touchmove',  onMove,  { passive:false });
+  picker.addEventListener('touchend',   onEnd);
+  picker.addEventListener('touchcancel',onEnd);
+  if(overlay) overlay.addEventListener('click', onOverlayTap);
+
+  pickerSheetCleanup = ()=>{
+    picker.removeEventListener('touchstart', onStart);
+    picker.removeEventListener('touchmove',  onMove);
+    picker.removeEventListener('touchend',   onEnd);
+    picker.removeEventListener('touchcancel',onEnd);
+    if(overlay) overlay.removeEventListener('click', onOverlayTap);
+  };
+}
+
+// Vrátí picker do neutrálního stavu (volá se i před otevřením, ať se režimy nemíchají)
+function detachPickerSheet(picker, overlay){
+  if(pickerSheetCleanup){ pickerSheetCleanup(); pickerSheetCleanup = null; }
+  if(picker){
+    picker.classList.remove('as-sheet','sheet-in','sheet-drag');
+    picker.style.transform = '';
+  }
+  if(overlay) overlay.classList.remove('as-sheet');
+}
+
 // ============================================================
 // CELL PICKER
 // ============================================================
@@ -5477,6 +5589,7 @@ function openPicker(cell){
   const dateStr = cell.dataset.date;
   const picker  = document.getElementById('picker');
   const overlay = document.getElementById('picker-overlay');
+  const asSheet = pickerIsSheetMode();   // v0.9.28 — mobil => bottom sheet
 
   const emp = employees.find(e=>e.id===empId);
   const daysInMonth = new Date(schedYear, schedMonth+1, 0).getDate();
@@ -5561,10 +5674,22 @@ function openPicker(cell){
   const _effHdr = emp ? effectiveLimits(emp, schedYear, schedMonth) : null;
   const totalInfo = emp ? `<span style="font-size:10px;color:var(--ink-faint)">${currentTotal}/${_effHdr.min}–${_effHdr.max} směn${_effHdr.reduction?` (−${_effHdr.reduction})`:''}</span>` : '';
 
-  let html = `<div style="font-size:11px;font-weight:700;color:var(--ink-soft);margin-bottom:6px;display:flex;justify-content:space-between">
+  // v0.9.28 — mobil: kontextová lepivá hlavička (na buňku pod sheetem uživatel
+  // nevidí, takže musí být vidět KDO a KDY se mění). Desktop: původní hlavička.
+  const _sheetHeader = `<div class="picker-sheet-grip" aria-hidden="true"></div>
+  <div class="picker-sheet-head">
+    <div class="picker-sheet-ctx">
+      <div class="picker-sheet-title">${empName} · ${pickerDateLabel(dateStr)}</div>
+      ${totalInfo ? `<div class="picker-sheet-sub">${totalInfo}</div>` : ''}
+    </div>
+    <button class="picker-sheet-close" onclick="closePicker()" aria-label="Zavřít" title="Zavřít">${ICONS.picker_zavrit}</button>
+  </div>`;
+  const _popupHeader = `<div style="font-size:11px;font-weight:700;color:var(--ink-soft);margin-bottom:6px;display:flex;justify-content:space-between">
     <span>${empName}</span>${totalInfo}
   </div>
-  <div style="font-size:10.5px;color:var(--ink-faint);margin-bottom:8px;border-bottom:1px solid var(--line);padding-bottom:6px">${dateStr}</div>
+  <div style="font-size:10.5px;color:var(--ink-faint);margin-bottom:8px;border-bottom:1px solid var(--line);padding-bottom:6px">${dateStr}</div>`;
+
+  let html = `${asSheet ? _sheetHeader : _popupHeader}
   <div class="picker-group" style="margin-bottom:10px">
     <button class="pick-btn pick-clear" onclick="pickShift('${empId}','${dateStr}','__clear__')">— Prázdné</button>
     <button class="pick-btn" style="background:var(--ink-faint)" onclick="pickShift('${empId}','${dateStr}','X')">X volno</button>
@@ -5617,9 +5742,22 @@ function openPicker(cell){
   picker.classList.add('open');
   overlay.classList.add('open');
 
-  if(pickerCleanup) pickerCleanup();
+  if(pickerCleanup){ pickerCleanup(); pickerCleanup = null; }
   resetFloating(picker);
-  pickerCleanup = positionFloating(cell, picker, { placement: 'bottom-start' });
+  detachPickerSheet(picker, overlay);   // ať se režimy nemíchají mezi otevřeními
+
+  if(asSheet){
+    // v0.9.28 — BOTTOM SHEET: žádné Floating UI, žádný autoUpdate. Sheet je
+    // vždy dole nezávisle na buňce; .sheet-in po jednom rámci spustí vyjetí.
+    picker.classList.add('as-sheet');
+    overlay.classList.add('as-sheet');
+    picker.scrollTop = 0;
+    void picker.offsetHeight;              // vynutí výchozí translateY(100%), jinak by anim. přeskočila
+    picker.classList.add('sheet-in');
+    attachPickerSheet(picker, overlay);
+  } else {
+    pickerCleanup = positionFloating(cell, picker, { placement: 'bottom-start' });
+  }
   document.addEventListener('mousedown', pickerOutsideMouseDown, true);
 }
 
@@ -5631,6 +5769,7 @@ function closePicker(){
   const overlay = document.getElementById('picker-overlay');
   if(picker){ picker.classList.remove('open'); resetFloating(picker); }
   if(overlay) overlay.classList.remove('open');
+  detachPickerSheet(picker, overlay);   // v0.9.28 — sheet třídy + touch listenery
 }
 
 async function fillModeAssign(empId, dateStr, slotCode){
