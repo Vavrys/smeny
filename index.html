@@ -481,6 +481,13 @@ table.sched-table{border-collapse:collapse;font-size:var(--tbl-fs);width:100%;mi
 table.sched-table th, table.sched-table td{border-bottom:1px solid #ccc;border-right:1px solid #ccc}
 table.sched-table th:last-child, table.sched-table td:last-child{border-right:none}
 .sched-name-col{position:sticky;left:0;background:var(--surface);z-index:2;text-align:left;padding:4px 8px;width:160px;min-width:80px;max-width:280px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700;font-size:var(--tbl-name-fs);color:#111;border-right:2px solid #c8c8c4;box-sizing:border-box;vertical-align:middle}
+/* v0.9.30: v buňce jsou obě varianty jména, přepíná mezi nimi jen CSS —
+   po otočení displeje se přepnou samy, bez překreslení tabulky. */
+.emp-name-short{display:none}
+@media (max-width:640px){
+  .sched-name-col .emp-name-full{display:none}
+  .sched-name-col .emp-name-short{display:inline}
+}
 .sched-name-col-resize{position:absolute;right:-4px;top:0;width:8px;height:100%;cursor:col-resize;z-index:20;background:transparent;border-right:2px solid transparent;transition:border-color .15s}
 .sched-name-col-resize:hover, .sched-name-col-resize.dragging{border-right-color:var(--accent)}
 /* v0.9.1 (B3): sticky i v hlavičce — dřív position:relative !important přebíjelo
@@ -511,11 +518,18 @@ thead .sched-stat-col{white-space:normal;line-height:1.3;font-size:10px;font-wei
 .score-bar-track{flex:1;background:var(--paper);border-radius:4px;height:7px;overflow:hidden}
 .score-bar-fill{height:100%;border-radius:4px;transition:width .4s}
 .score-metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px}
-/* v0.9.29: na mobilu zabíral panel kvality půl obrazovky nad rozpisem.
-   Přepínač je proto vidět jen na mobilu (desktop nechává panel rozbalený). */
+/* Panel kvality zabíral na malých displejích půl obrazovky nad rozpisem.
+   Sbalení NEŘÍDÍ media query, ale třída .collapsible, kterou nasazuje JS
+   (scoreIsCollapsible() — bere v úvahu šířku i výšku viewportu, takže se
+   chytne i telefon na šířku a tablet). Bez .collapsible je panel vždy celý. */
 .score-toggle{display:none}
+.score-bar.collapsible .score-toggle{display:flex;align-items:center;gap:8px;width:100%;background:none;border:none;padding:2px 0;font-family:inherit;font-size:13px;color:var(--ink);cursor:pointer;text-align:left;min-height:32px}
+.score-bar.collapsible .score-toggle:not(:first-child){margin-top:8px}  /* pod varováním „Tvrdá podmínka nesplněna" */
+.score-toggle-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
 .score-toggle-chev{margin-left:auto;font-size:11px;color:var(--ink-faint);transition:transform .15s}
 .score-bar.open .score-toggle-chev{transform:rotate(180deg)}
+.score-bar.collapsible .score-body{display:none;margin-top:10px}
+.score-bar.collapsible.open .score-body{display:block}
 .score-metric-track{background:var(--paper);border-radius:4px;height:5px;overflow:hidden;margin-top:3px}
 .score-metric-fill{height:100%;border-radius:4px}
 
@@ -614,6 +628,9 @@ tr.dragging{opacity:.4}
   #table-width-handle, #table-width-handle-left, #table-height-handle { display: none !important; }
   table.sched-table { font-size: 8.5px !important; }
   .sched-name-col { min-width: 80px !important; max-width: 80px !important; font-size: 8px !important; }
+  /* v0.9.30: na papíře vždy plné jméno, ať je rozpis čitelný i bez appky */
+  .sched-name-col .emp-name-full { display: inline !important; }
+  .sched-name-col .emp-name-short { display: none !important; }
   .sched-day-col { min-width: 18px !important; width: 18px !important; font-size: 7.5px !important; }
   .sched-chip { font-size: 7px !important; line-height: 18px !important; }
   .sched-cell { height: 18px !important; }
@@ -822,14 +839,10 @@ body.dark .team-grid .team-name{background:var(--surface)}
   /* v0.9.1 (B3): score bar se zalamuje místo přetékání */
   .score-bar-top{ flex-wrap:wrap }
   .score-metrics{ grid-template-columns:1fr 1fr }
-  /* v0.9.29: panel kvality je defaultně sbalený — vidět zůstane jen červené
-     varování „Tvrdá podmínka nesplněna" a jednořádkový přepínač se skóre. */
+  /* v0.9.29: panel kvality je na úzkém displeji sevřenější. Samotné sbalení
+     řídí .collapsible z JS (viz scoreIsCollapsible()), ne tenhle breakpoint —
+     na telefonu NA ŠÍŘKU je viewport přes 640 px a panel by se nesbalil. */
   .score-bar{ padding:10px 12px }
-  .score-toggle{ display:flex;align-items:center;gap:8px;width:100%;background:none;border:none;padding:2px 0;font-family:inherit;font-size:13px;color:var(--ink);cursor:pointer;text-align:left;min-height:32px }
-  .score-toggle:not(:first-child){ margin-top:8px }  /* pod varováním „Tvrdá podmínka nesplněna" */
-  .score-toggle-dot{ width:9px;height:9px;border-radius:50%;flex-shrink:0 }
-  .score-body{ display:none;margin-top:10px }
-  .score-bar.open .score-body{ display:block }
 }
 
 /* ── v0.6.0 NEW FEATURES ── */
@@ -2385,7 +2398,7 @@ window.addEventListener('unhandledrejection', e => {
 // odsud, ručně je nepřepisuj. sw.js se od v0.9.29 nebumpuje — je z něj
 // kill-switch bez cache (viz killServiceWorkers() a komentář v sw.js).
 // ============================================================
-const APP_VERSION = '0.9.29';
+const APP_VERSION = '0.9.30';
 
 // Krátký git hash nasazeného buildu. Placeholder níž přepíše build-stamp.js
 // z CF_PAGES_COMMIT_SHA (Cloudflare Pages build command: `node build-stamp.js`).
@@ -5037,7 +5050,7 @@ function renderCalendar(){
 
   const isEmployee  = currentRole === 'employee';
   const table = document.getElementById('sched-table');
-  const nameColW = nameColWidth;
+  const nameColW = effectiveNameColWidth();
   const allPairsCols = (orgSettings['balance_pairs']||[]).filter(p=>p[2]!==false);
   const statCols = (currentRole==='admin'||currentRole==='manager') ? 2 + allPairsCols.length : 0;
   const statColW = 68; // px each — wide enough for "Volné víkendy"
@@ -5141,7 +5154,7 @@ function renderCalendar(){
     tr.addEventListener('dragend',   onRowDragEnd);
 
     const dragHandle = (fillMode || isEmployee) ? '' : `<span class="drag-handle" title="Přetáhni pro změnu pořadí">⠿</span>`;
-    let nameCell = `<td class="sched-name-col" title="${escapeHtml(emp.name)}">${dragHandle}${escapeHtml(emp.name)}</td>`;
+    let nameCell = `<td class="sched-name-col" title="${escapeHtml(emp.name)}" data-full-name="${escapeHtml(emp.name)}">${dragHandle}${empNameHtml(emp.name)}</td>`;
     let cells = '';
     let shiftCount=0, xCount=0, freeWeekendCount=0;
     const typeCounts = {};
@@ -5331,7 +5344,7 @@ function renderCalendar(){
 // ============================================================
 function renderCalendarBranch(thead, tbody, daysInMonth, DOW_SHORT){
   const table = document.getElementById('sched-table');
-  const nameColW = nameColWidth;
+  const nameColW = effectiveNameColWidth();
 
   // Colgroup — no stat columns in branch view
   let colHtml = `<colgroup><col style="width:${nameColW}px;min-width:${nameColW}px">`;
@@ -5409,7 +5422,7 @@ function renderCalendarBranch(thead, tbody, daysInMonth, DOW_SHORT){
       const tr = document.createElement('tr');
       tr.dataset.empId = emp.id;
 
-      let cells = `<td class="sched-name-col" title="${escapeHtml(emp.name)}">${escapeHtml(emp.name)}</td>`;
+      let cells = `<td class="sched-name-col" title="${escapeHtml(emp.name)}" data-full-name="${escapeHtml(emp.name)}">${empNameHtml(emp.name)}</td>`;
 
       for(let d=1; d<=daysInMonth; d++){
         const dateStr = isoDate(schedYear, schedMonth+1, d);
@@ -6265,17 +6278,55 @@ function computeQuality(shiftsMap, unavailMap){
   return { pct, metrics: scored, hardFailed, missingSlots: covMax - Math.min(covScore, covMax) };
 }
 
-// v0.9.29: stav rozbalení panelu kvality na mobilu. Drží se mimo render,
-// protože renderScoreBar() přepisuje celý innerHTML (po každé změně směny).
-let _scoreDetailsOpen = localStorage.getItem('score_details_open') === '1';
+// ── Panel kvality: sbalení (v0.9.29, opraveno v0.9.30) ────────────────────
+// v0.9.29 rozhodoval o sbalení jen CSS breakpoint max-width:640px. Na telefonu
+// NA ŠÍŘKU (852×393, 915×412) a na tabletech se tím pádem panel neroloval —
+// a právě na šířku, kde je výšky nejmíň, zabíral půl obrazovky. Rozhodnutí
+// proto dělá JS a bere v úvahu i výšku viewportu:
+//   • max-width 900px  → telefony na výšku, tablety, rozložený foldable
+//   • max-height 560px → telefon na šířku (nejvyšší je 430 px, notebook 768p
+//                        má viewport ~650 px, takže se nechytne)
+const SCORE_COLLAPSE_MQ = '(max-width: 900px), (max-height: 560px)';
+function scoreIsCollapsible(){
+  return window.matchMedia(SCORE_COLLAPSE_MQ).matches;
+}
+
+// Tri-state: '1'/'0' = uživatel se rozhodl, chybějící klíč = řídí se zařízením.
+// Pozor na klasickou past getItem(...) !== '0' — null by prošlo jako
+// „rozbaleno" a na telefonu by se panel nikdy nesbalil.
+const SCORE_OPEN_KEY = 'score_details_open';
+function scoreDetailsOpen(){
+  let stored = null;
+  try { stored = localStorage.getItem(SCORE_OPEN_KEY); } catch(e){}
+  if(stored === '1') return true;
+  if(stored === '0') return false;
+  return !scoreIsCollapsible();   // výchozí stav podle zařízení
+}
 
 function toggleScoreDetails(){
-  _scoreDetailsOpen = !_scoreDetailsOpen;
-  localStorage.setItem('score_details_open', _scoreDetailsOpen ? '1' : '0');
+  const next = !scoreDetailsOpen();
+  try { localStorage.setItem(SCORE_OPEN_KEY, next ? '1' : '0'); } catch(e){}
+  applyScoreCollapseState();
+}
+
+// Promítne aktuální stav do DOM bez překreslování celého panelu — volá se
+// z toggle i při změně velikosti/otočení displeje.
+function applyScoreCollapseState(){
   const bar = document.querySelector('#score-bar-wrap .score-bar');
-  if(bar) bar.classList.toggle('open', _scoreDetailsOpen);
-  const btn = document.querySelector('#score-bar-wrap .score-toggle');
-  if(btn) btn.setAttribute('aria-expanded', String(_scoreDetailsOpen));
+  if(!bar) return;
+  const collapsible = scoreIsCollapsible();
+  const open = scoreDetailsOpen();
+  bar.classList.toggle('collapsible', collapsible);
+  bar.classList.toggle('open', open);
+  const btn = bar.querySelector('.score-toggle');
+  if(btn) btn.setAttribute('aria-expanded', String(open));
+}
+
+// Otočení telefonu mění, jestli je panel sbalitelný — reagovat za běhu.
+try {
+  window.matchMedia(SCORE_COLLAPSE_MQ).addEventListener('change', applyScoreCollapseState);
+} catch(e) {
+  window.addEventListener('resize', applyScoreCollapseState);   // starší Safari
 }
 
 function renderScoreBar(){
@@ -6285,14 +6336,17 @@ function renderScoreBar(){
     ? `<div style="background:var(--status-bad-soft);color:var(--status-bad);border-radius:6px;padding:7px 10px;font-size:12px">
         ${ICONS.status_locked} <strong>Tvrdá podmínka nesplněna:</strong> ${hardFailed.join(' · ')}
        </div>` : '';
-  // Přepínač je skrytý na desktopu (CSS) — tam se .score-body zobrazuje vždy.
-  const toggle = `<button type="button" class="score-toggle" onclick="toggleScoreDetails()" aria-expanded="${_scoreDetailsOpen}" aria-controls="score-body">
+  // .collapsible říká CSS, že se panel na tomhle displeji sbaluje; .open pak,
+  // jestli je zrovna rozbalený. Obojí plyne ze scoreIsCollapsible()/scoreDetailsOpen().
+  const collapsible = scoreIsCollapsible();
+  const isOpen = scoreDetailsOpen();
+  const toggle = `<button type="button" class="score-toggle" onclick="toggleScoreDetails()" aria-expanded="${isOpen}" aria-controls="score-body">
       <span class="score-toggle-dot" style="background:${color}"></span>
       <strong style="font-family:var(--font-display);font-size:14px">${pct}%</strong>
       <span style="color:var(--ink-soft)">Kvalita rozpisu</span>
       <span class="score-toggle-chev">▾</span>
     </button>`;
-  document.getElementById('score-bar-wrap').innerHTML = `<div class="score-bar${_scoreDetailsOpen?' open':''}">
+  document.getElementById('score-bar-wrap').innerHTML = `<div class="score-bar${collapsible?' collapsible':''}${isOpen?' open':''}">
     ${hardWarn}
     ${toggle}
     <div class="score-body" id="score-body">
@@ -12225,7 +12279,38 @@ function maybeStartTabTutorial(tab){
 let schedTableWidth  = parseInt(localStorage.getItem('schedTableWidth')  || '0');
 let schedTableHeight = parseInt(localStorage.getItem('schedTableHeight') || '0');
 
+// v0.9.30: šířku tabulky nefixujeme nad rámec viewportu.
+// Dřív se při každém renderu zapsala pevná pixelová šířka — uložená z dřívějška,
+// nebo 70 % okna při prvním načtení — a applyWidth ji rovnou i uložila. Na
+// telefonu tak byla stránka klidně 1008 px široká: vodorovně se scrolloval celý
+// UI, ne jen tabulka, a do viewportu se vešlo míň dní než by se vejít mohlo.
+// Táhla šířky jsou na mobilu stejně skrytá (#table-width-handle), takže tam
+// fixní šířka nemá co dělat. Init taky už nic neukládá — do localStorage se píše
+// jen skutečné tažení uživatele.
+function applyResponsiveTableWidth(){
+  const wrap = document.getElementById('sched-scroll-wrap');
+  if(!wrap) return;
+  if(nameColIsNarrow()){
+    wrap.style.width = '';
+    wrap.style.maxWidth = '100%';
+    return;
+  }
+  const want = schedTableWidth > 0 ? schedTableWidth : Math.round(window.innerWidth * 0.70);
+  wrap.style.width = Math.max(320, Math.min(want, window.innerWidth - 24)) + 'px';
+  wrap.style.maxWidth = '';
+}
+
+// Registrovat JEN jednou — initTableResize() běží po každém renderu tabulky.
+let _tableWidthMqBound = false;
+function bindTableWidthMq(){
+  if(_tableWidthMqBound) return;
+  _tableWidthMqBound = true;
+  try { window.matchMedia(NAME_SHORT_MQ).addEventListener('change', applyResponsiveTableWidth); }
+  catch(e) { window.addEventListener('resize', applyResponsiveTableWidth); }
+}
+
 function initTableResize(){
+  bindTableWidthMq();
   const wrap    = document.getElementById('sched-scroll-wrap');
   const scroll  = document.getElementById('sched-scroll');
   const handleR = document.getElementById('table-width-handle');
@@ -12248,8 +12333,7 @@ function initTableResize(){
     localStorage.setItem('schedTableHeight', h);
   };
 
-  const initW = schedTableWidth  > 0 ? schedTableWidth  : Math.round(window.innerWidth * 0.70);
-  applyWidth(initW);
+  applyResponsiveTableWidth();
   if(schedTableHeight > 0) applyHeight(schedTableHeight);
 
   function attachWidthHandle(handle, side){
@@ -12299,14 +12383,55 @@ function initTableResize(){
   }
 }
 
+// ── Zkracování jmen na úzkém displeji (v0.9.30) ───────────────
+// Do jmenného sloupce se na telefonu plné jméno nevejde — dosud se jen uřízlo
+// přes text-overflow:ellipsis („Kristýna Dvoř…"), což nic neušetřilo. Nově se
+// vykreslí OBĚ varianty a vybírá mezi nimi CSS (.emp-name-full/.emp-name-short),
+// takže se po otočení displeje přepnou samy a nemusí se překreslovat tabulka.
+// ZÁMĚRNĚ přes spany, ne přes textContent — v buňce sedí i drag handle.
+const NAME_SHORT_MQ = '(max-width: 640px)';
+function nameColIsNarrow(){
+  try { return window.matchMedia(NAME_SHORT_MQ).matches; } catch(e){ return false; }
+}
+
+// „Kristýna Dvořáková" → „Kristýna D."  Jednoslovné jméno zůstává celé.
+function shortEmpName(name){
+  const parts = String(name == null ? '' : name).trim().split(/\s+/).filter(Boolean);
+  if(parts.length < 2) return parts[0] || '';
+  const last = [...parts[parts.length - 1]];
+  return parts[0] + ' ' + (last[0] ? last[0].toLocaleUpperCase('cs-CZ') + '.' : '');
+}
+
+// Obě varianty naráz; plné jméno drží i title a data-full-name, takže původní
+// hodnota z dat nikde nemizí (čtečky, kopírování, ladění).
+function empNameHtml(name){
+  return `<span class="emp-name-full">${escapeHtml(name)}</span>` +
+         `<span class="emp-name-short">${escapeHtml(shortEmpName(name))}</span>`;
+}
+
 // ── Name column resize ────────────────────────────────────────
 let nameColWidth = parseInt(localStorage.getItem('nameColWidth')||'160');
+
+// Na úzkém displeji sloupec zúžíme, aby zkrácená jména reálně uvolnila místo
+// na dny. Uživatelem nastavená šířka se NEPŘEPISUJE, jen se pro mobil ignoruje.
+const NAME_COL_NARROW_W = 104;
+function effectiveNameColWidth(){
+  return nameColIsNarrow() ? Math.min(nameColWidth, NAME_COL_NARROW_W) : nameColWidth;
+}
 
 function applyNameColWidth(w){
   nameColWidth = Math.max(80, Math.min(320, w));
   localStorage.setItem('nameColWidth', nameColWidth);
   const col = document.querySelector('#sched-table colgroup col:first-child');
-  if(col){ col.style.width=nameColWidth+'px'; col.style.minWidth=nameColWidth+'px'; }
+  const eff = effectiveNameColWidth();
+  if(col){ col.style.width=eff+'px'; col.style.minWidth=eff+'px'; }
+}
+
+// Otočení displeje mění efektivní šířku sloupce (jména si přepne CSS samo).
+try {
+  window.matchMedia(NAME_SHORT_MQ).addEventListener('change', ()=>applyNameColWidth(nameColWidth));
+} catch(e) {
+  window.addEventListener('resize', ()=>applyNameColWidth(nameColWidth));
 }
 
 function initNameColResize(){
