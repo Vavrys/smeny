@@ -487,6 +487,14 @@ table.sched-table th:last-child, table.sched-table td:last-child{border-right:no
 @media (max-width:640px){
   .sched-name-col .emp-name-full{display:none}
   .sched-name-col .emp-name-short{display:inline}
+  /* v0.9.31: ťuknutím se zkrácené jméno rozbalí na celé. Buňka se rozroste
+     do výšky (zalomí se), sloupec zůstává úzký — ostatní řádky se neposunou
+     do stran. Jednoslovná jména .name-truncatable nedostanou, tak se ani
+     netváří klikací. */
+  .sched-name-col.name-truncatable{cursor:pointer;-webkit-tap-highlight-color:var(--accent-soft)}
+  .sched-name-col.name-expanded{white-space:normal;overflow:visible;word-break:break-word;line-height:1.25;background:var(--accent-soft)}
+  .sched-name-col.name-expanded .emp-name-full{display:inline}
+  .sched-name-col.name-expanded .emp-name-short{display:none}
 }
 .sched-name-col-resize{position:absolute;right:-4px;top:0;width:8px;height:100%;cursor:col-resize;z-index:20;background:transparent;border-right:2px solid transparent;transition:border-color .15s}
 .sched-name-col-resize:hover, .sched-name-col-resize.dragging{border-right-color:var(--accent)}
@@ -2398,7 +2406,7 @@ window.addEventListener('unhandledrejection', e => {
 // odsud, ručně je nepřepisuj. sw.js se od v0.9.29 nebumpuje — je z něj
 // kill-switch bez cache (viz killServiceWorkers() a komentář v sw.js).
 // ============================================================
-const APP_VERSION = '0.9.30';
+const APP_VERSION = '0.9.31';
 
 // Krátký git hash nasazeného buildu. Placeholder níž přepíše build-stamp.js
 // z CF_PAGES_COMMIT_SHA (Cloudflare Pages build command: `node build-stamp.js`).
@@ -5154,7 +5162,7 @@ function renderCalendar(){
     tr.addEventListener('dragend',   onRowDragEnd);
 
     const dragHandle = (fillMode || isEmployee) ? '' : `<span class="drag-handle" title="Přetáhni pro změnu pořadí">⠿</span>`;
-    let nameCell = `<td class="sched-name-col" title="${escapeHtml(emp.name)}" data-full-name="${escapeHtml(emp.name)}">${dragHandle}${empNameHtml(emp.name)}</td>`;
+    let nameCell = empNameCellHtml(emp.name, dragHandle);
     let cells = '';
     let shiftCount=0, xCount=0, freeWeekendCount=0;
     const typeCounts = {};
@@ -5422,7 +5430,7 @@ function renderCalendarBranch(thead, tbody, daysInMonth, DOW_SHORT){
       const tr = document.createElement('tr');
       tr.dataset.empId = emp.id;
 
-      let cells = `<td class="sched-name-col" title="${escapeHtml(emp.name)}" data-full-name="${escapeHtml(emp.name)}">${empNameHtml(emp.name)}</td>`;
+      let cells = empNameCellHtml(emp.name);
 
       for(let d=1; d<=daysInMonth; d++){
         const dateStr = isoDate(schedYear, schedMonth+1, d);
@@ -12408,6 +12416,43 @@ function empNameHtml(name){
   return `<span class="emp-name-full">${escapeHtml(name)}</span>` +
          `<span class="emp-name-short">${escapeHtml(shortEmpName(name))}</span>`;
 }
+
+// Celá buňka se jménem — společná pro zaměstnanecký i pobočkový pohled.
+// .name-truncatable dostane jen jméno, které se opravdu zkracuje: jednoslovné
+// („Petr") není co rozbalovat, tak ať se ani netváří jako klikací.
+// `lead` je obsah před jménem (drag handle), aby zůstal uvnitř buňky.
+function empNameCellHtml(name, lead){
+  const truncatable = shortEmpName(name) !== name;
+  return `<td class="sched-name-col${truncatable ? ' name-truncatable' : ''}"` +
+         ` title="${escapeHtml(name)}" data-full-name="${escapeHtml(name)}">` +
+         (lead || '') + empNameHtml(name) + `</td>`;
+}
+
+// ── Rozbalení zkráceného jména ťuknutím (v0.9.31) ─────────────
+// Na mobilu je v buňce vidět jen „Vojtěch T."; ťuknutím se ukáže celé jméno
+// (zalomené na víc řádků), dalším ťuknutím se zase sbalí. Rozbalené je vždy
+// jen jedno — tap na jiné jméno (nebo kamkoliv jinam) to předchozí sbalí.
+//
+// Kolize s přetahováním nehrozí: řádek je sice draggable jako celek, ale HTML5
+// drag se z dotyku vůbec nespouští (mobilní prohlížeče dragstart z touche
+// negenerují). Tap na ⠿ přesto ignorujeme, aby se myší v úzkém okně dalo za
+// handle normálně táhnout. Listener visí na documentu a registruje se JEN
+// jednou — tbody se při každém renderu přepisuje.
+let _nameCellExpandBound = false;
+function bindNameCellExpand(){
+  if(_nameCellExpandBound) return;
+  _nameCellExpandBound = true;
+  document.addEventListener('click', e => {
+    if(!nameColIsNarrow()) return;                  // desktop má hover + title
+    if(e.target.closest('.drag-handle')) return;    // tažení za handle beze změny
+    const td = e.target.closest('#sched-table td.sched-name-col.name-truncatable');
+    const opened = document.querySelector('#sched-table td.sched-name-col.name-expanded');
+    if(opened && opened !== td) opened.classList.remove('name-expanded');
+    if(!td) return;
+    td.classList.toggle('name-expanded');
+  });
+}
+bindNameCellExpand();
 
 // ── Name column resize ────────────────────────────────────────
 let nameColWidth = parseInt(localStorage.getItem('nameColWidth')||'160');
