@@ -2,9 +2,35 @@
 
 ## Verzování (release checklist)
 
-Při zvednutí verze appky VŽDY změň obě místa:
-1. `index.html` — konstanta `APP_VERSION` (sekce „APP VERSION" na začátku hlavního scriptu; badge `#app-version-label` v hlavičce se z ní plní sám — text ve spanu ručně nepřepisuj).
-2. `sw.js` — konstanta `VERSION` (řídí název cache; bez bumpu zůstanou klienti na staré cache/buildu).
+Verzi měň na JEDINÉM místě: `index.html` — konstanta `APP_VERSION` (sekce „APP VERSION"
+na začátku hlavního scriptu). Badge `#app-version-label` v hlavičce i patička
+`#app-build-label` dole se z ní plní samy — texty ručně nepřepisuj.
+
+`sw.js` už se nebumpuje: od v0.9.29 je z něj kill-switch bez cache (viz níž).
+
+## Service worker / cache (v0.9.29)
+
+Appka BĚŽÍ BEZ SERVICE WORKERU. Offline režim nepotřebuje (interní nástroj na
+Cloudflare Pages) a cache-first shell uživatelům — hlavně na mobilu — zamrzával
+na staré verzi; z cache se servíroval i `index.html`, takže ani oprava v kódu
+se k nim nedostala.
+
+- `sw.js` zůstává nasazený jako **kill-switch**: nainstaluje se, smaže všechny
+  cache, odregistruje se a přenačte otevřená okna. **Nemazat ze serveru** — je to
+  jediná cesta, jak odinstalovat SW u zaseknutých klientů (prohlížeč si ho stáhne
+  při update checku).
+- `index.html` SW **neregistruje**; `killServiceWorkers()` naopak uklidí staré
+  registrace a `smeny-*` cache u klientů, kteří už čerstvý build mají.
+- Nový SW nepřidávej. Pokud by offline režim byl někdy potřeba, řeš ho
+  network-first i pro shell, nikdy ne cache-first.
+
+## Build stamp (viditelná verze)
+
+`build-stamp.js` nahradí v `index.html` placeholder `__BUILD_SHA__` git hashem
+z `CF_PAGES_COMMIT_SHA` (fallback `git rev-parse HEAD`). Na Cloudflare Pages nastav
+**Build command: `node build-stamp.js`**, output directory kořen repa. Bez build
+kroku appka funguje dál, patička jen ukáže samotné číslo verze.
+Skript spouštěj jen na CI — lokálně by stamp zapsal do repa.
 
 ## Migrace databáze (Supabase)
 

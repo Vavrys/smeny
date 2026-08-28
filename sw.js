@@ -1,56 +1,48 @@
-// Směny — service worker (v0.9.9)
-// VERSION drž v synchronu s verzí appky (konstanta APP_VERSION v index.html).
-// Změna verze = nový název cache → při aktivaci se stará cache smaže a klienti
-// dostanou čerstvý build (skipWaiting + clients.claim, reload řeší registrace
-// v index.html přes controllerchange) — nikdo nezůstane na zamrzlém buildu.
-const VERSION = '0.9.28';
-const CACHE = 'smeny-v' + VERSION;         // shell (cache-first)
-const DATA_CACHE = CACHE + '-data';        // Supabase GET data (network-first, offline fallback)
-const PRECACHE = ['./', './index.html', './manifest.json'];
+// Směny — service worker: KILL SWITCH (v0.9.29)
+//
+// Proč: appka je interní nástroj na Cloudflare Pages a offline režim nepotřebuje.
+// Původní SW držel shell cache-first, takže uživatelům (hlavně na mobilu)
+// zamrzával starý build — ruční mazání cache nepomohlo, protože se z cache
+// servíroval i samotný index.html, a tím pádem i kód, který by problém uměl
+// opravit. Jediná spolehlivá cesta ven vede přes samotný service worker.
+//
+// Tenhle SW proto nic necachuje ani nezachytává fetch. Nainstaluje se okamžitě
+// (skipWaiting), při aktivaci smaže VŠECHNY cache, odregistruje sám sebe
+// a přenačte otevřená okna, aby si stáhla čerstvý build ze sítě.
+//
+// DŮLEŽITÉ: soubor musí zůstat nasazený. Prohlížeč u zaseknutých klientů
+// stahuje sw.js při update checku — teprve tím se starý SW nahradí tímhle
+// a odinstaluje se. Registrace v index.html je odstraněna, takže se nový SW
+// nikdy znovu nenainstaluje (viz killServiceWorkers() v index.html).
+const VERSION = '0.9.29-killswitch';
 
-self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(PRECACHE)));
+self.addEventListener('install', () => {
   self.skipWaiting();
 });
 
-self.addEventListener('activate', e => {
-  e.waitUntil(caches.keys().then(keys =>
-    Promise.all(keys.filter(k => k !== CACHE && k !== DATA_CACHE).map(k => caches.delete(k)))
-  ).then(() => self.clients.claim()));
+self.addEventListener('activate', event => {
+  event.waitUntil((async () => {
+    // 1) Všechny cache pryč (nejen ty naše — bereme to komplet).
+    const keys = await caches.keys();
+    await Promise.all(keys.map(k => caches.delete(k)));
+
+    // 2) Převzít kontrolu nad otevřenými okny. Bez claim() by client.navigate()
+    //    skončil TypeError — navigovat smí jen SW, který klienta řídí.
+    await self.clients.claim();
+
+    // 3) Odregistrovat se. Klienty to neodpojí okamžitě (controller drží
+    //    do dalšího načtení), takže navigace v kroku 4 pořád projde.
+    try { await self.registration.unregister(); } catch (e) { /* nevadí */ }
+
+    // 4) Přenačíst otevřená okna — po reloadu už je nikdo neřídí a jedou ze sítě.
+    const clients = await self.clients.matchAll({ type: 'window' });
+    await Promise.all(clients.map(c => {
+      try { return c.navigate(c.url).catch(() => {}); } catch (e) { return Promise.resolve(); }
+    }));
+
+    console.log('[SW ' + VERSION + '] cache smazána, SW odregistrován, okna přenačtena');
+  })());
 });
 
-self.addEventListener('fetch', e => {
-  if (e.request.method !== 'GET') return;
-  const url = new URL(e.request.url);
-
-  // Supabase data — network-first: vždy čerstvá data, cache jen jako offline fallback
-  if (url.hostname.endsWith('.supabase.co')) {
-    e.respondWith(
-      fetch(e.request).then(res => {
-        if (res.ok) {
-          const clone = res.clone();
-          caches.open(DATA_CACHE).then(c => c.put(e.request, clone));
-        }
-        return res;
-      }).catch(() => caches.match(e.request))
-    );
-    return;
-  }
-
-  // Ostatní cross-origin necháváme bez zásahu — CDN skripty (supabase-js, xlsx,
-  // @floating-ui/core+dom od v0.9.24, Google Fonts) řeší HTTP cache prohlížeče.
-  // Do SW cache je ZÁMĚRNĚ netaháme: opaque response nejde ověřit a zafixovala by
-  // se napevno pod verzí cache.
-  if (url.origin !== location.origin) return;
-
-  // Shell — cache-first (novou verzi shellu přinese nová verze SW s novou cache)
-  e.respondWith(
-    caches.match(e.request).then(cached => cached || fetch(e.request).then(res => {
-      if (res.ok) {
-        const clone = res.clone();
-        caches.open(CACHE).then(c => c.put(e.request, clone));
-      }
-      return res;
-    }))
-  );
-});
+// Záměrně BEZ fetch handleru: všechny requesty jdou přímo na síť / HTTP cache
+// prohlížeče. Cokoliv jiného by znovu zavedlo problém, kvůli kterému to vzniklo.
