@@ -55,21 +55,23 @@ const pairs=[[3,4],[10,11],[17,18],[24,25]];
 const show=['bina','frant','linda','monika','hedvika','marcos','martin','vojtech','tereza','domg','lucie','mario','veronika'];
 let agg={},w1={bina:0,frant:0},fails=0,cands=[];
 for(let r=1;r<=RUNS;r++){const sb=makeSandbox(1000+r);seed(sb);const S=sb.buildSchedule(31,{});
- const q=sb.computeQuality(S,sb.unavail);const work=(id,d)=>{const s=S[id+':'+ds(d)];return s&&s.shift_type_code!=='X'};
+ const q=sb.computeQuality(S,sb.unavail);
+ let gaps=0;for(let d=1;d<=31;d++){for(const codes of [['M1','M2','M3','M4'],['P1','P2']]){const f=codes.map(c=>Object.values(S).some(s=>s.shift_date===ds(d)&&s.shift_type_code===c));const last=f.lastIndexOf(true);if(f.slice(0,last+1).includes(false))gaps++;}}const work=(id,d)=>{const s=S[id+':'+ds(d)];return s&&s.shift_type_code!=='X'};
  const fw={};show.forEach(id=>{fw[id]=pairs.filter(p=>p.every(d=>!work(id,d))).length;agg[id]=(agg[id]||0)+fw[id]});
  const below=show.filter(id=>fw[id]<2);
  if(work('bina',3)||work('bina',4))w1.bina++; if(work('frant',3)||work('frant',4))w1.frant++;
- cands.push({r,pct:q.pct,hard:q.hardFailed.length,below,fw,cnt:Object.fromEntries(show.map(id=>[id,Object.values(S).filter(s=>s.employee_id===id&&s.shift_type_code!=='X').length]))});
+ cands.push({r,gaps,pct:q.pct,hard:q.hardFailed.length,below,fw,cnt:Object.fromEntries(show.map(id=>[id,Object.values(S).filter(s=>s.employee_id===id&&s.shift_type_code!=='X').length]))});
 }
 const feas=cands.filter(c=>c.hard===0);const best=(feas.length?feas:cands).sort((a,b)=>b.pct-a.pct)[0];
 console.log(path.basename(INDEX),'runs',RUNS,'feasible',feas.length);
 console.log('avg volné víkendy:',show.map(id=>id+'='+(agg[id]/RUNS).toFixed(2)).join(' '));
 console.log('W1 pracuje: Bína',w1.bina+'/'+RUNS,' František',w1.frant+'/'+RUNS);
 console.log('avg lidí pod min víkendů:',(cands.reduce((a,c)=>a+c.below.length,0)/RUNS).toFixed(2),' běhů bez nikoho pod min:',cands.filter(c=>!c.below.length).length);
+console.log('dny s dírou v typech (M3 bez M2 apod.): avg',(cands.reduce((a,c)=>a+c.gaps,0)/RUNS).toFixed(2),' nejlepší:',best.gaps);
 console.log('avg pct',(cands.reduce((a,c)=>a+c.pct,0)/RUNS).toFixed(1));
 console.log('NEJLEPŠÍ (best-of):',best.pct+'%','hard',best.hard,'pod min:',best.below.join(',')||'nikdo','fw',JSON.stringify(best.fw));
 console.log('   směny',JSON.stringify(best.cnt));
 
-const ok = best.hard===0 && best.below.length===0;
+const ok = best.hard===0 && best.below.length===0 && best.gaps===0;
 console.log(ok ? '✓ nejlepší rozpis: všichni mají min. volných víkendů' : '✗ FAIL: pod minimem volných víkendů: '+best.below.join(','));
 process.exit(ok?0:1);

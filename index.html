@@ -2406,7 +2406,7 @@ window.addEventListener('unhandledrejection', e => {
 // odsud, ručně je nepřepisuj. sw.js se od v0.9.29 nebumpuje — je z něj
 // kill-switch bez cache (viz killServiceWorkers() a komentář v sw.js).
 // ============================================================
-const APP_VERSION = '0.9.32';
+const APP_VERSION = '0.9.33';
 
 // Krátký git hash nasazeného buildu. Placeholder níž přepíše build-stamp.js
 // z CF_PAGES_COMMIT_SHA (Cloudflare Pages build command: `node build-stamp.js`).
@@ -6061,9 +6061,23 @@ function requiredGroupsForDay(dateStr){
 // coverage); bare-branch groups count people on the branch code. NOT capped at need —
 // callers cap for scoring, or compare > need to detect surplus.
 function groupCoverage(group, countFn){
-  return group.subtype
-    ? group.codes.filter(c=>countFn(c)>0).length
-    : countFn(group.codes[0]);
+  if(!group.subtype) return countFn(group.codes[0]);
+  // v0.9.33: typy se obsazují POPOŘADĚ (sort_order) — M3 jen když je M2, M4 jen když
+  // je M3. Každá díra před posledním obsazeným typem se odečte, takže např. M1+M3+M4
+  // = 2 (ne 3) a den s dírou je vždy pod minimem → hlídá to builder, skóre i pojistky.
+  return subtypeCoverage(group.codes, countFn);
+}
+// Obsazené typy minus díry před posledním obsazeným typem (codes v sort_order).
+function subtypeCoverage(codes, countFn){
+  const filled = codes.map(c=>countFn(c)>0);
+  const last = filled.lastIndexOf(true);
+  let gaps = 0;
+  for(let i=0;i<last;i++) if(!filled[i]) gaps++;
+  return filled.filter(Boolean).length - gaps;
+}
+// Jediný typ, který se na subtype pobočce smí ten den přidat: první neobsazený v sort_order.
+function nextSubtypeCode(codes, countFn){
+  return codes.find(c=>countFn(c)===0) || null;
 }
 
 // ============================================================
@@ -7155,7 +7169,9 @@ function buildSchedule(daysInMonth, prevMonthShifts){
   // Bare-branch groups hold any number of people on the one code, so it stays open
   // as long as the group itself is missing coverage.
   function openCodesFor(dateStr, slot){
-    return slot.subtype ? slot.codes.filter(c=>countFilled(dateStr, c)===0) : slot.codes;
+    if(!slot.subtype) return slot.codes;
+    const nx = nextSubtypeCode(slot.codes, c=>countFilled(dateStr, c)); // v0.9.33: jen další typ v pořadí
+    return nx ? [nx] : [];
   }
 
   // First open code of the slot this employee can actually work today, or null.
@@ -7225,7 +7241,7 @@ function buildSchedule(daysInMonth, prevMonthShifts){
           const dowL = new Date(ds+'T00:00:00').getDay();
           const raw = lvl==='target' ? getBranchDayTarget(b, dowL) : getBranchDayMin(b, dowL);
           const need = subtype ? Math.min(raw, codes.length) : raw;
-          const got  = subtype ? codes.filter(c=>countFilled(ds, c)>0).length : countFilled(ds, b.code);
+          const got  = subtype ? subtypeCoverage(codes, c=>countFilled(ds, c)) : countFilled(ds, b.code);
           return Math.max(0, need - got);
         };
         const laneCounts = lvl => {
@@ -7256,7 +7272,7 @@ function buildSchedule(daysInMonth, prevMonthShifts){
           if(soft && empShiftCount(emp.id) >= emp.min_shifts) return null;
           if(soft && freeWEnow(emp) - weekendCostOf(emp, days) < (emp.min_free_weekends || defaultMinWE)) return null;
           const shared = codes.find(c=>
-            (!subtype || days.every(ds=>countFilled(ds, c)===0)) &&
+            (!subtype || days.every(ds=>nextSubtypeCode(codes, cc=>countFilled(ds, cc))===c)) &&
             days.every(ds=>canWork(emp, ds, c)) &&
             blockRespectsLimits(emp, days.length, c)
           );
@@ -7264,7 +7280,7 @@ function buildSchedule(daysInMonth, prevMonthShifts){
           const plan = [];
           for(const ds of days){
             const c = codes.find(cc=>
-              (!subtype || countFilled(ds, cc)===0) &&
+              (!subtype || nextSubtypeCode(codes, x=>countFilled(ds, x))===cc) &&
               canWork(emp, ds, cc) &&
               branchLimitAllows(emp, cc)
             );
@@ -7395,8 +7411,9 @@ function buildSchedule(daysInMonth, prevMonthShifts){
           const bCodes = bSts.map(s=>s.code);
           const needN = Math.min(getBranchDayMin(b, dowB), bCodes.length);
           const cap = Math.min(Math.max(getBranchDayMax(b, dowB), needN), bCodes.length);
-          if(bCodes.filter(c=>countFilled(dateStr, c)>0).length < cap){
-            code = bCodes.find(c=>countFilled(dateStr, c)===0 && branchLimitAllows(emp, c)) || null;
+          if(subtypeCoverage(bCodes, c=>countFilled(dateStr, c)) < cap){
+            const nx = nextSubtypeCode(bCodes, c=>countFilled(dateStr, c));
+            code = (nx && branchLimitAllows(emp, nx)) ? nx : null;
           }
         }
         if(!code) continue;
@@ -7433,7 +7450,8 @@ function buildSchedule(daysInMonth, prevMonthShifts){
           const pbCodes = shiftTypes.filter(s=>s.branch_id===pb.id).map(s=>s.code);
           const needC = Math.min(getBranchDayMin(pb, dowC), pbCodes.length);
           const capC = Math.min(Math.max(getBranchDayMax(pb, dowC), needC), pbCodes.length);
-          if(pbCodes.filter(c=>countFilled(dateStr, c)>0).length >= capC) continue;
+          if(subtypeCoverage(pbCodes, c=>countFilled(dateStr, c)) >= capC) continue;
+          if(nextSubtypeCode(pbCodes, c=>countFilled(dateStr, c)) !== stCode) continue; // v0.9.33: jen další typ v pořadí
           setShift(emp.id, dateStr, stCode);
           need--;
         }
@@ -7476,8 +7494,9 @@ function buildSchedule(daysInMonth, prevMonthShifts){
           // at 1 from before v0.7.7, when day min/max meant nothing for them
           const needN = Math.min(getBranchDayMin(b, dow2), bCodes.length);
           const cap = Math.min(Math.max(getBranchDayMax(b, dow2), needN), bCodes.length);
-          if(bCodes.filter(c=>countFilled(dateStr, c)>0).length >= cap) return;
-          const c = bCodes.find(c=>countFilled(dateStr, c)===0 && branchLimitAllows(emp, c));
+          if(subtypeCoverage(bCodes, c=>countFilled(dateStr, c)) >= cap) return;
+          const nx = nextSubtypeCode(bCodes, c=>countFilled(dateStr, c));
+          const c = (nx && branchLimitAllows(emp, nx)) ? nx : null;
           if(c) avail.push(c);
         }
       });
@@ -7506,7 +7525,7 @@ function buildSchedule(daysInMonth, prevMonthShifts){
         const bCodes = bSts.map(s=>s.code);
         const needN = Math.min(getBranchDayMin(b, dowD), bCodes.length);
         const tgt = Math.min(Math.max(getBranchDayTarget(b, dowD), needN), Math.max(getBranchDayMax(b, dowD), needN), bCodes.length);
-        deficit += Math.max(0, tgt - bCodes.filter(c=>countFilled(ds, c)>0).length);
+        deficit += Math.max(0, tgt - subtypeCoverage(bCodes, c=>countFilled(ds, c)));
       }
     });
     return deficit;
@@ -7553,7 +7572,7 @@ function buildSchedule(daysInMonth, prevMonthShifts){
         const bCodes = bSts.map(s=>s.code);
         const needN = Math.min(getBranchDayMin(b, dow3), bCodes.length);
         const tgt = Math.min(Math.max(getBranchDayTarget(b, dow3), needN), Math.max(getBranchDayMax(b, dow3), needN), bCodes.length);
-        let covered = bCodes.filter(c=>countFilled(dateStr, c)>0).length;
+        let covered = subtypeCoverage(bCodes, c=>countFilled(dateStr, c));
         if(covered >= tgt) return;
         const eligible = shuffle([...nonFixed]).filter(emp=>
           !S[emp.id+':'+dateStr] && empShiftCount(emp.id) < emp.max_shifts
@@ -7563,7 +7582,8 @@ function buildSchedule(daysInMonth, prevMonthShifts){
           candidateScore(bEmp, bCodes[0], dateStr) - candidateScore(a, bCodes[0], dateStr));
         for(const emp of eligible){
           if(covered >= tgt) break;
-          const c = bCodes.find(c=>countFilled(dateStr, c)===0 && canWork(emp, dateStr, c));
+          const nx = nextSubtypeCode(bCodes, c=>countFilled(dateStr, c));
+          const c = (nx && canWork(emp, dateStr, nx)) ? nx : null;
           if(!c) continue;
           // Weekend: above the day minimum, only people still below their own
           // min_shifts get the extra position (same rule as PASS 0 soft lanes).
@@ -7596,7 +7616,8 @@ function buildSchedule(daysInMonth, prevMonthShifts){
       if(!g) return true; // branch not required today → above-min by definition
       if(g.subtype){
         if(countFilled(ds, code) > 1) return true;
-        return groupGotS(ds, g) > g.need;
+        // v0.9.33: po odebrání musí pokrytí (bez děr) zůstat ≥ need
+        return groupCoverage(g, c=>countFilled(ds, c) - (c===code ? 1 : 0)) >= g.need;
       }
       return countFilled(ds, code) > g.need;
     }
@@ -7706,8 +7727,9 @@ function buildSchedule(daysInMonth, prevMonthShifts){
         const bCodes = bSts.map(s=>s.code);
         const needN = Math.min(getBranchDayMin(b, dowR), bCodes.length);
         const cap = Math.min(Math.max(getBranchDayMax(b, dowR), needN), bCodes.length);
-        if(bCodes.filter(c=>countFilled(dateStr, c)>0).length >= cap) return null;
-        return bCodes.find(c=>countFilled(dateStr, c)===0 && branchLimitAllows(emp, c)) || null;
+        if(subtypeCoverage(bCodes, c=>countFilled(dateStr, c)) >= cap) return null;
+        const nx = nextSubtypeCode(bCodes, c=>countFilled(dateStr, c));
+        return (nx && branchLimitAllows(emp, nx)) ? nx : null;
       }
       // Day coverage of the removed code's branch, evaluated AFTER the removal
       function coverageSurvives(dateStr, removedCode){
@@ -7840,10 +7862,11 @@ function buildSchedule(daysInMonth, prevMonthShifts){
     const isSubtype = code => shiftTypes.some(s => s.code === code);
     // Kód, který emp vezme na uvolněném místě: stejný kód, jinak jiný volný typ téže pobočky.
     const takeoverCode = (emp, dateStr, code) => {
-      if((!isSubtype(code) || countFilled(dateStr, code)===0) && canWork(emp, dateStr, code)) return code;
+      if(!isSubtype(code)) return canWork(emp, dateStr, code) ? code : null;
       const b = branches.find(x => x.code === slotBranchCode(code));
-      const bSts = b ? shiftTypes.filter(s => s.branch_id === b.id) : [];
-      return bSts.map(s => s.code).find(c => countFilled(dateStr, c)===0 && canWork(emp, dateStr, c)) || null;
+      const bCodes = b ? shiftTypes.filter(s => s.branch_id === b.id).map(s => s.code) : [];
+      const nx = nextSubtypeCode(bCodes, c => countFilled(dateStr, c)); // v0.9.33: jen další typ v pořadí
+      return (nx && canWork(emp, dateStr, nx)) ? nx : null;
     };
     const monthDays = () => shuffle(Array.from({length:daysInMonth}, (_,i) => isoDate(schedYear, schedMonth+1, i+1)));
 
@@ -8954,7 +8977,7 @@ function renderGapsInline(){
         // in sort_order: the first (need − covered) are real holes, the rest are
         // optional (assignable up to the day max) — never shown as missing.
         const unfilled = sts.filter(st=>!employees.some(emp=>{const s=shifts[emp.id+':'+dateStr]; return s&&s.shift_type_code===st.code;}));
-        const covered = sts.length - unfilled.length;
+        const covered = subtypeCoverage(sts.map(st=>st.code), c=>unfilled.some(u=>u.code===c) ? 0 : 1); // v0.9.33: díra v pořadí = chybí
         const need = Math.min(minReq, sts.length);
         const capTotal = Math.min(Math.max(maxDay, need), sts.length);
         const missingCount = Math.max(0, need - covered);
@@ -9057,7 +9080,8 @@ function renderGaps(){
         sts.forEach(st=>{ const occ = occOf(st); (occ ? filled : unfilled).push({ st, occ }); });
         const need = Math.min(minReq, sts.length);
         const capTotal = Math.min(Math.max(maxDay, need), sts.length);
-        const missingCount = Math.max(0, need - filled.length);
+        const covered = subtypeCoverage(sts.map(st=>st.code), c=>filled.some(f=>f.st.code===c) ? 1 : 0); // v0.9.33: díra v pořadí = chybí
+        const missingCount = Math.max(0, need - covered);
         const freeCount = Math.max(0, capTotal - filled.length - missingCount);
         filled.forEach(({st, occ})=>{
           daySlots.push({ code:st.code, branchCode:b.code, branchName:b.name,
