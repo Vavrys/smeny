@@ -5894,6 +5894,21 @@ function closePicker(){
   detachPickerSheet(picker, overlay);   // v0.9.28 — sheet třídy + touch listenery
 }
 
+// v0.9.34 — konflikt unique (employee_id, shift_date): v DB už ten den záznam je, ale
+// lokální `shifts` o něm neví (změna z jiného zařízení/okna, schválená dovolená, výměna…).
+// Nic nepřepisujeme naslepo: načteme aktuální stav, řekneme co tam je, uživatel zopakuje.
+async function handleShiftInsertConflict(error, empId, dateStr){
+  if(!error || error.code !== '23505') return false;
+  console.warn('[smeny] konflikt vložení směny — lokální stav byl zastaralý', { empId, dateStr, error });
+  await loadShiftsForMonth(true);
+  const cur = shifts[empId+':'+dateStr];
+  const name = employees.find(e=>e.id===empId)?.name || 'Zaměstnanec';
+  const day = parseInt(dateStr.split('-')[2]);
+  const what = cur ? (cur.shift_type_code + (cur.leave_request_id ? ' (dovolená)' : '') + (cur.is_auto ? ' (auto)' : ' (ručně)')) : 'záznam, který se nenačetl';
+  toast(`${name} už má ${day}. v databázi ${what} — rozpis byl zastaralý, načetl jsem aktuální stav. Zkus to prosím znovu.`, 'error');
+  return true;
+}
+
 async function fillModeAssign(empId, dateStr, slotCode){
   // v0.9.22 — stejná slot-vědomá kapacita jako pickShift: plný slot = nahrazení,
   // ne přidání druhého člověka (dřív holý INSERT bez kontroly)
@@ -5903,6 +5918,7 @@ async function fillModeAssign(empId, dateStr, slotCode){
     org_id: currentOrg.id, employee_id: empId,
     shift_date: dateStr, shift_type_code: slotCode, is_auto: false
   }).select().single();
+  if(await handleShiftInsertConflict(error, empId, dateStr)) return;
   if(error){ toast('Chyba: '+error.message); return; }
   shifts[empId+':'+dateStr] = data;
   renderCalendar();
@@ -5983,6 +5999,7 @@ async function pickShift(empId, dateStr, code){
       org_id: currentOrg.id, employee_id: empId,
       shift_date: dateStr, shift_type_code: code, is_auto: false
     }).select().single();
+    if(await handleShiftInsertConflict(error, empId, dateStr)) return;
     if(error){ toast('Chyba vložení: '+error.message); return; }
     if(data) shifts[key] = data;
   }
@@ -8887,6 +8904,7 @@ async function dayDetailAssign(empId, dateStr, slotCode, day){
     org_id: currentOrg.id, employee_id: empId,
     shift_date: dateStr, shift_type_code: slotCode, is_auto: false
   }).select().single();
+  if(await handleShiftInsertConflict(error, empId, dateStr)) return;
   if(error){ toast('Chyba: '+error.message); return; }
   shifts[empId+':'+dateStr] = data;
   renderCalendar();
@@ -8935,6 +8953,7 @@ async function dayDetailReplace(oldEmpId, newEmpId, dateStr, slotCode, day){
     org_id: currentOrg.id, employee_id: newEmpId,
     shift_date: dateStr, shift_type_code: slotCode, is_auto: false
   }).select().single();
+  if(await handleShiftInsertConflict(error, newEmpId, dateStr)) return;
   if(error){ toast('Chyba: '+error.message); return; }
   shifts[newEmpId+':'+dateStr] = data;
 
