@@ -7291,18 +7291,34 @@ function buildSchedule(daysInMonth, prevMonthShifts){
           const shared = codes.find(c=>
             (!subtype || days.every(ds=>nextSubtypeCode(codes, cc=>countFilled(ds, cc))===c)) &&
             days.every(ds=>canWork(emp, ds, c)) &&
-            blockRespectsLimits(emp, days.length, c)
+            blockRespectsLimits(emp, days.length, c) &&
+            empShiftCount(emp.id) + days.length <= emp.max_shifts // v0.9.34: canWork hlídá max jen po jednom dni
           );
           if(shared) return days.map(ds=>({ ds, code: shared }));
+          // v0.9.34: plán po dnech musí počítat i s dny, které už sám naplánoval —
+          // branchLimitAllows() vidí jen stav PŘED blokem, takže když sdílený kód
+          // neprošel kvůli měsíčnímu limitu (blockRespectsLimits), dal plán po dnech
+          // člověku celý blok stejně (Monika K 6/4).
           const plan = [];
+          const planAllows = cc => {
+            const bc = slotBranchCode(cc);
+            const bl = (emp.branch_limits||{})[bc];
+            const sameB = plan.filter(p=>slotBranchCode(p.code)===bc).length;
+            const sameT = plan.filter(p=>p.code===cc).length;
+            if(bl && bl.max !== undefined && empBranchCountS(emp.id, bc) + sameB + 1 > bl.max) return false;
+            const stLim = bl && bl.shiftTypes && bl.shiftTypes[cc];
+            if(stLim && stLim.max !== undefined && empShiftTypeCountS(emp.id, cc) + sameT + 1 > stLim.max) return false;
+            return true;
+          };
           for(const ds of days){
             const c = codes.find(cc=>
               (!subtype || nextSubtypeCode(codes, x=>countFilled(ds, x))===cc) &&
               canWork(emp, ds, cc) &&
-              branchLimitAllows(emp, cc)
+              branchLimitAllows(emp, cc) && planAllows(cc)
             );
             if(c) plan.push({ ds, code: c });
           }
+          if(plan.length && empShiftCount(emp.id) + plan.length > emp.max_shifts) return null;
           return plan.length ? plan : null;
         }
 
