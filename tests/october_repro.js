@@ -25,12 +25,12 @@ const E=[
  {id:'martin',name:'Martin',...FT,branch_limits:{U:{},MAJ:noM(['M1']),PLZ:noP(['P2'])}},
  {id:'vojtech',name:'Vojtěch',...FT,branch_limits:{U:{},MAJ:noM(['M2'])}},
  {id:'linda',name:'Linda',...FT,branch_limits:{MAJ:noM(['M1','M3','M4']),PLZ:noP(['P2'])}},
- {id:'tereza',name:'Tereza',...FT,branch_limits:{U:{},K:{},MAJ:noM(['M1','M2'])}},
- {id:'domg',name:'Gorčák',...FT,branch_limits:{U:{},K:{},MAJ:noM(['M1','M2','M3','M4'])}},
- {id:'lucie',name:'Lucie',...FT,branch_limits:{K:{},MAJ:noM(['M1','M2','M3']),PLZ:noP(['P2'])}},
- {id:'monika',name:'Monika',...FT,branch_limits:{K:{},MAJ:noM(['M1','M2','M3','M4'])}},
+ {id:'tereza',name:'Tereza',...FT,branch_limits:{U:{max:4},K:{max:6},MAJ:noM(['M1','M2'])}},
+ {id:'domg',name:'Gorčák',...FT,branch_limits:{U:{max:5},K:{max:5},MAJ:noM(['M1','M2','M3','M4'])}},
+ {id:'lucie',name:'Lucie',...FT,branch_limits:{K:{max:7},MAJ:noM(['M1','M2','M3']),PLZ:noP(['P2'])}},
+ {id:'monika',name:'Monika',...FT,branch_limits:{K:{max:4},MAJ:noM(['M1','M2','M3','M4'])}},
  {id:'tomas',name:'Tomáš',...FT,is_fixed:true,branch_limits:{MAJ:{}}},
- {id:'frant',name:'František',...FT,branch_limits:{U:{},K:{},MAJ:noM(['M1','M3','M4'])}},
+ {id:'frant',name:'František',...FT,branch_limits:{U:{max:4},K:{max:5},MAJ:noM(['M1','M3','M4'])}},
  {id:'bina',name:'Bína',...FT,branch_limits:{MAJ:noM(['M1','M2','M3','M4'])}},
  {id:'marcos',name:'Marcos',min_shifts:6,target_shifts:8,max_shifts:8,branch_limits:{MAJ:noM(['M1','M3','M4'])}},
  {id:'maxim',name:'Maxim',min_shifts:0,target_shifts:0,max_shifts:0,branch_limits:{}},
@@ -60,7 +60,8 @@ for(let r=1;r<=RUNS;r++){const sb=makeSandbox(1000+r);seed(sb);const S=sb.buildS
  const fw={};show.forEach(id=>{fw[id]=pairs.filter(p=>p.every(d=>!work(id,d))).length;agg[id]=(agg[id]||0)+fw[id]});
  const below=show.filter(id=>fw[id]<2);
  if(work('bina',3)||work('bina',4))w1.bina++; if(work('frant',3)||work('frant',4))w1.frant++;
- cands.push({r,gaps,pct:q.pct,hard:q.hardFailed.length,below,fw,cnt:Object.fromEntries(show.map(id=>[id,Object.values(S).filter(s=>s.employee_id===id&&s.shift_type_code!=='X').length]))});
+ const over=[];E.forEach(e=>Object.entries(e.branch_limits||{}).forEach(([bc,bl])=>{if(bl.max===undefined)return;const n=Object.values(S).filter(s=>s.employee_id===e.id&&s.shift_type_code!=='X'&&(s.shift_type_code===bc||(bc==='MAJ'&&/^M/.test(s.shift_type_code))||(bc==='PLZ'&&/^P/.test(s.shift_type_code)))).length;if(n>bl.max)over.push(e.id+':'+bc+' '+n+'/'+bl.max)}));
+ cands.push({r,over,gaps,pct:q.pct,hard:q.hardFailed.length,below,fw,cnt:Object.fromEntries(show.map(id=>[id,Object.values(S).filter(s=>s.employee_id===id&&s.shift_type_code!=='X').length]))});
 }
 const feas=cands.filter(c=>c.hard===0);const best=(feas.length?feas:cands).sort((a,b)=>b.pct-a.pct)[0];
 console.log(path.basename(INDEX),'runs',RUNS,'feasible',feas.length);
@@ -68,10 +69,11 @@ console.log('avg volné víkendy:',show.map(id=>id+'='+(agg[id]/RUNS).toFixed(2)
 console.log('W1 pracuje: Bína',w1.bina+'/'+RUNS,' František',w1.frant+'/'+RUNS);
 console.log('avg lidí pod min víkendů:',(cands.reduce((a,c)=>a+c.below.length,0)/RUNS).toFixed(2),' běhů bez nikoho pod min:',cands.filter(c=>!c.below.length).length);
 console.log('dny s dírou v typech (M3 bez M2 apod.): avg',(cands.reduce((a,c)=>a+c.gaps,0)/RUNS).toFixed(2),' nejlepší:',best.gaps);
+const allOver=cands.flatMap(c=>c.over);console.log('překročené limity poboček: běhů',cands.filter(c=>c.over.length).length+'/'+RUNS,' příklady:',[...new Set(allOver)].slice(0,8).join(', '),' nejlepší:',best.over.join(',')||'žádné');
 console.log('avg pct',(cands.reduce((a,c)=>a+c.pct,0)/RUNS).toFixed(1));
 console.log('NEJLEPŠÍ (best-of):',best.pct+'%','hard',best.hard,'pod min:',best.below.join(',')||'nikdo','fw',JSON.stringify(best.fw));
 console.log('   směny',JSON.stringify(best.cnt));
 
-const ok = best.hard===0 && best.below.length===0 && best.gaps===0;
+const ok = best.hard===0 && best.below.length===0 && best.gaps===0 && best.over.length===0;
 console.log(ok ? '✓ nejlepší rozpis: všichni mají min. volných víkendů' : '✗ FAIL: pod minimem volných víkendů: '+best.below.join(','));
 process.exit(ok?0:1);
