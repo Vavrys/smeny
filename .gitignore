@@ -19,3 +19,5 @@
 !supabase/
 !supabase/**
 !build-stamp.js
+!tests/
+!tests/october_repro.js

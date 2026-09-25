@@ -2406,7 +2406,7 @@ window.addEventListener('unhandledrejection', e => {
 // odsud, ručně je nepřepisuj. sw.js se od v0.9.29 nebumpuje — je z něj
 // kill-switch bez cache (viz killServiceWorkers() a komentář v sw.js).
 // ============================================================
-const APP_VERSION = '0.9.31';
+const APP_VERSION = '0.9.32';
 
 // Krátký git hash nasazeného buildu. Placeholder níž přepíše build-stamp.js
 // z CF_PAGES_COMMIT_SHA (Cloudflare Pages build command: `node build-stamp.js`).
@@ -7061,12 +7061,15 @@ function buildSchedule(daysInMonth, prevMonthShifts){
   nonFixed.forEach(e=>{ scarceMap[e.id] = allowedCodeCount(e); });
   const maxOrgCodes = allOrgCodes.length;
 
-  function candidateScore(emp, code, dateStr){
+  // weDate (volitelné): den, podle kterého se rozhoduje, zda jde o víkendové obsazení.
+  // PASS 0 hodnotí celý blok Pá–So–Ne datem PÁTKU (kvůli sérii/odpočinku), ale o
+  // víkend jde pořád — bez weDate by W_WEEKEND pro celé bloky vždy vyšel 0 (v0.9.32).
+  function candidateScore(emp, code, dateStr, weDate){
     const cnt = empShiftCount(emp.id);
     const belowMin = Math.max(0, (emp.min_shifts||0) - cnt);
     const minWE = emp.min_free_weekends || defaultMinWE;
     const freeWEs = weekendPairs.filter(p => p.every(ds=>!isWorking(emp.id+':'+ds))).length;
-    const isWEday = [0,6].includes(new Date(dateStr+'T00:00:00').getDay());
+    const isWEday = [0,6].includes(new Date((weDate||dateStr)+'T00:00:00').getDay());
     const weTerm = isWEday ? (freeWEs - minWE) : 0;
     const recentLoad = consecutiveBefore(emp.id, dateStr);
     const toTarget = (emp.target_shifts||0) - cnt;
@@ -7186,7 +7189,23 @@ function buildSchedule(daysInMonth, prevMonthShifts){
   // fill, which has no concept of "keep this person on both days" and would routinely
   // hand Saturday and Sunday to two different people.
   if(weekendPriority){
-    weekendBlocks.forEach(wb=>{
+    // v0.9.32: víkendy od NEJHŮŘ obsaditelného (nejméně lidí bez X/ruční směny v bloku),
+    // ne chronologicky. Kdo je nutný na víkendech, kde má hodně lidí X, se tam spotřebuje
+    // první — a na „snadném" víkendu už ho W_WEEKEND/W_MIN odsunou za lidi s rezervou.
+    // Při shodě zůstává chronologické pořadí (stabilní sort).
+    const blockAvail = wb => nonFixed.filter(e => wb.every(ds => !S[e.id+':'+ds])).length;
+    const weekendBlocksOrdered = weekendBlocks
+      .map((wb, i) => ({ wb, i, n: wb.length < 3 ? Infinity : blockAvail(wb) }))
+      .sort((x, y) => (x.n - y.n) || (x.i - y.i))
+      .map(x => x.wb);
+    // v0.9.32: dvě fáze. Nejdřív MIN lanes všech víkendů (povinné pokrytí), až potom
+    // SOFT lanes (pozice nad minimem do „ideálu"). Soft lane nesmí nikomu vzít volný
+    // víkend, když by tím spadl pod své minimum — v té chvíli už jsou povinné víkendy
+    // všech lidí rozdané, takže počet volných víkendů je skutečný, ne optimistický.
+    const freeWEnow = e => weekendPairs.filter(p => p.every(ds => !isWorking(e.id+':'+ds))).length;
+    const weekendCostOf = (e, days) => weekendPairs.filter(p =>
+      p.some(ds => days.includes(ds)) && p.every(ds => !isWorking(e.id+':'+ds))).length;
+    const pass0Block = (wb, phase)=>{
       if(wb.length < 3) return; // partial block at month edge — no whole weekend to offer, leave to PASS 1
       const [friDs, satDs, sunDs] = wb;
 
@@ -7219,13 +7238,15 @@ function buildSchedule(daysInMonth, prevMonthShifts){
         for(let i=0;i<tg.full;i++)  lanes.push({ codes, days:wb,             subtype, soft: i>=mn.full });
         for(let i=0;i<tg.extra;i++) lanes.push({ codes, days:[satDs, sunDs], subtype, soft: i>=mn.extra });
       });
-      if(!lanes.length) return;
+      const phaseLanes = lanes.filter(l => phase==='soft' ? l.soft : !l.soft);
+      if(!phaseLanes.length) return;
 
-      lanes.forEach(lane=>{
+      phaseLanes.forEach(lane=>{
         const { codes, days, subtype, soft } = lane;
         const scoreDate = days[0];
+        const weDate = days.find(ds=>[0,6].includes(new Date(ds+'T00:00:00').getDay())) || scoreDate;
         const empsSorted = [...nonFixed].sort((a,bEmp)=>
-          candidateScore(bEmp, codes[0], scoreDate) - candidateScore(a, codes[0], scoreDate));
+          candidateScore(bEmp, codes[0], scoreDate, weDate) - candidateScore(a, codes[0], scoreDate, weDate));
 
         // Plán pro kandidáta: přednostně JEDEN sdílený kód přes všechny dny bloku
         // (kontinuita). Když žádný takový není (např. část bloku je ručně obsazená),
@@ -7233,6 +7254,7 @@ function buildSchedule(daysInMonth, prevMonthShifts){
         // nevoidí celý víkend.
         function planFor(emp){
           if(soft && empShiftCount(emp.id) >= emp.min_shifts) return null;
+          if(soft && freeWEnow(emp) - weekendCostOf(emp, days) < (emp.min_free_weekends || defaultMinWE)) return null;
           const shared = codes.find(c=>
             (!subtype || days.every(ds=>countFilled(ds, c)===0)) &&
             days.every(ds=>canWork(emp, ds, c)) &&
@@ -7262,7 +7284,9 @@ function buildSchedule(daysInMonth, prevMonthShifts){
         }
         if(best) best.plan.forEach(p=>setShift(best.emp.id, p.ds, p.code));
       });
-    });
+    };
+    weekendBlocksOrdered.forEach(wb=>pass0Block(wb, 'min'));
+    weekendBlocksOrdered.forEach(wb=>pass0Block(wb, 'soft'));
   }
 
   // PASS 1: Fill ALL remaining required min-slots of the whole month GLOBALLY,
@@ -7487,6 +7511,16 @@ function buildSchedule(daysInMonth, prevMonthShifts){
     });
     return deficit;
   }
+  // v0.9.32: přidání So/Ne nesmí roztrhnout volný SO+NE pár, když by tím člověk
+  // spadl pod své minimum volných víkendů (Pá a všední dny nikdy neblokuje).
+  function weekendFreeOk(emp, dateStr){
+    const dowW = new Date(dateStr+'T00:00:00').getDay();
+    if(dowW!==0 && dowW!==6) return true;
+    const pair = weekendPairs.find(p=>p.includes(dateStr));
+    if(!pair || !pair.every(ds=>!isWorking(emp.id+':'+ds))) return true;
+    const free = weekendPairs.filter(p=>p.every(ds=>!isWorking(emp.id+':'+ds))).length;
+    return free > (emp.min_free_weekends || defaultMinWE);
+  }
   const dayOrder2 = Array.from({length:daysInMonth},(_,i)=>i+1)
     .sort((x,y)=>dayDeficit(y)-dayDeficit(x) || Math.random()-0.5);
   dayOrder2.forEach(d=>{
@@ -7512,6 +7546,7 @@ function buildSchedule(daysInMonth, prevMonthShifts){
           const isWEday = fullWeekendDays.has(dateStr);
           const belowMin = countFilled(dateStr, b.code) < getBranchDayMin(b, dow3);
           if(isWEday && !belowMin && empShiftCount(emp.id) >= emp.min_shifts) continue;
+          if(!belowMin && !weekendFreeOk(emp, dateStr)) continue; // v0.9.32: nad minimem nebrat volný víkend pod min
           setShift(emp.id, dateStr, b.code);
         }
       } else {
@@ -7535,6 +7570,7 @@ function buildSchedule(daysInMonth, prevMonthShifts){
           const isWEday = fullWeekendDays.has(dateStr);
           const belowMin = covered < needN;
           if(isWEday && !belowMin && empShiftCount(emp.id) >= emp.min_shifts) continue;
+          if(!belowMin && !weekendFreeOk(emp, dateStr)) continue; // v0.9.32: nad minimem nebrat volný víkend pod min
           setShift(emp.id, dateStr, c);
           covered++;
         }
@@ -7782,6 +7818,98 @@ function buildSchedule(daysInMonth, prevMonthShifts){
               S[bKey] = bs; invalidateCaches(); // restore, zkus dalšího B
             }
           }
+        }
+      }
+    }
+  }
+
+  // ── WEEKEND REPAIR PASS (v0.9.32) ───────────────────────────
+  // Záchranná síť pro volné víkendy. Kdo má méně volných SO+NE párů než své minimum,
+  // zkusí uvolnit jeden svůj odpracovaný pár. Každou jeho směnu v páru buď jen
+  // odebere (je nad denním minimem pobočky), nebo ji převezme DÁRCE: ten den nepracuje,
+  // smí ten kód (nebo jiný volný typ téže pobočky) a po převzetí má pořád ≥ svého
+  // minima volných víkendů. Přednost má jeden dárce na celý pár a ten, koho to nestojí
+  // volný víkend (už ten víkend pracuje). A pak dostane ztracené směny zpět ve všední
+  // dny Po–Čt (do svého cíle). Tah, který by otevřel díru v pokrytí nebo dostal A pod
+  // min_shifts, se vrátí celý. Jen auto směny.
+  if(ENABLE_SWAP && weekendPairs.length){
+    const minWEof = e => e.min_free_weekends || defaultMinWE;
+    const freeWE = e => weekendPairs.filter(p => p.every(ds => !isWorking(e.id+':'+ds))).length;
+    const isMonThu = ds => { const w = new Date(ds+'T00:00:00').getDay(); return w >= 1 && w <= 4; };
+    const allCovered = ds => requiredGroupsForDay(ds).every(g => groupGotS(ds, g) >= g.need);
+    const isSubtype = code => shiftTypes.some(s => s.code === code);
+    // Kód, který emp vezme na uvolněném místě: stejný kód, jinak jiný volný typ téže pobočky.
+    const takeoverCode = (emp, dateStr, code) => {
+      if((!isSubtype(code) || countFilled(dateStr, code)===0) && canWork(emp, dateStr, code)) return code;
+      const b = branches.find(x => x.code === slotBranchCode(code));
+      const bSts = b ? shiftTypes.filter(s => s.branch_id === b.id) : [];
+      return bSts.map(s => s.code).find(c => countFilled(dateStr, c)===0 && canWork(emp, dateStr, c)) || null;
+    };
+    const monthDays = () => shuffle(Array.from({length:daysInMonth}, (_,i) => isoDate(schedYear, schedMonth+1, i+1)));
+
+    let iterW = 0, progressedW = true;
+    while(progressedW && iterW < 60){
+      progressedW = false; iterW++;
+      const needy = shuffle(nonFixed.filter(e => freeWE(e) < minWEof(e)))
+        .sort((a, b) => (freeWE(a) - minWEof(a)) - (freeWE(b) - minWEof(b)));
+      for(const A of needy){
+        if(freeWE(A) >= minWEof(A)) continue;
+        // páry, kde A pracuje a všechny jeho směny v páru jsou auto (ruční nikdy nehýbeme)
+        const cand = weekendPairs.filter(p =>
+          p.some(ds => isWorking(A.id+':'+ds)) &&
+          p.every(ds => !isWorking(A.id+':'+ds) || S[A.id+':'+ds].is_auto));
+        for(const pair of shuffle(cand)){
+          const aDays = pair.filter(ds => isWorking(A.id+':'+ds));
+          const snap = {};                       // celý stav měsíce pro případný návrat
+          Object.keys(S).forEach(k => { snap[k] = S[k]; });
+          const rollback = () => { Object.keys(S).forEach(k => { if(!(k in snap)) delete S[k]; });
+                                   Object.assign(S, snap); invalidateCaches(); };
+          const aCodes = {}; aDays.forEach(ds => { aCodes[ds] = S[A.id+':'+ds].shift_type_code; });
+          aDays.forEach(ds => clearShift(A.id+':'+ds));
+          const needFill = aDays.filter(ds => !allCovered(ds)); // dny, kde po odebrání A chybí pokrytí
+          const donors = shuffle(nonFixed.filter(e => e.id !== A.id)).map(e => ({
+            e, cost: pair.every(ds => !isWorking(e.id+':'+ds)) ? 1 : 0, spare: freeWE(e) - minWEof(e),
+          })).filter(d => d.spare - d.cost >= 0)
+            .sort((x, y) => (x.cost - y.cost) || (y.spare - x.spare) ||
+              ((empShiftCount(x.e.id) - (x.e.target_shifts||0)) - (empShiftCount(y.e.id) - (y.e.target_shifts||0))));
+          const tryDonor = (d, days) => {           // dá dárci všechny `days`, nebo nic
+            const added = [];
+            for(const ds of days){
+              const c = !S[d.e.id+':'+ds] && takeoverCode(d.e, ds, aCodes[ds]);
+              if(!c){ added.forEach(k => clearShift(k)); return false; }
+              setShift(d.e.id, ds, c); added.push(d.e.id+':'+ds);
+            }
+            if(freeWE(d.e) < minWEof(d.e)){ added.forEach(k => clearShift(k)); return false; }
+            return true;
+          };
+          let ok = !needFill.length || donors.some(d => tryDonor(d, needFill));      // jeden dárce na celý pár
+          if(!ok) ok = needFill.every(ds => donors.some(d => tryDonor(d, [ds])));  // jinak po dnech
+          if(!ok || !pair.every(allCovered)){ rollback(); continue; }
+          // A dostane ztracené směny zpět ve všední dny (Po–Čt), nejvýš do svého cíle
+          let give = Math.min(aDays.length, Math.max(0, (A.target_shifts||0) - empShiftCount(A.id)));
+          for(const ds2 of monthDays()){
+            if(give <= 0) break;
+            if(!isMonThu(ds2) || S[A.id+':'+ds2]) continue;
+            for(const b of branches){
+              const c2 = openCodeOnBranch(b, ds2, A);
+              if(c2 && canWork(A, ds2, c2)){ setShift(A.id, ds2, c2); give--; break; }
+            }
+          }
+          if(empShiftCount(A.id) < (A.min_shifts||0)){ rollback(); continue; } // min_shifts je tvrdé
+          // dárci, kteří převzetím přesáhli cíl, uber nadbytečnou všední směnu (Po–Čt,
+          // jen nad denním minimem pobočky, nikdy pod min_shifts)
+          nonFixed.forEach(e => {
+            if(e.id === A.id || !needFill.some(ds => isWorking(e.id+':'+ds) && !snap[e.id+':'+ds])) return;
+            for(const ds3 of monthDays()){
+              if(empShiftCount(e.id) <= Math.max(e.target_shifts||0, e.min_shifts||0)) break;
+              const s3 = S[e.id+':'+ds3];
+              if(!isMonThu(ds3) || !s3 || !s3.is_auto || s3.shift_type_code==='X') continue;
+              clearShift(e.id+':'+ds3);
+              if(!allCovered(ds3)){ S[e.id+':'+ds3] = s3; invalidateCaches(); }
+            }
+          });
+          progressedW = true;
+          break; // A má o volný víkend víc — další needy
         }
       }
     }
