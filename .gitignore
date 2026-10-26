@@ -21,3 +21,13 @@
 !build-stamp.js
 !tests/
 !tests/october_repro.js
+!tests/schedule_harness.js
+!tests/e2e/
+!tests/e2e/**
+!.github/
+!.github/**
+!tools/
+!tools/**
+tools/node_modules/
+tools/test-results/
+tools/playwright-report/
