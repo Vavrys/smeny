@@ -24,8 +24,12 @@
 !tests/schedule_harness.js
 !tests/e2e/
 !tests/e2e/**
+!scripts/
+!scripts/**
 !.github/
 !.github/**
+!docs/
+!docs/**
 !tools/
 !tools/**
 tools/node_modules/
