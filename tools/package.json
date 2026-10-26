@@ -1,0 +1,12 @@
+{
+  "name": "smeny-tools",
+  "private": true,
+  "scripts": {
+    "test": "node ../tests/schedule_harness.js && node check_syntax.js",
+    "test:e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.1",
+    "http-server": "14.1.1"
+  }
+}
