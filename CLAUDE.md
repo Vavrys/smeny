@@ -1,5 +1,20 @@
 # Směny — pokyny pro práci s kódem
 
+## Projekt
+
+Česká multi-tenant SaaS aplikace pro plánování směn (pohostinství, více poboček).
+Frontend: jeden soubor `index.html` (vanilla JS, bez service workeru — `sw.js` je
+jen odinstalační pojistka, viz níž). Backend: Supabase (Postgres, RLS, SECURITY
+DEFINER RPC). Deploy: Cloudflare Pages z GitHubu (`main` = produkce, ostatní větve
+= preview), build command `node build-stamp.js` (viz níž). Vlastník a jediný
+reviewer: Vavrys. UI i komunikace česky.
+
+## Editace souborů
+
+Skriptované úpravy `index.html` zachovávají kódování UTF-8 a existující konce
+řádků (soubor je CRLF). Po každém hromadném nahrazení ověř, že proběhlo právě
+jednou — ne vícekrát, ne nikde.
+
 ## Verzování (release checklist)
 
 Verzi měň na JEDINÉM místě: `index.html` — konstanta `APP_VERSION` (sekce „APP VERSION"
@@ -65,6 +80,15 @@ Loguje chyby s kontextem a přes `{ action: 'Popis akce' }` zobrazí uživateli 
 Zákaz `.catch(()=>{})` a ignorování `{ error }` — Supabase JS nevyhazuje, chyby
 chodí v návratové hodnotě. Prázdné/chybové stavy panelů: `uiEmptyState()` / `uiErrorState()`.
 
+Operace často selhávají potichu (chybějící RLS policy, GRANT, nebo sloupec) —
+každé nové volání ověř proti aktuálnímu schématu (seznam migrací výše), ne jen
+proti tomu, co appka předpokládá.
+
+Onboarding řeší cyklickou závislost RLS (nový uživatel potřebuje vidět
+organizaci, do které se ale bez členství nedostane) přes SECURITY DEFINER RPC:
+`join_org_by_code`, `claim_invite`, `create_organization`. Neměň Supabase URL
+ani klíče v kódu.
+
 ## Ikony
 
 Aplikace má centrální registr ikon `DEFAULT_ICONS`/`ICONS` v `index.html` (sekce `ICON REGISTRY`). Žádné emoji se nesmí používat natvrdo přímo v kódu.
@@ -75,3 +99,48 @@ Při přidání nové záložky, tlačítka nebo jiného klikatelného prvku VŽ
 3. Spusť `validateIconConsistency()` (v konzoli prohlížeče) pro ověření, že stejné prvky používají stejnou ikonu.
 
 Uživatel může ikony přepsat v Nastavení → záložka „🎨 Ikony" — uloží se do `localStorage` a aplikují se přes `applyIcons()`.
+
+## Git a PR
+
+- Nikdy necommituj přímo do `main`. Před prací `git pull --rebase`.
+- Jedno issue = jedna větev = jeden PR. Nemíchej nesouvisející změny.
+- Větve automatizace: `claude/<číslo-issue>-auto`.
+- Neměň `.github/workflows/`, `CLAUDE.md` ani `build-stamp.js`, pokud to issue výslovně nežádá.
+- Neměň text verze v `#app-version-label` (verzování dělá Vavrys, viz výše).
+- Popis PR (česky): `Closes #N`, **Co a proč**, **Jak otestovat** (max 5 kroků, ≤3 min,
+  na preview URL, v testovací organizaci, ne v ostré), **Rizika**, **Migrace DB: ano/ne**.
+
+## Testy (musí projít před PR)
+
+- `node tests/schedule_harness.js`: algoritmus + mutační testy víkendových párů.
+- `node tools/check_syntax.js`: syntaxe všech inline skriptů.
+- `cd tools && npx playwright test`: smoke test načtení stránky (desktop + mobil).
+- `cd tools && npm test` spustí harness i syntax check najednou.
+
+Když měníš logiku, přidej/uprav test. Test nikdy neoslabuj, aby prošel.
+
+## Doménová pravidla (nepřepisovat bez výslovného zadání)
+
+- Pobočky: Majestic (M1–M4), Ungelt (U), Karolína (K), Plaza (P1/P2).
+- Majestic: minimum 3 lidi, ne všechny 4 podtypy. Podtypy se plní v pořadí: M3 jen s M2,
+  M4 jen s M3. O víkendu je ideál 4.
+- Volné víkendy se měří jako páry So+Ne (`collectWeekendPairs`). `collectWeekendBlocks`
+  slouží jen plánovací logice (obsazování pá–ne bloku). Nezaměňovat.
+- Strop kvality rozpisu je empiricky ~91–92 % (stejně jako ručně). Další optimalizace
+  má malý přínos.
+- Nesplněné minimum u zaměstnance s úzkými oprávněními (např. jen Karolína) může být
+  strukturálně neřešitelné. Není to bug algoritmu.
+- Váhy `candidateScore` (W_MIN, W_WEEKEND, W_RECENT, W_TARGET, W_SCARCE) neměň bez zadání.
+
+## UI
+
+- Sémantické barvy (zelená/oranžová/červená stavů) se nikdy nemění s tématem ani dark
+  mode. Měnit se smí jen akcentové barvy tématu.
+- Nové knihovny jen přes CDN s pevnou verzí (jako `@supabase/supabase-js`, `xlsx`,
+  `@floating-ui/*`). Žádný build krok pro runtime.
+- Mobil je primární zařízení zaměstnanců: každá UI změna musí fungovat na 390 px šířky.
+
+## Komunikace
+
+Česky, věcně, bez omáčky. Když je zadání v rozporu s kódem nebo s pravidly výše,
+nezačínej hádat. Popiš rozpor a navrhni varianty A/B.
