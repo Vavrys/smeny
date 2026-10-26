@@ -2113,7 +2113,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
 <div id="update-banner" role="status" aria-live="polite" style="display:none;position:fixed;left:12px;right:76px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:560;background:var(--surface);border:1.5px solid var(--line);border-radius:12px;box-shadow:0 6px 20px rgba(30,34,48,.18);padding:10px 12px;align-items:center;gap:10px">
   <span style="font-size:20px;flex-shrink:0"><span data-icon="app_update">🔄</span></span>
   <div style="flex:1;min-width:0;font-size:12.5px;font-weight:700">Je k dispozici nová verze aplikace.</div>
-  <button class="btn-accent" onclick="location.reload()" style="white-space:nowrap;flex-shrink:0">Obnovit</button>
+  <button class="btn-accent" onclick="location.reload()" style="padding:7px 14px;font-size:12.5px;white-space:nowrap;flex-shrink:0">Obnovit</button>
   <button onclick="dismissUpdateBanner()" title="Zavřít" aria-label="Zavřít" style="background:none;border:none;font-size:15px;color:var(--ink-faint);cursor:pointer;padding:6px;flex-shrink:0">✕</button>
 </div>
 
@@ -14504,6 +14504,8 @@ function maybeShowInstallHint(){
   if(!/Android|iPhone|iPad|iPod|Mobi/i.test(navigator.userAgent)) return; // jen mobil
   const el = document.getElementById('pwa-install-banner');
   if(!el || el.style.display === 'flex') return;
+  const upd = document.getElementById('update-banner');
+  if(upd && upd.style.display === 'flex') return;                 // update banner má přednost
   const isIos = /iPhone|iPad|iPod/i.test(navigator.userAgent);
   const actionEl = document.getElementById('pwa-install-action');
   if(actionEl){

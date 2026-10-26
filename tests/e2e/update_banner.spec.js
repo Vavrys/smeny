@@ -42,6 +42,7 @@ test('(a) jiný build → banner se ukáže', async ({ page }) => {
   await expect(page.locator('#update-banner')).toBeVisible();
   await expect(page.locator('#update-banner')).toContainText(TEXT);
   await expect(page.locator('#update-banner button.btn-accent')).toBeInViewport({ ratio: 1 });
+  await expect(page.locator('#update-banner button[title="Zavřít"]')).toBeInViewport({ ratio: 1 });
 });
 
 test('(b) ✕ skryje banner, po >30 s se vrátí', async ({ page }) => {
@@ -81,4 +82,22 @@ test('(e) 404 → bez banneru a bez console.error', async ({ page }) => {
   await expect.poll(() => state.warnings.length).toBeGreaterThan(0);
   await expect(page.locator('#update-banner')).toBeHidden();
   expect(state.errors).toHaveLength(0);
+});
+
+test('(f) druhý visibilitychange do 30 s → jen 1 request', async ({ page }) => {
+  const state = await setup(page, { stamp: SHA_A, versionHandler: json(SHA_A) });
+  await tick(page);
+  await expect.poll(() => state.versionRequests).toBe(1);
+  await page.clock.fastForward(5000);
+  await tick(page);
+  await page.waitForTimeout(200);
+  expect(state.versionRequests).toBe(1);
+});
+
+test('(g) interval 10 min bez visibilitychange → request a banner', async ({ page }) => {
+  const state = await setup(page, { stamp: SHA_A, versionHandler: json(SHA_B) });
+  expect(state.versionRequests).toBe(0);
+  await page.clock.fastForward(10 * 60 * 1000);
+  await expect.poll(() => state.versionRequests).toBe(1);
+  await expect(page.locator('#update-banner')).toBeVisible();
 });
