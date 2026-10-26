@@ -1,0 +1,11 @@
+name: Nápad / funkce
+description: Co by aplikace měla umět
+labels: [triage, feature]
+body:
+  - type: textarea
+    id: co
+    attributes: { label: Co a pro koho, description: Klidně jednou větou }
+    validations: { required: true }
+  - type: textarea
+    id: proc
+    attributes: { label: Proč (jaký problém to řeší) }

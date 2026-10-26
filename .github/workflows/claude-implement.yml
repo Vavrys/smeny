@@ -1,0 +1,154 @@
+name: Claude — implementace
+on:
+  schedule:
+    - cron: '0 1 * * *'   # 02:00 Praha v zimě, 03:00 v létě
+  pull_request:
+    types: [closed]        # po merge claude PR hned další úkol
+  workflow_dispatch:
+    inputs:
+      issue:
+        description: Číslo issue (prázdné = nejvyšší priorita z ready)
+        required: false
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  actions: write
+  id-token: write
+concurrency:
+  group: claude-implement
+  cancel-in-progress: false
+jobs:
+  pick:
+    if: >
+      vars.CLAUDE_AUTOMATION == 'on' && (
+        github.event_name != 'pull_request' ||
+        (github.event.pull_request.merged == true && startsWith(github.event.pull_request.head.ref, 'claude/'))
+      )
+    runs-on: ubuntu-latest
+    outputs:
+      issue: ${{ steps.pick.outputs.issue }}
+      model: ${{ steps.pick.outputs.model }}
+      branch: ${{ steps.pick.outputs.branch }}
+    steps:
+      - id: pick
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          REQ: ${{ inputs.issue }}
+        run: |
+          set -euo pipefail
+          OPEN=$(gh pr list --state open --json headRefName --jq '[.[] | select(.headRefName | startswith("claude/"))] | length')
+          if [ "$OPEN" != "0" ]; then echo "Otevřený claude/ PR čeká na review, končím."; exit 0; fi
+          if [ -n "${REQ:-}" ]; then
+            SEL=$(gh issue view "$REQ" --json number,labels)
+          else
+            SEL=$(gh issue list --state open --label ready --limit 100 --json number,labels,createdAt --jq '
+              map(select((any(.labels[]; .name=="in-progress") or any(.labels[]; .name=="db")) | not))
+              | sort_by((if any(.labels[]; .name=="p1") then 1 elif any(.labels[]; .name=="p2") then 2 else 3 end), .createdAt)
+              | first // empty')
+          fi
+          if [ -z "$SEL" ]; then echo "Fronta ready je prázdná."; exit 0; fi
+          NUM=$(jq -r .number <<<"$SEL")
+          if jq -e 'any(.labels[]; .name=="algo")' <<<"$SEL" >/dev/null; then MODEL=opus; else MODEL=sonnet; fi
+          gh issue edit "$NUM" --add-label in-progress
+          gh issue edit "$NUM" --remove-label ready || true
+          echo "issue=$NUM" >> "$GITHUB_OUTPUT"
+          echo "model=$MODEL" >> "$GITHUB_OUTPUT"
+          echo "branch=claude/$NUM-auto" >> "$GITHUB_OUTPUT"
+
+  implement:
+    needs: pick
+    if: needs.pick.outputs.issue != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    outputs:
+      pr: ${{ steps.check.outputs.pr }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: tools/package-lock.json
+      - run: npm ci && npx playwright install --with-deps chromium
+        working-directory: tools
+      - run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      - uses: anthropics/claude-code-action@v1
+        env:
+          GH_TOKEN: ${{ github.token }}
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          github_token: ${{ github.token }}
+          claude_args: >-
+            --model ${{ needs.pick.outputs.model }}
+            --max-turns 150
+            --allowedTools "Read,Grep,Glob,Write,Edit,Bash(git:*),Bash(gh issue view:*),Bash(gh issue comment:*),Bash(gh issue edit:*),Bash(gh pr create:*),Bash(gh pr view:*),Bash(node:*),Bash(npm:*),Bash(npx:*),Bash(python3:*),Bash(ls:*),Bash(cat:*),Bash(wc:*)"
+          prompt: |
+            Jsi implementační agent projektu Směny. Issue #${{ needs.pick.outputs.issue }}, větev ${{ needs.pick.outputs.branch }}.
+            1) Přečti CLAUDE.md a dodržuj ho bezvýhradně.
+            2) `gh issue view ${{ needs.pick.outputs.issue }} --comments`. Implementuj přesně podle POSLEDNÍ `## Specifikace` a odpovědí Vavryse pod ní. Nic navíc.
+            3) `git checkout -b ${{ needs.pick.outputs.branch }}` z aktuálního main.
+            4) Implementuj. index.html upravuj přesně podle pravidel editace v CLAUDE.md.
+            5) Spusť `cd tools && npm test && npx playwright test`. Při selhání oprav, max 3 pokusy. Testy nikdy neoslabuj.
+            6) Pokud specifikace neodpovídá kódu nebo narazíš na rozhodnutí, které v ní není: NEHÁDEJ. Do issue napiš `## Blokováno`
+               (co a proč, varianty A/B, doporučení), nastav needs-decision, odeber in-progress, zahoď změny a skonči bez PR.
+            7) Jinak: commity `fix|feat|chore(oblast): popis (#${{ needs.pick.outputs.issue }})`, `git push -u origin ${{ needs.pick.outputs.branch }}`,
+               `gh pr create --base main --head ${{ needs.pick.outputs.branch }}` s titulkem `<typ>: <popis> (#N)` a tělem podle šablony v CLAUDE.md
+               (Closes #N, Co a proč, Jak otestovat, Rizika, Migrace DB: ano/ne). Preview URL doplní Cloudflare do checků.
+            Nikdy: push do main, merge, spouštění SQL, změny v .github/.
+      - id: check
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          BRANCH: ${{ needs.pick.outputs.branch }}
+          NUM: ${{ needs.pick.outputs.issue }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          PR=$(gh pr list --head "$BRANCH" --state open --json number --jq '.[0].number // empty')
+          echo "pr=$PR" >> "$GITHUB_OUTPUT"
+          if [ -n "$PR" ]; then
+            gh workflow run ci.yml --ref "$BRANCH"
+          else
+            gh issue edit "$NUM" --remove-label in-progress || true
+            LABELS=$(gh issue view "$NUM" --json labels --jq '[.labels[].name]|join(",")')
+            case ",$LABELS," in
+              *,needs-decision,*) ;;   # agent zablokoval s otázkou
+              *) gh issue edit "$NUM" --add-label blocked
+                 gh issue comment "$NUM" --body "⚠️ Implementace skončila bez PR a bez vysvětlení. Log: $RUN_URL" ;;
+            esac
+          fi
+
+  review:
+    needs: [pick, implement]
+    if: needs.implement.outputs.pr != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.pick.outputs.branch }}
+          fetch-depth: 0
+      - uses: anthropics/claude-code-action@v1
+        env:
+          GH_TOKEN: ${{ github.token }}
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          github_token: ${{ github.token }}
+          claude_args: >-
+            --model opus
+            --max-turns 50
+            --allowedTools "Read,Grep,Glob,Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr comment:*),Bash(gh issue view:*),Bash(git diff:*),Bash(git log:*)"
+          prompt: |
+            Jsi nezávislý reviewer projektu Směny. PR #${{ needs.implement.outputs.pr }} k issue #${{ needs.pick.outputs.issue }}.
+            Přečti CLAUDE.md, `gh issue view ${{ needs.pick.outputs.issue }} --comments` (poslední specifikace) a `gh pr diff ${{ needs.implement.outputs.pr }}`.
+            Kontroluj: shodu se specifikací (nic nechybí, nic navíc) · porušení CLAUDE.md (CRLF, doménová pravidla, sémantické barvy) ·
+            Supabase volání (ošetřený error, existující tabulky/sloupce, porovnej s ostatními dotazy v kódu) · regrese (kdo další volá změněné funkce) ·
+            mobil 390 px · kvalitu a smysluplnost testů.
+            Výstup: JEDEN komentář přes `gh pr comment`. První řádek je verdikt: `✅ Doporučuji merge` / `⚠️ Merge s výhradou` / `❌ Nemergovat`.
+            Pak max 7 bodů, nejzávažnější první, s odkazem na funkci. Nakonec `Na co se při testu zaměřit` (max 3 body). Kód neměň.

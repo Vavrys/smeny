@@ -1,0 +1,17 @@
+name: Chyba
+description: Něco nefunguje
+labels: [triage, bug]
+body:
+  - type: textarea
+    id: co
+    attributes: { label: Co se stalo, description: Klidně jednou větou }
+    validations: { required: true }
+  - type: input
+    id: kde
+    attributes: { label: Kde (obrazovka / pobočka / zaměstnanec) }
+  - type: dropdown
+    id: zarizeni
+    attributes: { label: Zařízení, options: [Mobil, PC, Obojí, Nevím] }
+  - type: textarea
+    id: ocekavane
+    attributes: { label: Jak to má být }

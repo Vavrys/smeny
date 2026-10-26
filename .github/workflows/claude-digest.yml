@@ -1,0 +1,43 @@
+name: Claude — týdenní přehled
+on:
+  schedule:
+    - cron: '0 5 * * 1'   # pondělí 06:00 Praha v zimě
+  workflow_dispatch:
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+  actions: read
+  id-token: write
+jobs:
+  digest:
+    if: vars.CLAUDE_AUTOMATION == 'on'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: anthropics/claude-code-action@v1
+        env:
+          GH_TOKEN: ${{ github.token }}
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          github_token: ${{ github.token }}
+          claude_args: >-
+            --model sonnet
+            --max-turns 50
+            --allowedTools "Read,Grep,Glob,Bash(date:*),Bash(gh issue:*),Bash(gh pr list:*),Bash(gh pr view:*),Bash(gh run list:*)"
+          prompt: |
+            Připrav týdenní přehled projektu Směny pro Vavryse. Česky, stručně, čitelné na mobilu.
+            Data získej přes gh (posledních 7 dní; datum přes `date`).
+            Obsah issue:
+            1. **Nasazeno** — mergnuté PR, 1 řádek každý.
+            2. **Čeká na tebe** — needs-decision (zopakuj otázku zkráceně), needs-approval (1 řádek + doporučení schválit/nechat), otevřené PR (verdikt review).
+            3. **Zaseklé** — štítek blocked, neúspěšné běhy workflow (`gh run list --status failure`).
+            4. **Fronta** — ready issues v pořadí, v jakém je vezme automatizace.
+            5. **Doplnění fronty** — pokud je ready + needs-approval dohromady méně než 3: projdi docs/ROADMAP.md shora a pro max 2 první položky,
+               které ještě nemají issue (hledej `[R-xx]` v názvech otevřených i zavřených issues), založ issue s názvem `[R-xx] <text>`,
+               štítky `triage` + typ. Zmiň je tady.
+            Pak uzavři předchozí otevřená issues se štítkem digest a vytvoř nové `Týdenní přehled <YYYY-MM-DD>` se štítkem digest
+            a assignee `${{ github.repository_owner }}` (aby přišla notifikace).

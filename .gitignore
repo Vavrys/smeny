@@ -21,3 +21,9 @@
 !build-stamp.js
 !tests/
 !tests/october_repro.js
+!scripts/
+!scripts/**
+!.github/
+!.github/**
+!docs/
+!docs/**

@@ -1,0 +1,88 @@
+name: Claude — triáž
+on:
+  issues:
+    types: [opened]
+  issue_comment:
+    types: [created]
+  schedule:
+    - cron: '30 0 * * *'   # noční úklid issues se štítkem triage (i ty založené botem)
+  workflow_dispatch:
+    inputs:
+      issue:
+        description: Číslo issue
+        required: false
+permissions:
+  contents: read
+  issues: write
+  id-token: write
+concurrency:
+  group: claude-triage
+  cancel-in-progress: false
+jobs:
+  triage:
+    if: >
+      vars.CLAUDE_AUTOMATION == 'on' && (
+        github.event_name == 'workflow_dispatch' ||
+        github.event_name == 'schedule' ||
+        (github.event_name == 'issues' && github.event.issue.author_association == 'OWNER') ||
+        (github.event_name == 'issue_comment' && !github.event.issue.pull_request &&
+         github.event.comment.author_association == 'OWNER' &&
+         !contains(github.event.comment.body, '@claude') &&
+         contains(github.event.issue.labels.*.name, 'needs-decision'))
+      )
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - id: list
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          IN_NUM: ${{ inputs.issue }}
+          EV_NUM: ${{ github.event.issue.number }}
+        run: |
+          set -euo pipefail
+          if [ -n "${IN_NUM:-}" ]; then L="$IN_NUM"
+          elif [ -n "${EV_NUM:-}" ]; then L="$EV_NUM"
+          else L=$(gh issue list --state open --label triage --limit 5 --json number --jq 'map(.number|tostring)|join(" ")'); fi
+          echo "issues=$L" >> "$GITHUB_OUTPUT"
+      - if: steps.list.outputs.issues != ''
+        uses: anthropics/claude-code-action@v1
+        env:
+          GH_TOKEN: ${{ github.token }}
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          github_token: ${{ github.token }}
+          claude_args: >-
+            --model opus
+            --max-turns 60
+            --allowedTools "Read,Grep,Glob,Bash(gh issue view:*),Bash(gh issue edit:*),Bash(gh issue comment:*),Bash(gh issue create:*),Bash(gh issue close:*),Bash(gh issue list:*),Bash(gh label list:*)"
+          prompt: |
+            Jsi triážní agent projektu Směny (repo ${{ github.repository }}).
+            Zpracuj tato issues, každé zvlášť: ${{ steps.list.outputs.issues }}
+
+            Nejdřív si přečti CLAUDE.md. U každého issue: `gh issue view <N> --comments`, pak cíleně prohledej kód (Grep/Read; index.html je velký, nečti ho celý).
+            Cíl: specifikace, podle které jiný agent implementuje bez jediné další otázky.
+
+            1) Štítky (`gh issue edit`):
+               - typ právě jeden: bug | feature | infra
+               - oblast 0–n: algo (plánovací algoritmus), db (změna schématu/RLS/RPC/GRANT), ui
+               - priorita: p1 (rozbité pro uživatele / blokuje provoz), p2 (výchozí), p3 (vylepšení). Pokud už prioritu nastavil Vavrys, neměň ji.
+               - velikost: size-S (jedno místo, do ~50 řádků), size-M, size-L
+               - odeber `triage`
+            2) size-L: navrhni rozdělení na 2–5 samostatně testovatelných issues jako otázku (needs-decision). Až Vavrys rozdělení schválí, založ je (`gh issue create`, štítek triage + typ) a původní uzavři s odkazy.
+            3) Komentář `## Specifikace` (při opakované triáži `## Specifikace v2`, `v3`…), česky:
+               **Problém / cíl** (2–3 věty) · **Diagnóza** (u bugu: funkce a přibližné řádky, proč to vzniká; nejistotu přiznej) ·
+               **Změny** (číslovaně, konkrétně; texty UI doslovně česky) · **Mimo rozsah** · **Akceptační kritéria** (ověřitelná) ·
+               **Jak otestovat na preview** (max 5 kroků, v testovací organizaci) · **Automatický test** (jaký přidat/upravit, nebo proč žádný) ·
+               **Riziko** (nízké/střední/vysoké + proč)
+            4) Pokud zbývá rozhodnutí, které nejde odvodit z kódu ani CLAUDE.md (UX volba, obchodní pravidlo, změna doménového pravidla),
+               přidej `### Otázky pro Vavryse`: max 3, každá s variantami A/B(/C), tvým doporučením a jednou větou proč. Musí jít odpovědět jedním písmenem.
+            5) Stav, právě jeden. Ostatní stavové štítky odeber:
+               - needs-decision: máš otázky
+               - ready: žádné otázky A bug A size-S A ne algo A ne db A riziko nízké
+               - needs-approval: všechno ostatní
+            Opakovaná triáž (Vavrys odpověděl): zapracuj odpovědi do nové verze specifikace a vyřešené otázky neopakuj.
+            Nikdy neměň kód, nezakládej větve ani PR.
