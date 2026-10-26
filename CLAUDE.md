@@ -12,8 +12,8 @@ reviewer: Vavrys. UI i komunikace česky.
 ## Editace souborů
 
 Skriptované úpravy `index.html` zachovávají kódování UTF-8 a existující konce
-řádků (soubor je CRLF). Po každém hromadném nahrazení ověř, že proběhlo právě
-jednou — ne vícekrát, ne nikde.
+řádků (soubor je LF, stejně jako zbytek repa; CRLF nezavádět). Po každém
+hromadném nahrazení ověř, že proběhlo právě jednou — ne vícekrát, ne nikde.
 
 ## Verzování (release checklist)
 
