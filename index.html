@@ -2109,6 +2109,14 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
   <button onclick="dismissInstallHint()" title="Zavřít" style="background:none;border:none;font-size:15px;color:var(--ink-faint);cursor:pointer;padding:6px;flex-shrink:0">✕</button>
 </div>
 
+<!-- R-00: banner nové verze (version.json) -->
+<div id="update-banner" role="status" aria-live="polite" style="display:none;position:fixed;left:12px;right:76px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:560;background:var(--surface);border:1.5px solid var(--line);border-radius:12px;box-shadow:0 6px 20px rgba(30,34,48,.18);padding:10px 12px;align-items:center;gap:10px">
+  <span style="font-size:20px;flex-shrink:0"><span data-icon="app_update">🔄</span></span>
+  <div style="flex:1;min-width:0;font-size:12.5px;font-weight:700">Je k dispozici nová verze aplikace.</div>
+  <button class="btn-accent" onclick="location.reload()" style="padding:7px 14px;font-size:12.5px;white-space:nowrap;flex-shrink:0">Obnovit</button>
+  <button onclick="dismissUpdateBanner()" title="Zavřít" aria-label="Zavřít" style="background:none;border:none;font-size:15px;color:var(--ink-faint);cursor:pointer;padding:6px;flex-shrink:0">✕</button>
+</div>
+
 <!-- ============================================================
      HELP CENTER — tree-based, no AI, no API
      ============================================================ -->
@@ -2428,6 +2436,41 @@ const BUILD_SHA = /^[0-9a-f]{4,40}$/i.test(BUILD_SHA_RAW) ? BUILD_SHA_RAW.slice(
   }
 })();
 
+// ── R-00: kontrola nové verze (version.json) ──
+// Bez stampu (lokál, smoke test) se nespouští nic. Nikdy nereloaduje sama.
+let _verLastCheck = 0;
+async function checkForNewVersion(){
+  if(document.visibilityState !== 'visible') return;
+  const now = Date.now();
+  if(_verLastCheck && now - _verLastCheck < 30000) return;
+  _verLastCheck = now;
+  try{
+    const res = await fetch('/version.json?t=' + now, { cache: 'no-store' });
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    const json = await res.json();
+    if(!json || typeof json.build !== 'string' || !/^[0-9a-f]{7,40}$/i.test(json.build)) throw new Error('nevalidní build');
+    if(json.build.slice(0, 7).toLowerCase() !== BUILD_SHA.toLowerCase()) showUpdateBanner();
+  }catch(err){
+    console.warn('[version] kontrola selhala', err);
+  }
+}
+function showUpdateBanner(){
+  const el = document.getElementById('update-banner');
+  if(!el) return;
+  el.style.display = 'flex';
+  const inst = document.getElementById('pwa-install-banner');
+  if(inst) inst.style.display = 'none';
+}
+function dismissUpdateBanner(){
+  const el = document.getElementById('update-banner');
+  if(el) el.style.display = 'none';
+}
+if(BUILD_SHA){
+  setInterval(checkForNewVersion, 10 * 60 * 1000);
+  document.addEventListener('visibilitychange', () => { if(document.visibilityState === 'visible') checkForNewVersion(); });
+  window.addEventListener('pageshow', e => { if(e.persisted) checkForNewVersion(); });
+}
+
 // ============================================================
 // OFFLINE DETECTION
 // ============================================================
@@ -2453,6 +2496,7 @@ const DEFAULT_ICONS = {
 
   // PWA (v0.9.1)
   pwa_install: '📲',
+  app_update: '🔄',
 
   // Toolbar tlačítka (rozpis)
   btn_auto: '⚡', btn_publikovat: '📢', btn_kde_doplnit: '🔍',
@@ -14460,6 +14504,8 @@ function maybeShowInstallHint(){
   if(!/Android|iPhone|iPad|iPod|Mobi/i.test(navigator.userAgent)) return; // jen mobil
   const el = document.getElementById('pwa-install-banner');
   if(!el || el.style.display === 'flex') return;
+  const upd = document.getElementById('update-banner');
+  if(upd && upd.style.display === 'flex') return;                 // update banner má přednost
   const isIos = /iPhone|iPad|iPod/i.test(navigator.userAgent);
   const actionEl = document.getElementById('pwa-install-action');
   if(actionEl){
