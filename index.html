@@ -694,6 +694,17 @@ body.employee-view tr[data-own-row="true"] td.xmode-cell {
 body.employee-view tr[data-own-row="true"] td.xmode-cell.x-set {
   background-image: linear-gradient(rgba(220,50,50,0.20), rgba(220,50,50,0.20));
 }
+/* v0.9.38: fokus na vlastní řádek — kostičky ohraničené, ostatní ztlumení.
+   Jména ostatních zůstávají čitelná; najetí / klepnutí na cizí řádek ho vrátí. */
+body.employee-view tr[data-own-row="true"] td.sched-cell { padding:2px !important; }
+body.employee-view tr[data-own-row="true"] .sched-chip {
+  border-radius:5px;
+  box-shadow:0 0 0 1.5px #fff, 0 1px 4px rgba(0,0,0,.28);
+}
+body.employee-view #sched-tbody tr:not([data-own-row="true"]) .sched-chip { opacity:.6; transition:opacity .15s ease; }
+body.employee-view #sched-tbody tr:not([data-own-row="true"]):hover .sched-chip,
+body.employee-view #sched-tbody tr:not([data-own-row="true"]):active .sched-chip { opacity:1; }
+body.employee-view #sched-tbody tr:not([data-own-row="true"]) .sched-name-col { color:var(--ink-soft); font-weight:500; }
 body.employee-view tr[data-own-row="true"] .sched-name-col {
   background: var(--accent) !important;
   background-image: none;
