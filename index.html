@@ -804,6 +804,19 @@ table.sched-table.density-airy .sched-stat-col{font-size:11px;padding:4px 6px}
 .mysched-day-row:last-child{border-bottom:none}
 .mysched-day-row.weekend{background:var(--paper)}
 .mysched-day-row.today{background:var(--accent-soft)}
+.mysched-today-card .sched-chip{width:auto;height:auto;line-height:1.3;padding:4px 10px;border-radius:6px;font-size:13.5px;font-family:inherit;font-weight:700}
+.mycal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;margin-bottom:8px}
+.mycal-dow{font-size:10.5px;font-weight:700;color:var(--ink-soft);text-align:center;text-transform:uppercase;padding:4px 0}
+.mycal-day{min-height:58px;border:1px solid var(--line);border-radius:8px;padding:4px;display:flex;flex-direction:column;align-items:center;gap:4px;background:var(--surface)}
+.mycal-day.weekend{background:var(--paper)}
+.mycal-day.today{border-color:var(--accent);box-shadow:inset 0 0 0 1.5px var(--accent)}
+.mycal-day.blank{border:none;background:none;min-height:0}
+.mycal-num{font-size:11px;font-weight:600;color:var(--ink-soft);align-self:flex-start;line-height:1}
+.mycal-day.today .mycal-num{color:var(--accent-ink);font-weight:800}
+.mycal-day .sched-chip{width:100%;height:auto;line-height:1.5;border-radius:5px;font-size:11.5px;text-align:center}
+.mycal-legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--ink-soft);margin-bottom:6px}
+.mycal-legend .sched-chip{width:auto;height:auto;line-height:1.4;padding:1px 7px;border-radius:5px;font-size:11px;margin-right:4px}
+@media (max-width:480px){.mycal{gap:3px}.mycal-day{min-height:48px;padding:3px}.mycal-day .sched-chip{font-size:10.5px}}
 .mysched-sum-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-top:14px}
 .mysched-sum-card{background:var(--paper);border:1.5px solid var(--line);border-radius:12px;padding:12px 14px;text-align:center}
 .team-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line);border-radius:10px}
@@ -15444,18 +15457,32 @@ function switchMySubTab(tab){
 
 const MYSCHED_DOW = ['Ne','Po','Út','St','Čt','Pá','So'];
 
-// Stav jednoho dne zaměstnance: směna / dovolenkové X / žádanka X / volno
-function myDayCellHtml(empId, dateStr){
-  if(unavail[empId+':'+dateStr]) return `<span class="sched-chip x-chip">X</span><span style="font-size:11.5px;color:var(--ink-soft)">žádanka volna</span>`;
+// v0.9.34: kompaktní měsíční kalendář (Po–Ne) místo seznamu dní přes celou šířku.
+// Buňka = číslo dne + barevná značka směny; popisek (tooltip) říká pobočku/stav.
+function myCalChipHtml(empId, dateStr){
+  if(unavail[empId+':'+dateStr]) return `<span class="sched-chip x-chip">X</span>`;
   const s = shifts[empId+':'+dateStr];
-  if(!s || !s.shift_type_code) return `<span style="font-size:12px;color:var(--ink-faint)">volno</span>`;
-  if(s.shift_type_code === 'X'){
-    if(s.leave_request_id) return `<span class="sched-chip x-chip leave-x">X</span><span style="font-size:11.5px;color:var(--status-warn);font-weight:600">dovolená</span>`;
-    return `<span class="sched-chip x-chip">X</span><span style="font-size:11.5px;color:var(--ink-soft)">žádanka volna</span>`;
-  }
-  const bCode = parentBranchCode(s.shift_type_code);
+  if(!s || !s.shift_type_code) return '';
+  if(s.shift_type_code === 'X') return `<span class="sched-chip x-chip${s.leave_request_id?' leave-x':''}">X</span>`;
+  return `<span class="sched-chip" style="background:${codeColor(s.shift_type_code)}">${escapeHtml(s.shift_type_code)}</span>`;
+}
+// Čitelný popis směny: „Majestic – M3"; u pobočky s jediným typem (Karolína,
+// Ungelt) jen „Karolína" — opakovat „Karolína – K" by bylo zbytečné.
+function shiftLabel(code){
+  const bCode = parentBranchCode(code);
   const b = branches.find(x=>x.code===bCode);
-  return `<span class="sched-chip" style="background:${codeColor(s.shift_type_code)}">${escapeHtml(s.shift_type_code)}</span><span style="font-size:12px;font-weight:600">${escapeHtml(b?.name||'')}</span>`;
+  if(!b) return code;
+  const typeCount = shiftTypes.filter(st=>st.branch_id===b.id).length;
+  if(code === b.code || typeCount <= 1) return b.name;
+  return `${b.name} – ${code}`;
+}
+
+function myDayText(empId, dateStr){
+  if(unavail[empId+':'+dateStr]) return 'žádanka volna';
+  const s = shifts[empId+':'+dateStr];
+  if(!s || !s.shift_type_code) return 'volno';
+  if(s.shift_type_code === 'X') return s.leave_request_id ? 'dovolená' : 'žádanka volna';
+  return shiftLabel(s.shift_type_code);
 }
 
 function renderMySchedule(){
@@ -15498,9 +15525,13 @@ function renderMySchedule(){
   const now = new Date();
   const todayStr = isoDate(now.getFullYear(), now.getMonth()+1, now.getDate());
 
-  // Seznam dní měsíce
+  // Kalendář měsíce (7 sloupců, týden začíná pondělím)
   let daysHtml = '';
+  let calCells = '';
+  const legendCodes = new Set();
   let worked=0, planned=0, xUsed=0;
+  const firstDowMon = (new Date(schedYear, schedMonth, 1).getDay() + 6) % 7; // Po = 0
+  for(let b=0; b<firstDowMon; b++) calCells += '<div class="mycal-day blank"></div>';
   for(let d=1; d<=daysInMonth; d++){
     const dateStr = isoDate(schedYear, schedMonth+1, d);
     const dow = new Date(schedYear, schedMonth, d).getDay();
@@ -15512,11 +15543,24 @@ function renderMySchedule(){
     else if(s && s.shift_type_code && s.shift_type_code !== 'X'){
       if(dateStr < todayStr) worked++; else planned++;
     }
-    daysHtml += `<div class="mysched-day-row${isWE?' weekend':''}${isToday?' today':''}">
-      <span style="width:64px;flex-shrink:0;font-weight:${isWE?'700':'500'};color:${isWE?'var(--ink)':'var(--ink-soft)'}">${d}. ${MYSCHED_DOW[dow]}${isToday?' <span style="font-size:9px;background:var(--accent);color:#fff;border-radius:4px;padding:1px 4px;font-weight:700;vertical-align:middle">DNES</span>':''}</span>
-      <span style="display:flex;align-items:center;gap:8px;flex:1">${myDayCellHtml(emp.id, dateStr)}</span>
+    if(s && s.shift_type_code && s.shift_type_code !== 'X' && !unavail[emp.id+':'+dateStr]) legendCodes.add(s.shift_type_code);
+    calCells += `<div class="mycal-day${isWE?' weekend':''}${isToday?' today':''}" title="${escapeHtml(d+'. '+MYSCHED_DOW[dow]+' — '+myDayText(emp.id, dateStr))}">
+      <span class="mycal-num">${d}</span>${myCalChipHtml(emp.id, dateStr)}
     </div>`;
   }
+  // Legenda po pobočkách (M1–M4 patří pod jedno „Majestic"), ne po jednotlivých kódech
+  const legendByBranch = new Map();
+  [...legendCodes].sort().forEach(code=>{
+    const b = branches.find(x=>x.code===parentBranchCode(code));
+    const name = b?.name || code;
+    if(!legendByBranch.has(name)) legendByBranch.set(name, []);
+    legendByBranch.get(name).push(code);
+  });
+  const legendHtml = [...legendByBranch.entries()].map(([name, codes])=>
+    `<span>${codes.map(c=>`<span class="sched-chip" style="background:${codeColor(c)}">${escapeHtml(c)}</span>`).join('')}${escapeHtml(name)}</span>`
+  ).join('');
+  daysHtml = `<div class="mycal">${['Po','Út','St','Čt','Pá','So','Ne'].map(n=>`<div class="mycal-dow">${n}</div>`).join('')}${calCells}</div>`
+    + (legendHtml ? `<div class="mycal-legend">${legendHtml}</div>` : '');
 
   // Souhrn dole — efektivní limity (schválená dovolená snižuje min/cíl/max)
   const eff = effectiveLimits(emp, schedYear, schedMonth);
@@ -15538,7 +15582,7 @@ function renderMySchedule(){
     <div style="font-size:10.5px;color:var(--ink-faint);font-weight:600;text-transform:uppercase;margin-top:2px">${lbl}</div>
     ${sub?`<div style="font-size:11px;color:var(--ink-soft);margin-top:2px">${sub}</div>`:''}
   </div>`;
-  html += `<div style="border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-bottom:4px">${daysHtml}</div>
+  html += `${daysHtml}
     <div class="mysched-sum-grid">
       ${sumCard(`${worked} / ${total}`, 'Odpracováno / plán')}
       ${sumCard(`${total} / ${eff.target}`, 'Směny vs. cíl', `min ${eff.min} · max ${eff.max}${eff.reduction?` · −${eff.reduction} dovolená`:''}`)}
@@ -15569,8 +15613,7 @@ async function loadMyTodayCards(emp){
     } else {
       const s = rows.find(r=>r.shift_date===dateStr);
       if(s && s.shift_type_code && s.shift_type_code!=='X'){
-        const b = branches.find(x=>x.code===parentBranchCode(s.shift_type_code));
-        content = `<span class="sched-chip" style="background:${codeColor(s.shift_type_code)}">${escapeHtml(s.shift_type_code)}</span> <span style="font-size:13px;font-weight:700">${escapeHtml(b?.name||'')}</span>`;
+        content = `<span class="sched-chip" style="background:${codeColor(s.shift_type_code)}">${escapeHtml(shiftLabel(s.shift_type_code))}</span>`;
       } else if(s && s.shift_type_code==='X' && s.leave_request_id){
         content = `<span style="font-size:13px;font-weight:700;color:var(--status-warn)">Dovolená</span>`;
       } else {
