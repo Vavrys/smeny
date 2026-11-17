@@ -1,6 +1,7 @@
 // Test čistých pomocných funkcí z index.html (v0.9.34):
 //   pickMembership()        — deterministický výběr firmy při víc členstvích
 //   roleChangeBlockReason() — poslední admin nesmí přijít o roli
+//   buildPendingState()     — omezený režim: anonymní snapshot → data pro rozpis (v0.9.35)
 // Spuštění: node tests/membership_guard.js   (exit 1 = některá kontrola padla)
 const fs = require('fs');
 const path = require('path');
@@ -19,7 +20,7 @@ function extract(name){
 }
 const ctx = {};
 vm.createContext(ctx);
-vm.runInContext(extract('pickMembership') + '\n' + extract('roleChangeBlockReason'), ctx);
+vm.runInContext(extract('pickMembership') + '\n' + extract('roleChangeBlockReason') + '\n' + extract('buildPendingState'), ctx);
 
 let fail = 0;
 function check(label, cond){ if(!cond){ console.error('FAIL ' + label); fail++; } else console.log('ok   ' + label); }
@@ -42,6 +43,24 @@ check('dva admini → degradace jednoho povolena', ctx.roleChangeBlockReason([a1
 check('povýšení na admina povoleno', ctx.roleChangeBlockReason([a1, e1], e1, 'admin') === null);
 check('admin zůstává adminem povoleno', ctx.roleChangeBlockReason([a1], a1, 'admin') === null);
 check('zaměstnanec → manažer povoleno', ctx.roleChangeBlockReason([a1, e1], e1, 'branch_manager') === null);
+
+// ── buildPendingState (v0.9.35) ──
+const snap = {
+  org_name: 'Firma', published: true, published_months: ['2026-11'],
+  branches: [{ id:'pb1', code:'A', name:'Pobočka A', color:'#111' }, { id:'pb2', code:'B', name:'Pobočka B', color:'#222' }],
+  shift_types: [{ id:'pt2_1', code:'B1', label:'B1', branch_id:'pb2', color:'#333', sort_order:1 }],
+  employee_count: 3,
+  shifts: [[1, 5, 'A'], [3, 17, 'B1']],
+};
+const st = ctx.buildPendingState(snap, 2026, 10);
+check('pending: počet kolegů odpovídá', st.employees.length === 3);
+check('pending: jména jsou jen „Kolega N"', st.employees.every((e, i)=> e.name === 'Kolega ' + (i + 1)));
+check('pending: žádné skutečné id zaměstnance', st.employees.every(e=> e.id.startsWith('anon-')));
+check('pending: směna 5. 11. u kolegy 1', st.shifts['anon-1:2026-11-05']?.shift_type_code === 'A');
+check('pending: směna 17. 11. u kolegy 3', st.shifts['anon-3:2026-11-17']?.shift_type_code === 'B1');
+check('pending: pobočky bez skutečných názvů', st.branches.every(b=> /^Pobočka [A-Z]$/.test(b.name)));
+check('pending: zveřejněné měsíce převzaty', JSON.stringify(st.orgSettings.published_months) === '["2026-11"]');
+check('pending: prázdný snapshot nespadne', ctx.buildPendingState({}, 2026, 0).employees.length === 0);
 
 if(fail){ console.error(fail + ' kontrol selhalo'); process.exit(1); }
 console.log('vše v pořádku');

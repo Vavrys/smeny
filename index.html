@@ -705,6 +705,30 @@ body.employee-view #employee-banner { display: flex !important; }
 body.employee-view #score-bar-wrap { display: none !important; }
 body.employee-view #auto-result-wrap { display: none !important; }
 body.employee-view #fill-mode-slot-wrap { display: none !important; }
+/* v0.9.35: omezený režim čekajícího (pending-view) — jen Rozpis, bez akcí,
+   jména kolegů zakrytá „začerněnými" pruhy, data jsou anonymní už z DB */
+body.pending-view .tab-btn:not([data-tab="schedule"]) { display: none !important; }
+body.pending-view #employee-banner,
+body.pending-view #open-shifts-panel,
+body.pending-view #notif-btn,
+body.pending-view #emp-settings-btn,
+body.pending-view #search-btn,
+body.pending-view .toolbar-wrap,
+body.pending-view #sched-toolbar { display: none !important; }
+body.pending-view #pending-banner { display: block !important; }
+body.pending-view .sched-day-col { cursor: default !important; }
+#pending-banner{display:none;background:var(--accent-soft);border:1.5px solid var(--accent);border-radius:12px;padding:14px 16px;margin-bottom:14px}
+#pending-banner .pb-title{font-weight:700;font-size:14.5px;margin-bottom:4px}
+#pending-banner .pb-text{font-size:13px;color:var(--ink-soft);line-height:1.45}
+#pending-banner .pb-row{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;margin-top:10px;font-size:13px}
+#pending-banner .pb-code{font-family:var(--font-mono);font-weight:800;letter-spacing:2px;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:3px 8px}
+#pending-banner input{padding:6px 9px;border:1.5px solid var(--line);border-radius:7px;font-size:13px;font-family:inherit;min-width:180px;background:var(--surface);color:var(--ink)}
+.sched-name-col.pending-name{color:var(--ink-faint)}
+.redact-bar{display:inline-block;height:9px;border-radius:5px;vertical-align:middle;
+  background:linear-gradient(90deg,var(--line) 0%,var(--paper) 50%,var(--line) 100%);background-size:200% 100%;
+  animation:redactShimmer 2.6s ease-in-out infinite;opacity:.95}
+@keyframes redactShimmer{0%{background-position:100% 0}100%{background-position:-100% 0}}
+@media (prefers-reduced-motion:reduce){.redact-bar{animation:none}}
 
 @keyframes spin{to{transform:rotate(360deg)}}
 
@@ -1469,6 +1493,16 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
         <div id="labor-cost-wrap" style="margin-bottom:8px"></div>
         <div id="auto-progress-wrap"></div>
         <div id="sched-info-box"></div>
+        <!-- v0.9.35: omezený režim — čeká na schválení vedoucím -->
+        <div id="pending-banner">
+          <div class="pb-title"><span data-icon="status_pending">⏳</span> Čekáš na schválení ve firmě <span id="pb-org">—</span></div>
+          <div class="pb-text">Než tě vedoucí přiřadí k tvému profilu, vidíš zveřejněný rozpis bez jmen kolegů a poboček. Volno ani výměny zatím zadávat nejde. Jakmile tě vedoucí schválí, appka se sama přepne.</div>
+          <div class="pb-row">
+            <span>Tvůj kód pro vedoucího: <span class="pb-code" id="pb-emp-code">—</span></span>
+            <label style="display:flex;align-items:center;gap:8px">Jméno: <input id="pb-name" type="text" maxlength="60" placeholder="Jméno a příjmení" oninput="schedulePendingNameSave()" onblur="savePendingName()"></label>
+            <span id="pb-name-saved" style="display:none;color:var(--accent-ink);font-weight:600">Uloženo</span>
+          </div>
+        </div>
         <!-- Employee banner — shown when role is employee -->
         <div id="employee-banner" style="display:none;background:var(--accent-soft);border-radius:10px;padding:12px 16px;margin-bottom:12px;align-items:center;gap:12px;flex-wrap:wrap">
           <div style="flex:1">
@@ -3047,6 +3081,9 @@ async function doLogout(){
   clearTimeout(_sessionWarnTimer);
   clearTimeout(_sessionLogoutTimer);
   stopWaitingRoomPoll(); // B3 v0.9.5: odhlášení z čekárny nesmí nechat běžet pozadí polling
+  if(_pendingPollTimer){ clearInterval(_pendingPollTimer); _pendingPollTimer = null; } // v0.9.35
+  isPendingMode = false;
+  document.body.classList.remove('pending-view', 'employee-view');
   const banner = document.getElementById('session-timeout-banner');
   if(banner) banner.style.display = 'none';
   await sb.auth.signOut();
@@ -3301,6 +3338,115 @@ async function createOrgFromWaiting(){
 // ============================================================
 // BOOTSTRAP: after login/signup, figure out org + role, load shell
 // ============================================================
+// ============================================================
+// OMEZENÝ REŽIM (v0.9.35) — čekající na schválení
+// Účet připojený kódem firmy, ale ještě nepřiřazený k profilu. Vidí appku
+// (jen Rozpis), data ale dostává VÝHRADNĚ z RPC pending_org_snapshot —
+// anonymní: kolegové „Kolega N", pobočky „Pobočka A", typy „A1". Přímé
+// dotazy do tabulek mu RLS zavírá (migration_v0935_pending_mode.sql).
+// ============================================================
+let isPendingMode = false;
+let _pendingPollTimer = null;
+
+// Čistá funkce (kryje ji tests/membership_guard.js): snapshot z RPC →
+// struktury, se kterými umí renderCalendar (employees/branches/shiftTypes/shifts).
+function buildPendingState(snap, year, month0){
+  const branchesOut = (snap.branches || []).map((b, i)=>({ ...b, sort_order: i }));
+  const shiftTypesOut = (snap.shift_types || []).map(t=>({ ...t }));
+  const count = snap.employee_count || 0;
+  const employeesOut = [];
+  for(let i = 1; i <= count; i++) employeesOut.push({ id: 'anon-' + i, name: 'Kolega ' + i, sort_order: i, branch_limits: {} });
+  const shiftsOut = {};
+  (snap.shifts || []).forEach(([n, d, code])=>{
+    const dateStr = `${year}-${String(month0 + 1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    shiftsOut['anon-' + n + ':' + dateStr] = { employee_id: 'anon-' + n, shift_date: dateStr, shift_type_code: code, is_auto: false };
+  });
+  return {
+    employees: employeesOut, branches: branchesOut, shiftTypes: shiftTypesOut, shifts: shiftsOut,
+    orgSettings: { published_months: Array.isArray(snap.published_months) ? snap.published_months : [] },
+  };
+}
+
+async function fetchPendingSnapshot(){
+  const { data, error } = await sb.rpc('pending_org_snapshot', {
+    p_org_id: currentOrg.id, p_year: schedYear, p_month: schedMonth + 1,
+  });
+  if(error || !data || data.error) return { error: error || data?.error || 'no_data' };
+  return { data };
+}
+
+async function loadPendingSnapshot(){
+  const { data, error } = await fetchPendingSnapshot();
+  if(error){ console.warn('[pending] snapshot selhal', error); toast('Rozpis se nepodařilo načíst', 'error'); return; }
+  const st = buildPendingState(data, schedYear, schedMonth);
+  employees = st.employees; branches = st.branches; shiftTypes = st.shiftTypes;
+  shifts = st.shifts; unavail = {}; orgSettings = st.orgSettings; orgMembers = [];
+  renderMonthLabel();
+  renderCalendar();
+}
+
+// Vrací true, když se omezený režim podařilo zapnout (jinak volající
+// pokračuje původní čekárnou — typicky chybějící migrace).
+async function enterPendingMode(user){
+  // Funkce z druhého skriptového bloku (switchAppTab patch, open shifts…) musí
+  // být načtené — bootstrap může doběhnout dřív, než prohlížeč dočte stránku.
+  if(document.readyState === 'loading') await new Promise(r=>document.addEventListener('DOMContentLoaded', r, { once:true }));
+  const probe = await fetchPendingSnapshot();
+  if(probe.error) return false;
+  isPendingMode = true;
+  document.body.classList.add('employee-view', 'pending-view');
+  document.getElementById('auth-shell').style.display = 'none';
+  document.getElementById('onboarding-shell').style.display = 'none';
+  document.getElementById('app-shell').style.display = 'block';
+  loadAppearSettings();
+  const orgName = probe.data.org_name || currentOrg.name || '';
+  document.getElementById('org-name-label').textContent = orgName;
+  document.getElementById('org-role-label').textContent = 'čeká na schválení';
+  document.getElementById('user-email-label').textContent = user.email;
+  const avatarEl = document.getElementById('user-avatar');
+  if(avatarEl){ avatarEl.textContent = (user.email||'?')[0].toUpperCase(); avatarEl.style.visibility = 'visible'; }
+  const pbOrg = document.getElementById('pb-org'); if(pbOrg) pbOrg.textContent = orgName;
+
+  // vlastní kód + jméno pro vedoucího (vlastní řádek org_members je čitelný)
+  const { data: me } = await sb.from('org_members').select('emp_code, pending_name').eq('user_id', user.id).eq('org_id', currentOrg.id).limit(1);
+  const codeEl = document.getElementById('pb-emp-code'); if(codeEl) codeEl.textContent = me?.[0]?.emp_code || '—';
+  const nameEl = document.getElementById('pb-name'); if(nameEl && me?.[0]?.pending_name) nameEl.value = me[0].pending_name;
+
+  const st = buildPendingState(probe.data, schedYear, schedMonth);
+  employees = st.employees; branches = st.branches; shiftTypes = st.shiftTypes;
+  shifts = st.shifts; unavail = {}; orgSettings = st.orgSettings; orgMembers = [];
+  switchAppTab('schedule');
+  renderMonthLabel();
+  renderCalendar();
+  initKeyboardShortcuts();
+  startPendingPoll();
+  return true;
+}
+
+// Jakmile vedoucí přiřadí profil, appka se sama přepne (poll 20 s + návrat do okna)
+function startPendingPoll(){
+  if(_pendingPollTimer) clearInterval(_pendingPollTimer);
+  _pendingPollTimer = setInterval(checkPendingApproved, 20000);
+  document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState === 'visible') checkPendingApproved(); });
+}
+async function checkPendingApproved(){
+  if(!isPendingMode || !currentUser) return;
+  const { data } = await sb.from('org_members').select('employee_id, role').eq('user_id', currentUser.id);
+  if((data||[]).some(_memberHasFullAccess)){ clearInterval(_pendingPollTimer); location.reload(); }
+}
+
+let _pendingNameTimer = null;
+function schedulePendingNameSave(){ clearTimeout(_pendingNameTimer); _pendingNameTimer = setTimeout(savePendingName, 800); }
+async function savePendingName(){
+  clearTimeout(_pendingNameTimer);
+  const name = (document.getElementById('pb-name')?.value || '').trim();
+  if(!name) return;
+  const { error } = await sb.rpc('set_pending_name', { p_name: name });
+  if(error){ console.warn('set_pending_name failed', error); return; }
+  const el = document.getElementById('pb-name-saved');
+  if(el){ el.style.display = 'inline'; clearTimeout(el._t); el._t = setTimeout(()=>el.style.display='none', 2000); }
+}
+
 // v0.9.34: čistá funkce (kryje ji tests/membership_guard.js). Pořadí voleb:
 // 1) naposledy použitá firma, pokud v členstvích pořád je,
 // 2) členství s plným přístupem (employee_id, nebo role admin/manažer),
@@ -3378,6 +3524,14 @@ async function bootstrapAfterAuth(){
     currentOrg.invite_expires_at = currentOrg.invite_expires_at || null;
     currentRole = membership.role;
     currentEmployeeId = membership.employee_id || null;
+
+    // v0.9.35: čekající na schválení (zaměstnanec bez profilu) → omezený režim
+    // s anonymním rozpisem. Když v DB chybí migrace (RPC neexistuje), spadne
+    // to zpět na původní čekárnu níž.
+    if(currentRole === 'employee' && !currentEmployeeId){
+      document.getElementById('loading-screen').style.display = 'none';
+      if(await enterPendingMode(user)) return;
+    }
 
     // Ensure new orgs get an invite expiry (7 days from now if not set)
     if(currentRole === 'admin' && !currentOrg.invite_expires_at && currentOrg.id){
@@ -4798,6 +4952,7 @@ let _lastLoadedMonthKey = null;
 
 async function loadShiftsForMonth(forceRefresh=false){
   if(!currentOrg) return;
+  if(isPendingMode) return loadPendingSnapshot(); // v0.9.35: omezený režim — anonymní data z RPC
   const from = isoDate(schedYear, schedMonth+1, 1);
   const daysInMonth = new Date(schedYear, schedMonth+1, 0).getDate();
   const to   = isoDate(schedYear, schedMonth+1, daysInMonth);
@@ -5163,7 +5318,9 @@ function renderCalendar(){
     const monthName = new Date(schedYear, schedMonth, 1).toLocaleDateString('cs-CZ',{month:'long', year:'numeric'});
     unpubNote.style.display = hideDraft ? 'block' : 'none';
     unpubNote.textContent = hideDraft
-      ? `Rozpis na ${monthName} zatím není zveřejněný. Vidíš jen svůj řádek, kde můžeš zadat volno (X).`
+      ? (isPendingMode
+          ? `Rozpis na ${monthName} zatím není zveřejněný.`
+          : `Rozpis na ${monthName} zatím není zveřejněný. Vidíš jen svůj řádek, kde můžeš zadat volno (X).`)
       : '';
   }
   const table = document.getElementById('sched-table');
@@ -8749,6 +8906,7 @@ function empCurrentShiftCount(empId){
 }
 
 function openDayDetail(day, replaceEmpId=null){
+  if(isPendingMode) return; // v0.9.35: detail dne by ukazoval jména
   const dateStr = isoDate(schedYear, schedMonth+1, day);
   const dow = new Date(schedYear, schedMonth, day).getDay();
   const DOW_FULL = ['Neděle','Pondělí','Úterý','Středa','Čtvrtek','Pátek','Sobota'];
@@ -10438,6 +10596,7 @@ async function changeMemberRole(memberId){
 // EMPLOYEE X MODE — highlight own row for X entry
 // ============================================================
 function toggleEmpXMode(){
+  if(isPendingMode) return; // v0.9.35
   empXMode = !empXMode;
   document.body.classList.toggle('xmode-active', empXMode);
   const btn = document.getElementById('emp-x-toggle-btn');
@@ -12571,6 +12730,7 @@ function positionTutorial(el, pref){
 
 // ── Auto-triggers ─────────────────────────────────────────────
 function maybeStartTutorial(){
+  if(isPendingMode) return; // v0.9.35
   const phase = currentRole==='admin' ? 'schedule' : 'employee';
   // First ever login: start schedule tutorial for admin, employee tutorial for employees
   if(!localStorage.getItem('tut_done_'+phase)){
@@ -12586,6 +12746,7 @@ function maybeStartTutorial(){
 }
 
 function maybeStartTabTutorial(tab){
+  if(isPendingMode) return; // v0.9.35
   if(currentRole!=='admin') return;
   if(!tutActive && !localStorage.getItem('tut_done_'+tab) && PHASE_STEPS[tab]){
     setTimeout(()=>startTutorial(tab), 350);
@@ -12731,6 +12892,13 @@ function empNameHtml(name){
 // („Petr") není co rozbalovat, tak ať se ani netváří jako klikací.
 // `lead` je obsah před jménem (drag handle), aby zůstal uvnitř buňky.
 function empNameCellHtml(name, lead){
+  // v0.9.35: omezený režim — místo jména pruh různé délky (data jsou anonymní
+  // už z DB; pruh jen elegantně ukazuje, že tu jméno je, ale není vidět)
+  if(isPendingMode){
+    const n = parseInt(String(name).replace(/\D/g,''), 10) || 1;
+    const w = 42 + (n * 37) % 46;
+    return `<td class="sched-name-col pending-name" title="Jméno uvidíš po schválení vedoucím">${lead || ''}<span class="redact-bar" style="width:${w}%"></span></td>`;
+  }
   const truncatable = shortEmpName(name) !== name;
   return `<td class="sched-name-col${truncatable ? ' name-truncatable' : ''}"` +
          ` title="${escapeHtml(name)}" data-full-name="${escapeHtml(name)}">` +
@@ -14656,6 +14824,7 @@ function initKeyboardShortcuts(){
 // ── Feature 13: VYHLEDÁVÁNÍ ──────────────────────────────────
 
 function openSearch(){
+  if(isPendingMode) return; // v0.9.35
   document.getElementById('search-overlay').classList.add('open');
   setTimeout(()=>document.getElementById('search-input')?.focus(),50);
   renderSearchResults('');
@@ -15600,6 +15769,7 @@ async function loadMyTodayCards(emp){
 }
 
 function switchAppTab(tab){
+  if(isPendingMode && tab !== 'schedule') return; // v0.9.35: omezený režim = jen Rozpis
   if(currentRole === 'employee' && !['myschedule','schedule','leaves'].includes(tab)) return;
   if(currentRole === 'branch_manager' && !['schedule','gaps','leaves'].includes(tab)) return;
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
@@ -15982,6 +16152,7 @@ async function checkOpenShiftExists(dateStr, code){
 }
 
 async function loadAndRenderOpenShifts(){
+  if(isPendingMode) return; // v0.9.35
   const { data, error } = await dbRun(
     sb.from('open_shifts').select('*').eq('org_id', currentOrg.id)
       .gte('shift_date', isoDate(schedYear, schedMonth+1, 1))
@@ -16163,6 +16334,7 @@ let _swapShiftDate = null;
 let _swapShiftCode = null;
 
 function openShiftSwapModal(dateStr, shiftCode){
+  if(isPendingMode) return; // v0.9.35
   if(!currentEmployeeId){ toast('Swap je dostupný jen pro zaměstnance'); return; }
   _swapShiftDate = dateStr || null;
   _swapShiftCode = shiftCode || null;
