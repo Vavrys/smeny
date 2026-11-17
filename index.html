@@ -96,7 +96,7 @@ body.dark .sched-cell.weekend{background:#1e2035}
 body.dark .score-bar,body.dark .auto-progress-box,body.dark .condition-row{background:var(--surface);border-color:var(--line)}
 body.dark .condition-row.is-hard{border-color:var(--status-bad);background:var(--status-bad-soft)}
 body.dark table.data-table tr:hover td{background:#1e2132}
-body.dark .sched-scroll{border-color:var(--line)}
+body.dark .sched-scroll{border-color:#5a5f80}
 body.dark .toolbar-menu-item:hover{background:var(--paper)}
 body.dark .btn-ghost{border-color:var(--line);color:var(--ink-soft)}
 body.dark .btn-ghost:hover{border-color:var(--ink-soft);color:var(--ink)}
@@ -109,7 +109,8 @@ body.dark .pick-btn.pick-clear{background:#4a5066}
 body.dark .notif-item{border-color:var(--line)}
 body.dark #notif-panel{background:var(--surface);border-color:var(--line)}
 /* ── Dark mode: tabulka rozpisu — přebíjí natvrdo zadané světlé barvy ── */
-body.dark table.sched-table th,body.dark table.sched-table td{border-bottom-color:#3a3d55;border-right-color:#3a3d55}
+body.dark table.sched-table th,body.dark table.sched-table td{border-bottom-color:#474b68;border-right-color:#474b68}
+body.dark table.sched-table thead th{border-bottom-color:#5a5f80}
 body.dark .sched-name-col{color:var(--ink);border-right-color:#464a68}
 body.dark thead .sched-name-col{color:var(--ink-soft)}
 body.dark .sched-day-col{color:var(--ink)}
@@ -483,11 +484,12 @@ table.data-table tr:hover td{background:var(--paper)}
 .icon-nav-btn{background:none;border:1px solid var(--line);border-radius:7px;width:28px;height:28px;font-size:15px;color:var(--ink-soft);transition:all .15s}
 .icon-nav-btn:hover{border-color:var(--accent);color:var(--accent-ink)}
 
-.sched-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line);border-radius:var(--radius-sm)}
+.sched-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1.5px solid #8f8e87;border-radius:var(--radius-sm)} /* v0.9.38: pevný obrys mřížky */
 table.sched-table{border-collapse:collapse;font-size:var(--tbl-fs);width:100%;min-width:700px;table-layout:fixed}
-table.sched-table th, table.sched-table td{border-bottom:1px solid #ccc;border-right:1px solid #ccc}
+table.sched-table th, table.sched-table td{border-bottom:1px solid #b3b2ab;border-right:1px solid #b3b2ab} /* v0.9.38: tmavší čáry (dřív #ccc) */
+table.sched-table thead th{border-bottom:2px solid #8f8e87}
 table.sched-table th:last-child, table.sched-table td:last-child{border-right:none}
-.sched-name-col{position:sticky;left:0;background:var(--surface);z-index:2;text-align:left;padding:4px 8px;width:160px;min-width:80px;max-width:280px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700;font-size:var(--tbl-name-fs);color:#111;border-right:2px solid #c8c8c4;box-sizing:border-box;vertical-align:middle}
+.sched-name-col{position:sticky;left:0;background:var(--surface);z-index:2;text-align:left;padding:4px 8px;width:160px;min-width:80px;max-width:280px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700;font-size:var(--tbl-name-fs);color:#111;border-right:2px solid #8f8e87;box-sizing:border-box;vertical-align:middle}
 /* v0.9.30: v buňce jsou obě varianty jména, přepíná mezi nimi jen CSS —
    po otočení displeje se přepnou samy, bez překreslení tabulky. */
 .emp-name-short{display:none}
@@ -867,7 +869,7 @@ table.sched-table.density-airy .sched-stat-col{font-size:11px;padding:4px 6px}
 .mysched-today-card .sched-chip{width:auto;height:auto;line-height:1.3;padding:4px 10px;border-radius:6px;font-size:13.5px;font-family:inherit;font-weight:700}
 .mycal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;margin-bottom:8px}
 .mycal-dow{font-size:11px;font-weight:800;color:var(--ink);text-align:center;text-transform:uppercase;padding:4px 0}
-.mycal-day{min-height:58px;border:1px solid var(--line);border-radius:8px;padding:4px;display:flex;flex-direction:column;align-items:center;gap:4px;background:var(--surface)}
+.mycal-day{min-height:58px;border:1px solid #bdbbb3;border-radius:8px;padding:4px;display:flex;flex-direction:column;align-items:center;gap:4px;background:var(--surface)}
 .mycal-day.weekend{background:var(--paper)}
 .mycal-day.today{background:var(--accent-soft);border:2px solid var(--accent);box-shadow:0 0 0 3px rgba(30,122,74,.18)}
 .mycal-day.blank{border:none;background:none;min-height:0}
@@ -2518,7 +2520,7 @@ window.addEventListener('unhandledrejection', e => {
 // odsud, ručně je nepřepisuj. sw.js se od v0.9.29 nebumpuje — je z něj
 // kill-switch bez cache (viz killServiceWorkers() a komentář v sw.js).
 // ============================================================
-const APP_VERSION = '0.9.33';
+const APP_VERSION = '0.9.38';
 
 // Krátký git hash nasazeného buildu. Placeholder níž přepíše build-stamp.js
 // z CF_PAGES_COMMIT_SHA (Cloudflare Pages build command: `node build-stamp.js`).
