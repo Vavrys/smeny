@@ -2,6 +2,7 @@
 //   pickMembership()        — deterministický výběr firmy při víc členstvích
 //   roleChangeBlockReason() — poslední admin nesmí přijít o roli
 //   buildPendingState()     — omezený režim: anonymní snapshot → data pro rozpis (v0.9.35)
+//   planLeaveRange()        — rozpad výběru volna na žádanky X a žádost (v0.9.36)
 // Spuštění: node tests/membership_guard.js   (exit 1 = některá kontrola padla)
 const fs = require('fs');
 const path = require('path');
@@ -20,7 +21,7 @@ function extract(name){
 }
 const ctx = {};
 vm.createContext(ctx);
-vm.runInContext(extract('pickMembership') + '\n' + extract('roleChangeBlockReason') + '\n' + extract('buildPendingState'), ctx);
+vm.runInContext(extract('pickMembership') + '\n' + extract('roleChangeBlockReason') + '\n' + extract('buildPendingState') + '\n' + extract('planLeaveRange'), ctx);
 
 let fail = 0;
 function check(label, cond){ if(!cond){ console.error('FAIL ' + label); fail++; } else console.log('ok   ' + label); }
@@ -61,6 +62,22 @@ check('pending: směna 17. 11. u kolegy 3', st.shifts['anon-3:2026-11-17']?.shif
 check('pending: pobočky bez skutečných názvů', st.branches.every(b=> /^Pobočka [A-Z]$/.test(b.name)));
 check('pending: zveřejněné měsíce převzaty', JSON.stringify(st.orgSettings.published_months) === '["2026-11"]');
 check('pending: prázdný snapshot nespadne', ctx.buildPendingState({}, 2026, 0).employees.length === 0);
+
+// ── planLeaveRange (v0.9.36) ──
+const D = (n, st='free', m='11') => ({ date: `2026-${m}-${String(n).padStart(2,'0')}`, state: st });
+let pl = ctx.planLeaveRange([D(10), D(11), D(12)], { '2026-11': 5 });
+check('volno: vše se vejde do žádanek X', pl.xDays.length === 3 && pl.request === null);
+pl = ctx.planLeaveRange([D(10), D(11), D(12), D(13), D(14)], { '2026-11': 2 });
+check('volno: 2 jako X, zbytek žádost', pl.xDays.length === 2 && pl.request?.from === '2026-11-12' && pl.request?.to === '2026-11-14' && pl.requestDays === 3);
+pl = ctx.planLeaveRange([D(10), D(11,'shift'), D(12)], { '2026-11': 5 });
+check('volno: naplánovaná směna začíná žádost', pl.xDays.length === 1 && pl.request?.from === '2026-11-11' && pl.requestDays === 2);
+pl = ctx.planLeaveRange([D(10,'x'), D(11), D(12,'leave')], { '2026-11': 1 });
+check('volno: existující X a dovolená se nepočítají znovu', pl.xDays.length === 1 && pl.covered.length === 2 && pl.request === null);
+pl = ctx.planLeaveRange([D(30), D(1,'free','12'), D(2,'free','12')], { '2026-11': 0, '2026-12': 6 });
+check('volno: limit se počítá po měsících', pl.xDays.length === 0 && pl.request?.from === '2026-11-30' && pl.requestDays === 3);
+pl = ctx.planLeaveRange([D(29), D(30), D(1,'free','12')], { '2026-11': 2, '2026-12': 0 });
+check('volno: přes konec měsíce', pl.xDays.length === 2 && pl.request?.from === '2026-12-01');
+check('volno: vstupní limity se nemění', JSON.stringify({ '2026-11': 2 }) === JSON.stringify((()=>{ const r={ '2026-11': 2 }; ctx.planLeaveRange([D(1)], r); return r; })()));
 
 if(fail){ console.error(fail + ' kontrol selhalo'); process.exit(1); }
 console.log('vše v pořádku');

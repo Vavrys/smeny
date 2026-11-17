@@ -851,6 +851,24 @@ table.sched-table.density-airy .sched-stat-col{font-size:11px;padding:4px 6px}
 .mycal-day.weekend{background:var(--paper)}
 .mycal-day.today{background:var(--accent-soft);border:2px solid var(--accent);box-shadow:0 0 0 3px rgba(30,122,74,.18)}
 .mycal-day.blank{border:none;background:none;min-height:0}
+/* v0.9.36: zadávání volna v kalendáři */
+.mycal-day.clickable{cursor:pointer;transition:transform .08s ease, box-shadow .12s ease}
+.mycal-day.clickable:hover{box-shadow:0 0 0 2px var(--accent-soft), 0 2px 6px rgba(0,0,0,.06)}
+.mycal-day.clickable:active{transform:scale(.97)}
+.mycal-day.past{opacity:.72}
+.mycal-day.range-start,.mycal-day.in-range{background:rgba(30,122,74,.16);border-color:var(--accent)}
+.mycal-day.range-start{box-shadow:inset 0 0 0 2px var(--accent)}
+.mycal-hint{font-size:12.5px;color:var(--ink-soft);margin:0 0 10px}
+.leave-sel{background:var(--surface);border:2px solid var(--accent);border-radius:12px;padding:12px 14px;margin-bottom:12px}
+.leave-sel .ls-title{font-weight:700;font-size:14px;margin-bottom:4px}
+.leave-sel .ls-row{font-size:13px;margin:4px 0;display:flex;gap:8px;align-items:flex-start}
+.leave-sel .ls-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.leave-sel textarea{width:100%;box-sizing:border-box;margin-top:8px;padding:7px 9px;border:1.5px solid var(--line);border-radius:7px;font-family:inherit;font-size:13px;min-height:52px;background:var(--surface);color:var(--ink)}
+.my-leaves{margin-top:16px}
+.my-leaves .ml-head{font-size:12px;font-weight:700;text-transform:uppercase;color:var(--ink-soft);margin-bottom:6px}
+#mysched-leave-btn{padding:9px 16px;font-size:13.5px;font-weight:700}
+body.employee-view .tab-btn[data-tab="leaves"]{display:none !important}
+body.employee-view #emp-x-toggle-btn{display:none !important}
 .mycal-num{font-size:11px;font-weight:600;color:var(--ink-soft);align-self:flex-start;line-height:1}
 .mycal-day.today .mycal-num{background:var(--accent);color:#fff;font-weight:800;border-radius:999px;padding:2px 7px;font-size:11px}
 .mycal-day .sched-chip{width:100%;height:auto;line-height:1.5;border-radius:5px;font-size:11.5px;text-align:center;font-family:inherit;font-weight:700;padding:1px 4px;box-sizing:border-box;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -1607,6 +1625,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
       <div class="panel">
         <div class="panel-head" style="flex-wrap:wrap;gap:10px">
           <h2 class="panel-title" style="margin:0"><span data-icon="nav_muj_rozpis">📆</span> Můj rozpis</h2>
+          <button id="mysched-leave-btn" class="btn-accent" onclick="startLeaveRange()"><span data-icon="nav_zadosti">🗓️</span> Požádat o volno</button>
           <div class="month-nav" style="margin-left:auto">
             <button class="icon-nav-btn" onclick="changeMonth(-1)">‹</button>
             <span class="month-label" id="mysched-month-label">—</span>
@@ -5353,7 +5372,7 @@ function renderCalendar(){
     unpubNote.textContent = hideDraft
       ? (isPendingMode
           ? `Rozpis na ${monthName} zatím není zveřejněný.`
-          : `Rozpis na ${monthName} zatím není zveřejněný. Vidíš jen svůj řádek, kde můžeš zadat volno (X).`)
+          : `Rozpis na ${monthName} zatím není zveřejněný. Volno si zadáš v záložce Můj rozpis.`)
       : '';
   }
   const table = document.getElementById('sched-table');
@@ -9997,7 +10016,7 @@ function openDashboard(){
     <div style="margin-bottom:16px">
       <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--ink-soft);margin-bottom:8px">Rychlé akce</div>
       <div style="display:flex;flex-direction:column;gap:6px">
-        <button onclick="document.getElementById('dashboard-overlay').classList.remove('open');toggleEmpXMode()" class="btn-accent" style="width:100%;text-align:left">${ICONS.btn_upravit} Zadat volno (X)</button>
+        <button onclick="document.getElementById('dashboard-overlay').classList.remove('open');switchAppTab('myschedule')" class="btn-accent" style="width:100%;text-align:left">${ICONS.btn_upravit} Zadat volno</button>
         <button onclick="document.getElementById('dashboard-overlay').classList.remove('open');openEmployeeSettings()" class="btn-outline" style="width:100%;text-align:left">${ICONS.help_nastaveni} Otevřít nastavení</button>
       </div>
     </div>`;
@@ -10695,6 +10714,7 @@ async function employeeToggleX(empId, dateStr){
     toast(`✓ X volno přidáno na ${day}.`);
   }
   renderCalendar();
+  if(typeof renderMySchedule === 'function') renderMySchedule(); // v0.9.36
 }
 
 async function swapShifts(empAId, empBId, dateStr, day){
@@ -12630,8 +12650,8 @@ const EMPLOYEE_STEPS = [
     body:'Šipkami vlevo a vpravo se pohybuješ mezi měsíci. Vždy vidíš aktuálně zveřejněný rozvrh.' },
   { target:'.sched-table', icon:ICONS.tut_klik, title:'Detail směny', position:'top',
     body:'Klikni na libovolnou barevnou buňku ve svém řádku → zobrazí se detail směny s informacemi o pobočce a dni.' },
-  { target:'#emp-x-toggle-btn', icon:ICONS.btn_upravit, title:'Zadat volno (X)', position:'bottom',
-    body:'Potřebuješ volno? Klikni na toto tlačítko — zapne se editační mód. Klikni na dny ve svém řádku kdy nemůžeš přijít. Kliknutím znovu X odebereš. <strong>Vedoucí se pokusí toto volno zajistit.</strong>' },
+  { target:'.tab-btn[data-tab="myschedule"]', icon:ICONS.btn_upravit, title:'Zadat volno', position:'bottom',
+    body:'Volno si zadáš v záložce <strong>Můj rozpis</strong>: klepnutím na volný den přidáš žádanku X, na delší volno použij tlačítko <strong>Požádat o volno</strong> a vyber první a poslední den. <strong>Vedoucí se pokusí toto volno zajistit.</strong>' },
   { target:'#emp-settings-btn', icon:ICONS.help_nastaveni, title:'Tvůj profil', position:'bottom',
     body:`Přes ${ICONS.help_nastaveni} Profil si změníš jméno, telefonní číslo nebo heslo. Najdeš tam i svůj osobní kód zaměstnance pro případ propojení účtu.` },
   { target:'#tutorial-btn', icon:ICONS.status_ok, title:'Hotovo!', position:'bottom', isLast:true,
@@ -13872,6 +13892,7 @@ async function saveLeaveRequest(approve){
       toast('Žádost upravena');
     }
     if(document.getElementById('pane-leaves').style.display !== 'none') renderLeaves();
+    if(typeof renderMySchedule === 'function') renderMySchedule(); // v0.9.36
     return;
   }
 
@@ -13940,6 +13961,7 @@ async function saveLeaveRequest(approve){
       : 'Žádost odeslána');
   }
   if(document.getElementById('pane-leaves').style.display !== 'none') renderLeaves();
+  if(typeof renderMySchedule === 'function') renderMySchedule(); // v0.9.36
 }
 
 // Vloží dny schváleného období do rozpisu jako X s příznakem leave_request_id:
@@ -15636,6 +15658,216 @@ function isMonthPublished(y, m0){
 
 const MYSCHED_DOW = ['Ne','Po','Út','St','Čt','Pá','So'];
 
+// ============================================================
+// VOLNO V KALENDÁŘI (v0.9.36)
+// Klepnutí na den = žádanka X (employeeToggleX). „Požádat o volno" = výběr
+// prvního a posledního dne → rozpad: volné dny do limitu žádanek X jako X,
+// od prvního dne, který X být nemůže (vyčerpaný limit / naplánovaná směna),
+// až do konce rozsahu jedna žádost o volno ke schválení vedoucím.
+// ============================================================
+let myLeaveSel = null; // { stage:'start'|'end'|'loading'|'confirm', from, to, plan }
+
+// Čistá funkce (kryje ji tests/membership_guard.js).
+// days: [{ date:'RRRR-MM-DD', state:'free'|'x'|'leave'|'shift' }] vzestupně
+// remainingByMonth: { 'RRRR-MM': počet zbývajících žádanek X }
+function planLeaveRange(days, remainingByMonth){
+  const rem = { ...remainingByMonth };
+  const xDays = [], covered = [];
+  let tailStart = -1;
+  for(let i = 0; i < days.length; i++){
+    const { date, state } = days[i];
+    if(state === 'x' || state === 'leave'){ covered.push(date); continue; }
+    const mk = date.slice(0, 7);
+    if(state === 'free' && (rem[mk] || 0) > 0){ xDays.push(date); rem[mk]--; continue; }
+    tailStart = i; break;
+  }
+  const request = tailStart >= 0 ? { from: days[tailStart].date, to: days[days.length - 1].date } : null;
+  const requestDays = request ? days.length - tailStart : 0;
+  return { xDays, covered, request, requestDays, remainingAfter: rem };
+}
+
+function myLeaveSelClass(dateStr){
+  if(!myLeaveSel || !myLeaveSel.from) return '';
+  if(dateStr === myLeaveSel.from && !myLeaveSel.to) return ' range-start';
+  if(myLeaveSel.to && dateStr >= myLeaveSel.from && dateStr <= myLeaveSel.to) return ' in-range';
+  return '';
+}
+
+function fmtDayShort(ds){ const d = new Date(ds + 'T00:00:00'); return `${d.getDate()}. ${d.getMonth()+1}.`; }
+function fmtRangeShort(a, b){ return a === b ? fmtDayShort(a) : `${fmtDayShort(a)} – ${fmtDayShort(b)}`; }
+function dayWord(n){ return n === 1 ? 'den' : (n >= 2 && n <= 4 ? 'dny' : 'dní'); }
+
+function leaveSelectionHtml(){
+  if(!myLeaveSel) return '';
+  const cancel = `<button class="btn-ghost" onclick="cancelLeaveRange()">Zrušit</button>`;
+  if(myLeaveSel.stage === 'start') return `<div class="leave-sel"><div class="ls-title">${ICONS.nav_zadosti} Klepni na první den volna</div><div class="ls-actions">${cancel}</div></div>`;
+  if(myLeaveSel.stage === 'end') return `<div class="leave-sel"><div class="ls-title">${ICONS.nav_zadosti} Od ${fmtDayShort(myLeaveSel.from)} — teď klepni na poslední den</div><div class="pb-text" style="font-size:12.5px;color:var(--ink-soft)">Můžeš přepnout i na další měsíc šipkou nahoře.</div><div class="ls-actions">${cancel}</div></div>`;
+  if(myLeaveSel.stage === 'loading') return `<div class="leave-sel"><div class="ls-title">Počítám…</div></div>`;
+  const p = myLeaveSel.plan;
+  const rows = [];
+  if(p.xDays.length) rows.push(`<div class="ls-row"><span class="sched-chip x-chip" style="width:auto;height:auto;line-height:1.4;padding:1px 7px;border-radius:5px">X</span><span><strong>${p.xDays.length} ${dayWord(p.xDays.length)}</strong> jako žádanka volna (${p.xDays.map(fmtDayShort).join(', ')}) — zapíše se hned</span></div>`);
+  if(p.covered.length) rows.push(`<div class="ls-row"><span>✓</span><span>${p.covered.length} ${dayWord(p.covered.length)} už volno máš</span></div>`);
+  if(p.request) rows.push(`<div class="ls-row"><span>${ICONS.status_pending}</span><span><strong>${p.requestDays} ${dayWord(p.requestDays)}</strong> (${fmtRangeShort(p.request.from, p.request.to)}) jako žádost o volno — schvaluje vedoucí. Žádanky X na tyto dny už nestačí nebo tam máš naplánovanou směnu.</span></div>`);
+  if(!rows.length) rows.push(`<div class="ls-row">Na celý výběr už volno máš.</div>`);
+  const nothing = !p.xDays.length && !p.request;
+  return `<div class="leave-sel">
+    <div class="ls-title">${ICONS.nav_zadosti} Volno ${fmtRangeShort(myLeaveSel.from, myLeaveSel.to)}</div>
+    ${rows.join('')}
+    ${p.request ? `<textarea id="leave-sel-note" placeholder="Poznámka pro vedoucího (nepovinné)"></textarea>` : ''}
+    <div class="ls-actions">
+      ${nothing ? '' : `<button class="btn-accent" id="leave-sel-confirm" onclick="confirmLeaveRange()">Potvrdit</button>`}
+      ${cancel}
+    </div>
+  </div>`;
+}
+
+function myLeavesListHtml(){
+  const mine = (leaveRequests || []).filter(l => l.employee_id === currentEmployeeId && l.status !== 'rejected')
+    .sort((a, b) => (a.date_from || '').localeCompare(b.date_from || ''));
+  const todayStr = isoDate(new Date().getFullYear(), new Date().getMonth()+1, new Date().getDate());
+  const shown = mine.filter(l => l.status === 'pending' || (l.date_to || '') >= todayStr);
+  const rejected = (leaveRequests || []).filter(l => l.employee_id === currentEmployeeId && l.status === 'rejected' && (l.date_to || '') >= todayStr);
+  const all = [...shown, ...rejected];
+  if(!all.length) return '';
+  const row = l => `<div class="leave-request-row">
+      <div style="flex:1">
+        <div style="font-weight:600">${fmtRangeShort(l.date_from, l.date_to)} <span style="font-weight:400;color:var(--ink-soft);font-size:12px">(${leaveDayLabel(leaveDayCount(l.date_from, l.date_to))})</span></div>
+        ${l.note ? `<div style="color:var(--ink-soft);font-size:12px">${escapeHtml(l.note)}</div>` : ''}
+        ${l.status === 'rejected' && l.decision_note ? `<div style="color:var(--red);font-size:12px;margin-top:2px">Poznámka: ${escapeHtml(l.decision_note)}</div>` : ''}
+      </div>
+      <span class="leave-status ${l.status}">${l.status==='pending'?ICONS.status_pending+' čeká':l.status==='approved'?ICONS.status_ok+' schváleno':ICONS.status_error+' zamítnuto'}</span>
+      ${l.status === 'pending' ? `<button class="btn-ghost" style="padding:4px 10px;font-size:12px;margin-left:8px" onclick="editLeaveRequest('${l.id}')">Upravit</button>` : ''}
+    </div>`;
+  return `<div class="my-leaves"><div class="ml-head">${ICONS.nav_zadosti} Moje žádosti o volno</div>${all.map(row).join('')}</div>`;
+}
+
+function startLeaveRange(){
+  if(!currentEmployeeId){ toast('Tvůj účet není propojený se zaměstnaneckým profilem — kontaktuj vedoucího', 'error'); return; }
+  myLeaveSel = { stage: 'start' };
+  renderMySchedule();
+  document.getElementById('pane-myschedule')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+function cancelLeaveRange(){ myLeaveSel = null; renderMySchedule(); }
+
+async function myCalDayClick(dateStr){
+  const now = new Date();
+  const todayStr = isoDate(now.getFullYear(), now.getMonth()+1, now.getDate());
+  if(myLeaveSel){
+    if(dateStr < todayStr){ toast('Volno jde zadat jen od dneška dál'); return; }
+    if(myLeaveSel.stage === 'start' || myLeaveSel.stage === 'confirm'){
+      myLeaveSel = { stage: 'end', from: dateStr };
+      renderMySchedule(); return;
+    }
+    if(myLeaveSel.stage === 'end'){
+      let from = myLeaveSel.from, to = dateStr;
+      if(to < from){ const t = from; from = to; to = t; }
+      if(leaveDayCount(from, to) > 62){ toast('Vyber nejvýš dva měsíce'); return; }
+      myLeaveSel = { stage: 'loading', from, to };
+      renderMySchedule();
+      const plan = await buildLeavePlan(from, to);
+      if(!myLeaveSel || myLeaveSel.stage !== 'loading') return;
+      if(!plan){ myLeaveSel = null; renderMySchedule(); return; }
+      myLeaveSel = { stage: 'confirm', from, to, plan };
+      renderMySchedule();
+    }
+    return;
+  }
+  if(dateStr < todayStr){ toast('Do minulosti volno zadat nejde'); return; }
+  await employeeToggleX(currentEmployeeId, dateStr);
+}
+
+// Stav dnů výběru načte čerstvě z DB — výběr může přesahovat zobrazený měsíc.
+async function buildLeavePlan(from, to){
+  const emp = employees.find(e => e.id === currentEmployeeId);
+  if(!emp) return null;
+  const monthStart = from.slice(0, 7) + '-01';
+  const toD = new Date(to + 'T00:00:00');
+  const monthEnd = isoDate(toD.getFullYear(), toD.getMonth()+1, new Date(toD.getFullYear(), toD.getMonth()+1, 0).getDate());
+  const [{ data: sRows, error: sErr }, { data: uRows, error: uErr }] = await Promise.all([
+    dbRun(sb.from('shifts').select('shift_date, shift_type_code, leave_request_id').eq('org_id', currentOrg.id).eq('employee_id', emp.id).gte('shift_date', monthStart).lte('shift_date', monthEnd), 'select shifts (leave plan)'),
+    dbRun(sb.from('unavailability').select('unavail_date').eq('org_id', currentOrg.id).eq('employee_id', emp.id).gte('unavail_date', monthStart).lte('unavail_date', monthEnd), 'select unavailability (leave plan)'),
+  ]);
+  if(sErr || uErr){ toast('Nepodařilo se načíst tvůj rozpis, zkus to znovu', 'error'); return null; }
+  const shiftBy = {}; (sRows || []).forEach(r => { shiftBy[r.shift_date] = r; });
+  const xSet = new Set((uRows || []).map(r => r.unavail_date));
+  // zbývající žádanky X po měsících: max_x − vlastní X − dovolenková X
+  const used = {};
+  xSet.forEach(ds => { const mk = ds.slice(0, 7); used[mk] = (used[mk] || 0) + 1; });
+  (sRows || []).forEach(r => { if(r.leave_request_id && r.shift_type_code === 'X'){ const mk = r.shift_date.slice(0, 7); used[mk] = (used[mk] || 0) + 1; } });
+  const days = [], remaining = {};
+  for(let d = new Date(from + 'T00:00:00'); d <= toD; d.setDate(d.getDate() + 1)){
+    const ds = isoDate(d.getFullYear(), d.getMonth()+1, d.getDate());
+    const mk = ds.slice(0, 7);
+    if(!(mk in remaining)) remaining[mk] = emp.max_x ? Math.max(0, emp.max_x - (used[mk] || 0)) : 999;
+    const sh = shiftBy[ds];
+    let state = 'free';
+    if(xSet.has(ds)) state = 'x';
+    else if(sh && sh.shift_type_code === 'X') state = sh.leave_request_id ? 'leave' : 'x';
+    else if(sh && sh.shift_type_code) state = 'shift';
+    days.push({ date: ds, state });
+  }
+  return planLeaveRange(days, remaining);
+}
+
+async function confirmLeaveRange(){
+  if(!myLeaveSel || myLeaveSel.stage !== 'confirm') return;
+  const { plan, from, to } = myLeaveSel;
+  const emp = employees.find(e => e.id === currentEmployeeId);
+  if(!emp) return;
+  const btn = document.getElementById('leave-sel-confirm');
+  if(btn){ btn.disabled = true; btn.textContent = 'Ukládám…'; }
+  const note = (document.getElementById('leave-sel-note')?.value || '').trim();
+  if(plan.request){
+    const overlap = findOverlappingLeave(emp.id, plan.request.from, plan.request.to, null);
+    if(overlap){
+      toast(`Na ${fmtRangeShort(overlap.date_from, overlap.date_to)} už máš žádost (${overlap.status === 'approved' ? 'schválenou' : 'čekající'}). Uprav ji v seznamu níž.`, 'error');
+      if(btn){ btn.disabled = false; btn.textContent = 'Potvrdit'; }
+      return;
+    }
+  }
+  // 1) žádanky X
+  if(plan.xDays.length){
+    const rows = plan.xDays.map(ds => ({ org_id: currentOrg.id, employee_id: emp.id, unavail_date: ds }));
+    const { error } = await dbInsert('unavailability', rows, { action: 'Zadání volna (X)' });
+    if(error){ if(btn){ btn.disabled = false; btn.textContent = 'Potvrdit'; } return; }
+    plan.xDays.forEach(ds => { unavail[emp.id + ':' + ds] = true; });
+  }
+  // 2) žádost o volno na zbytek
+  if(plan.request){
+    const row = {
+      org_id: currentOrg.id, employee_id: emp.id,
+      date_from: plan.request.from, date_to: plan.request.to,
+      shift_reduction: 0, note: note || null, status: 'pending',
+      requested_by: currentUser?.id || null, decided_by: null, decided_at: null,
+    };
+    const { data, error } = await sb.from('leave_requests').insert(row).select().single();
+    if(error || !data){
+      toast('Žádanky X jsou zapsané, ale žádost o volno se nepodařilo odeslat: ' + (error?.message || ''), 'error');
+      myLeaveSel = null; renderCalendar(); renderMySchedule(); return;
+    }
+    leaveRequests.unshift(data);
+    logAudit(`Žádost o volno: ${emp.name} ${plan.request.from}–${plan.request.to} (z výběru v kalendáři)`);
+    const admins = orgMembers.filter(m => m.role === 'admin' && m.user_id && m.user_id !== currentUser?.id && getNotifPref(m.user_id, 'leave', 'inapp'));
+    if(admins.length){
+      const nrows = admins.map(m => ({
+        org_id: currentOrg.id, user_id: m.user_id, type: 'leave_request',
+        title: `${ICONS.notif_zadost_volno} Žádost o volno`,
+        body: `${emp.name} žádá o volno ${fmtLeaveRange(plan.request.from, plan.request.to)}. Ke schválení →`,
+        read: false,
+      }));
+      const { error: nErr } = await sb.from('notifications').insert(nrows);
+      if(nErr) console.warn('notif insert failed', nErr);
+    }
+  }
+  const parts = [];
+  if(plan.xDays.length) parts.push(`${plan.xDays.length} ${dayWord(plan.xDays.length)} volna zapsáno`);
+  if(plan.request) parts.push('žádost odeslána vedoucímu');
+  toast('✓ ' + parts.join(', '));
+  myLeaveSel = null;
+  renderCalendar();
+  renderMySchedule();
+}
+
 // v0.9.34: kompaktní měsíční kalendář (Po–Ne) místo seznamu dní přes celou šířku.
 // Buňka = číslo dne + barevná značka směny; popisek (tooltip) říká pobočku/stav.
 // Na široké obrazovce celý popis („Majestic – M4", „Karolína", „Volno"),
@@ -15699,14 +15931,14 @@ function renderMySchedule(){
     <div class="mysched-today-card"><div class="mysched-today-label">Zítra</div><div class="spinner-sm"></div></div>
   </div>`;
 
+  // v0.9.36: i nezveřejněný měsíc ukazuje kalendář — jen bez směn (ty jsou
+  // rozpracované), aby šlo dopředu zadat volno. Dřív tu byla prázdná hláška.
   const published = isMonthPublished(schedYear, schedMonth);
-  if(currentRole === 'employee' && !published){
-    el.innerHTML = html + `<div class="empty-state"><div style="font-size:40px;margin-bottom:12px">${ICONS.status_pending}</div>
-      <p style="font-size:15px;font-weight:700;margin-bottom:6px">Rozpis pro tento měsíc zatím nebyl zveřejněn</p>
-      <p style="font-size:13px;color:var(--ink-soft)">Jakmile ho vedoucí publikuje, uvidíš ho tady a přijde ti notifikace.</p></div>`;
-    loadMyTodayCards(emp);
-    return;
-  }
+  const hideShifts = currentRole === 'employee' && !published;
+  html += leaveSelectionHtml();
+  html += hideShifts
+    ? `<p class="mycal-hint">${ICONS.status_pending} Rozpis na tento měsíc zatím není zveřejněný. Klepnutím na den si můžeš zadat volno (X).</p>`
+    : `<p class="mycal-hint">Klepnutím na volný den přidáš nebo zrušíš žádanku volna (X). Na delší volno použij <strong>Požádat o volno</strong>.</p>`;
 
   const daysInMonth = new Date(schedYear, schedMonth+1, 0).getDate();
   const now = new Date();
@@ -15730,9 +15962,14 @@ function renderMySchedule(){
     else if(s && s.shift_type_code && s.shift_type_code !== 'X'){
       if(dateStr < todayStr) worked++; else planned++;
     }
-    if(s && s.shift_type_code && s.shift_type_code !== 'X' && !unavail[emp.id+':'+dateStr]) legendCodes.add(s.shift_type_code);
-    calCells += `<div class="mycal-day${isWE?' weekend':''}${isToday?' today':''}" title="${escapeHtml(d+'. '+MYSCHED_DOW[dow]+' — '+myDayText(emp.id, dateStr))}">
-      <span class="mycal-num">${d}</span>${myCalChipHtml(emp.id, dateStr)}
+    const isShiftDay = s && s.shift_type_code && s.shift_type_code !== 'X' && !unavail[emp.id+':'+dateStr];
+    if(isShiftDay && !hideShifts) legendCodes.add(s.shift_type_code);
+    const isPast = dateStr < todayStr;
+    const selCls = myLeaveSelClass(dateStr);
+    const chip = (hideShifts && isShiftDay) ? '' : myCalChipHtml(emp.id, dateStr);
+    const tip = (hideShifts && isShiftDay) ? 'rozpis nezveřejněn' : myDayText(emp.id, dateStr);
+    calCells += `<div class="mycal-day clickable${isWE?' weekend':''}${isToday?' today':''}${isPast?' past':''}${selCls}" data-date="${dateStr}" onclick="myCalDayClick('${dateStr}')" title="${escapeHtml(d+'. '+MYSCHED_DOW[dow]+' — '+tip)}">
+      <span class="mycal-num">${d}</span>${chip}
     </div>`;
   }
   // Legenda po pobočkách (M1–M4 patří pod jedno „Majestic"), ne po jednotlivých kódech
@@ -15752,6 +15989,7 @@ function renderMySchedule(){
   // v0.9.36: souhrnné dlaždice (odpracováno, cíl, žádanky, volné víkendy) zrušeny —
   // zaměstnance nemají zajímat; přehled má vedoucí ve Statistikách.
   html += daysHtml;
+  html += myLeavesListHtml();
   el.innerHTML = html;
   loadMyTodayCards(emp);
 }
@@ -15793,6 +16031,7 @@ async function loadMyTodayCards(emp){
 
 function switchAppTab(tab){
   if(isPendingMode && tab !== 'schedule') return; // v0.9.35: omezený režim = jen Rozpis
+  if(currentRole === 'employee' && tab === 'leaves') tab = 'myschedule'; // v0.9.36: žádosti zaměstnance jsou v Můj rozpis
   if(currentRole === 'employee' && !['myschedule','schedule','leaves'].includes(tab)) return;
   if(currentRole === 'branch_manager' && !['schedule','gaps','leaves'].includes(tab)) return;
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
