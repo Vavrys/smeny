@@ -2954,11 +2954,22 @@ async function doSignup(){
   try{
     let { data: signUpData, error: signUpError } = await sb.auth.signUp({ email, password });
     if(signUpError || !signUpData.session){
-      const { error: signInError } = await sb.auth.signInWithPassword({ email, password });
+      const { data: signInData, error: signInError } = await sb.auth.signInWithPassword({ email, password });
       if(signInError){
         showAuthError('signup', signUpError
           ? 'Tenhle e-mail je už zaregistrovaný s jiným heslem. Zkus se přihlásit.'
           : signInError.message);
+        return;
+      }
+      // v0.9.34: e-mail už měl účet, takže to NENÍ registrace, ale tiché přihlášení.
+      // Pokud účet už patří do nějaké firmy (typicky admin, který omylem otevřel
+      // pozvánku pro zaměstnance), registraci zastav a odhlas — jinak by se pozvánka
+      // uplatnila na admina a přepsala mu propojení.
+      const { data: existingMember } = await sb.from('org_members')
+        .select('id').eq('user_id', signInData?.user?.id || '').limit(1);
+      if(existingMember && existingMember.length){
+        await sb.auth.signOut();
+        showAuthError('signup', 'Tenhle e-mail už má účet ve firmě. Registrace s ním nejde — přihlas se klasicky. Pokud zakládáš účet pro zaměstnance, otevři pozvánku v jiném prohlížeči nebo v anonymním okně a použij jeho e-mail.');
         return;
       }
     }
@@ -3276,6 +3287,29 @@ async function createOrgFromWaiting(){
 // ============================================================
 // BOOTSTRAP: after login/signup, figure out org + role, load shell
 // ============================================================
+// v0.9.34: čistá funkce (kryje ji tests/membership_guard.js). Pořadí voleb:
+// 1) naposledy použitá firma, pokud v členstvích pořád je,
+// 2) členství s plným přístupem (employee_id, nebo role admin/manažer),
+// 3) první v pořadí (volající řadí podle created_at vzestupně = nejstarší).
+function pickMembership(memberRows, lastOrgId){
+  const rows = memberRows || [];
+  if(!rows.length) return null;
+  const last = lastOrgId && rows.find(m=>m.org_id === lastOrgId);
+  if(last) return last;
+  return rows.find(m=>m.employee_id || m.role !== 'employee') || rows[0];
+}
+
+// v0.9.34: čistá funkce (kryje ji tests/membership_guard.js). Vrací text důvodu,
+// proč změnu role zakázat, nebo null. Poslední admin organizace nesmí o roli
+// přijít (jinak se z organizace nikdo nedostane k nastavení). Stejnou pojistku
+// drží v DB trigger z migration_v0934_invite_safety.sql.
+function roleChangeBlockReason(members, target, newRole){
+  if(!target || target.role !== 'admin' || newRole === 'admin') return null;
+  const otherAdmins = (members||[]).filter(m=>m.role === 'admin' && m.id !== target.id);
+  if(!otherAdmins.length) return 'V organizaci musí zůstat alespoň jeden admin. Nejdřív povyš jiného člověka na admina.';
+  return null;
+}
+
 async function bootstrapAfterAuth(){
   document.getElementById('loading-screen').style.display = 'flex';
   document.getElementById('auth-shell').style.display = 'none';
@@ -3295,7 +3329,7 @@ async function bootstrapAfterAuth(){
       .from('org_members')
       .select('org_id, role, employee_id, organizations(id, name, slug, invite_code, invite_expires_at)')
       .eq('user_id', user.id)
-      .limit(1);
+      .order('created_at', { ascending: true });
 
     if(memberError) throw memberError;
 
@@ -3318,7 +3352,13 @@ async function bootstrapAfterAuth(){
       return;
     }
 
-    const membership = memberRows[0];
+    // v0.9.34: dřív se bralo „první" členství bez řazení — při víc členstvích
+    // appka načítala náhodnou (i prázdnou) firmu. Teď: naposledy použitá firma,
+    // jinak členství s plným přístupem, jinak nejstarší (viz pickMembership).
+    let lastOrgId = null;
+    try{ lastOrgId = localStorage.getItem('smeny_last_org_'+user.id); }catch(e){}
+    const membership = pickMembership(memberRows, lastOrgId);
+    try{ localStorage.setItem('smeny_last_org_'+user.id, membership.org_id); }catch(e){}
     currentOrg = membership.organizations;
     currentOrg.invite_code = currentOrg.invite_code || null;
     currentOrg.invite_expires_at = currentOrg.invite_expires_at || null;
@@ -10258,6 +10298,7 @@ async function openAccessModal(empId){
       <div style="font-size:13px;font-weight:600;margin-bottom:6px">${ICONS.notif_pozvanka} Pozvánkový odkaz <span style="font-size:11px;font-weight:400;color:var(--ink-soft)">(doporučeno)</span></div>
       <div style="font-size:12px;color:var(--ink-soft);margin-bottom:10px">
         Pošli zaměstnanci odkaz. Po registraci se <strong>automaticky</strong> spáruje s <strong>${escapeHtml(emp.name)}</strong>.
+        <strong>Odkaz neotvírej ve svém prohlížeči</strong> — registruje se s ním zaměstnanec na svém zařízení, s vlastním e-mailem.
       </div>
       ${inviteLink ? `
         <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px">
@@ -10349,6 +10390,17 @@ async function changeMemberRole(memberId){
   const sel = document.getElementById('member-role-select');
   const newRole = sel?.value;
   if(!newRole) return;
+  // v0.9.34: pojistka proti odebrání admina — čerstvý seznam z DB, ne orgMembers
+  // (ten je deduplikovaný podle employee_id a admin bez zaměstnance v něm být nemusí).
+  const { data: freshMembers, error: freshErr } = await dbRun(
+    sb.from('org_members').select('id, user_id, role').eq('org_id', currentOrg.id), 'select org_members (role guard)');
+  if(freshErr || !freshMembers){ toast('Roli teď nejde změnit — nepodařilo se ověřit adminy.', 'error'); return; }
+  const target = freshMembers.find(m=>m.id === memberId);
+  const blocked = roleChangeBlockReason(freshMembers, target, newRole);
+  if(blocked){ toast(blocked, 'error'); return; }
+  if(target && target.role === 'admin' && newRole !== 'admin' && target.user_id === currentUser?.id){
+    if(!confirm('Opravdu si chceš sám odebrat roli admina? Pak už si ji nevrátíš, musel by ti ji vrátit jiný admin.')) return;
+  }
   const { error } = await sb.from('org_members').update({ role: newRole }).eq('id', memberId);
   if(error){ toast('Chyba: '+error.message); return; }
   toast(`Role změněna na: ${newRole}`);
