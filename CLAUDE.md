@@ -67,6 +67,7 @@ Seznam migračních souborů v repu (pořadí = doporučené pořadí spuštěn�
 11. `migration_v098_swap_flow.sql` — notifications.ref_id (klikací swap notifikace), join_org_by_code ukládá email z JWT, backfill org_members.email z auth.users
 12. `migration_v099_swap_mode.sql` — shift_swaps.approval_mode: režim schvalování se „zmrazí" na řádek výměny při vytvoření nabídky (respondToSwap ho čte odtud, ne z orgSettings přijímajícího)
 13. `migration_v0934_invite_safety.sql` — claim_invite (auth.uid(), nepřepíše propojení, odmítne admina), create_organization (jeden účet = jedna firma), trigger posledního admina
+14. `migration_v0935_pending_mode.sql` — omezený režim čekajících: is_org_member jen pro aktivní členy (admin/manažer/propojený zaměstnanec), vlastní členství + firma čitelné, RPC pending_org_snapshot (anonymní rozpis)
 
 Nová migrace = nový soubor `migration_*.sql` + výjimka v `.gitignore` (je to whitelist!)
 + řádek do tohoto seznamu + případně do `EXPECTED_DB_SCHEMA` v index.html (diagnostika).
