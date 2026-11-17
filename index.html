@@ -819,12 +819,6 @@ table.sched-table.density-airy .sched-stat-col{font-size:11px;padding:4px 6px}
 @media (max-width:480px){.mycal{gap:3px}.mycal-day{min-height:48px;padding:3px}.mycal-day .sched-chip{font-size:10.5px}}
 .mysched-sum-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-top:14px}
 .mysched-sum-card{background:var(--paper);border:1.5px solid var(--line);border-radius:12px;padding:12px 14px;text-align:center}
-.team-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line);border-radius:10px}
-.team-grid{border-collapse:collapse;font-size:11px;width:100%}
-.team-grid th,.team-grid td{border:1px solid var(--line);padding:3px 4px;text-align:center;white-space:nowrap;min-width:24px}
-.team-grid th.weekend,.team-grid td.weekend{background:var(--paper)}
-.team-grid .team-name{position:sticky;left:0;background:var(--surface);z-index:2;text-align:left;font-weight:700;max-width:150px;min-width:90px;overflow:hidden;text-overflow:ellipsis;padding:4px 8px;border-right:2px solid var(--line)}
-body.dark .team-grid .team-name{background:var(--surface)}
 
 @media (max-width:640px){
   .topbar,.tabbar,.main{padding-left:12px;padding-right:12px}
@@ -1560,10 +1554,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
     <div id="pane-myschedule" class="tab-pane" style="display:none">
       <div class="panel">
         <div class="panel-head" style="flex-wrap:wrap;gap:10px">
-          <div style="display:flex;gap:2px;background:var(--paper);border-radius:8px;padding:3px">
-            <button id="mysched-subtab-me" onclick="switchMySubTab('me')" style="border:none;border-radius:6px;padding:7px 14px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;background:var(--surface);color:var(--ink);box-shadow:var(--shadow)"><span data-icon="nav_muj_rozpis">📆</span> Můj rozpis</button>
-            <button id="mysched-subtab-team" onclick="switchMySubTab('team')" style="border:none;border-radius:6px;padding:7px 14px;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;background:none;color:var(--ink-soft)"><span data-icon="nav_tym">👥</span> Tým</button>
-          </div>
+          <h2 class="panel-title" style="margin:0"><span data-icon="nav_muj_rozpis">📆</span> Můj rozpis</h2>
           <div class="month-nav" style="margin-left:auto">
             <button class="icon-nav-btn" onclick="changeMonth(-1)">‹</button>
             <span class="month-label" id="mysched-month-label">—</span>
@@ -1571,7 +1562,6 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
           </div>
         </div>
         <div id="myschedule-content"></div>
-        <div id="team-content" style="display:none"></div>
       </div>
     </div>
 
@@ -2516,7 +2506,7 @@ const DEFAULT_ICONS = {
   // Navigace (tab bar)
   nav_rozpis: '📅', nav_pobocky: '🏠', nav_zamestnanci: '👤', nav_mezery: '📋',
   nav_statistiky: '📊', nav_zadosti: '🗓️', nav_pravidla: '⚖️',
-  nav_muj_rozpis: '📆', nav_tym: '👥',
+  nav_muj_rozpis: '📆',
 
   // PWA (v0.9.1)
   pwa_install: '📲',
@@ -15431,28 +15421,10 @@ const _origSwitchAppTab = switchAppTab;
 // Zaměstnanec tu vidí VÝHRADNĚ publikované měsíce (orgSettings.published_months,
 // klíč 'RRRR-MM' — stejný zdroj, kterým publikuje doPublishSchedule).
 // ============================================================
-let mySubTab = 'me'; // 'me' | 'team'
 
 function isMonthPublished(y, m0){
   const k = `${y}-${String(m0+1).padStart(2,'0')}`;
   return (orgSettings['published_months']||[]).includes(k);
-}
-
-function switchMySubTab(tab){
-  mySubTab = tab;
-  [['mysched-subtab-me', tab==='me'], ['mysched-subtab-team', tab==='team']].forEach(([id,on])=>{
-    const btn = document.getElementById(id);
-    if(!btn) return;
-    btn.style.background = on ? 'var(--surface)' : 'none';
-    btn.style.color      = on ? 'var(--ink)' : 'var(--ink-soft)';
-    btn.style.boxShadow  = on ? 'var(--shadow)' : 'none';
-    btn.style.fontWeight = on ? '700' : '500';
-  });
-  const meEl = document.getElementById('myschedule-content');
-  const teamEl = document.getElementById('team-content');
-  if(meEl) meEl.style.display = tab==='me' ? '' : 'none';
-  if(teamEl) teamEl.style.display = tab==='team' ? '' : 'none';
-  renderMySchedule();
 }
 
 const MYSCHED_DOW = ['Ne','Po','Út','St','Čt','Pá','So'];
@@ -15490,7 +15462,6 @@ function renderMySchedule(){
   if(!pane || pane.style.display === 'none') return;
   const label = document.getElementById('mysched-month-label');
   if(label) label.textContent = new Date(schedYear, schedMonth, 1).toLocaleDateString('cs-CZ',{month:'long',year:'numeric'});
-  if(mySubTab === 'team'){ renderTeamGrid(); return; }
 
   const el = document.getElementById('myschedule-content');
   if(!el) return;
@@ -15626,48 +15597,6 @@ async function loadMyTodayCards(emp){
     </div>`;
   };
   el.innerHTML = card('Dnes', t1, now) + card('Zítra', t2, tomorrow);
-}
-
-// B2: zjednodušená mřížka celého publikovaného rozpisu — jen pro čtení,
-// bez skóre a admin tlačítek; zamrzlý sloupec jmen + horizontální scroll
-function renderTeamGrid(){
-  const el = document.getElementById('team-content');
-  if(!el) return;
-  if(currentRole === 'employee' && !isMonthPublished(schedYear, schedMonth)){
-    el.innerHTML = `<div class="empty-state"><div style="font-size:40px;margin-bottom:12px">${ICONS.status_pending}</div>
-      <p style="font-size:15px;font-weight:700;margin-bottom:6px">Rozpis pro tento měsíc zatím nebyl zveřejněn</p>
-      <p style="font-size:13px;color:var(--ink-soft)">Jakmile ho vedoucí publikuje, uvidíš tady rozpis celého týmu.</p></div>`;
-    return;
-  }
-  const daysInMonth = new Date(schedYear, schedMonth+1, 0).getDate();
-  let head = `<tr><th class="team-name">Jméno</th>`;
-  for(let d=1; d<=daysInMonth; d++){
-    const dow = new Date(schedYear, schedMonth, d).getDay();
-    const isWE = dow===0 || dow===6;
-    head += `<th${isWE?' class="weekend"':''}>${d}<br><span style="font-weight:400;color:var(--ink-faint)">${MYSCHED_DOW[dow]}</span></th>`;
-  }
-  head += '</tr>';
-  const body = employees.map(emp=>{
-    const isMe = emp.id === currentEmployeeId;
-    let row = `<td class="team-name"${isMe?' style="color:var(--accent-ink)"':''}>${escapeHtml(emp.name)}${isMe?' ·':''}</td>`;
-    for(let d=1; d<=daysInMonth; d++){
-      const dateStr = isoDate(schedYear, schedMonth+1, d);
-      const dow = new Date(schedYear, schedMonth, d).getDay();
-      const isWE = dow===0 || dow===6;
-      const s = shifts[emp.id+':'+dateStr];
-      const isUna = unavail[emp.id+':'+dateStr];
-      let inner = '';
-      // Cizí X (žádanky/dovolené) zůstávají skryté — stejné soukromí jako hlavní mřížka
-      if(isUna || (s && s.shift_type_code==='X')){
-        if(isMe) inner = `<span class="sched-chip x-chip${s?.leave_request_id?' leave-x':''}">X</span>`;
-      } else if(s && s.shift_type_code){
-        inner = `<span class="sched-chip" style="background:${codeColor(s.shift_type_code)}">${escapeHtml(s.shift_type_code)}</span>`;
-      }
-      row += `<td${isWE?' class="weekend"':''}>${inner}</td>`;
-    }
-    return `<tr${isMe?' style="background:var(--accent-soft)"':''}>${row}</tr>`;
-  }).join('');
-  el.innerHTML = `<div class="team-scroll"><table class="team-grid"><thead>${head}</thead><tbody>${body}</tbody></table></div>`;
 }
 
 function switchAppTab(tab){
