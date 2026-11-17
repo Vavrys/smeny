@@ -668,8 +668,16 @@ body.employee-view.xmode-active tr:not([data-own-row="true"]) {
 }
 /* Own row highlight — always visible */
 body.employee-view tr[data-own-row="true"] td {
-  background: rgba(30,122,74,0.07) !important;
+  /* zelený nádech jen jako překryv (background-image) — barva pozadí buňky, tedy
+     i zvýraznění víkendu, zůstává pod ním vidět (v0.9.34) */
+  background-image: linear-gradient(rgba(30,122,74,0.07), rgba(30,122,74,0.07));
   box-shadow: inset 0 1.5px 0 var(--accent), inset 0 -1.5px 0 var(--accent);
+}
+body.employee-view tr[data-own-row="true"] td.xmode-cell {
+  background-image: linear-gradient(rgba(30,122,74,0.14), rgba(30,122,74,0.14));
+}
+body.employee-view tr[data-own-row="true"] td.xmode-cell.x-set {
+  background-image: linear-gradient(rgba(220,50,50,0.20), rgba(220,50,50,0.20));
 }
 body.employee-view tr[data-own-row="true"] .sched-name-col {
   background: rgba(30,122,74,0.07) !important;
@@ -1468,6 +1476,9 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
             <span data-icon="btn_vymeny">🔄</span> Výměna
           </button>
         </div>
+
+        <!-- Employee: month not published yet (only own row is shown) -->
+        <div id="emp-unpublished-note" style="display:none;background:var(--paper);border:1.5px solid var(--line);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:var(--ink-soft)"></div>
 
         <!-- Open shifts panel (employee view) -->
         <div id="open-shifts-panel" style="display:none">
@@ -5101,6 +5112,17 @@ function renderCalendar(){
   }
 
   const isEmployee  = currentRole === 'employee';
+  // v0.9.34: zaměstnanec nesmí v nezveřejněném měsíci vidět rozpracované směny
+  // (ani cizí, ani vlastní) — vidí jen svůj řádek, aby si mohl zadat volno (X).
+  const hideDraft = isEmployee && !isMonthPublished(schedYear, schedMonth);
+  const unpubNote = document.getElementById('emp-unpublished-note');
+  if(unpubNote){
+    const monthName = new Date(schedYear, schedMonth, 1).toLocaleDateString('cs-CZ',{month:'long', year:'numeric'});
+    unpubNote.style.display = hideDraft ? 'block' : 'none';
+    unpubNote.textContent = hideDraft
+      ? `Rozpis na ${monthName} zatím není zveřejněný. Vidíš jen svůj řádek, kde můžeš zadat volno (X).`
+      : '';
+  }
   const table = document.getElementById('sched-table');
   const nameColW = effectiveNameColWidth();
   const allPairsCols = (orgSettings['balance_pairs']||[]).filter(p=>p[2]!==false);
@@ -5158,7 +5180,7 @@ function renderCalendar(){
         fillInfo = `<br><span style="font-size:8px">plno</span>`;
       }
     }
-    const dayClick = (fillMode && !isGapsMode) ? '' : `onclick="openDayDetail(${d})" style="cursor:pointer" title="Detail ${d}. — kdo pracuje, kdo může přijít"`;
+    const dayClick = ((fillMode && !isGapsMode) || hideDraft) ? '' : `onclick="openDayDetail(${d})" style="cursor:pointer" title="Detail ${d}. — kdo pracuje, kdo může přijít"`;
     hRow += `<th class="sched-day-col${extraClass}" ${dayClick}>${d}${fillInfo}<br><span class="dow">${DOW_SHORT[dow]}</span></th>`;
   }
   // Balance pair columns — one column per visible pair (pair[2] !== false means visible)
@@ -5184,6 +5206,7 @@ function renderCalendar(){
   const weekendPairs = collectWeekendPairs(daysInMonth);
 
   employees.forEach(emp => {
+    if(hideDraft && emp.id !== currentEmployeeId) return; // nezveřejněný měsíc: cizí řádky skryté
     const tr = document.createElement('tr');
     tr.dataset.empId = emp.id;
     const isOwnRow = currentEmployeeId && emp.id === currentEmployeeId;
@@ -5244,7 +5267,7 @@ function renderCalendar(){
             }
             xCount++;
           }
-        } else {
+        } else if(!hideDraft){
           const color = codeColor(code);
           inner = `<span class="sched-chip${shift.is_auto?' auto':''}" style="background:${color}">${escapeHtml(code||'?')}</span>`;
           shiftCount++;
@@ -5284,7 +5307,7 @@ function renderCalendar(){
           // Other employees' rows — dimmed, read-only for employee role
           const dimStyle = isEmployee ? 'opacity:0.88;cursor:default' : '';
           cells += `<td class="sched-cell${isWE?' weekend':''}" style="${dimStyle}">${inner}</td>`;
-        } else if(shift && shift.shift_type_code && shift.shift_type_code!=='X'){
+        } else if(!hideDraft && shift && shift.shift_type_code && shift.shift_type_code!=='X'){
           if(currentRole === 'admin' || currentRole === 'manager'){
             cells += `<td class="sched-cell${isWE?' weekend':''}" data-emp="${emp.id}" data-date="${dateStr}"
               onclick="openDayDetail(${d},'${emp.id}')"
@@ -5301,10 +5324,10 @@ function renderCalendar(){
           } else if(empXMode){
             // Employee in X mode — can click to toggle X
             const hasX2 = unavail[emp.id+':'+dateStr];
-            cells += `<td class="sched-cell${isWE?' weekend':''}" data-emp="${emp.id}" data-date="${dateStr}"
+            cells += `<td class="sched-cell xmode-cell${hasX2?' x-set':''}${isWE?' weekend':''}" data-emp="${emp.id}" data-date="${dateStr}"
               onclick="employeeToggleX('${emp.id}','${dateStr}')"
               title="${hasX2?'Klikni pro zrušení X volno':'Klikni pro přidání X volno'}"
-              style="cursor:pointer;background:${hasX2?'rgba(220,50,50,0.18)':'rgba(30,122,74,0.1)'}">${inner}</td>`;
+              style="cursor:pointer">${inner}</td>`;
           } else {
             // Employee not in X mode — read-only
             cells += `<td class="sched-cell${isWE?' weekend':''}" style="cursor:default">${inner}</td>`;
