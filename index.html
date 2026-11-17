@@ -511,6 +511,10 @@ thead .sched-name-col{z-index:3;font-size:11px;font-weight:600;color:#333;positi
 body.employee-view .sched-name-col{width:160px;min-width:80px;max-width:280px;padding:4px 8px}
 .sched-day-col{text-align:center;padding:3px 0;font-size:11px;color:#111;font-weight:900;overflow:hidden}
 .sched-day-col.weekend{background:#ede8df;color:#111}
+/* v0.9.36: dnešní sloupec */
+.sched-day-col.today-col{background:var(--accent) !important;color:#fff !important}
+.sched-day-col.today-col .dow{color:#fff !important}
+.sched-cell.today-col{box-shadow:inset 2px 0 0 var(--accent), inset -2px 0 0 var(--accent)}
 .sched-day-col .dow{font-weight:700;font-size:9.5px;color:#333;display:block}
 .sched-cell{text-align:center;padding:0;cursor:pointer;height:var(--tbl-h);position:relative}
 .sched-cell.weekend{background:#f5f0e8}
@@ -676,9 +680,13 @@ body.employee-view.xmode-active tr:not([data-own-row="true"]) {
 /* Own row highlight — always visible */
 body.employee-view tr[data-own-row="true"] td {
   /* zelený nádech jen jako překryv (background-image) — barva pozadí buňky, tedy
-     i zvýraznění víkendu, zůstává pod ním vidět (v0.9.34) */
-  background-image: linear-gradient(rgba(30,122,74,0.07), rgba(30,122,74,0.07));
-  box-shadow: inset 0 1.5px 0 var(--accent), inset 0 -1.5px 0 var(--accent);
+     i zvýraznění víkendu, zůstává pod ním vidět (v0.9.34; v0.9.36 výraznější) */
+  background-image: linear-gradient(rgba(30,122,74,0.16), rgba(30,122,74,0.16));
+  box-shadow: inset 0 2.5px 0 var(--accent), inset 0 -2.5px 0 var(--accent);
+}
+/* pravý konec rámečku vlastního řádku (dřív chyběl) */
+body.employee-view tr[data-own-row="true"] td:last-child {
+  box-shadow: inset 0 2.5px 0 var(--accent), inset 0 -2.5px 0 var(--accent), inset -2.5px 0 0 var(--accent);
 }
 body.employee-view tr[data-own-row="true"] td.xmode-cell {
   background-image: linear-gradient(rgba(30,122,74,0.14), rgba(30,122,74,0.14));
@@ -687,10 +695,11 @@ body.employee-view tr[data-own-row="true"] td.xmode-cell.x-set {
   background-image: linear-gradient(rgba(220,50,50,0.20), rgba(220,50,50,0.20));
 }
 body.employee-view tr[data-own-row="true"] .sched-name-col {
-  background: rgba(30,122,74,0.07) !important;
-  font-weight: 700;
-  color: var(--accent-ink);
-  box-shadow: inset 0 1.5px 0 var(--accent), inset 0 -1.5px 0 var(--accent), inset 1.5px 0 0 var(--accent);
+  background: var(--accent) !important;
+  background-image: none;
+  font-weight: 800;
+  color: #fff;
+  box-shadow: inset 0 2.5px 0 var(--accent), inset 0 -2.5px 0 var(--accent), inset 2.5px 0 0 var(--accent);
 }
 body.employee-view .tab-btn[data-tab="employees"],
 body.employee-view .tab-btn[data-tab="branches"],
@@ -840,10 +849,10 @@ table.sched-table.density-airy .sched-stat-col{font-size:11px;padding:4px 6px}
 .mycal-dow{font-size:10.5px;font-weight:700;color:var(--ink-soft);text-align:center;text-transform:uppercase;padding:4px 0}
 .mycal-day{min-height:58px;border:1px solid var(--line);border-radius:8px;padding:4px;display:flex;flex-direction:column;align-items:center;gap:4px;background:var(--surface)}
 .mycal-day.weekend{background:var(--paper)}
-.mycal-day.today{border-color:var(--accent);box-shadow:inset 0 0 0 1.5px var(--accent)}
+.mycal-day.today{background:var(--accent-soft);border:2px solid var(--accent);box-shadow:0 0 0 3px rgba(30,122,74,.18)}
 .mycal-day.blank{border:none;background:none;min-height:0}
 .mycal-num{font-size:11px;font-weight:600;color:var(--ink-soft);align-self:flex-start;line-height:1}
-.mycal-day.today .mycal-num{color:var(--accent-ink);font-weight:800}
+.mycal-day.today .mycal-num{background:var(--accent);color:#fff;font-weight:800;border-radius:999px;padding:2px 7px;font-size:11px}
 .mycal-day .sched-chip{width:100%;height:auto;line-height:1.5;border-radius:5px;font-size:11.5px;text-align:center;font-family:inherit;font-weight:700;padding:1px 4px;box-sizing:border-box;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mycal-day .lbl-short{display:none}
 @media (max-width:820px){.mycal-day .lbl-full{display:none}.mycal-day .lbl-short{display:inline}.mycal-day .sched-chip{font-family:var(--font-mono);font-weight:800}}
@@ -5285,6 +5294,21 @@ async function ensureSlotFree(dateStr, code, empId){
   return { ok: true, replaced: occName };
 }
 
+// v0.9.36: dnešní sloupec v mřížce Rozpisu — zvýrazněná hlavička i buňky.
+// Sloupec dne d je (d+1). potomek řádku (první je jméno).
+function markTodayColumn(){
+  const table = document.getElementById('sched-table');
+  if(!table) return;
+  table.querySelectorAll('.today-col').forEach(el=>el.classList.remove('today-col'));
+  const now = new Date();
+  if(now.getFullYear() !== schedYear || now.getMonth() !== schedMonth) return;
+  const idx = now.getDate(); // children[0] = jméno
+  table.querySelectorAll('thead tr, tbody tr').forEach(tr=>{
+    const cell = tr.children[idx];
+    if(cell && !cell.classList.contains('sched-stat-col')) cell.classList.add('today-col');
+  });
+}
+
 function renderCalendar(){
   const thead = document.getElementById('sched-thead');
   const tbody = document.getElementById('sched-tbody');
@@ -5616,6 +5640,7 @@ function renderCalendar(){
     tbody.appendChild(tr);
   });
 
+  markTodayColumn();
   renderScoreBar();
   renderLaborCost();
   requestAnimationFrame(()=>{ initTableResize(); applyAccessibilityAttributes(); scheduleDraftSave(); });
@@ -15724,33 +15749,9 @@ function renderMySchedule(){
   daysHtml = `<div class="mycal">${['Po','Út','St','Čt','Pá','So','Ne'].map(n=>`<div class="mycal-dow">${n}</div>`).join('')}${calCells}</div>`
     + (legendHtml ? `<div class="mycal-legend">${legendHtml}</div>` : '');
 
-  // Souhrn dole — efektivní limity (schválená dovolená snižuje min/cíl/max)
-  const eff = effectiveLimits(emp, schedYear, schedMonth);
-  const total = worked + planned;
-  const remX = Math.max(0, (emp.max_x||0) - xUsed);
-  const weekendPairs = collectWeekendPairs(daysInMonth);
-  let freeWE = 0;
-  weekendPairs.forEach(wb=>{
-    const allFree = wb.every(ds=>{
-      const key = emp.id+':'+ds;
-      if(unavail[key]) return true;
-      const s = shifts[key];
-      return !s || s.shift_type_code==='X';
-    });
-    if(allFree) freeWE++;
-  });
-  const sumCard = (val, lbl, sub='') => `<div class="mysched-sum-card">
-    <div style="font-size:22px;font-weight:800;font-family:var(--font-display);color:var(--accent-ink)">${val}</div>
-    <div style="font-size:10.5px;color:var(--ink-faint);font-weight:600;text-transform:uppercase;margin-top:2px">${lbl}</div>
-    ${sub?`<div style="font-size:11px;color:var(--ink-soft);margin-top:2px">${sub}</div>`:''}
-  </div>`;
-  html += `${daysHtml}
-    <div class="mysched-sum-grid">
-      ${sumCard(`${worked} / ${total}`, 'Odpracováno / plán')}
-      ${sumCard(`${total} / ${eff.target}`, 'Směny vs. cíl', `min ${eff.min} · max ${eff.max}${eff.reduction?` · −${eff.reduction} dovolená`:''}`)}
-      ${sumCard(remX, 'Zbývající žádanky X', `využito ${xUsed} z ${emp.max_x||0}`)}
-      ${sumCard(freeWE, 'Volné víkendy', emp.min_free_weekends?`min ${emp.min_free_weekends}`:'')}
-    </div>`;
+  // v0.9.36: souhrnné dlaždice (odpracováno, cíl, žádanky, volné víkendy) zrušeny —
+  // zaměstnance nemají zajímat; přehled má vedoucí ve Statistikách.
+  html += daysHtml;
   el.innerHTML = html;
   loadMyTodayCards(emp);
 }
