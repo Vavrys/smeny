@@ -10840,13 +10840,13 @@ document.getElementById('onboard-org-name').addEventListener('keydown', e=>{ if(
 // požírači ztrácí sytost i práh ~43 px (strop 58 platí dál), slučování
 // s dvojnásobnou šancí; konec pod 70 % stropu nebo po 30 s. Dostředivý
 // tah úměrný poloměru + minimální odrazová rychlost (žádné kempování
-// u krajů). Choreografie: postupná zrození se spring scale-in (~60 ms
-// stagger), plánovaná srážka dvou bublin ~4 s, první ulovení 6–9 s;
+// u krajů). Choreografie: postupná zrození s plynulým scale-in a fade-inem
+// (v0.9.34: rozložená do ~3,5 s), plánovaná srážka dvou bublin ~4 s, první ulovení 6–9 s;
 // pak plánovač drobných událostí (kometa / prasknutí nejstaršího drobka /
 // porod / hon děliče), žádná dvakrát po sobě, min. 1× za ~22 s.
 // Interakce: drag & throw pro všechny, kurzor odpuzuje (~80 px brázda),
 // klik/tap do prázdna = nová bublina, dvojklik na civilní = prasknutí.
-// Rychlostní strop (v0.8.6, v0.8.8: −15 % na 191): VMAX tvrdě ořezáván po
+// Rychlostní strop (v0.8.6, v0.8.8: −15 % na 191, v0.9.34: −20 % na 153): VMAX tvrdě ořezáván po
 // každém kroku fyziky (odrazy, impulzy dělení, únik požírače, boosty);
 // hozená bublina má ~1 s milost do VTHROW; šipky/komety/boosty škálovány
 // ×0.85 s novým stropem, ať zůstanou relativně rychlejší, ale pod stropem.
@@ -10879,9 +10879,14 @@ function initAuthBubbles(){
   let MIN_POP = 32, MAX_POP = 85;   // tvrdé meze populace — přepočítává computeScales()
   const ABS_CAP = 58;               // absolutní strop poloměru — pro všechny vč. požírače (v0.8.8: −10 % z 64)
   const EAT_BAN = 15;               // fair-play: zákaz požírání po rozdělení požírače (s)
-  const VMAX = 191;                 // globální rychlostní strop (v0.8.8: −15 % z 225 z v0.8.6),
+  const VMAX = 153;                 // globální rychlostní strop (v0.9.34: −20 % z 191; v0.8.8: −15 % z 225 z v0.8.6),
                                     // tvrdě ořezáván po každém kroku fyziky
   const VTHROW = 574;               // strop hodu myší (−15 % z 675) — ~1 s po puštění smí nad VMAX
+  // v0.9.34: klidnější nástup — delší plynulé zvětšení bez přestřelení + fade-in
+  const BORN_DUR = 0.9;             // s — scale-in (dřív 0.5 s spring s přestřelením)
+  const FADE_IN = 0.9;              // s — průhlednost 0 → 1
+  const easeOutCubic = t => 1 - Math.pow(1 - t, 3);
+  const easeInOutSine = t => -(Math.cos(Math.PI * t) - 1) / 2;
   const BOOST = 1.275;              // boost honu (dělič/požírač/intro) — v0.8.8: ×0.85 z 1.5, proporčně s VMAX
   const bubbles = [];
   const stats = { births: 0, eats: 0, splits: 0, merges: 0, comets: 0, pops: 0, hits: 0, cults: 0, culls: 0, splitViols: 0, eventTimes: [] };
@@ -11062,10 +11067,10 @@ function initAuthBubbles(){
       for(let i = 0, n = Math.round(rnd(MOB_MIN, MOB_MAX)); i<n; i++)
         mplan.push({ r: rnd(9, MOB_RMAX - 2), base: rnd(6,16) });
       if(reduced){ mplan.forEach(p=>{ const q = randomPos(p.r); makeBubble(p.r, q.x, q.y, p.base); }); return true; }
-      mplan.forEach((p, i)=> pending.push({ at: 0.05 + i*0.07, make: ()=>{
+      mplan.forEach((p, i)=> pending.push({ at: 0.2 + i*0.18 + rnd(0, 0.08), make: ()=>{
         const q = randomPos(p.r);
         const b = makeBubble(p.r, q.x, q.y, p.base);
-        b.born = 0.5; b.scale = 0;
+        b.born = BORN_DUR; b.scale = 0; b.fadeIn = FADE_IN; b.el.style.opacity = '0';
       }}));
       return true;
     }
@@ -11090,15 +11095,18 @@ function initAuthBubbles(){
       return true;
     }
 
-    // (a) vstupní sekvence: postupná zrození, stagger ~60 ms, spring scale-in + impulz
+    // (a) vstupní sekvence (v0.9.34): zrození rozložená do ~3,5 s s náběhem
+    // a doběhem (easeInOutSine) a lehkým rozptylem — dřív všechny naskočily
+    // během ~2 s s pružinou a 2,2× impulzem, působilo to zbrkle
+    const nPlan = Math.max(1, plan.length - 1);
     plan.forEach((p, i)=>{
-      pending.push({ at: 0.05 + i*0.045, make: ()=>{
+      pending.push({ at: 0.25 + 3.3*easeInOutSine(i/nPlan) + rnd(0, 0.12), make: ()=>{
         const q = randomPos(p.r);
         const b = makeBubble(p.r, q.x, q.y, p.base, p.role);
         b.dart = !!p.dart;
         if(b.role === 'mother') b.birthIn = birthPause();
-        b.born = 0.5; b.scale = 0;
-        b.vx *= 2.2; b.vy *= 2.2; // malý počáteční impulz, tlumení ho zklidní
+        b.born = BORN_DUR; b.scale = 0; b.fadeIn = FADE_IN; b.el.style.opacity = '0';
+        b.vx *= 0.6; b.vy *= 0.6; // v0.9.34: klidný start, rozjede se postupně
       }});
     });
     // (b) plánovaná srážka dvou bublin ~4 s po startu, poblíž středu nad kartou
@@ -11113,7 +11121,7 @@ function initAuthBubbles(){
         const v = D / (4 - at); // setkání v čase ~4 s
         b.vx = -sgn * v; b.vy = 0;
         b.scripted = true; // do srážky bez tlumení a tahu ke středu
-        b.born = 0.5; b.scale = 0;
+        b.born = BORN_DUR; b.scale = 0; b.fadeIn = FADE_IN; b.el.style.opacity = '0';
       }});
     });
     pending.sort((a,b)=> a.at - b.at);
@@ -11292,7 +11300,7 @@ function initAuthBubbles(){
     const b = makeBubble(r, x, y, needDart ? rnd(32,40) : rnd(14,30));
     b.dart = needDart;
     b.vx = Math.cos(ang) * Math.max(60, b.base); b.vy = Math.sin(ang) * Math.max(60, b.base);
-    b.born = 0.5; b.scale = 0;
+    b.born = BORN_DUR; b.scale = 0; b.fadeIn = FADE_IN; b.el.style.opacity = '0';
     stats.births++;
   }
 
@@ -11548,7 +11556,7 @@ function initAuthBubbles(){
           y = st.y + rnd(-1,1)*(st.fit/2 - r - 8);
         } else y = rnd(H*0.15, H*0.85);
         const b = makeBubble(r, fromLeft ? r + 2 : W - r - 2, y, rnd(16,26));
-        b.vx = (fromLeft ? 1 : -1) * rnd(146,178); b.vy = rnd(-20,20); // v0.8.8: ×0.85, pod VMAX
+        b.vx = (fromLeft ? 1 : -1) * rnd(117,142); b.vy = rnd(-20,20); // v0.9.34: ×0.8 s VMAX, pod stropem
         b.cruiseUntil = simT + 4; // pár sekund bez tlumení, pak se zklidní
         b.born = 0.3; b.scale = 0;
       } else { // u stropu populace: kometou se stane nejmenší civilní bublina
@@ -11574,10 +11582,9 @@ function initAuthBubbles(){
   // Dýchání/pulzy vypnuté (role neexistují), stíny a odlesky zůstávají. ──
   function stepMobile(dt){
     bubbles.forEach(b=>{
-      if(b.born > 0){ // stejný spring scale-in jako na desktopu
+      if(b.born > 0){ // stejné plynulé zvětšení jako na desktopu
         b.born = Math.max(0, b.born - dt);
-        const p = 1 - b.born/0.5;
-        b.scale = 1 - Math.exp(-4.2*p)*Math.cos(6.3*p);
+        b.scale = easeOutCubic(1 - b.born/BORN_DUR);
         if(b.born === 0) b.scale = 1;
       }
       // pomalá náhodná změna kurzu + velmi jemný vztlak (~18 % tempa vzhůru);
@@ -11602,7 +11609,7 @@ function initAuthBubbles(){
   // na případný rozpracovaný fade-in (start z aktuální průhlednosti)
   function startFade(b){
     if(b.fade != null || b.absorb) return;
-    b.fade = b.fadeIn != null ? Math.max(0.05, 0.5 - b.fadeIn) : 0.5;
+    b.fade = b.fadeIn != null ? Math.max(0.05, 0.5 * (1 - b.fadeIn/FADE_IN)) : 0.5;
     b.fadeIn = null;
     releaseTgt(b);
     bubbles.forEach(h=>{ if(h.tgt === b) releaseTgt(h); });
@@ -11613,8 +11620,7 @@ function initAuthBubbles(){
   function seedAmbient(){
     const r = rnd(9, MOB_RMAX - 2);
     const b = makeBubble(r, rnd(r, W - r), rnd(r, H - r), rnd(6, 16));
-    b.born = 0.5; b.scale = 0;
-    b.fadeIn = 0.5; b.el.style.opacity = '0';
+    b.born = BORN_DUR; b.scale = 0; b.fadeIn = FADE_IN; b.el.style.opacity = '0';
     return b;
   }
 
@@ -11662,8 +11668,7 @@ function initAuthBubbles(){
         const r = big ? Math.max(8, rnd(28,44)*sizeK) : Math.max(7, rnd(13,30)*sizeK);
         const q = randomPos(r);
         const b = makeBubble(r, q.x, q.y, big ? rnd(13,24) : rnd(14,30));
-        b.born = 0.5; b.scale = 0;
-        b.fadeIn = 0.5; b.el.style.opacity = '0';
+        b.born = BORN_DUR; b.scale = 0; b.fadeIn = FADE_IN; b.el.style.opacity = '0';
       }});
       roleRebalT = 0;       // role dorovnat hned v příštím kroku
       introHuntDone = true; // intro choreografie jen při skutečném startu
@@ -11705,7 +11710,7 @@ function initAuthBubbles(){
       if(b.fadeIn != null){
         b.fadeIn -= dt;
         if(b.fadeIn <= 0){ b.fadeIn = null; b.el.style.opacity = ''; }
-        else b.el.style.opacity = (1 - b.fadeIn/0.5).toFixed(3);
+        else b.el.style.opacity = easeOutCubic(1 - b.fadeIn/FADE_IN).toFixed(3);
       }
       if(b.fade == null) continue;
       b.fade -= dt;
@@ -11772,10 +11777,9 @@ function initAuthBubbles(){
     // fyzika: brázda za kurzorem, dostředivý tah, tlumení, pohyb, odrazy
     bubbles.forEach(b=>{
       if(b.absorb) return;
-      if(b.born > 0){ // spring scale-in z 0 s mírným přestřelením
+      if(b.born > 0){ // v0.9.34: plynulé zvětšení z 0 bez přestřelení
         b.born = Math.max(0, b.born - dt);
-        const p = 1 - b.born/0.5;
-        b.scale = 1 - Math.exp(-4.2*p)*Math.cos(6.3*p);
+        b.scale = easeOutCubic(1 - b.born/BORN_DUR);
         if(b.born === 0) b.scale = 1;
       }
       if(b.dragging){ b.sq *= Math.pow(0.02, dt); return; }
@@ -12063,7 +12067,7 @@ function initAuthBubbles(){
       const r = Math.max(7, rnd(10,16)*sizeK);
       const b = makeBubble(r, Math.max(r, Math.min(W - r, e.clientX - rr.left)), Math.max(r, Math.min(H - r, e.clientY - rr.top)), rnd(14,30));
       b.vx = rnd(-40,40); b.vy = rnd(-60,-15);
-      b.born = 0.5; b.scale = 0;
+      b.born = BORN_DUR; b.scale = 0; b.fadeIn = FADE_IN; b.el.style.opacity = '0';
       noteEvent('spawn');
     });
   }
