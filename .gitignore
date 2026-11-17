@@ -23,6 +23,7 @@
 !tests/
 !tests/october_repro.js
 !tests/schedule_harness.js
+!tests/membership_guard.js
 !tests/e2e/
 !tests/e2e/**
 !scripts/
