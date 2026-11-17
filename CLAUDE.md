@@ -21,6 +21,11 @@ Verzi měň na JEDINÉM místě: `index.html` — konstanta `APP_VERSION` (sekce
 na začátku hlavního scriptu). Badge `#app-version-label` v hlavičce i patička
 `#app-build-label` dole se z ní plní samy — texty ručně nepřepisuj.
 
+**Každý PR zvedá verzi o jednu poslední číslici** (0.9.38 → 0.9.39), rozhodnutí
+Vavryse 17. 11. 2026. Před zvednutím se podívej na `APP_VERSION` v aktuálním
+`main` — když mezitím přibyl jiný PR, ber jeho číslo + 1. Druhou číslici (0.10.0)
+mění jen Vavrys.
+
 `sw.js` už se nebumpuje: od v0.9.29 je z něj kill-switch bez cache (viz níž).
 
 ## Service worker / cache (v0.9.29)
@@ -108,7 +113,7 @@ Uživatel může ikony přepsat v Nastavení → záložka „🎨 Ikony" — ul
 - Jedno issue = jedna větev = jeden PR. Nemíchej nesouvisející změny.
 - Větve automatizace: `claude/<číslo-issue>-auto`.
 - Neměň `.github/workflows/`, `CLAUDE.md` ani `build-stamp.js`, pokud to issue výslovně nežádá.
-- Neměň text verze v `#app-version-label` (verzování dělá Vavrys, viz výše).
+- Verzi zvedej jen přes `APP_VERSION` (viz Verzování výše), text `#app-version-label` ručně neměň.
 - Popis PR (česky): `Closes #N`, **Co a proč**, **Jak otestovat** (max 5 kroků, ≤3 min,
   na preview URL, v testovací organizaci, ne v ostré), **Rizika**, **Migrace DB: ano/ne**.
 
