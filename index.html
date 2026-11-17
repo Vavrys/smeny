@@ -820,7 +820,9 @@ table.sched-table.density-airy .sched-stat-col{font-size:11px;padding:4px 6px}
 .mycal-day.blank{border:none;background:none;min-height:0}
 .mycal-num{font-size:11px;font-weight:600;color:var(--ink-soft);align-self:flex-start;line-height:1}
 .mycal-day.today .mycal-num{color:var(--accent-ink);font-weight:800}
-.mycal-day .sched-chip{width:100%;height:auto;line-height:1.5;border-radius:5px;font-size:11.5px;text-align:center}
+.mycal-day .sched-chip{width:100%;height:auto;line-height:1.5;border-radius:5px;font-size:11.5px;text-align:center;font-family:inherit;font-weight:700;padding:1px 4px;box-sizing:border-box;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mycal-day .lbl-short{display:none}
+@media (max-width:820px){.mycal-day .lbl-full{display:none}.mycal-day .lbl-short{display:inline}.mycal-day .sched-chip{font-family:var(--font-mono);font-weight:800}}
 .mycal-legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--ink-soft);margin-bottom:6px}
 .mycal-legend .sched-chip{width:auto;height:auto;line-height:1.4;padding:1px 7px;border-radius:5px;font-size:11px;margin-right:4px}
 @media (max-width:480px){.mycal{gap:3px}.mycal-day{min-height:48px;padding:3px}.mycal-day .sched-chip{font-size:10.5px}}
@@ -15438,12 +15440,21 @@ const MYSCHED_DOW = ['Ne','Po','Út','St','Čt','Pá','So'];
 
 // v0.9.34: kompaktní měsíční kalendář (Po–Ne) místo seznamu dní přes celou šířku.
 // Buňka = číslo dne + barevná značka směny; popisek (tooltip) říká pobočku/stav.
+// Na široké obrazovce celý popis („Majestic – M4", „Karolína", „Volno"),
+// na úzké (mobil) jen kód — přepíná CSS (.lbl-full / .lbl-short).
+function myCalChipLabel(full, short){
+  return `<span class="lbl-full">${escapeHtml(full)}</span><span class="lbl-short">${escapeHtml(short)}</span>`;
+}
 function myCalChipHtml(empId, dateStr){
-  if(unavail[empId+':'+dateStr]) return `<span class="sched-chip x-chip">X</span>`;
+  if(unavail[empId+':'+dateStr]) return `<span class="sched-chip x-chip">${myCalChipLabel('Volno (X)','X')}</span>`;
   const s = shifts[empId+':'+dateStr];
   if(!s || !s.shift_type_code) return '';
-  if(s.shift_type_code === 'X') return `<span class="sched-chip x-chip${s.leave_request_id?' leave-x':''}">X</span>`;
-  return `<span class="sched-chip" style="background:${codeColor(s.shift_type_code)}">${escapeHtml(s.shift_type_code)}</span>`;
+  if(s.shift_type_code === 'X'){
+    return s.leave_request_id
+      ? `<span class="sched-chip x-chip leave-x">${myCalChipLabel('Dovolená','X')}</span>`
+      : `<span class="sched-chip x-chip">${myCalChipLabel('Volno (X)','X')}</span>`;
+  }
+  return `<span class="sched-chip" style="background:${codeColor(s.shift_type_code)}">${myCalChipLabel(shiftLabel(s.shift_type_code), s.shift_type_code)}</span>`;
 }
 // Čitelný popis směny: „Majestic – M3"; u pobočky s jediným typem (Karolína,
 // Ungelt) jen „Karolína" — opakovat „Karolína – K" by bylo zbytečné.
