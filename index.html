@@ -34,8 +34,8 @@
   --paper:#F6F5F1;
   --surface:#FFFFFF;
   --ink:#1E2230;
-  --ink-soft:#4B5563;
-  --ink-faint:#6B7280;
+  --ink-soft:#374151;   /* v0.9.37: tmavší — sekundární text byl moc šedý */
+  --ink-faint:#525a68;
   --line:#E6E3DA;
   --accent:#2B6E4F;
   --accent-soft:#E3EFE8;
@@ -72,8 +72,8 @@ body.dark{
   --paper:#1a1d2e;
   --surface:#232638;
   --ink:#e8eaf0;
-  --ink-soft:#9aa0b8;
-  --ink-faint:#5a617a;
+  --ink-soft:#b8bdd0;   /* v0.9.37: světlejší — v tmavém režimu splýval */
+  --ink-faint:#8a90a8;
   --line:#2e3148;
   --red:#f87171;
   --red-soft:rgba(248,113,113,0.15);
@@ -522,7 +522,7 @@ body.employee-view .sched-name-col{width:160px;min-width:80px;max-width:280px;pa
 .sched-chip{display:inline-block;width:100%;height:100%;line-height:var(--tbl-h);font-family:var(--font-mono);font-size:calc(var(--tbl-fs) - 1px);font-weight:800;color:#fff;pointer-events:none;-webkit-print-color-adjust:exact;print-color-adjust:exact;text-shadow:0 1px 2px rgba(0,0,0,.25)}
 .sched-chip.auto{opacity:0.85}
 body.employee-view .sched-chip.auto{opacity:1}
-.sched-chip.x-chip{background:#999!important;color:#fff}
+.sched-chip.x-chip{background:#5f6672!important;color:#fff}
 /* Dovolenkové X (v0.8.0) — schválená dovolená, zaměstnanec ho sám nesmaže */
 .sched-chip.x-chip.leave-x{background:#7d92b8!important;color:#fff;pointer-events:auto;cursor:help}
 body.dark .sched-chip.x-chip.leave-x{background:#56688c!important}
@@ -839,14 +839,14 @@ table.sched-table.density-airy .sched-stat-col{font-size:11px;padding:4px 6px}
 .spinner-sm{width:16px;height:16px;border:2px solid var(--accent-soft);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;margin:8px 0 2px}
 .mysched-today-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
 .mysched-today-card{background:var(--paper);border:1.5px solid var(--line);border-radius:12px;padding:12px 14px}
-.mysched-today-label{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-soft)}
+.mysched-today-label{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:var(--ink)}
 .mysched-day-row{display:flex;align-items:center;gap:10px;padding:7px 12px;border-bottom:1px solid var(--line);font-size:13px}
 .mysched-day-row:last-child{border-bottom:none}
 .mysched-day-row.weekend{background:var(--paper)}
 .mysched-day-row.today{background:var(--accent-soft)}
 .mysched-today-card .sched-chip{width:auto;height:auto;line-height:1.3;padding:4px 10px;border-radius:6px;font-size:13.5px;font-family:inherit;font-weight:700}
 .mycal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;margin-bottom:8px}
-.mycal-dow{font-size:10.5px;font-weight:700;color:var(--ink-soft);text-align:center;text-transform:uppercase;padding:4px 0}
+.mycal-dow{font-size:11px;font-weight:800;color:var(--ink);text-align:center;text-transform:uppercase;padding:4px 0}
 .mycal-day{min-height:58px;border:1px solid var(--line);border-radius:8px;padding:4px;display:flex;flex-direction:column;align-items:center;gap:4px;background:var(--surface)}
 .mycal-day.weekend{background:var(--paper)}
 .mycal-day.today{background:var(--accent-soft);border:2px solid var(--accent);box-shadow:0 0 0 3px rgba(30,122,74,.18)}
@@ -855,26 +855,26 @@ table.sched-table.density-airy .sched-stat-col{font-size:11px;padding:4px 6px}
 .mycal-day.clickable{cursor:pointer;transition:transform .08s ease, box-shadow .12s ease}
 .mycal-day.clickable:hover{box-shadow:0 0 0 2px var(--accent-soft), 0 2px 6px rgba(0,0,0,.06)}
 .mycal-day.clickable:active{transform:scale(.97)}
-.mycal-day.past{opacity:.72}
+.mycal-day.past .mycal-num{color:var(--ink-faint);font-weight:600}
 .mycal-day.range-start,.mycal-day.in-range{background:rgba(30,122,74,.16);border-color:var(--accent)}
 .mycal-day.range-start{box-shadow:inset 0 0 0 2px var(--accent)}
-.mycal-hint{font-size:12.5px;color:var(--ink-soft);margin:0 0 10px}
+.mycal-hint{font-size:13px;color:var(--ink);margin:0 0 10px}
 .leave-sel{background:var(--surface);border:2px solid var(--accent);border-radius:12px;padding:12px 14px;margin-bottom:12px}
 .leave-sel .ls-title{font-weight:700;font-size:14px;margin-bottom:4px}
 .leave-sel .ls-row{font-size:13px;margin:4px 0;display:flex;gap:8px;align-items:flex-start}
 .leave-sel .ls-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
 .leave-sel textarea{width:100%;box-sizing:border-box;margin-top:8px;padding:7px 9px;border:1.5px solid var(--line);border-radius:7px;font-family:inherit;font-size:13px;min-height:52px;background:var(--surface);color:var(--ink)}
 .my-leaves{margin-top:16px}
-.my-leaves .ml-head{font-size:12px;font-weight:700;text-transform:uppercase;color:var(--ink-soft);margin-bottom:6px}
+.my-leaves .ml-head{font-size:12px;font-weight:800;text-transform:uppercase;color:var(--ink);margin-bottom:6px}
 #mysched-leave-btn{padding:9px 16px;font-size:13.5px;font-weight:700}
 body.employee-view .tab-btn[data-tab="leaves"]{display:none !important}
 body.employee-view #emp-x-toggle-btn{display:none !important}
-.mycal-num{font-size:11px;font-weight:600;color:var(--ink-soft);align-self:flex-start;line-height:1}
+.mycal-num{font-size:12px;font-weight:700;color:var(--ink);align-self:flex-start;line-height:1}
 .mycal-day.today .mycal-num{background:var(--accent);color:#fff;font-weight:800;border-radius:999px;padding:2px 7px;font-size:11px}
 .mycal-day .sched-chip{width:100%;height:auto;line-height:1.5;border-radius:5px;font-size:11.5px;text-align:center;font-family:inherit;font-weight:700;padding:1px 4px;box-sizing:border-box;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mycal-day .lbl-short{display:none}
 @media (max-width:820px){.mycal-day .lbl-full{display:none}.mycal-day .lbl-short{display:inline}.mycal-day .sched-chip{font-family:var(--font-mono);font-weight:800}}
-.mycal-legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--ink-soft);margin-bottom:6px}
+.mycal-legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12.5px;color:var(--ink);margin-bottom:6px}
 .mycal-legend .sched-chip{width:auto;height:auto;line-height:1.4;padding:1px 7px;border-radius:5px;font-size:11px;margin-right:4px}
 @media (max-width:480px){.mycal{gap:3px}.mycal-day{min-height:48px;padding:3px}.mycal-day .sched-chip{font-size:10.5px}}
 .mysched-sum-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-top:14px}
@@ -1624,7 +1624,6 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
     <div id="pane-myschedule" class="tab-pane" style="display:none">
       <div class="panel">
         <div class="panel-head" style="flex-wrap:wrap;gap:10px">
-          <h2 class="panel-title" style="margin:0"><span data-icon="nav_muj_rozpis">📆</span> Můj rozpis</h2>
           <button id="mysched-leave-btn" class="btn-accent" onclick="startLeaveRange()"><span data-icon="nav_zadosti">🗓️</span> Požádat o volno</button>
           <div class="month-nav" style="margin-left:auto">
             <button class="icon-nav-btn" onclick="changeMonth(-1)">‹</button>
@@ -4301,10 +4300,13 @@ let editingBranchShiftTypes = []; // working copy while branch modal is open
 //   unavailability: id, org_id, employee_id, unavail_date
 // shift_type_code stores branch code (K, U) OR slot code (M1, P1) — no separate branch_code column
 // ============================================================
-// Restore last viewed month from localStorage, fallback to current month
-const _savedMonth = localStorage.getItem('sched_last_month');
-let schedYear  = _savedMonth ? parseInt(_savedMonth.split('-')[0]) : new Date().getFullYear();
-let schedMonth = _savedMonth ? parseInt(_savedMonth.split('-')[1]) : new Date().getMonth(); // 0-based
+// v0.9.37: po načtení vždy aktuální měsíc. Dřív se obnovoval naposledy
+// prohlížený měsíc z localStorage — klíč nebyl vázaný na účet, takže
+// zaměstnanec v tom samém prohlížeči začínal na měsíci, který prohlížel admin,
+// a nesedělo to s kartami Dnes/Zítra. (sched_last_month se dál zapisuje,
+// ale při startu se nečte.)
+let schedYear  = new Date().getFullYear();
+let schedMonth = new Date().getMonth(); // 0-based
 let shifts     = {};    // key: "empId:YYYY-MM-DD" → DB row (uses shift_date, shift_type_code)
 let unavail    = {};    // key: "empId:YYYY-MM-DD" → true
 let shiftTypes = [];    // all shift_types for org
