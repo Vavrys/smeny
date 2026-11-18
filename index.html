@@ -1080,6 +1080,34 @@ body.dark .search-input{color:var(--ink)}
   box-shadow:0 6px 18px rgba(43,110,79,.4);transition:transform .15s,box-shadow .15s;
 }
 .help-fab:hover{transform:scale(1.08);box-shadow:0 8px 22px rgba(43,110,79,.5)}
+/* ── Bublík (v0.9.45) ── */
+#bublik{position:fixed;left:0;top:0;width:76px;height:70px;z-index:400;touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab;will-change:transform}
+#bublik.dragging{cursor:grabbing}
+#bublik:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:50%}
+#bublik svg{width:100%;height:100%;overflow:visible;display:block}
+#bublik-speech{position:fixed;left:0;top:0;z-index:401;max-width:260px;background:var(--surface);color:var(--ink);border:2px solid var(--ink);border-radius:14px;padding:10px 12px;font-size:13.5px;line-height:1.45;font-weight:500;box-shadow:0 8px 22px rgba(30,34,48,.18);opacity:0;transform:translateY(6px) scale(.96);transform-origin:bottom right;transition:opacity .2s,transform .2s;pointer-events:none}
+#bublik-speech.show{opacity:1;transform:none;pointer-events:auto}
+#bublik-speech.l{transform-origin:bottom left}
+#bublik-speech::after{content:"";position:absolute;bottom:-9px;right:var(--tail,26px);width:14px;height:14px;background:var(--surface);border-right:2px solid var(--ink);border-bottom:2px solid var(--ink);transform:rotate(45deg)}
+#bublik-speech.l::after{right:auto;left:var(--tail,26px)}
+.bub-menu{display:flex;flex-direction:column;gap:4px;margin-top:6px}
+.bub-menu button{font:600 13px var(--font-body);text-align:left;padding:7px 9px;border-radius:7px;border:1.5px solid var(--line);background:var(--paper);color:var(--ink);cursor:pointer}
+.bub-menu button:hover{border-color:var(--accent);background:var(--accent-soft)}
+.bub-mini{position:fixed;left:0;top:0;border-radius:50%;z-index:402;cursor:pointer;will-change:transform;
+  background:radial-gradient(circle at 32% 28%,rgba(255,255,255,.95),rgba(255,255,255,0) 30%),radial-gradient(circle at 40% 35%,rgba(106,231,168,.75),rgba(29,175,109,.75) 70%,rgba(16,132,84,.9));
+  border:1.3px solid rgba(11,107,70,.6);box-shadow:0 3px 8px rgba(22,64,44,.3), inset 0 0 0 1px rgba(255,255,255,.55)}
+.bub-puf{position:fixed;left:0;top:0;border-radius:50%;pointer-events:none;z-index:402;border:2px solid rgba(43,160,105,.7);animation:bubPuf .45s ease-out forwards}
+@keyframes bubPuf{from{transform:var(--t) scale(.5);opacity:.9}to{transform:var(--t) scale(1.8);opacity:0}}
+.bub-zzz{position:fixed;left:0;top:0;z-index:402;pointer-events:none;font:700 16px var(--font-display);color:var(--accent-ink);animation:bubZzz 2.6s ease-out forwards}
+@keyframes bubZzz{0%{opacity:0;transform:var(--t) translate(0,0) scale(.6)}20%{opacity:1}100%{opacity:0;transform:var(--t) translate(22px,-46px) scale(1.25)}}
+.bub-pref{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.bub-pref button{display:flex;flex-direction:column;gap:2px;text-align:left;padding:8px 9px;border-radius:8px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer;font-family:inherit}
+.bub-pref button strong{font-size:13px}
+.bub-pref button span{font-size:11.5px;line-height:1.35;color:var(--ink-soft)}
+.bub-pref button.on{border:2px solid var(--accent);background:var(--accent-soft);padding:7.5px 8.5px}
+@media (max-width:640px){ #bublik{width:60px;height:56px} .bub-pref{grid-template-columns:1fr} }
+@media print{ #bublik,#bublik-speech,.bub-mini,.bub-zzz{display:none !important} }
+
 .help-panel{
   position:fixed;bottom:88px;right:24px;z-index:600;
   width:350px;height:500px;max-width:calc(100vw - 32px);max-height:calc(100vh - 112px);
@@ -2559,7 +2587,7 @@ window.addEventListener('unhandledrejection', e => {
 // odsud, ručně je nepřepisuj. sw.js se od v0.9.29 nebumpuje — je z něj
 // kill-switch bez cache (viz killServiceWorkers() a komentář v sw.js).
 // ============================================================
-const APP_VERSION = '0.9.44';
+const APP_VERSION = '0.9.45';
 
 // Krátký git hash nasazeného buildu. Placeholder níž přepíše build-stamp.js
 // z CF_PAGES_COMMIT_SHA (Cloudflare Pages build command: `node build-stamp.js`).
@@ -3183,6 +3211,8 @@ async function doLogout(){
   document.body.classList.remove('pending-view', 'employee-view');
   const banner = document.getElementById('session-timeout-banner');
   if(banner) banner.style.display = 'none';
+  Bublik.stop(); // v0.9.45
+  const helpFab = document.getElementById('help-fab'); if(helpFab) helpFab.style.display = '';
   await sb.auth.signOut();
   currentUser = null; currentOrg = null; currentRole = null;
   document.getElementById('app-shell').style.display = 'none';
@@ -3731,6 +3761,7 @@ async function bootstrapAfterAuth(){
     // v0.9.44: průvodce až po rychlém nastavení, ne přes něj
     if(!checkAndShowOnboarding()) maybeStartTutorial();
     renderQuickSetupBanner();
+    Bublik.start(bublikPref()); // v0.9.45
   } catch(err){
     document.getElementById('loading-screen').style.display = 'none';
     document.getElementById('auth-shell').style.display = 'flex';
@@ -4100,6 +4131,726 @@ async function deleteQuickSetupData(){
   renderQuickSetupBanner();
   toast('Vzorová data smazána');
   checkAndShowOnboarding();
+}
+
+// ============================================================
+// BUBLÍK (v0.9.45) — maskot vpravo dole, nahrazuje tlačítko „?"
+// ============================================================
+// Bublinka, která utekla z přihlašovací obrazovky. Fáze 1: žije.
+//   • vždy: dýchá (squash & stretch), mrká, oči sledují kurzor
+//   • reakce: najetí, klik = menu (nápověda, průvodci…), naklikání, chycení a hození
+//   • nuda (jen režim „hravý"): po 60 s nečinnosti občas zablbne, po 4 min usne
+// Pravidla: nic sám neotevře, nezakryje obsah natrvalo, nikdy nevyčítá. Každý
+// klik / klávesa / scroll ho okamžitě zastaví a pošle domů. Respektuje
+// prefers-reduced-motion. Ve skryté kartě stojí (rAF se zastaví sám).
+// Režim (hravý / klidný / vypnutý) je per účet v user_metadata.bublik,
+// vypnutý = vrátí se staré tlačítko „?" (#help-fab).
+// Prototyp a koncept: https://claude.ai/artifact/UKLNwuGq9znyNNuHoPAcDp
+const BUBLIK_SVG = `
+<svg viewBox="-36 -62 72 66" aria-hidden="true">
+  <defs>
+    <radialGradient id="bub-g-body" cx="38%" cy="32%" r="75%">
+      <stop offset="0" stop-color="#8af0bd"/><stop offset=".45" stop-color="#2fda8a"/>
+      <stop offset=".85" stop-color="#1daf6d"/><stop offset="1" stop-color="#10845a"/>
+    </radialGradient>
+    <radialGradient id="bub-g-shadow" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="rgba(22,64,44,.35)"/><stop offset="1" stop-color="rgba(22,64,44,0)"/>
+    </radialGradient>
+  </defs>
+  <ellipse data-b="shadow" cx="0" cy="1.5" rx="20" ry="3.6" fill="url(#bub-g-shadow)"/>
+  <g data-b="lift"><g data-b="body">
+    <circle cx="0" cy="-23" r="23" fill="url(#bub-g-body)" stroke="#0b6b46" stroke-opacity=".55" stroke-width="1.3"/>
+    <ellipse cx="-9" cy="-35" rx="6.5" ry="3.6" fill="#fff" opacity=".85" transform="rotate(-32 -9 -35)"/>
+    <circle cx="-2" cy="-39.5" r="1.6" fill="#fff" opacity=".85"/>
+    <g data-b="sweat" opacity="0"><path d="M 19 -38 q 3.5 5 0 7 q -3.5 -2 0 -7 z" fill="#9fd8ff" stroke="#3b7fb0" stroke-width=".8"/></g>
+    <g data-b="face">
+      <ellipse class="bub-cheek" cx="-14" cy="-17.5" rx="4.2" ry="2.6" fill="#ff6f8e" opacity=".72"/>
+      <ellipse class="bub-cheek" cx="14" cy="-17.5" rx="4.2" ry="2.6" fill="#ff6f8e" opacity=".72"/>
+      ${[-7.5, 7.5].map(x => `<g class="bub-eye" transform="translate(${x} -25)">
+        <g class="e-open"><ellipse rx="3.4" ry="4.8" fill="#102a1e"/><circle cx="1.1" cy="-1.8" r="1.25" fill="#fff"/><circle cx="-1" cy="1.6" r=".55" fill="#fff" opacity=".8"/></g>
+        <path class="e-happy" d="M -3.6 1.2 Q 0 -3.6 3.6 1.2" fill="none" stroke="#102a1e" stroke-width="2" stroke-linecap="round" style="display:none"/>
+        <path class="e-closed" d="M -3.6 -.5 Q 0 3 3.6 -.5" fill="none" stroke="#102a1e" stroke-width="2" stroke-linecap="round" style="display:none"/>
+        <path class="e-dizzy" d="M -3 -3 L 3 3 M 3 -3 L -3 3" stroke="#102a1e" stroke-width="1.9" stroke-linecap="round" style="display:none"/>
+      </g>`).join('')}
+      <path data-b="mouth" d="M -4 -16 Q 0 -12.5 4 -16" fill="none" stroke="#102a1e" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+  </g></g>
+</svg>`;
+
+const Bublik = (()=>{
+  let el = null, speech = null, started = false, rafId = 0;
+  let bodyg, lift, face, mouth, shadow, sweat, cheeks, eyes;
+  let reduceMotion = false, isTouch = false;   // zjistí start()
+
+  const S = {
+    x: 0, y: 0, homeX: null, hop: 0, sx: 1, sy: 1, tilt: 0,
+    look: { x: 0, y: 0 }, lookOverride: null,
+    eyeMode: 'open', eyeScaleY: 1, eyeWide: 1, mouthMode: 'smile', cheekPuff: 1,
+    mode: 'idle', busy: null, waking: false,
+    lastInput: 0, nextAntic: 0, nextBlink: 0,   // nastaví start() — při načtení skriptu nesahat na browser API (harness je nemá)
+    pointer: null, pointerStill: 0, clicks: [], pops: 0, breathT: 0,
+    pref: 'play',
+  };
+  const T = { bored: 60000, between: [12000, 25000], sleep: 240000 };
+
+  const rand = (a, b) => a + Math.random() * (b - a);
+  const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const ease = {
+    out: t => 1 - Math.pow(1 - t, 3),
+    inOut: t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2,
+    back: t => { const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2); },
+    lin: t => t,
+  };
+  const size = () => (el && el.getBoundingClientRect().width) || 76;
+  const vw = () => window.innerWidth, vh = () => window.innerHeight;
+  const floorY = () => vh() - 16;
+  const homeX = () => S.homeX != null ? clamp(S.homeX, size() / 2 + 8, vw() - size() / 2 - 8) : vw() - size() / 2 - 20;
+  const playful = () => S.pref === 'play' && !reduceMotion;
+
+  // ── zrušitelné animace ────────────────────────────────────
+  class Cancel extends Error {}
+  function token(){ const t = { cancelled: false }; S.busy = t; return t; }
+  function cancelBusy(){ if(S.busy) S.busy.cancelled = true; S.busy = null; }
+  function wait(ms, tk){
+    return new Promise((res, rej) => {
+      const t0 = performance.now();
+      (function tick(){
+        if(tk && tk.cancelled) return rej(new Cancel());
+        if(performance.now() - t0 >= ms) return res();
+        requestAnimationFrame(tick);
+      })();
+    });
+  }
+  function tween(dur, fn, tk, e = ease.inOut){
+    return new Promise((res, rej) => {
+      const t0 = performance.now();
+      (function tick(){
+        if(tk && tk.cancelled) return rej(new Cancel());
+        const p = clamp((performance.now() - t0) / dur, 0, 1);
+        fn(e(p), p);
+        if(p >= 1) return res();
+        requestAnimationFrame(tick);
+      })();
+    });
+  }
+  function wobble(amount = .18, dur = 650, tk){
+    return tween(dur, (_, p) => {
+      const d = Math.exp(-5 * p) * Math.cos(p * Math.PI * 5);
+      S.sx = 1 + amount * d; S.sy = 1 - amount * d;
+    }, tk, ease.lin).then(() => { S.sx = 1; S.sy = 1; });
+  }
+
+  // ── obličej ───────────────────────────────────────────────
+  const MOUTH = {
+    smile: 'M -4 -16 Q 0 -12.5 4 -16',
+    grin:  'M -5.5 -16.5 Q 0 -10 5.5 -16.5 Q 0 -13.8 -5.5 -16.5 Z',
+    o:     'M -2 -15 a 2 2.4 0 1 0 4 0 a 2 2.4 0 1 0 -4 0',
+    big:   'M -3.6 -15 a 3.6 4.2 0 1 0 7.2 0 a 3.6 4.2 0 1 0 -7.2 0',
+    flat:  'M -3.5 -15 L 3.5 -15',
+    wavy:  'M -5 -15 q 1.25 -1.6 2.5 0 t 2.5 0 t 2.5 0 t 2.5 0',
+    cat:   'M -4.5 -16 q 2.25 2.6 4.5 0 q 2.25 2.6 4.5 0',
+    sleep: 'M -2 -15.5 Q 0 -14.5 2 -15.5',
+  };
+  function setMouth(m){
+    if(S.mouthMode === m) return;
+    S.mouthMode = m;
+    mouth.setAttribute('d', MOUTH[m] || MOUTH.smile);
+    mouth.setAttribute('fill', (m === 'grin' || m === 'o' || m === 'big') ? '#5a1626' : 'none');
+  }
+  function setEyes(mode){
+    S.eyeMode = mode;
+    eyes.forEach(e => ['open', 'happy', 'closed', 'dizzy'].forEach(k => {
+      e.querySelector('.e-' + k).style.display = mode === k ? '' : 'none';
+    }));
+  }
+  function defaultFace(){
+    setEyes('open'); setMouth('smile'); S.eyeWide = 1; S.cheekPuff = 1;
+    sweat.setAttribute('opacity', '0'); S.lookOverride = null; S.tilt = 0;
+  }
+
+  // ── bublina s textem / menu ───────────────────────────────
+  let speechTimer = null;
+  function say(html, ms = 5000){
+    clearTimeout(speechTimer);
+    speech.innerHTML = html;
+    speech.classList.add('show');
+    placeSpeech();
+    if(ms) speechTimer = setTimeout(hush, ms);
+  }
+  function hush(){ if(speech) speech.classList.remove('show'); }
+  function placeSpeech(){
+    if(!speech || !speech.classList.contains('show')) return;
+    const w = speech.offsetWidth, h = speech.offsetHeight, s = size();
+    const leftSide = S.x < vw() / 2;
+    const left = clamp(leftSide ? S.x - s * .35 : S.x + s * .35 - w, 8, vw() - w - 8);
+    speech.style.left = left + 'px';
+    speech.style.top = Math.max(8, S.y - s * .95 - S.hop - h - 6) + 'px';
+    speech.classList.toggle('l', leftSide);
+    const tail = leftSide ? (S.x - s * .1) - left : (left + w) - (S.x + s * .1);
+    speech.style.setProperty('--tail', clamp(tail, 12, w - 30) + 'px');
+  }
+
+  // ── efekty ────────────────────────────────────────────────
+  function svgPoint(x, y){
+    const r = el.getBoundingClientRect(), k = r.width / 72;
+    return { x: r.left + (36 + x) * k, y: r.top + (62 + y) * k };
+  }
+  function puf(x, y, d){
+    const p = document.createElement('div');
+    p.className = 'bub-puf';
+    p.style.width = p.style.height = d + 'px';
+    p.style.setProperty('--t', `translate(${x - d / 2}px,${y - d / 2}px)`);
+    document.body.appendChild(p);
+    setTimeout(() => p.remove(), 500);
+  }
+  const minis = new Set();
+  function spawnBubble(x, y, d, o = {}){
+    const b = document.createElement('div');
+    b.className = 'bub-mini';
+    b.style.width = b.style.height = d + 'px';
+    document.body.appendChild(b);
+    const m = { el: b, x, y, d, vx: o.vx ?? rand(-12, 12), vy: o.vy ?? -rand(28, 44), t: 0, life: o.life ?? rand(4.5, 7.5), ph: rand(0, 6), dead: false, big: !!o.big };
+    m.pop = byUser => {
+      if(m.dead) return; m.dead = true;
+      puf(m.x, m.y, m.d * 1.1); b.remove(); minis.delete(m);
+      if(byUser){
+        S.pops++;
+        if(S.pops === 10) react('celebrate', 'Deset prasklých! Ty máš ale trpělivost. Tohle je oficiálně náš tajný sport.');
+      }
+    };
+    b.addEventListener('pointerdown', e => { e.stopPropagation(); m.pop(true); });
+    minis.add(m);
+    return m;
+  }
+  function stepBubbles(dt){
+    minis.forEach(m => {
+      if(m.big) return;
+      m.t += dt;
+      m.x += (m.vx + Math.sin(m.t * 2.2 + m.ph) * 14) * dt;
+      m.y += m.vy * dt;
+      m.vy *= (1 - .15 * dt); m.vx *= (1 - .6 * dt);
+      if(m.t > m.life || m.y < -40) m.pop(false);
+      else m.el.style.transform = `translate(${m.x - m.d / 2}px,${m.y - m.d / 2}px)`;
+    });
+  }
+  function zzz(){
+    const p = svgPoint(14, -46);
+    const z = document.createElement('div');
+    z.className = 'bub-zzz'; z.textContent = pick(['z', 'Z']);
+    z.style.setProperty('--t', `translate(${p.x}px,${p.y}px)`);
+    document.body.appendChild(z);
+    setTimeout(() => z.remove(), 2700);
+  }
+
+  // ── snímek ────────────────────────────────────────────────
+  let lastT = 0;
+  function frame(now){
+    rafId = requestAnimationFrame(frame);
+    const dt = Math.min(.05, (now - lastT) / 1000); lastT = now;
+    stepBubbles(dt);
+
+    S.breathT += dt * (S.mode === 'sleep' ? 1.3 : 2.4);
+    const br = reduceMotion ? 0 : Math.sin(S.breathT) * (S.mode === 'sleep' ? .045 : .022);
+    const sx = S.sx * (1 - br * .6), sy = S.sy * (1 + br);
+
+    if(S.mode !== 'sleep' && S.eyeMode === 'open' && now > S.nextBlink){ blink(); S.nextBlink = now + rand(2200, 6200); }
+
+    let tx = 0, ty = 0;
+    if(S.lookOverride){ tx = S.lookOverride.x; ty = S.lookOverride.y; }
+    else if(S.pointer && S.mode !== 'sleep'){
+      const r = el.getBoundingClientRect();
+      const dx = S.pointer.x - (r.left + r.width / 2), dy = S.pointer.y - (r.top + r.height * .45);
+      const dist = Math.hypot(dx, dy) || 1, k = Math.min(1, dist / 120);
+      tx = dx / dist * k; ty = dy / dist * k;
+    }
+    S.look.x += (tx - S.look.x) * Math.min(1, dt * 9);
+    S.look.y += (ty - S.look.y) * Math.min(1, dt * 9);
+
+    const ex = S.look.x * 2.6, ey = S.look.y * 2.2;
+    eyes.forEach((e, i) => e.setAttribute('transform', `translate(${(i ? 7.5 : -7.5) + ex} ${-25 + ey}) scale(${S.eyeWide} ${S.eyeScaleY * S.eyeWide})`));
+    face.setAttribute('transform', `translate(${S.look.x * 2.4} ${S.look.y * 1.6})`);
+    cheeks.forEach(c => { const cx = c.getAttribute('cx'), cy = c.getAttribute('cy'); c.setAttribute('transform', `translate(${cx} ${cy}) scale(${S.cheekPuff}) translate(${-cx} ${-cy})`); });
+
+    const lean = S.tilt + (S.mode === 'idle' ? S.look.x * 4 : 0);
+    bodyg.setAttribute('transform', `rotate(${lean} 0 0) scale(${sx} ${sy})`);
+    lift.setAttribute('transform', `translate(0 ${-S.hop * (72 / size())})`);
+    const sh = clamp(1 - S.hop / 120, .35, 1);
+    shadow.setAttribute('transform', `scale(${sh * sx} 1)`);
+    shadow.setAttribute('opacity', sh.toFixed(2));
+
+    el.style.transform = `translate(${(S.x - size() / 2).toFixed(1)}px, ${(S.y - el.offsetHeight + 4).toFixed(1)}px)`;
+    placeSpeech();
+    brain(now);
+  }
+  function blink(){
+    const run = cb => { const t0 = performance.now(); (function k(){ const p = (performance.now() - t0) / 140; S.eyeScaleY = p < .5 ? 1 - p * 1.8 : .1 + (p - .5) * 1.8; if(p < 1) requestAnimationFrame(k); else { S.eyeScaleY = 1; cb && cb(); } })(); };
+    run(Math.random() < .2 ? () => setTimeout(() => run(), 90) : null);
+  }
+
+  // ── mozek ─────────────────────────────────────────────────
+  function brain(now){
+    if(!playful() || S.mode !== 'idle') return;
+    const idleFor = now - S.lastInput;
+    if(idleFor > T.sleep){ run(sleep); return; }
+    if(idleFor > T.bored && now > S.nextAntic){
+      run(weighted([
+        [lookAround, 3], [burp, 3], [bigBubble, 2], [crawl, isTouch ? 0 : 2], [peek, 1.5], [yawn, 1.2],
+        [hunt, (S.pointer && !isTouch && S.pointerStill > 2500) ? 1.5 : 0],
+      ]));
+      S.nextAntic = now + rand(...T.between);
+    }
+  }
+  function weighted(pool){
+    const tot = pool.reduce((a, p) => a + p[1], 0); let r = Math.random() * tot;
+    for(const [f, w] of pool){ if((r -= w) <= 0) return f; }
+    return pool[0][0];
+  }
+  async function run(fn){
+    if(S.mode === 'drag' || S.mode === 'fall') return;
+    cancelBusy();
+    const tk = token();
+    const wasSleep = S.mode === 'sleep';
+    S.mode = fn === sleep ? 'sleep' : 'antic';
+    try{
+      if(wasSleep && fn !== sleep){ S.waking = true; try{ await wakeUp(tk); } finally { S.waking = false; } }
+      await fn(tk);
+    } catch(e){ if(!(e instanceof Cancel)) console.error('[Bublík]', e); return; }
+    if(S.busy === tk){ S.busy = null; S.mode = 'idle'; defaultFace(); }
+  }
+  // Uživatel něco dělá: malý pohyb myši blbnutí nezastaví (oči ho sledují), větší ano.
+  let anticMove = 0;
+  function userActive(kind){
+    S.lastInput = performance.now();
+    S.nextAntic = S.lastInput + T.bored;
+    if(S.mode === 'sleep'){ run(() => Promise.resolve()); return; }
+    if(S.mode !== 'antic' || S.waking){ anticMove = 0; return; }
+    if(kind === 'move'){ anticMove += 40; if(anticMove < 200) return; }
+    anticMove = 0; interrupt();
+  }
+  async function interrupt(){
+    cancelBusy();
+    minis.forEach(m => { if(m.big) m.pop(false); });
+    const tk = token(); S.mode = 'react';
+    try{
+      setMouth('o'); S.eyeWide = 1.15;
+      const fx = S.x, fy = S.y, fh = S.hop, tx = homeX(), ty = floorY();
+      if(Math.abs(fx - tx) > 4 || Math.abs(fy - ty) > 4 || fh > 1){
+        await tween(clamp(Math.abs(fx - tx) * 1.1, 280, 700), (e, p) => {
+          S.x = fx + (tx - fx) * e; S.y = fy + (ty - fy) * e;
+          S.hop = fh * (1 - e) + Math.sin(p * Math.PI) * 28;
+          S.sx = 1 - Math.sin(p * Math.PI) * .08; S.sy = 1 + Math.sin(p * Math.PI) * .12;
+        }, tk);
+        S.hop = 0; await wobble(.16, 450, tk);
+      }
+    } catch(e){ return; }
+    if(S.busy === tk){ S.busy = null; S.mode = 'idle'; defaultFace(); }
+  }
+  async function hopSmall(tk, h = 16){
+    await tween(140, e => { S.sx = 1 + .12 * e; S.sy = 1 - .12 * e; }, tk);
+    await tween(320, (e, p) => { S.hop = Math.sin(p * Math.PI) * h; S.sx = 1 - .06 * Math.sin(p * Math.PI); S.sy = 1 + .1 * Math.sin(p * Math.PI); }, tk, ease.lin);
+    S.hop = 0; await wobble(.14, 420, tk);
+  }
+
+  // ── blbnutí ───────────────────────────────────────────────
+  async function lookAround(tk){
+    setMouth('cat');
+    for(const p of [{ x: -1, y: -.2 }, { x: 1, y: -.2 }, { x: 0, y: -1 }, { x: -.6, y: .4 }]){ S.lookOverride = p; await wait(rand(380, 650), tk); }
+    S.lookOverride = null;
+    if(Math.random() < .5) await hopSmall(tk);
+  }
+  async function burp(tk){
+    S.lookOverride = { x: 0, y: .3 };
+    await tween(500, e => { S.cheekPuff = 1 + .55 * e; S.sx = 1 + .1 * e; S.sy = 1 - .07 * e; setMouth('flat'); }, tk);
+    await wait(250, tk);
+    setMouth('o'); S.eyeWide = 1.12;
+    const n = Math.random() < .25 ? 3 : 1;
+    for(let i = 0; i < n; i++){
+      const m = svgPoint(0, -19);
+      spawnBubble(m.x, m.y, rand(12, 22), { vx: rand(-20, 10), vy: -rand(34, 50) });
+      await tween(120, e => { S.cheekPuff = 1.55 - .55 * e; }, tk);
+      if(i < n - 1){ S.cheekPuff = 1.4; await wait(160, tk); }
+    }
+    S.cheekPuff = 1; await wobble(.2, 600, tk);
+    S.lookOverride = { x: .2, y: -1 }; setMouth('smile'); S.eyeWide = 1;
+    await wait(1400, tk);
+    if(Math.random() < .4){ setEyes('happy'); setMouth('grin'); await wait(700, tk); }
+  }
+  async function bigBubble(tk){
+    S.lookOverride = { x: 0, y: .5 }; setMouth('o');
+    const m0 = svgPoint(0, -13);
+    const b = spawnBubble(m0.x, m0.y, 4, { vx: 0, vy: 0, life: 999, big: true });
+    const target = rand(30, 40);
+    try{
+      await tween(1900, (e, p) => {
+        b.d = 4 + target * e + Math.sin(p * 20) * 1.2;
+        const mp = svgPoint(0, -13);
+        b.x = mp.x + 2; b.y = mp.y + 2 - b.d * .15;
+        b.el.style.width = b.el.style.height = b.d + 'px';
+        b.el.style.transform = `translate(${b.x - b.d / 2}px,${b.y - b.d / 2}px)`;
+        S.cheekPuff = 1.25 + .175 * Math.sin(p * Math.PI * 6);
+        S.eyeScaleY = 1 - .35 * e;
+      }, tk, ease.out);
+    } catch(e){ b.pop(false); throw e; }
+    await wait(300, tk);
+    b.pop(false);
+    S.cheekPuff = 1; S.eyeScaleY = 1; setMouth('big'); S.eyeWide = 1.3; S.lookOverride = { x: 0, y: 0 };
+    await tween(260, (e, p) => { S.hop = Math.sin(p * Math.PI) * 12; S.sy = 1 + .1 * Math.sin(p * Math.PI); }, tk, ease.lin);
+    S.hop = 0; await wobble(.22, 600, tk);
+    await wait(500, tk);
+    S.eyeWide = 1; setEyes('happy'); setMouth('grin');
+    await wait(800, tk);
+  }
+  async function crawl(tk){
+    const s = size(), dir = S.x > vw() / 2 ? -1 : 1;
+    const target = clamp(S.x + dir * rand(vw() * .18, vw() * .42), s / 2 + 10, vw() - s / 2 - 10);
+    S.lookOverride = { x: dir, y: 0 }; setMouth('cat');
+    let x = S.x;
+    while(Math.abs(target - x) > 4){
+      const step = Math.min(26, Math.abs(target - x)) * dir, from = x;
+      await tween(220, e => { S.sx = 1 + .18 * e; S.sy = 1 - .12 * e; S.x = from + step * .65 * e; S.tilt = dir * 6 * e; }, tk);
+      await tween(200, e => { S.sx = 1.18 - .26 * e; S.sy = .88 + .2 * e; S.x = from + step * (.65 + .35 * e); S.tilt = dir * 6 * (1 - e); }, tk);
+      x = from + step;
+      await tween(120, e => { S.sx = .92 + .08 * e; S.sy = 1.08 - .08 * e; }, tk);
+    }
+    S.tilt = 0;
+    S.lookOverride = { x: -dir, y: -.3 }; await wait(600, tk);
+    S.lookOverride = { x: dir, y: -.6 }; await wait(500, tk);
+    S.lookOverride = { x: 0, y: -1 }; setEyes('happy'); await wait(700, tk); setEyes('open');
+    S.lookOverride = { x: -dir, y: 0 };
+    const back = homeX() - S.x, hops = Math.max(1, Math.round(Math.abs(back) / 70));
+    for(let i = 0; i < hops; i++){
+      const from = S.x, step = back / hops;
+      await tween(90, e => { S.sx = 1 + .1 * e; S.sy = 1 - .1 * e; }, tk);
+      await tween(330, (e, p) => { S.x = from + step * e; S.hop = Math.sin(p * Math.PI) * 22; S.sx = 1 - .07 * Math.sin(p * Math.PI); S.sy = 1 + .12 * Math.sin(p * Math.PI); }, tk, ease.lin);
+      S.hop = 0;
+    }
+    await wobble(.16, 450, tk);
+  }
+  async function peek(tk){
+    const s = size();
+    setMouth('cat'); S.lookOverride = { x: 0, y: 1 };
+    await tween(140, e => { S.sx = 1 + .12 * e; S.sy = 1 - .1 * e; }, tk);
+    const y0 = S.y, x0 = S.x;
+    await tween(420, e => { S.y = y0 + (s + 20) * e; S.sx = 1.12 - .12 * e; S.sy = .9 + .1 * e; }, tk, ease.back);
+    S.x = clamp(pick([vw() * .12, vw() * .3, vw() * .5]), s / 2 + 10, vw() - s / 2 - 10);
+    await wait(rand(500, 900), tk);
+    await tween(520, e => { S.y = y0 + (s + 20) - (s * .62) * e; }, tk, ease.out);
+    S.lookOverride = { x: -1, y: -.2 }; await wait(550, tk);
+    S.lookOverride = { x: 1, y: -.2 }; await wait(550, tk);
+    S.lookOverride = { x: 0, y: -.4 }; S.eyeWide = 1.15; await wait(400, tk);
+    if(S.pointer){ S.lookOverride = null; setEyes('happy'); await wait(700, tk); setEyes('open'); }
+    S.eyeWide = 1;
+    await tween(300, e => { S.y = y0 + (s + 20) - (s * .62) * (1 - e); }, tk);
+    S.x = x0; await wait(300, tk);
+    S.lookOverride = null;
+    await tween(380, (e, p) => { S.y = y0 + (s + 20) * (1 - e); S.sy = 1 + .15 * Math.sin(p * Math.PI); S.sx = 1 - .08 * Math.sin(p * Math.PI); }, tk, ease.out);
+    S.y = y0; await wobble(.2, 600, tk);
+  }
+  async function hunt(tk){
+    if(!S.pointer) return lookAround(tk);
+    const s = size(), tx = clamp(S.pointer.x, s / 2 + 8, vw() - s / 2 - 8);
+    S.lookOverride = null; setMouth('flat');
+    await tween(260, e => { S.sx = 1 + .16 * e; S.sy = 1 - .18 * e; S.eyeScaleY = 1 - .45 * e; }, tk);
+    for(let i = 0; i < 3; i++) await tween(110, e => { S.tilt = (i % 2 ? -1 : 1) * 5 * e; }, tk);
+    S.tilt = 0;
+    const from = S.x, dx = tx - from, peak = clamp(floorY() - S.pointer.y, 30, 140);
+    S.eyeScaleY = 1; S.eyeWide = 1.2; setMouth('big');
+    await tween(clamp(Math.abs(dx) * 1.2, 380, 800), (e, p) => { S.x = from + dx * e; S.hop = Math.sin(p * Math.PI) * peak; S.sx = 1 - .12 * Math.sin(p * Math.PI); S.sy = 1 + .2 * Math.sin(p * Math.PI); }, tk, ease.lin);
+    S.hop = 0; await wobble(.25, 600, tk);
+    S.eyeWide = 1; setMouth('cat');
+    S.lookOverride = { x: 0, y: -1 }; await wait(500, tk);
+    S.lookOverride = { x: -.8, y: -.6 }; await wait(380, tk);
+    S.lookOverride = { x: .8, y: -.6 }; await wait(380, tk);
+    setEyes('happy'); setMouth('grin'); await wait(600, tk); setEyes('open');
+    const back = homeX() - S.x, f2 = S.x, n = Math.max(1, Math.round(Math.abs(back) / 80));
+    await tween(clamp(Math.abs(back) * 1.3, 350, 900), (e, p) => { S.x = f2 + back * e; S.hop = Math.abs(Math.sin(p * Math.PI * n)) * 18; }, tk, ease.lin);
+    S.hop = 0; await wobble(.14, 400, tk);
+  }
+  async function yawn(tk){
+    setEyes('closed');
+    await tween(600, e => { S.sy = 1 + .14 * e; S.sx = 1 - .08 * e; setMouth(e > .3 ? 'big' : 'o'); }, tk);
+    await wait(700, tk);
+    await tween(400, e => { S.sy = 1.14 - .14 * e; S.sx = .92 + .08 * e; }, tk);
+    setMouth('sleep'); await wait(500, tk);
+    setEyes('open'); S.eyeScaleY = .55; await wait(600, tk); S.eyeScaleY = 1;
+  }
+  async function sleep(tk){
+    setEyes('closed'); setMouth('sleep'); S.lookOverride = { x: 0, y: .3 };
+    await tween(800, e => { S.sy = 1 - .08 * e; S.sx = 1 + .06 * e; S.tilt = -6 * e; }, tk);
+    while(true){
+      zzz(); await wait(2400, tk);
+      if(Math.random() < .15){ setMouth('o'); await wait(500, tk); setMouth('sleep'); }
+    }
+  }
+  async function wakeUp(tk){
+    S.tilt = 0; setEyes('open'); S.eyeWide = 1.35; setMouth('o'); S.lookOverride = null;
+    await tween(240, (e, p) => { S.hop = Math.sin(p * Math.PI) * 14; S.sy = 1 + .18 * Math.sin(p * Math.PI); S.sx = 1 - .1 * Math.sin(p * Math.PI); }, tk, ease.lin);
+    S.hop = 0; await wobble(.2, 500, tk);
+    S.eyeWide = 1; S.eyeScaleY = .5; setMouth('flat'); await wait(500, tk); S.eyeScaleY = 1;
+  }
+
+  // ── reakce ────────────────────────────────────────────────
+  async function react(kind, text){
+    if(!started || S.mode === 'drag' || S.mode === 'fall') return;
+    cancelBusy(); const tk = token(); S.mode = 'react';
+    try{
+      if(kind === 'celebrate'){
+        setMouth('grin'); setEyes('happy');
+        await tween(160, e => { S.sx = 1 + .18 * e; S.sy = 1 - .16 * e; }, tk);
+        await tween(520, (e, p) => { S.hop = Math.sin(p * Math.PI) * 58; S.sx = 1 - .12 * Math.sin(p * Math.PI); S.sy = 1 + .2 * Math.sin(p * Math.PI); S.tilt = reduceMotion ? 0 : 360 * e; }, tk, ease.lin);
+        S.tilt = 0; S.hop = 0;
+        const c = svgPoint(0, -35);
+        for(let i = 0; i < 9; i++){ const a = -Math.PI / 2 + rand(-1.3, 1.3); spawnBubble(c.x, c.y, rand(8, 16), { vx: Math.cos(a) * rand(60, 120), vy: Math.sin(a) * rand(60, 110), life: rand(1.6, 2.8) }); }
+        await wobble(.26, 700, tk);
+        if(text) say(text, 5000);
+        await wait(1300, tk);
+      } else if(kind === 'hello'){
+        setEyes('happy'); setMouth('grin');
+        await hopSmall(tk, 20);
+        await wait(400, tk);
+      }
+    } catch(e){ return; }
+    if(S.busy === tk){ S.busy = null; S.mode = 'idle'; defaultFace(); }
+  }
+
+  // ── vstupy ────────────────────────────────────────────────
+  let down = null;
+  function onEnter(){ if(S.mode === 'idle'){ setEyes('happy'); setMouth('grin'); hopSmall(null, 8).catch(() => {}); } }
+  function onLeave(){ if(S.mode === 'idle'){ setEyes('open'); setMouth('smile'); } }
+  function onDown(e){
+    e.preventDefault(); e.stopPropagation();
+    try{ el.setPointerCapture(e.pointerId); } catch(_){}
+    down = { x: e.clientX, y: e.clientY, ox: S.x - e.clientX, oy: S.y - e.clientY, moved: false, hist: [] };
+  }
+  function onMove(e){
+    if(!down) return;
+    if(!down.moved && Math.hypot(e.clientX - down.x, e.clientY - down.y) > 6){
+      down.moved = true; cancelBusy(); hush();
+      S.mode = 'drag'; el.classList.add('dragging');
+      setEyes('open'); S.eyeWide = 1.25; setMouth('big'); S.lookOverride = { x: 0, y: 1 };
+    }
+    if(!down.moved) return;
+    const now = performance.now();
+    down.hist.push({ x: e.clientX, y: e.clientY, t: now }); if(down.hist.length > 6) down.hist.shift();
+    S.x = e.clientX + down.ox; S.y = e.clientY + down.oy; S.hop = 0;
+    const a = down.hist[0], b = down.hist[down.hist.length - 1], dt = Math.max(16, b.t - a.t);
+    const vx = (b.x - a.x) / dt, vy = (b.y - a.y) / dt, sp = Math.min(1, Math.hypot(vx, vy) / 2.5);
+    S.sx = 1 - .15 * sp; S.sy = 1 + .25 * sp; S.tilt = clamp(vx * 12, -25, 25);
+  }
+  function onUp(){
+    if(!down) return;
+    const d = down; down = null;
+    el.classList.remove('dragging');
+    if(d.moved){
+      const h = d.hist; let vx = 0, vy = 0;
+      if(h.length > 1){ const a = h[0], b = h[h.length - 1], dt = Math.max(16, b.t - a.t); vx = (b.x - a.x) / dt * 1000; vy = (b.y - a.y) / dt * 1000; }
+      throwFall(vx, vy);
+    } else onClick();
+  }
+  function throwFall(vx, vy){
+    S.mode = 'fall'; S.lookOverride = null;
+    let x = S.x, y = S.y, last = performance.now(), bounces = 0;
+    vx = clamp(vx, -1800, 1800); vy = clamp(vy, -1800, 1800);
+    const s = size();
+    (function k(now){
+      const dt = Math.min(.033, (now - last) / 1000); last = now;
+      vy += 2600 * dt; x += vx * dt; y += vy * dt;
+      if(x < s / 2 + 4){ x = s / 2 + 4; vx = -vx * .6; S.sx = .8; S.sy = 1.15; }
+      if(x > vw() - s / 2 - 4){ x = vw() - s / 2 - 4; vx = -vx * .6; S.sx = .8; S.sy = 1.15; }
+      if(y < s + 4){ y = s + 4; vy = Math.abs(vy) * .4; }
+      const sp = Math.min(1, Math.hypot(vx, vy) / 1500);
+      S.sx += ((1 - .12 * sp) - S.sx) * .3; S.sy += ((1 + .18 * sp) - S.sy) * .3;
+      S.tilt += vx * dt * .4;
+      if(y >= floorY()){
+        y = floorY();
+        if(Math.abs(vy) > 260 && bounces < 3){
+          vy = -vy * .45; vx *= .7; bounces++; S.sx = 1.3; S.sy = .72;
+          setEyes(bounces > 1 ? 'dizzy' : 'open');
+        } else {
+          S.x = x; S.y = y; S.tilt = 0; S.homeX = x;
+          try{ localStorage.setItem('bublik_home_x', String(Math.round(vw() - x))); } catch(_){}
+          const tk = token(); S.mode = 'react';
+          (async () => {
+            try{
+              await wobble(.28, 700, tk);
+              if(bounces >= 2){ setEyes('dizzy'); setMouth('wavy'); await wait(1100, tk); say(pick(['Jůůů. Ještě jednou! …Ne, počkej.', 'Tak tady teď bydlím. Pěkný výhled.', 'To bylo rychlejší než výměna směny.']), 3500); }
+            } catch(e){}
+            if(S.busy === tk){ S.busy = null; S.mode = 'idle'; defaultFace(); }
+          })();
+          return;
+        }
+      }
+      S.x = x; S.y = y;
+      requestAnimationFrame(k);
+    })(performance.now());
+  }
+
+  function onClick(){
+    S.lastInput = performance.now();
+    const now = performance.now();
+    S.clicks = S.clicks.filter(t => now - t < 1800); S.clicks.push(now);
+    if(S.mode === 'sleep'){ run(() => Promise.resolve()); say('Hm? Jo, jsem vzhůru. Úplně. Vůbec jsem nespal.', 3500); return; }
+    if(S.clicks.length >= 5){
+      // dřívější easter egg tlačítka „?" (5 kliků) — teď se mu točí hlava
+      S.clicks = [];
+      cancelBusy(); const tk = token(); S.mode = 'react';
+      (async () => {
+        try{
+          setEyes('dizzy'); setMouth('wavy');
+          await tween(900, (e, p) => { S.tilt = Math.sin(p * Math.PI * 6) * 12 * (1 - p); S.sx = 1 + .08 * Math.sin(p * 30); S.sy = 1 - .08 * Math.sin(p * 30); }, tk, ease.lin);
+          say(pick(['Hej! To lechtá!', 'Dobře, dobře, vzdávám se! Zkus radši kliknout na verzi v hlavičce.', 'Ještě jednou a začnu bublat do klávesnice.']), 3500);
+          await wait(900, tk);
+        } catch(e){}
+        if(S.busy === tk){ S.busy = null; S.mode = 'idle'; defaultFace(); }
+      })();
+      return;
+    }
+    cancelBusy(); const tk = token(); S.mode = 'react';
+    (async () => {
+      try{
+        setEyes('happy'); setMouth('grin');
+        await tween(110, e => { S.sx = 1 + .2 * e; S.sy = 1 - .18 * e; }, tk);
+        await wobble(.24, 600, tk);
+      } catch(e){}
+      if(S.busy === tk){ S.busy = null; S.mode = 'idle'; defaultFace(); }
+    })();
+    say(`<b>Co potřebuješ?</b><div class="bub-menu">
+      <button data-m="help">Nápověda</button>
+      <button data-m="tours">Průvodci aplikací</button>
+      ${S.pref === 'play'
+        ? `<button data-m="sleep">Jdi spát, Bublíku</button><button data-m="quiet">Buď v klidu (nebude blbnout)</button>`
+        : `<button data-m="play">Můžeš si zase hrát</button>`}
+      <button data-m="off">Schovej se</button></div>`, 0);
+  }
+  function onSpeechClick(e){
+    const b = e.target.closest('button[data-m]');
+    if(!b){ hush(); return; }
+    const m = b.dataset.m; hush();
+    if(m === 'help') openHelpCenter();
+    else if(m === 'tours') openTutorialMenu();
+    else if(m === 'sleep'){ S.lastInput = performance.now(); run(sleep); }
+    else if(m === 'quiet'){ setBublikPref('quiet'); say('Dobře. Budu jen dýchat a koukat. Kdybys mě chtěl, klikni na mě.', 3500); }
+    else if(m === 'play'){ setBublikPref('play'); react('hello'); }
+    else if(m === 'off'){ setBublikPref('off'); toast('Bublík se schoval. Vrátíš ho v Profilu.'); }
+  }
+
+  // aktivita kdekoli na stránce
+  let moveAcc = 0, lastPM = null, stillTimer = 0;
+  function onWinMove(e){
+    if(down) return;
+    const p = { x: e.clientX, y: e.clientY };
+    if(lastPM) moveAcc += Math.hypot(p.x - lastPM.x, p.y - lastPM.y);
+    lastPM = p; S.pointer = p; S.pointerStill = 0;
+    if(moveAcc > 40){ moveAcc = 0; userActive('move'); }
+  }
+  function onWinKey(){ userActive('key'); }
+  function onWinDown(e){
+    if(el.contains(e.target) || speech.contains(e.target)) return;
+    userActive('click'); hush();
+  }
+  function onLeaveDoc(){ S.pointer = null; }
+  function onResize(){ S.x = clamp(S.x, size() / 2 + 8, vw() - size() / 2 - 8); S.y = floorY(); if(S.mode === 'idle') S.x = homeX(); }
+  function onVisible(){ if(!document.hidden){ lastT = performance.now(); S.lastInput = performance.now(); } }
+
+  function mount(){
+    if(el) return;
+    el = document.createElement('div');
+    el.id = 'bublik'; el.setAttribute('role', 'button'); el.setAttribute('tabindex', '0');
+    el.setAttribute('aria-label', 'Bublík, pomocník. Klikni pro nápovědu.');
+    el.innerHTML = BUBLIK_SVG;
+    speech = document.createElement('div');
+    speech.id = 'bublik-speech';
+    document.body.appendChild(el); document.body.appendChild(speech);
+    const q = sel => el.querySelector(`[data-b="${sel}"]`);
+    bodyg = q('body'); lift = q('lift'); face = q('face'); mouth = q('mouth'); shadow = q('shadow'); sweat = q('sweat');
+    cheeks = [...el.querySelectorAll('.bub-cheek')]; eyes = [...el.querySelectorAll('.bub-eye')];
+    el.addEventListener('pointerenter', onEnter);
+    el.addEventListener('pointerleave', onLeave);
+    el.addEventListener('pointerdown', onDown);
+    el.addEventListener('pointermove', onMove);
+    el.addEventListener('pointerup', onUp);
+    el.addEventListener('pointercancel', onUp);
+    el.addEventListener('keydown', e => { if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); onClick(); } });
+    speech.addEventListener('click', onSpeechClick);
+  }
+  function listen(on){
+    const f = on ? 'addEventListener' : 'removeEventListener';
+    window[f]('pointermove', onWinMove, { passive: true });
+    window[f]('keydown', onWinKey, { passive: true });
+    window[f]('wheel', onWinKey, { passive: true });
+    window[f]('pointerdown', onWinDown, true);
+    window[f]('resize', onResize);
+    document[f]('mouseleave', onLeaveDoc);
+    document[f]('visibilitychange', onVisible);
+    if(on) stillTimer = setInterval(() => { S.pointerStill += 250; }, 250);
+    else clearInterval(stillTimer);
+  }
+
+  // ── veřejné API ───────────────────────────────────────────
+  function start(pref){
+    S.pref = pref || 'play';
+    const fab = document.getElementById('help-fab');
+    if(S.pref === 'off'){ stop(); if(fab) fab.style.display = ''; return; }
+    if(fab) fab.style.display = 'none';
+    if(started){ if(!playful() && (S.mode === 'antic' || S.mode === 'sleep')) interrupt(); return; }
+    reduceMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    isTouch = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+    mount();
+    started = true;
+    el.style.display = '';
+    try{ const hx = parseFloat(localStorage.getItem('bublik_home_x')); if(!isNaN(hx)) S.homeX = vw() - hx; } catch(_){}
+    defaultFace();
+    S.x = homeX(); S.y = floorY(); S.hop = reduceMotion ? 0 : 220;
+    S.lastInput = performance.now(); S.nextAntic = S.lastInput + T.bored; S.nextBlink = S.lastInput + 1500;
+    lastT = performance.now();
+    listen(true);
+    rafId = requestAnimationFrame(frame);
+    // přistání po přihlášení
+    const tk = token(); S.mode = 'react';
+    (async () => {
+      try{
+        if(!reduceMotion){
+          setEyes('closed'); setMouth('o');
+          await tween(650, e => { S.hop = 220 * (1 - e); S.sy = 1 + .18 * (1 - e); S.sx = 1 - .1 * (1 - e); }, tk, t => t * t);
+          S.hop = 0; setEyes('open'); S.eyeWide = 1.2;
+          await wobble(.3, 750, tk);
+        }
+      } catch(e){}
+      if(S.busy === tk){ S.busy = null; S.mode = 'idle'; defaultFace(); }
+    })();
+  }
+  function stop(){
+    if(!started) return;
+    started = false;
+    cancelBusy(); hush();
+    cancelAnimationFrame(rafId);
+    listen(false);
+    minis.forEach(m => m.pop(false));
+    if(el) el.style.display = 'none';
+    S.mode = 'idle';
+  }
+  return { start, stop, react, say, get pref(){ return S.pref; } };
+})();
+
+function bublikPref(){
+  const meta = currentUser && currentUser.user_metadata && currentUser.user_metadata.bublik;
+  if(['play', 'quiet', 'off'].includes(meta)) return meta;
+  let local = null;
+  try{ local = localStorage.getItem('bublik_pref'); } catch(_){}
+  if(['play', 'quiet', 'off'].includes(local)) return local;
+  return currentRole === 'admin' ? 'play' : 'quiet';   // zaměstnanci výchozí klidný
+}
+async function setBublikPref(v){
+  if(!['play', 'quiet', 'off'].includes(v)) return;
+  try{ localStorage.setItem('bublik_pref', v); } catch(_){}
+  if(currentUser) currentUser.user_metadata = { ...(currentUser.user_metadata || {}), bublik: v };
+  Bublik.start(v);
+  document.querySelectorAll('[data-bubpref]').forEach(b => b.classList.toggle('on', b.dataset.bubpref === v));
+  if(currentUser){
+    const { error } = await sb.auth.updateUser({ data: { bublik: v } });
+    if(error) console.warn('[Bublík] uložení volby do účtu selhalo (zůstává v prohlížeči)', error);
+  }
 }
 
 // ============================================================
@@ -9964,6 +10715,13 @@ async function openEmployeeSettings(){
         </div>
         <button onclick="saveProfile()" class="btn-primary" style="width:100%;padding:8px">${ICONS.btn_ulozit} Uložit údaje</button>
         <div id="prof-save-result" style="font-size:12px;margin-top:6px;display:none"></div>
+      </div>
+      <div style="border-top:1px solid var(--line);padding-top:16px">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--ink-soft);margin-bottom:8px">Bublík — pomocník vpravo dole</div>
+        <div class="bub-pref">
+          ${[['play','Hravý','dýchá, kouká a občas zablbne'],['quiet','Klidný','jen dýchá a kouká'],['off','Schovaný','místo něj tlačítko „?"']].map(([v,t,h]) =>
+            `<button type="button" data-bubpref="${v}" class="${bublikPref()===v?'on':''}" onclick="setBublikPref('${v}')"><strong>${t}</strong><span>${h}</span></button>`).join('')}
+        </div>
       </div>
       ${myEmp ? `
       <div style="border-top:1px solid var(--line);padding-top:16px">
