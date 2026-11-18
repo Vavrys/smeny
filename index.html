@@ -505,6 +505,8 @@ table.sched-table th:last-child, table.sched-table td:last-child{border-right:no
   .sched-name-col.name-expanded .emp-name-full{display:inline}
   .sched-name-col.name-expanded .emp-name-short{display:none}
 }
+.sched-name-col.name-editable{cursor:pointer}
+.sched-name-col.name-editable:hover{background:var(--accent-soft);text-decoration:underline}
 .sched-name-col-resize{position:absolute;right:-4px;top:0;width:8px;height:100%;cursor:col-resize;z-index:20;background:transparent;border-right:2px solid transparent;transition:border-color .15s}
 .sched-name-col-resize:hover, .sched-name-col-resize.dragging{border-right-color:var(--accent)}
 /* v0.9.1 (B3): sticky i v hlavičce — dřív position:relative !important přebíjelo
@@ -2525,7 +2527,7 @@ window.addEventListener('unhandledrejection', e => {
 // odsud, ručně je nepřepisuj. sw.js se od v0.9.29 nebumpuje — je z něj
 // kill-switch bez cache (viz killServiceWorkers() a komentář v sw.js).
 // ============================================================
-const APP_VERSION = '0.9.41';
+const APP_VERSION = '0.9.42';
 
 // Krátký git hash nasazeného buildu. Placeholder níž přepíše build-stamp.js
 // z CF_PAGES_COMMIT_SHA (Cloudflare Pages build command: `node build-stamp.js`).
@@ -4294,6 +4296,7 @@ async function saveEmployee(){
   }
   closeEmployeeModal();
   await loadEmployees();
+  renderCalendar(); // v0.9.42: nastavení se může otevřít přímo z rozpisu — ať se promítne hned
 }
 
 async function deleteEmployee(id){
@@ -5548,7 +5551,7 @@ function renderCalendar(){
     tr.addEventListener('dragend',   onRowDragEnd);
 
     const dragHandle = (fillMode || isEmployee) ? '' : `<span class="drag-handle" title="Přetáhni pro změnu pořadí">⠿</span>`;
-    let nameCell = empNameCellHtml(emp.name, dragHandle);
+    let nameCell = empNameCellHtml(emp.name, dragHandle, emp.id);
     let cells = '';
     let shiftCount=0, xCount=0, freeWeekendCount=0;
     const typeCounts = {};
@@ -5820,7 +5823,7 @@ function renderCalendarBranch(thead, tbody, daysInMonth, DOW_SHORT){
       tr.dataset.empId = emp.id;
       tr.dataset.branchCode = branch.code;
 
-      let cells = empNameCellHtml(emp.name);
+      let cells = empNameCellHtml(emp.name, '', emp.id);
 
       for(let d=1; d<=daysInMonth; d++){
         const dateStr = isoDate(schedYear, schedMonth+1, d);
@@ -13107,7 +13110,7 @@ function empNameHtml(name){
 // .name-truncatable dostane jen jméno, které se opravdu zkracuje: jednoslovné
 // („Petr") není co rozbalovat, tak ať se ani netváří jako klikací.
 // `lead` je obsah před jménem (drag handle), aby zůstal uvnitř buňky.
-function empNameCellHtml(name, lead){
+function empNameCellHtml(name, lead, empId){
   // v0.9.35: omezený režim — místo jména pruh různé délky (data jsou anonymní
   // už z DB; pruh jen elegantně ukazuje, že tu jméno je, ale není vidět)
   if(isPendingMode){
@@ -13116,8 +13119,12 @@ function empNameCellHtml(name, lead){
     return `<td class="sched-name-col pending-name" title="Jméno uvidíš po schválení vedoucím">${lead || ''}<span class="redact-bar" style="width:${w}%"></span></td>`;
   }
   const truncatable = shortEmpName(name) !== name;
-  return `<td class="sched-name-col${truncatable ? ' name-truncatable' : ''}"` +
-         ` title="${escapeHtml(name)}" data-full-name="${escapeHtml(name)}">` +
+  // v0.9.42: admin může kliknout na jméno a otevřít nastavení zaměstnance
+  // (v režimu doplňování se ale jména neklikají — klik patří výběru buněk)
+  const editable = !!empId && currentRole === 'admin' && !fillMode;
+  return `<td class="sched-name-col${truncatable ? ' name-truncatable' : ''}${editable ? ' name-editable' : ''}"` +
+         (editable ? ` data-emp-id="${escapeHtml(empId)}"` : '') +
+         ` title="${escapeHtml(name)}${editable ? ' — klikni pro nastavení' : ''}" data-full-name="${escapeHtml(name)}">` +
          (lead || '') + empNameHtml(name) + `</td>`;
 }
 
@@ -13136,8 +13143,19 @@ function bindNameCellExpand(){
   if(_nameCellExpandBound) return;
   _nameCellExpandBound = true;
   document.addEventListener('click', e => {
-    if(!nameColIsNarrow()) return;                  // desktop má hover + title
     if(e.target.closest('.drag-handle')) return;    // tažení za handle beze změny
+    const edTd = e.target.closest('#sched-table td.sched-name-col.name-editable');
+    const narrow = nameColIsNarrow();
+    // v0.9.42: klik na jméno otevře nastavení zaměstnance (admin). Na úzkém
+    // displeji první ťuknutí jméno rozbalí (v0.9.31), až ťuknutí na už
+    // rozbalené jméno otevře nastavení; jednoslovné jméno otevře rovnou.
+    if(edTd && (!narrow || !edTd.classList.contains('name-truncatable') || edTd.classList.contains('name-expanded'))){
+      const opened0 = document.querySelector('#sched-table td.sched-name-col.name-expanded');
+      if(opened0) opened0.classList.remove('name-expanded');
+      openEmployeeModal(edTd.dataset.empId);
+      return;
+    }
+    if(!narrow) return;                             // desktop má hover + title
     const td = e.target.closest('#sched-table td.sched-name-col.name-truncatable');
     const opened = document.querySelector('#sched-table td.sched-name-col.name-expanded');
     if(opened && opened !== td) opened.classList.remove('name-expanded');
