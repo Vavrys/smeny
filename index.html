@@ -518,6 +518,11 @@ body.employee-view .sched-name-col{width:160px;min-width:80px;max-width:280px;pa
 .sched-day-col.today-col .dow{color:#fff !important}
 .sched-cell.today-col{box-shadow:inset 2px 0 0 var(--accent), inset -2px 0 0 var(--accent)}
 .sched-day-col .dow{font-weight:700;font-size:9.5px;color:#333;display:block}
+/* v0.9.40: uzavřené dny/pobočky — šrafa funguje na světlém i tmavém motivu */
+.sched-day-col.closed-all,.closed-day{background-image:repeating-linear-gradient(45deg,rgba(0,0,0,.22) 0 4px,transparent 4px 8px) !important}
+.sched-day-col.closed-part{box-shadow:inset 0 -4px 0 var(--ink)}
+.closure-chip{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:1.5px solid var(--line);border-radius:8px;font-size:13px;font-weight:600;color:var(--ink);cursor:pointer}
+.closure-chip input{margin:0}
 .sched-cell{text-align:center;padding:0;cursor:pointer;height:var(--tbl-h);position:relative}
 .sched-cell.weekend{background:#f5f0e8}
 .sched-cell:hover{background:var(--accent-soft)}
@@ -1826,23 +1831,6 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
 
         <hr class="rules-section-sep">
 
-        <!-- 3b. Uzavírky poboček (v0.9.40) -->
-        <div id="closures-section" style="margin-bottom:0">
-          <p class="rules-section-title"><span data-icon="tut_pravidla_pary">🔒</span> Uzavírky poboček</p>
-          <p class="rules-section-hint">Den nebo období, kdy je pobočka zavřená (nebo všechny pobočky). Generátor tam nikoho nenaplánuje a diagnostika „Proč to nejde na 100 %" ty dny nepočítá jako nepokryté. Zaměstnancům tím nemusíš zadávat volno.</p>
-          <div id="closures-list" style="max-width:580px"></div>
-          <div style="display:flex;gap:8px;margin-top:10px;max-width:580px;align-items:center;flex-wrap:wrap">
-            <select id="cl-branch" style="padding:7px 9px;border:1.5px solid var(--line);border-radius:7px;font-size:13px;color:var(--ink)"></select>
-            <input type="date" id="cl-from" style="padding:7px 9px;border:1.5px solid var(--line);border-radius:7px;font-size:13px;color:var(--ink)" aria-label="Od data">
-            <span style="color:var(--ink);font-weight:600;font-size:13px">–</span>
-            <input type="date" id="cl-to" style="padding:7px 9px;border:1.5px solid var(--line);border-radius:7px;font-size:13px;color:var(--ink)" aria-label="Do data (prázdné = jen jeden den)">
-            <input type="text" id="cl-note" placeholder="poznámka (volitelné)" maxlength="60" style="flex:1;min-width:140px;padding:7px 9px;border:1.5px solid var(--line);border-radius:7px;font-size:13px;color:var(--ink)">
-            <button class="btn-outline" onclick="addClosure()"><span data-icon="btn_pridat">➕</span> Přidat uzavírku</button>
-          </div>
-        </div>
-
-        <hr class="rules-section-sep">
-
         <!-- 4. Uložit -->
         <div style="display:flex;gap:10px">
           <button class="btn-accent" id="save-all-rules-btn" onclick="saveRules();saveScoring()"><span data-icon="btn_ulozit">💾</span> Uložit všechna pravidla</button>
@@ -2642,7 +2630,7 @@ const DEFAULT_ICONS = {
 
   // Stavy a indikátory
   status_ok: '✅', status_warning: '⚠️', status_error: '❌', status_info: 'ℹ️',
-  status_pending: '⏳', status_locked: '🔴', status_claimed: '✋',
+  status_pending: '⏳', status_locked: '🔴', status_claimed: '✋', status_closed: '🔒',
 
   // Tutoriál
   tut_uvod: '👋', tut_rozpis: '📅', tut_pobocky: '🏠', tut_zamestnanci: '👤',
@@ -4748,65 +4736,6 @@ function removeBalancePair(idx){
   saveScoring();
 }
 
-// ── Uzavírky poboček: seznam + přidání + smazání (ukládá se do org_settings) ──
-function fmtClosureDate(s){ const [y,m,d]=s.split('-'); return `${+d}. ${+m}. ${y}`; }
-function renderClosuresList(){
-  const sel = document.getElementById('cl-branch');
-  if(sel){
-    const cur = sel.value;
-    sel.innerHTML = `<option value="*">Všechny pobočky</option>` +
-      branches.map(b=>`<option value="${escapeHtml(b.code)}">${escapeHtml(b.name)} (${escapeHtml(b.code)})</option>`).join('');
-    if(cur) sel.value = cur;
-  }
-  const list = document.getElementById('closures-list');
-  if(!list) return;
-  const items = (orgSettings['branch_closures'] || []).slice().sort((a,b)=>a.from<b.from?-1:1);
-  if(!items.length){
-    list.innerHTML = `<p class="field-hint">Zatím žádné uzavírky.</p>`;
-    return;
-  }
-  list.innerHTML = items.map(c=>{
-    const b = branches.find(x=>x.code===c.branch);
-    const label = c.branch==='*' ? 'Všechny pobočky' : (b ? b.name : c.branch);
-    const range = (!c.to || c.to===c.from) ? fmtClosureDate(c.from) : `${fmtClosureDate(c.from)} – ${fmtClosureDate(c.to)}`;
-    return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);flex-wrap:wrap">
-      <strong style="font-size:13px">${escapeHtml(label)}</strong>
-      <span style="font-size:13px;color:var(--ink)">${range}</span>
-      ${c.note ? `<span style="font-size:12.5px;color:var(--ink)">· ${escapeHtml(c.note)}</span>` : ''}
-      <span style="flex:1"></span>
-      <button class="icon-btn danger" onclick="removeClosure('${escapeHtml(c.id)}')" title="Smazat uzavírku" aria-label="Smazat uzavírku">✕</button>
-    </div>`;
-  }).join('');
-}
-
-async function addClosure(){
-  const branch = document.getElementById('cl-branch').value;
-  const from = document.getElementById('cl-from').value;
-  let to = document.getElementById('cl-to').value || from;
-  const note = document.getElementById('cl-note').value.trim();
-  if(!from){ toast('Vyber datum, od kterého je zavřeno'); return; }
-  if(to < from){ toast('Konec uzavírky je před začátkem'); return; }
-  const list = [...(orgSettings['branch_closures'] || [])];
-  list.push({ id: 'cl'+Date.now().toString(36), branch, from, to, note });
-  orgSettings['branch_closures'] = list;
-  rebuildClosureIndex();
-  document.getElementById('cl-from').value = '';
-  document.getElementById('cl-to').value = '';
-  document.getElementById('cl-note').value = '';
-  renderClosuresList();
-  renderCalendar();
-  await saveOrgSettings();
-  toast('Uzavírka uložena — při dalším generování rozpisu se zohlední');
-}
-
-async function removeClosure(id){
-  orgSettings['branch_closures'] = (orgSettings['branch_closures'] || []).filter(c=>c.id!==id);
-  rebuildClosureIndex();
-  renderClosuresList();
-  renderCalendar();
-  await saveOrgSettings();
-}
-
 // ============================================================
 // SCORING CONFIGURATION
 // ============================================================
@@ -4929,7 +4858,8 @@ async function saveScoring(){
 // ============================================================
 async function saveOrgSettings(){
   const { error } = await sb.from('org_settings').update({ settings: orgSettings }).eq('org_id', currentOrg.id);
-  if(error){ toast('Chyba ukládání nastavení: '+error.message); }
+  if(error){ toast('Chyba ukládání nastavení: '+error.message); return false; }
+  return true;
 }
 
 // v0.9.8: přepínač schvalování výměn — ukládá se hned při kliknutí (bez tlačítka Uložit)
@@ -4954,7 +4884,6 @@ async function loadOrgSettings(){
   const { data } = await sb.from('org_settings').select('settings').eq('org_id', currentOrg.id).maybeSingle();
   orgSettings = (data && data.settings) || {};
   rebuildClosureIndex();
-  renderClosuresList();
   document.getElementById('rule-weekend-priority').checked = orgSettings['weekend_priority'] !== false && orgSettings['weekend_priority'] !== 'false';
   document.getElementById('rule-default-minwe').value = parseInt(orgSettings['default_min_free_weekends'])||0;
   // v0.9.8: režim výměn — 'approval' (výchozí) = schvaluje vedoucí, 'auto' = zapíše se hned
@@ -5417,6 +5346,42 @@ async function ensureSlotFree(dateStr, code, empId){
 
 // v0.9.36: dnešní sloupec v mřížce Rozpisu — zvýrazněná hlavička i buňky.
 // Sloupec dne d je (d+1). potomek řádku (první je jméno).
+// v0.9.40: vyznačí zavřené dny v kalendáři. Hlavní tabulka: hlavička dne (šrafa = zavřeno
+// vše, podtržení = jen některé pobočky, tooltip vypíše které) a při zavření všech i buňky.
+// Pohled po pobočkách: šrafa jen u dní, kdy je zavřená právě ta pobočka.
+function markClosedDays(){
+  const table = document.getElementById('sched-table');
+  if(!table || !branches.length) return;
+  table.querySelectorAll('.closed-all,.closed-part,.closed-day').forEach(el=>el.classList.remove('closed-all','closed-part','closed-day'));
+  const dim = new Date(schedYear, schedMonth+1, 0).getDate();
+  const info = {};
+  for(let d=1; d<=dim; d++){
+    const ds = isoDate(schedYear, schedMonth+1, d);
+    const closed = branches.filter(b=>branchClosedOn(b, ds));
+    if(closed.length) info[d] = { closed, all: closed.length === branches.length };
+  }
+  const days = Object.keys(info);
+  if(!days.length) return;
+  table.querySelectorAll('thead tr, tbody tr').forEach(tr=>{
+    const isHead = tr.parentElement.tagName === 'THEAD';
+    const bc = tr.dataset.branchCode;
+    if(!isHead && !bc && !tr.dataset.empId) return;
+    days.forEach(d=>{
+      const cell = tr.children[d];
+      if(!cell || cell.classList.contains('sched-stat-col')) return;
+      const i = info[d];
+      if(bc){
+        if(i.closed.some(b=>b.code===bc)) cell.classList.add('closed-day');
+      } else if(isHead){
+        cell.classList.add(i.all ? 'closed-all' : 'closed-part');
+        cell.title = (cell.title ? cell.title+' · ' : '') + 'Zavřeno: ' + (i.all ? 'všechny pobočky' : i.closed.map(b=>b.code).join(', '));
+      } else if(i.all){
+        cell.classList.add('closed-day');
+      }
+    });
+  });
+}
+
 function markTodayColumn(){
   const table = document.getElementById('sched-table');
   if(!table) return;
@@ -5762,6 +5727,7 @@ function renderCalendar(){
   });
 
   markTodayColumn();
+  markClosedDays();
   renderScoreBar();
   renderLaborCost();
   requestAnimationFrame(()=>{ initTableResize(); applyAccessibilityAttributes(); scheduleDraftSave(); });
@@ -5829,6 +5795,7 @@ function renderCalendarBranch(thead, tbody, daysInMonth, DOW_SHORT){
     // vidí datum přímo u sekce bez rolování nahoru. Sloupce sedí díky <colgroup>.
     const dayHdrTr = document.createElement('tr');
     dayHdrTr.className = 'branch-day-header';
+    dayHdrTr.dataset.branchCode = branch.code;
     // v0.9.25: roh PRVNÍ sekce zastupuje zrušenou hlavičku tabulky — nese táhlo
     // šířky sloupce jmen a je cílem kroku tutoriálu „Šířka sloupce jmen".
     const cornerAttrs = bIdx === 0 ? ' id="sched-name-th"' : '';
@@ -5851,6 +5818,7 @@ function renderCalendarBranch(thead, tbody, daysInMonth, DOW_SHORT){
     branchEmps.forEach(emp => {
       const tr = document.createElement('tr');
       tr.dataset.empId = emp.id;
+      tr.dataset.branchCode = branch.code;
 
       let cells = empNameCellHtml(emp.name);
 
@@ -5906,6 +5874,7 @@ function renderCalendarBranch(thead, tbody, daysInMonth, DOW_SHORT){
 
   // v0.9.25: až teď — táhlo vzniká s hlavičkou první pobočky, ne v thead
   initNameColResize();
+  markClosedDays();
 
   renderScoreBar();
   renderLaborCost();
@@ -9334,11 +9303,42 @@ function openDayDetail(day, replaceEmpId=null){
     </div>`;
   }
 
+  // v0.9.40: uzavření poboček přímo z detailu dne (jen admin/vedoucí)
+  let closureHtml = '';
+  if((currentRole === 'admin' || currentRole === 'manager') && !replaceEmpId && branches.length){
+    const closedNow = branches.filter(b=>branchClosedOn(b, dateStr));
+    const openNow = branches.filter(b=>!branchClosedOn(b, dateStr));
+    closureHtml = `<div style="margin-bottom:16px">
+      ${closedNow.map(b=>`<div style="display:flex;align-items:center;gap:10px;padding:6px 0;flex-wrap:wrap">
+        <span>${ICONS.status_closed}</span><strong style="font-size:13px">${escapeHtml(b.name)} — zavřeno</strong>
+        <span style="flex:1"></span>
+        <button class="btn-ghost" onclick="reopenBranchDay('${escapeHtml(b.code)}','${dateStr}',${day})">Otevřít tento den</button>
+      </div>`).join('')}
+      ${openNow.length ? `<button class="btn-outline" id="closure-open-btn" onclick="toggleClosureForm(true)">${ICONS.status_closed} Zavřít pobočky…</button>
+      <div id="closure-form" style="display:none;margin-top:10px;padding:12px;border:1.5px solid var(--line);border-radius:10px">
+        <div style="font-size:13px;font-weight:700;color:var(--ink);margin-bottom:8px">Které pobočky jsou ${day}. zavřené?</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px">
+          ${openNow.map(b=>`<label class="closure-chip"><input type="checkbox" class="closure-cb" value="${escapeHtml(b.code)}"> ${escapeHtml(b.name)}</label>`).join('')}
+          <button class="btn-ghost" onclick="closureSelectAll()">Všechny</button>
+        </div>
+        <label style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px;color:var(--ink);margin-bottom:12px">
+          Zavřeno až do (nepovinné, když je to na víc dnů):
+          <input type="date" id="closure-to" min="${dateStr}" style="padding:7px 9px;border:1.5px solid var(--line);border-radius:7px;font-size:13px;color:var(--ink)">
+        </label>
+        <div style="display:flex;gap:8px">
+          <button class="btn-accent" onclick="saveClosureFromDay('${dateStr}')">OK</button>
+          <button class="btn-outline" onclick="toggleClosureForm(false)">Zrušit</button>
+        </div>
+      </div>` : ''}
+    </div>`;
+  }
+
   const body = document.getElementById('day-detail-body');
   body.innerHTML = `
     <h3 style="margin:0 0 4px">${DOW_FULL[dow]} ${day}. ${new Date(schedYear,schedMonth,1).toLocaleDateString('cs-CZ',{month:'long',year:'numeric'})}</h3>
     <div style="font-size:12px;color:var(--ink-soft);margin-bottom:14px">Obsazenost a možnosti doplnění</div>
     ${covHtml}
+    ${closureHtml}
     ${replaceModeHtml}
     ${workHtml}
     ${xHtml}
@@ -9346,6 +9346,48 @@ function openDayDetail(day, replaceEmpId=null){
     ${canHtml}
   `;
   document.getElementById('day-detail-overlay').classList.add('open');
+}
+
+// ── Uzavírky poboček z detailu dne ──
+function toggleClosureForm(show){
+  const f = document.getElementById('closure-form'), b = document.getElementById('closure-open-btn');
+  if(!f) return;
+  f.style.display = show ? 'block' : 'none';
+  if(b) b.style.display = show ? 'none' : '';
+}
+function closureSelectAll(){
+  const cbs = [...document.querySelectorAll('.closure-cb')];
+  const all = cbs.every(c=>c.checked);
+  cbs.forEach(c=>{ c.checked = !all; });
+}
+async function saveClosureFromDay(dateStr){
+  const codes = [...document.querySelectorAll('.closure-cb:checked')].map(c=>c.value);
+  if(!codes.length){ toast('Zaškrtni aspoň jednu pobočku (nebo klikni na „Všechny")'); return; }
+  const to = document.getElementById('closure-to').value || dateStr;
+  if(to < dateStr){ toast('Konec uzavírky je před začátkem'); return; }
+  const prev = orgSettings['branch_closures'] || [];
+  const stillOpen = branches.filter(b=>!branchClosedOn(b, dateStr));
+  const everyone = codes.length === branches.length && stillOpen.length === branches.length;
+  const stamp = Date.now().toString(36);
+  const add = (everyone ? ['*'] : codes).map((c,i)=>({ id:'cl'+stamp+i, branch:c, from:dateStr, to, note:'' }));
+  orgSettings['branch_closures'] = [...prev, ...add];
+  rebuildClosureIndex();
+  if(!(await saveOrgSettings())){            // nepovedlo se uložit — vrať původní stav
+    orgSettings['branch_closures'] = prev; rebuildClosureIndex(); return;
+  }
+  document.getElementById('day-detail-overlay').classList.remove('open');
+  renderCalendar();
+  toast(to === dateStr ? 'Pobočky zavřeny — projeví se při dalším generování rozpisu'
+                       : `Pobočky zavřeny do ${to.split('-').reverse().map(Number).join('. ')} — projeví se při dalším generování rozpisu`);
+}
+async function reopenBranchDay(code, dateStr, day){
+  const prev = orgSettings['branch_closures'] || [];
+  orgSettings['branch_closures'] = closuresWithoutDay(prev, code, dateStr, branches.map(b=>b.code));
+  rebuildClosureIndex();
+  if(!(await saveOrgSettings())){ orgSettings['branch_closures'] = prev; rebuildClosureIndex(); return; }
+  renderCalendar();
+  openDayDetail(day);
+  toast('Pobočka je ten den zase otevřená');
 }
 
 async function dayDetailAssign(empId, dateStr, slotCode, day){
@@ -15622,7 +15664,7 @@ const ICON_GROUPS = [
   { label:'Navigace', keys:['nav_rozpis','nav_pobocky','nav_zamestnanci','nav_mezery','nav_statistiky','nav_zadosti','nav_pravidla'] },
   { label:'Toolbar tlačítka', keys:['btn_auto','btn_publikovat','btn_kde_doplnit','btn_pobocky_prehled','btn_zamestnanci_prehled','btn_smazat_menu','btn_smazat_auto','btn_smazat_vse','btn_vice','btn_import_json','btn_export_json','btn_export_excel','btn_export_ics','btn_sablony','btn_opakujici_volno','btn_tisk','btn_mzdy','btn_vymeny','btn_otevrene_smeny','btn_zaloha'] },
   { label:'Akce', keys:['btn_pridat','btn_ulozit','btn_zrusit','btn_upravit','btn_smazat','btn_export_pdf','btn_zpet','btn_dalsi','btn_hotovo','btn_pozvanka','btn_kopirovat','btn_odeslat','btn_kontrolovat','btn_odhlasit','btn_hledat','btn_napoveda','btn_zobrazit','btn_skryt','btn_zastavit','btn_proc','btn_odpojit'] },
-  { label:'Stavy a indikátory', keys:['status_ok','status_warning','status_error','status_info','status_pending','status_locked','status_claimed'] },
+  { label:'Stavy a indikátory', keys:['status_ok','status_warning','status_error','status_info','status_pending','status_locked','status_claimed','status_closed'] },
   { label:'Tutoriál', keys:['tut_uvod','tut_rozpis','tut_pobocky','tut_zamestnanci','tut_mezery','tut_pravidla_tvrdá','tut_pravidla_mekka','tut_pravidla_vaha','tut_pravidla_pary','tut_pravidla_vikendy','tut_ulozit','tut_navigace_mesic','tut_skore','tut_legenda','tut_sirka_sloupce','tut_klik','tut_dalsi_krok','tut_kod_firmy','tut_smerovani'] },
   { label:'Help center', keys:['help_rozpis','help_zamestnanci','help_pobocky','help_pravidla','help_notifikace','help_nastaveni','help_search','help_thumbs_up','help_thumbs_down','help_home','help_zpet_start'] },
   { label:'Notifikace', keys:['notif_bell','notif_rozpis','notif_pozvanka'] },
@@ -16355,6 +16397,33 @@ function branchClosedOn(b, dateStr){
   if(!_closureIdx) rebuildClosureIndex();
   return _closureIdx.has(b.code+'|'+dateStr) || _closureIdx.has('*|'+dateStr);
 }
+// Čistá funkce: seznam uzavírek po „otevření" jedné pobočky v jeden den. Uzavírka '*'
+// se rozbalí na ostatní pobočky, uzavírka přes víc dnů se v daném dni rozdělí na dvě.
+function closureShiftDay(ds, n){
+  const d = new Date(ds+'T00:00:00Z'); d.setUTCDate(d.getUTCDate()+n);
+  return d.toISOString().slice(0,10);
+}
+function closuresWithoutDay(list, code, dateStr, allCodes){
+  const out = [];
+  let seq = 0;
+  const nid = ()=> 'cl'+Date.now().toString(36)+(seq++);
+  const split = (c, branch)=>{
+    const to = c.to || c.from;
+    if(c.from < dateStr) out.push({ ...c, id:nid(), branch, to:closureShiftDay(dateStr,-1) });
+    if(to > dateStr)     out.push({ ...c, id:nid(), branch, from:closureShiftDay(dateStr,1), to });
+  };
+  (list||[]).forEach(c=>{
+    const to = c.to || c.from;
+    const covers = c.from <= dateStr && dateStr <= to;
+    if(!covers || (c.branch !== '*' && c.branch !== code)){ out.push(c); return; }
+    if(c.branch === '*'){
+      allCodes.filter(x=>x!==code).forEach(x=>out.push({ ...c, id:nid(), branch:x }));
+      split(c, code);
+    } else split(c, c.branch);
+  });
+  return out;
+}
+
 function getBranchDayMin(b, dow, dateStr){
   if(dateStr && branchClosedOn(b, dateStr)) return 0;
   const wp = b.weekly_pattern;
