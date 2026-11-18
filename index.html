@@ -2527,7 +2527,7 @@ window.addEventListener('unhandledrejection', e => {
 // odsud, ručně je nepřepisuj. sw.js se od v0.9.29 nebumpuje — je z něj
 // kill-switch bez cache (viz killServiceWorkers() a komentář v sw.js).
 // ============================================================
-const APP_VERSION = '0.9.42';
+const APP_VERSION = '0.9.43';
 
 // Krátký git hash nasazeného buildu. Placeholder níž přepíše build-stamp.js
 // z CF_PAGES_COMMIT_SHA (Cloudflare Pages build command: `node build-stamp.js`).
@@ -3549,6 +3549,7 @@ async function bootstrapAfterAuth(){
       return;
     }
     currentUser = user;
+    initSeenTours(user); // v0.9.43: průvodci jen poprvé (per účet)
 
     const { data: memberRows, error: memberError } = await sb
       .from('org_members')
@@ -4145,8 +4146,8 @@ function openEmployeeModal(id){
     if(notifyEl) notifyEl.checked = true; // default on for new employees
   }
   document.getElementById('employee-modal-overlay').classList.add('open');
-  if(!localStorage.getItem('tut_done_emp_modal')){
-    localStorage.setItem('tut_done_emp_modal','1');
+  if(!tourSeen('emp_modal')){
+    markTourSeen('emp_modal');
     setTimeout(startEmpTutorial, 220);
   }
 }
@@ -12833,6 +12834,9 @@ const PHASE_STEPS = {
 function startTutorial(phase){
   phase = phase || (currentRole === 'admin' ? 'welcome' : 'employee');
   tutPhase = phase;
+  // v0.9.43: „viděno" se zapisuje hned při startu, ne až na konci — zavření
+  // reloadem, klikem mimo nebo odhlášením uprostřed ho dřív nezapsalo.
+  markTourSeen(phase);
   tutSteps = PHASE_STEPS[phase] || WELCOME_STEPS;
   tutIndex = 0;
   tutActive = true;
@@ -12858,7 +12862,7 @@ function endTutorial(){
   sp.style.boxShadow = 'none'; sp.style.display = 'none';
   const bd = document.getElementById('tut-backdrop');
   if(bd) bd.style.boxShadow = '';
-  if(tutPhase) localStorage.setItem('tut_done_'+tutPhase, '1');
+  if(tutPhase) markTourSeen(tutPhase);
   tutPhase = '';
 }
 
@@ -12948,26 +12952,69 @@ function positionTutorial(el, pref){
 }
 
 // ── Auto-triggers ─────────────────────────────────────────────
+// ============================================================
+// SEEN TOURS (v0.9.43) — každý průvodce se sám spustí jen poprvé
+// ============================================================
+// Dřív se „viděno" drželo jen v localStorage (tut_done_*). To je per prohlížeč
+// a per doména: nové zařízení, anonymní okno, vymazaná data nebo každá preview
+// URL z Cloudflare (jiná subdoména = prázdný localStorage) spustily průvodce
+// znovu. Navíc admin dostal při 1. přihlášení Úvod a při 2. přihlášení
+// automaticky Rozpis — „pořád to na mě skáče".
+// Teď: seznam viděných průvodců je v auth user_metadata.seen_tours — per účet,
+// na všech zařízeních. Bez migrace DB a bez RLS (updateUser smí každý přihlášený
+// sám sobě). localStorage tut_done_* zůstává jako lokální cache a zdroj pro
+// jednorázový převod starých příznaků do účtu.
+const TOUR_KEYS = ['welcome','schedule','branches','employees','gaps','rules','employee','emp_modal'];
+let _seenTours = {};
+let _autoTourShownThisSession = false;
+
+function initSeenTours(user){
+  const remote = (user && user.user_metadata && user.user_metadata.seen_tours) || {};
+  _seenTours = Object.assign({}, remote);
+  let migrated = false;
+  TOUR_KEYS.forEach(k => {
+    if(!_seenTours[k] && localStorage.getItem('tut_done_'+k)){ _seenTours[k] = 1; migrated = true; }
+    if(_seenTours[k]) localStorage.setItem('tut_done_'+k, '1');
+  });
+  if(migrated) saveSeenTours();
+}
+
+function tourSeen(key){
+  return !!_seenTours[key] || !!localStorage.getItem('tut_done_'+key);
+}
+
+function markTourSeen(key){
+  if(!key) return;
+  localStorage.setItem('tut_done_'+key, '1');
+  if(_seenTours[key]) return;
+  _seenTours[key] = 1;
+  saveSeenTours();
+}
+
+async function saveSeenTours(){
+  if(!currentUser) return;
+  // Celý objekt naráz — updateUser slučuje user_metadata jen na 1. úrovni.
+  const { error } = await sb.auth.updateUser({ data: { seen_tours: _seenTours } });
+  if(error) console.warn('[TOURS] uložení seen_tours do účtu selhalo (zůstává v localStorage)', error);
+}
+
+// Po přihlášení se automaticky spustí nejvýš JEDEN průvodce a jen ten úvodní:
+// admin „Úvod", zaměstnanec „Průvodce". Průvodci jednotlivých záložek
+// (včetně Rozpisu) se spouští až při první návštěvě záložky
+// (maybeStartTabTutorial) a ručně z menu nápovědy.
 function maybeStartTutorial(){
   if(isPendingMode) return; // v0.9.35
-  const phase = currentRole==='admin' ? 'schedule' : 'employee';
-  // First ever login: start schedule tutorial for admin, employee tutorial for employees
-  if(!localStorage.getItem('tut_done_'+phase)){
-    // For admin: show welcome first, then schedule will trigger on first switchAppTab
-    if(currentRole==='admin' && !localStorage.getItem('tut_done_welcome')){
-      setTimeout(()=>startTutorial('welcome'), 600);
-    } else if(currentRole!=='admin'){
-      setTimeout(()=>startTutorial('employee'), 600);
-    } else {
-      setTimeout(()=>startTutorial('schedule'), 600);
-    }
-  }
+  if(_autoTourShownThisSession) return;
+  const phase = currentRole==='admin' ? 'welcome' : 'employee';
+  if(tourSeen(phase)) return;
+  _autoTourShownThisSession = true;
+  setTimeout(()=>startTutorial(phase), 600);
 }
 
 function maybeStartTabTutorial(tab){
   if(isPendingMode) return; // v0.9.35
   if(currentRole!=='admin') return;
-  if(!tutActive && !localStorage.getItem('tut_done_'+tab) && PHASE_STEPS[tab]){
+  if(!tutActive && !tourSeen(tab) && PHASE_STEPS[tab]){
     setTimeout(()=>startTutorial(tab), 350);
   }
 }
