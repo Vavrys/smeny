@@ -25,6 +25,7 @@
 !tests/october_repro.js
 !tests/schedule_harness.js
 !tests/membership_guard.js
+!tests/quick_setup.js
 !tests/e2e/
 !tests/e2e/**
 !scripts/
