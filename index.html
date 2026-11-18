@@ -275,6 +275,41 @@ body.dark .auth-shell{
   cursor:pointer;font-family:inherit;padding:4px 0;text-decoration:underline;display:block;text-align:center;margin-top:14px;
 }
 .onboarding-skip-link:hover{color:var(--ink-soft)}
+/* ── Quick setup (v0.9.44) ── */
+.qs .qs-field{margin:0 0 16px}
+.qs .qs-field > label{display:block;font-size:13.5px;font-weight:700;color:var(--ink);margin:0 0 7px}
+.qs-stepper{display:flex;align-items:center;gap:6px}
+.qs-stepper button{width:38px;height:38px;border-radius:9px;border:1.5px solid var(--ink);background:var(--surface);color:var(--ink);font-size:20px;font-weight:600;line-height:1;cursor:pointer;font-family:inherit}
+.qs-stepper button:hover{background:var(--accent-soft);border-color:var(--accent)}
+.qs-stepper input{width:64px;height:38px;text-align:center;font-size:16px;font-weight:700;border:1.5px solid var(--ink);border-radius:9px;background:var(--surface);color:var(--ink);font-family:inherit;-moz-appearance:textfield}
+.qs-stepper input::-webkit-outer-spin-button,.qs-stepper input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.qs-stepper .qs-unit{font-size:14px;font-weight:600;color:var(--ink);margin-left:4px}
+.qs-modes{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.qs-mode{display:flex;flex-direction:column;gap:3px;text-align:left;padding:11px 12px;border-radius:10px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer;font-family:inherit}
+.qs-mode strong{font-size:14px}
+.qs-mode span{font-size:12.5px;line-height:1.4;color:var(--ink-soft)}
+.qs-mode:hover{border-color:var(--accent)}
+.qs-mode.on{border:2px solid var(--accent);background:var(--accent-soft);padding:10.5px 11.5px}
+.qs-segs{display:flex;gap:6px;flex-wrap:wrap}
+.qs-seg{min-width:58px;padding:8px 12px;border-radius:9px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
+.qs-seg:hover{border-color:var(--accent)}
+.qs-seg.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.qs-check{display:flex !important;align-items:center;gap:8px;font-weight:600 !important;cursor:pointer}
+.qs-check input{width:18px;height:18px;accent-color:var(--accent)}
+.qs-types{display:flex;flex-wrap:wrap;gap:6px;margin:-6px 0 14px}
+.qs-type{font-size:12.5px;font-weight:700;padding:4px 9px;border-radius:7px;border:1.5px solid var(--c);color:var(--ink);background:color-mix(in srgb, var(--c) 14%, var(--surface))}
+.qs-summary{border-radius:10px;padding:10px 12px;font-size:13px;line-height:1.5;color:var(--ink);display:flex;flex-direction:column;gap:4px;margin:4px 0 10px}
+.qs-summary.ok{background:var(--status-ok-soft);border:1.5px solid var(--status-ok)}
+.qs-summary.warn{background:var(--status-warn-soft);border:1.5px solid var(--status-warn)}
+.qs-note{font-size:12.5px;line-height:1.45;color:var(--ink);background:var(--paper);border:1.5px solid var(--line);border-radius:9px;padding:8px 10px;margin:0 0 10px}
+.qs-note.warn{background:var(--status-warn-soft);border-color:var(--status-warn)}
+.qs-go{margin-top:6px;font-size:15px;padding:12px 0}
+.qs-banner{align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:0 0 12px;padding:11px 14px;border-radius:var(--radius);border:1.5px solid var(--accent);background:var(--accent-soft);color:var(--ink);font-size:13.5px;line-height:1.45}
+.qs-banner-text{flex:1;min-width:220px}
+.qs-banner-actions{display:flex;gap:8px;flex-wrap:wrap}
+.qs-banner-actions button{white-space:nowrap}
+@media (max-width:480px){ .qs-modes{grid-template-columns:1fr} }
+
 .onboarding-item-row{
   display:flex;align-items:center;gap:8px;margin-bottom:8px;
 }
@@ -1454,6 +1489,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
 
     <!-- ROZPIS (placeholder for now — full grid + algorithm comes next) -->
     <div id="pane-schedule" class="tab-pane">
+      <div id="qs-sample-banner" class="qs-banner" style="display:none"></div>
       <div class="panel" style="overflow:visible">
         <div class="sched-toolbar">
           <div class="month-nav">
@@ -2457,7 +2493,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
 <!-- ============================================================
      ONBOARDING WIZARD (new admin — no branches/employees yet)
      ============================================================ -->
-<div class="onboarding-overlay" id="onboarding-wizard-overlay" onclick="if(event.target===this)skipOnboarding()">
+<div class="onboarding-overlay" id="onboarding-wizard-overlay">
   <div class="onboarding-card">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
       <div style="width:32px;height:32px;border-radius:8px;background:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0">
@@ -2476,12 +2512,8 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
       </div>
       <span style="font-family:var(--font-display);font-weight:700;font-size:17px;color:var(--ink)">Směny</span>
     </div>
-    <div class="onboarding-progress">
-      <span class="onboarding-progress-label" id="ob-step-label">Krok 1 / 4</span>
-      <div class="onboarding-progress-track"><div class="onboarding-progress-fill" id="ob-progress-fill" style="width:25%"></div></div>
-    </div>
     <div id="ob-step-content"></div>
-    <button class="onboarding-skip-link" onclick="skipOnboarding()">Přeskočit průvodce</button>
+    <button class="onboarding-skip-link" onclick="skipOnboarding()">Nastavím si to sám</button>
   </div>
 </div>
 
@@ -2527,7 +2559,7 @@ window.addEventListener('unhandledrejection', e => {
 // odsud, ručně je nepřepisuj. sw.js se od v0.9.29 nebumpuje — je z něj
 // kill-switch bez cache (viz killServiceWorkers() a komentář v sw.js).
 // ============================================================
-const APP_VERSION = '0.9.43';
+const APP_VERSION = '0.9.44';
 
 // Krátký git hash nasazeného buildu. Placeholder níž přepíše build-stamp.js
 // z CF_PAGES_COMMIT_SHA (Cloudflare Pages build command: `node build-stamp.js`).
@@ -3696,8 +3728,9 @@ async function bootstrapAfterAuth(){
     initSchedule();
     // v0.9.1 (B1): zaměstnanec startuje na Můj rozpis — jeho výchozí obrazovka
     if(currentRole === 'employee') switchAppTab('myschedule');
-    checkAndShowOnboarding();
-    maybeStartTutorial();
+    // v0.9.44: průvodce až po rychlém nastavení, ne přes něj
+    if(!checkAndShowOnboarding()) maybeStartTutorial();
+    renderQuickSetupBanner();
   } catch(err){
     document.getElementById('loading-screen').style.display = 'none';
     document.getElementById('auth-shell').style.display = 'flex';
@@ -3762,153 +3795,311 @@ function flushPendingActivityLog(){
 }
 
 // ============================================================
-// ONBOARDING WIZARD
+// QUICK SETUP (v0.9.44) — nový admin má za 30 s vzorovou pobočku a tým
 // ============================================================
-let obStep = 0;
-const OB_STEPS = [
-  { label: 'Vítejte', key: 'welcome' },
-  { label: 'Pobočky',  key: 'branches' },
-  { label: 'Zaměstnanci', key: 'employees' },
-  { label: 'Pravidla', key: 'rules' }
-];
+// Nahrazuje starý 4krokový onboarding wizard (ten navíc zakládal pobočku
+// bez povinného `code` → insert padal). Ukáže se adminovi prázdné firmy
+// (žádná pobočka ani zaměstnanec), dokud ho nedokončí nebo nepřeskočí.
+//
+// Režimy směn:
+//   flex  = jako Beer Spa: holá pobočka bez typů, „lidí denně" podle potřeby
+//   fixed = pevné šablony 6/8/12/24 h → typy směn s časy v názvu (Ranní 6–14),
+//           pobočka chce každý den obsadit všechny typy (min = target = max).
+// Časy, délky a noční příznak typů se zatím ukládají do org_settings.shift_meta,
+// režim pobočky do org_settings.branch_modes (klíč = kód pobočky, stejně jako
+// branch_limits). Generátor je zatím NEČTE — kontroly zákoníku práce přijdou
+// v další dávce. Žádná migrace DB: admin smí branches/shift_types/employees
+// vkládat přímo (RLS „admins can manage …"), org_settings řádek zakládá
+// create_organization.
 
-function checkAndShowOnboarding() {
-  if (currentRole !== 'admin') return;
-  if (!currentOrg) return;
-  const doneKey = 'onboarding_done_' + currentOrg.id;
-  if (localStorage.getItem(doneKey)) return;
-  if (branches.length === 0 && employees.length === 0) {
-    obStep = 0;
-    renderOnboardingStep();
-    const overlay = document.getElementById('onboarding-wizard-overlay');
-    if (overlay) overlay.classList.add('open');
+// Fond pracovní doby podle § 79 ZP: jednosměnný 40 h, dvousměnný 38,75 h,
+// třísměnný a nepřetržitý 37,5 h týdně.
+const QS_TEMPLATES = {
+  6:  { day: [['R','Ranní','6','12'], ['O','Odpolední','12','18']], night: [['V','Večerní','18','24'], ['N','Noční','0','6']] },
+  8:  { day: [['R','Ranní','6','14'], ['O','Odpolední','14','22']], night: [['N','Noční','22','6']] },
+  12: { day: [['D','Denní','7','19']],                              night: [['N','Noční','19','7']] },
+  24: { day: [['S','Služba 24 h','7','7']],                         night: [] },
+};
+const QS_COLORS = { R:'#E0A030', O:'#3B64B0', N:'#5B3E96', D:'#2B8A5E', S:'#B5462F', V:'#C2577E' };
+
+// Čistá funkce (kryje ji tests/quick_setup.js): vstup formuláře → co se má
+// založit + přehled kapacity. Nic nevolá, nic nemění.
+function buildQuickSetupPlan(inp){
+  const nEmp   = Math.max(1, Math.min(200, parseInt(inp.employees) || 1));
+  const mode   = inp.mode === 'fixed' ? 'fixed' : 'flex';
+  const length = [6,8,12,24].includes(+inp.length) ? +inp.length : 8;
+  const night  = mode === 'fixed' && (length === 24 || !!inp.night);
+  const bCode  = inp.branchCode || 'A';
+  const bName  = inp.branchName || 'Pobočka 1';
+
+  let types = [];
+  if(mode === 'fixed'){
+    const tpl = QS_TEMPLATES[length];
+    const rows = tpl.day.concat(night ? tpl.night : []);
+    types = rows.map(([suffix, label, from, to], i) => ({
+      code: bCode + suffix,
+      label: `${label} ${from}–${to}`,
+      color: QS_COLORS[suffix] || '#888888',
+      sort_order: i,
+      from, to, hours: length,
+      night: suffix === 'N' || length === 24,
+    }));
   }
+
+  const perDay = mode === 'fixed' ? types.length : Math.max(1, Math.min(50, parseInt(inp.perDay) || 1));
+  const weekly_pattern = {};
+  for(let dow = 0; dow <= 6; dow++) weekly_pattern[dow] = { min: perDay, target: perDay, max: perDay };
+  const branch = {
+    code: bCode, name: bName, color: '#2B6E4F',
+    min_weekday: perDay, min_weekend: perDay, max_per_day: perDay,
+    month_min: 0, month_max: 31, weekly_pattern,
+  };
+
+  // fond pracovní doby a směn na plný úvazek
+  const shiftsPerDay = types.length;
+  const weeklyHours = mode === 'flex' ? 40
+    : (night || shiftsPerDay >= 3) ? 37.5
+    : shiftsPerDay === 2 ? 38.75 : 40;
+  const monthHours = Math.round(weeklyHours * 52 / 12);
+  let lim;
+  if(mode === 'flex'){
+    lim = { min: 12, target: 15, max: 17, consec: 4, minRest: 1, idealRest: 2 };  // výchozí z formuláře zaměstnance
+  } else {
+    const target = Math.max(1, Math.round(Math.min(weeklyHours * 52 / 12 / length, 21.7)));
+    lim = {
+      min: Math.round(target * 0.8), target, max: target + 2,
+      consec: length >= 24 ? 1 : length >= 12 ? 3 : 5,
+      minRest: length >= 24 ? 2 : 1,
+      idealRest: 2,
+    };
+  }
+
+  const employees = Array.from({ length: nEmp }, (_, i) => ({
+    name: `Zaměstnanec ${i + 1}`,
+    min_shifts: lim.min, target_shifts: lim.target, max_shifts: lim.max,
+    max_x: 6, max_consec: lim.consec, min_rest: lim.minRest, ideal_rest: lim.idealRest,
+    min_free_weekends: 0, notes: '',
+    branch_limits: { [bCode]: { shiftTypes: {} } },
+    is_fixed: false, employment_type: 'full', sort_order: i,
+  }));
+
+  const demandMonth = Math.round(perDay * 30.4);
+  const needPeople  = Math.ceil(demandMonth / lim.target);
+  return {
+    mode, length, night, branch, types, employees,
+    stats: { perDay, weeklyHours, monthHours, perPerson: lim.target, demandMonth, needPeople, enough: nEmp >= needPeople },
+    branchMode: { mode, length: mode === 'fixed' ? length : null, night },
+    shiftMeta: Object.fromEntries(types.map(t => [t.code, { from: t.from, to: t.to, hours: t.hours, night: t.night }])),
+  };
 }
 
-function skipOnboarding() {
-  if (currentOrg) localStorage.setItem('onboarding_done_' + currentOrg.id, '1');
-  const overlay = document.getElementById('onboarding-wizard-overlay');
-  if (overlay) overlay.classList.remove('open');
+let qsState = { employees: 10, mode: 'flex', length: 8, night: false, perDay: 2, busy: false };
+
+// Vrací true, když se quick setup ukázal (pak se průvodce spustí až po něm).
+function checkAndShowOnboarding(force){
+  if(currentRole !== 'admin' || !currentOrg) return false;
+  if(!force){
+    if(branches.length || employees.length) return false;
+    if(orgSettings && orgSettings.quick_setup_skipped) return false;
+  }
+  renderQuickSetup();
+  document.getElementById('onboarding-wizard-overlay')?.classList.add('open');
+  return true;
 }
 
-function finishOnboarding() {
-  if (currentOrg) localStorage.setItem('onboarding_done_' + currentOrg.id, '1');
-  const overlay = document.getElementById('onboarding-wizard-overlay');
-  if (overlay) overlay.classList.remove('open');
-  logActivity('Onboarding dokončen');
+function closeQuickSetup(){
+  document.getElementById('onboarding-wizard-overlay')?.classList.remove('open');
 }
 
-function obNext() {
-  if (obStep < OB_STEPS.length - 1) { obStep++; renderOnboardingStep(); }
-  else { finishOnboarding(); }
+async function skipOnboarding(){
+  closeQuickSetup();
+  orgSettings.quick_setup_skipped = true;
+  await saveOrgSettings();
+  maybeStartTutorial();
 }
 
-function obBack() {
-  if (obStep > 0) { obStep--; renderOnboardingStep(); }
+function qsSet(key, val){
+  if(qsState.busy) return;
+  if(key === 'employees') val = Math.max(1, Math.min(200, val));
+  if(key === 'perDay') val = Math.max(1, Math.min(50, val));
+  qsState[key] = val;
+  renderQuickSetup();
 }
 
-function renderOnboardingStep() {
-  const label = document.getElementById('ob-step-label');
-  const fill  = document.getElementById('ob-progress-fill');
-  const content = document.getElementById('ob-step-content');
-  if (!content) return;
-  const total = OB_STEPS.length;
-  if (label) label.textContent = `Krok ${obStep + 1} / ${total} — ${OB_STEPS[obStep].label}`;
-  if (fill)  fill.style.width = `${((obStep + 1) / total) * 100}%`;
+function renderQuickSetup(){
+  const el = document.getElementById('ob-step-content');
+  if(!el) return;
+  const s = qsState;
+  const plan = buildQuickSetupPlan(s);
+  const st = plan.stats;
+  const stepper = (key, val, unit) => `
+    <div class="qs-stepper">
+      <button type="button" onclick="qsSet('${key}', ${val - 1})" aria-label="Méně">−</button>
+      <input type="number" min="1" value="${val}" onchange="qsSet('${key}', parseInt(this.value)||1)" aria-label="${unit}">
+      <button type="button" onclick="qsSet('${key}', ${val + 1})" aria-label="Více">+</button>
+      <span class="qs-unit">${unit}</span>
+    </div>`;
+  const lenBtn = n => `<button type="button" class="qs-seg${s.length === n ? ' on' : ''}" onclick="qsSet('length', ${n})">${n} h</button>`;
 
-  const isLast = obStep === total - 1;
-  const nextLabel = isLast ? 'Dokončit a přejít do aplikace' : 'Další →';
-
-  let html = '';
-  if (obStep === 0) {
-    html = `
-      <div style="text-align:center;padding:16px 0 24px">
-        <div style="font-size:36px;margin-bottom:12px">${ICONS.nav_rozpis}</div>
-        <h2 style="font-size:22px;font-weight:700;margin:0 0 8px">Vítejte v aplikaci Směny!</h2>
-        <p style="color:var(--ink-soft);margin:0 0 24px">Tento průvodce vám pomůže nastavit aplikaci za pár minut.</p>
-        <ul style="text-align:left;list-style:none;padding:0;margin:0 0 8px;display:flex;flex-direction:column;gap:10px">
-          <li style="display:flex;align-items:center;gap:10px"><span style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0">1</span> Přidáte pobočky</li>
-          <li style="display:flex;align-items:center;gap:10px"><span style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0">2</span> Přidáte zaměstnance</li>
-          <li style="display:flex;align-items:center;gap:10px"><span style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0">3</span> Nastavíte pravidla směn</li>
-        </ul>
+  let detail = '';
+  if(s.mode === 'flex'){
+    detail = `
+      <div class="qs-field">
+        <label>Kolik lidí má být denně v práci?</label>
+        ${stepper('perDay', s.perDay, s.perDay === 1 ? 'člověk' : (s.perDay < 5 ? 'lidé' : 'lidí'))}
       </div>`;
-  } else if (obStep === 1) {
-    const branchList = branches.map(b => `<li style="padding:6px 0;border-bottom:1px solid var(--line)">${b.name}</li>`).join('') || '<li style="color:var(--ink-soft);padding:6px 0">Zatím žádné pobočky</li>';
-    html = `
-      <h3 style="font-size:18px;font-weight:700;margin:0 0 8px">Přidejte pobočky</h3>
-      <p style="color:var(--ink-soft);margin:0 0 16px;font-size:14px">Pobočky jsou provozovny nebo místa, kde tým pracuje.</p>
-      <div style="display:flex;gap:8px;margin-bottom:12px">
-        <input id="ob-branch-name" type="text" placeholder="Název pobočky" class="form-input" style="flex:1">
-        <button class="btn btn-primary" onclick="onboardingAddBranch()">Přidat</button>
+  } else {
+    detail = `
+      <div class="qs-field">
+        <label>Jak dlouhé jsou směny?</label>
+        <div class="qs-segs">${[6,8,12,24].map(lenBtn).join('')}</div>
       </div>
-      <ul style="list-style:none;padding:0;margin:0">${branchList}</ul>`;
-  } else if (obStep === 2) {
-    const empList = employees.map(e => `<li style="padding:6px 0;border-bottom:1px solid var(--line)">${escapeHtml(e.name)}</li>`).join('') || '<li style="color:var(--ink-soft);padding:6px 0">Zatím žádní zaměstnanci</li>';
-    html = `
-      <h3 style="font-size:18px;font-weight:700;margin:0 0 8px">Přidejte zaměstnance</h3>
-      <p style="color:var(--ink-soft);margin:0 0 16px;font-size:14px">Zaměstnanci budou přiřazeni ke směnám. Pozvat je můžeš pozvánkovým kódem organizace.</p>
-      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px">
-        <input id="ob-emp-name" type="text" placeholder="Celé jméno" class="form-input">
-        <input id="ob-emp-email" type="email" placeholder="E-mail (volitelné)" class="form-input">
-        <button class="btn btn-primary" onclick="onboardingAddEmployee()">Přidat</button>
-      </div>
-      <ul style="list-style:none;padding:0;margin:0">${empList}</ul>`;
-  } else if (obStep === 3) {
-    html = `
-      <h3 style="font-size:18px;font-weight:700;margin:0 0 8px">Pravidla směn</h3>
-      <p style="color:var(--ink-soft);margin:0 0 16px;font-size:14px">Pravidla určují, jak algoritmus generuje rozpis. Můžeš je nastavit podrobněji v záložce <strong>Pravidla</strong> po dokončení průvodce.</p>
-      <div style="background:var(--paper);border-radius:var(--radius-sm);padding:16px;border:1px solid var(--line)">
-        <ul style="margin:0;padding-left:18px;color:var(--ink-soft);font-size:14px;display:flex;flex-direction:column;gap:8px">
-          <li>Minimální odpočinek mezi směnami: <strong>11 hodin</strong></li>
-          <li>Max. směn za týden: <strong>5</strong></li>
-          <li>Spravedlivé rozdělení víkendů</li>
-          <li>Zohlednění nedostupnosti zaměstnanců</li>
-        </ul>
-      </div>
-      <p style="color:var(--ink-soft);font-size:13px;margin:12px 0 0">Tato pravidla lze kdykoliv upravit v záložce Pravidla.</p>`;
+      ${s.length === 24 ? '' : `<div class="qs-field">
+        <label class="qs-check">
+          <input type="checkbox" ${plan.night ? 'checked' : ''} onchange="qsSet('night', this.checked)">
+          Pracujete i v noci
+        </label>
+      </div>`}
+      <div class="qs-types">${plan.types.map(t => `<span class="qs-type" style="--c:${t.color}">${escapeHtml(t.label)}</span>`).join('')}</div>
+      ${s.length === 24 ? `<div class="qs-note warn">Pozor: zákoník práce povoluje směnu nejvýš 12 hodin (výjimky má jen zdravotnictví). 24h služby se obvykle řeší pohotovostí nebo dohodou. Kontrolu pravidel přidáme v další verzi.</div>` : ''}`;
   }
 
-  html += `<div style="display:flex;gap:10px;margin-top:24px;justify-content:flex-end">`;
-  if (obStep > 0) html += `<button class="btn btn-secondary" onclick="obBack()">← Zpět</button>`;
-  html += `<button class="btn btn-primary" onclick="obNext()">${nextLabel}</button>`;
-  html += `</div>`;
+  el.innerHTML = `
+    <div class="onboarding-step qs">
+      <h2>Rychlé nastavení</h2>
+      <p>Připravíme vzorovou pobočku a tým, ať můžeš rovnou zkusit vytvořit rozpis. Jména a čísla změníš kdykoli.</p>
 
-  content.innerHTML = html;
+      <div class="qs-field">
+        <label>Kolik máte zaměstnanců?</label>
+        ${stepper('employees', s.employees, 'lidí')}
+      </div>
+
+      <div class="qs-field">
+        <label>Jak u vás vypadají směny?</label>
+        <div class="qs-modes">
+          <button type="button" class="qs-mode${s.mode === 'flex' ? ' on' : ''}" onclick="qsSet('mode','flex')">
+            <strong>Flexibilně</strong><span>Celý den podle potřeby, bez pevných časů.</span>
+          </button>
+          <button type="button" class="qs-mode${s.mode === 'fixed' ? ' on' : ''}" onclick="qsSet('mode','fixed')">
+            <strong>Pevné směny</strong><span>Ranní, odpolední, noční… s pevnými časy.</span>
+          </button>
+        </div>
+      </div>
+
+      ${detail}
+
+      <div class="qs-summary ${st.enough ? 'ok' : 'warn'}">
+        <div>Plný úvazek: <b>${String(st.weeklyHours).replace('.', ',')} h týdně</b> ≈ ${st.monthHours} h měsíčně → cca <b>${st.perPerson} směn</b>${s.mode === 'fixed' ? ` po ${plan.length} h` : ''} na člověka.</div>
+        <div>${s.mode === 'fixed' ? `Na ${st.perDay} ${st.perDay === 1 ? 'směnu' : st.perDay < 5 ? 'směny' : 'směn'} denně` : `Aby bylo denně v práci ${st.perDay}`} potřebuješ zhruba <b>${st.needPeople} lidí</b> na plný úvazek. ${st.enough ? `Máš ${s.employees}, to stačí.` : `Máš ${s.employees}, rozpis bude mít díry.`}</div>
+      </div>
+      ${plan.night ? `<div class="qs-note">Odpočinek po noční (11 h mezi směnami) zatím hlídáš sám. Automatickou kontrolu přidáme v další verzi.</div>` : ''}
+
+      <div class="auth-error" id="qs-error" style="display:none"></div>
+      <button class="btn-primary qs-go" id="qs-go" onclick="applyQuickSetup()" ${s.busy ? 'disabled' : ''}>${s.busy ? 'Vytvářím…' : 'Vytvořit a začít'}</button>
+    </div>`;
 }
 
-async function onboardingAddBranch() {
-  const input = document.getElementById('ob-branch-name');
-  if (!input || !input.value.trim()) return;
-  const name = input.value.trim();
-  if (!currentOrg) return;
-  const { data, error } = await sb.from('branches').insert({ org_id: currentOrg.id, name }).select().single();
-  if (error) { toast('Chyba při přidávání pobočky: ' + error.message, 'error'); return; }
-  branches.push(data);
-  input.value = '';
-  renderOnboardingStep();
+async function applyQuickSetup(){
+  if(qsState.busy) return;
+  const errEl = document.getElementById('qs-error');
+  const plan = buildQuickSetupPlan(qsState);
+  qsState.busy = true; renderQuickSetup();
+  const created = { branchId: null, employeeIds: [] };
+  const fail = (msg) => { throw new Error(msg); };
+  try{
+    // 1) pobočka
+    const bRes = await dbRun(sb.from('branches').insert({ ...plan.branch, org_id: currentOrg.id, sort_order: 0 }).select().single(), 'quick setup: insert branch');
+    if(bRes.error || !bRes.data) fail('pobočku se nepodařilo založit' + (bRes.error ? ': ' + bRes.error.message : ''));
+    created.branchId = bRes.data.id;
+
+    // 2) typy směn (jen pevný režim)
+    if(plan.types.length){
+      const rows = plan.types.map(t => ({ org_id: currentOrg.id, branch_id: created.branchId, code: t.code, label: t.label, color: t.color, sort_order: t.sort_order }));
+      const tRes = await dbRun(sb.from('shift_types').insert(rows).select('id'), 'quick setup: insert shift_types');
+      if(tRes.error || (tRes.data || []).length !== rows.length) fail('typy směn se nepodařilo založit' + (tRes.error ? ': ' + tRes.error.message : ''));
+    }
+
+    // 3) zaměstnanci
+    const eRows = plan.employees.map(e => ({ ...e, org_id: currentOrg.id }));
+    const eRes = await dbRun(sb.from('employees').insert(eRows).select('id'), 'quick setup: insert employees');
+    if(eRes.error || (eRes.data || []).length !== eRows.length) fail('zaměstnance se nepodařilo založit' + (eRes.error ? ': ' + eRes.error.message : ''));
+    created.employeeIds = eRes.data.map(r => r.id);
+
+    // 4) nastavení: režim pobočky, časy typů, značka vzorových dat
+    orgSettings.branch_modes = { ...(orgSettings.branch_modes || {}), [plan.branch.code]: plan.branchMode };
+    orgSettings.shift_meta   = { ...(orgSettings.shift_meta || {}), ...plan.shiftMeta };
+    orgSettings.quick_setup  = { created_at: new Date().toISOString(), branch_id: created.branchId, employee_ids: created.employeeIds, dismissed: false };
+    delete orgSettings.quick_setup_skipped;
+    if(!(await saveOrgSettings())) fail('nastavení se nepodařilo uložit');
+  } catch(err){
+    // úklid, ať po chybě nezůstane půlka vzorových dat (typy smaže kaskáda z pobočky)
+    if(created.employeeIds.length) await dbRun(sb.from('employees').delete().in('id', created.employeeIds), 'quick setup: rollback employees');
+    if(created.branchId) await dbRun(sb.from('branches').delete().eq('id', created.branchId), 'quick setup: rollback branch');
+    qsState.busy = false; renderQuickSetup();
+    const e2 = document.getElementById('qs-error');
+    if(e2){ e2.textContent = 'Nepodařilo se: ' + (err && err.message ? err.message : String(err)) + '. Zkus to znovu.'; e2.style.display = 'block'; }
+    return;
+  }
+
+  qsState.busy = false;
+  closeQuickSetup();
+  logActivity(`Rychlé nastavení: 1 pobočka, ${plan.employees.length} zaměstnanců (${plan.mode === 'fixed' ? 'pevné směny ' + plan.length + ' h' : 'flexibilně'})`);
+  await loadBranches();
+  await loadEmployees();
+  switchAppTab('schedule');
+  renderCalendar();
+  renderQuickSetupBanner();
+  toast(`Hotovo: pobočka a ${plan.employees.length} zaměstnanců jsou připravení`);
+  maybeStartTutorial();
 }
 
-async function onboardingAddEmployee() {
-  const nameIn  = document.getElementById('ob-emp-name');
-  const emailIn = document.getElementById('ob-emp-email');
-  if (!nameIn || !nameIn.value.trim()) return;
-  const name = nameIn.value.trim();
-  const email = emailIn ? emailIn.value.trim() : '';
-  if (!currentOrg) return;
-  // C1 v0.9.6: stejná ochrana proti duplicitnímu jménu jako v saveEmployee
-  const dupOb = employees.find(x=>_normName(x.name) === _normName(name));
-  if(dupOb && !confirm(`Zaměstnanec se jménem "${dupOb.name}" už existuje.\n\nOpravdu přidat druhého se stejným jménem?`)) return;
-  // v0.9.3: employees nemá full_name/email/branch_id — jméno patří do name,
-  // e-mail do notes a pobočka se přiřazuje přes branch_limits (jsonb dle kódu)
-  const payload = { org_id: currentOrg.id, name, sort_order: employees.length };
-  if (email) payload.notes = 'E-mail: ' + email;
-  if (branches.length > 0) payload.branch_limits = { [branches[0].code]: { shiftTypes: {} } };
-  const { data, error } = await sb.from('employees').insert(payload).select().single();
-  if (error) { toast('Chyba při přidávání zaměstnance: ' + error.message, 'error'); return; }
-  employees.push(data);
-  nameIn.value = '';
-  if (emailIn) emailIn.value = '';
-  renderOnboardingStep();
+// Pruh nad rozpisem, dokud vzorová data nepotvrdíš nebo nesmažeš.
+function renderQuickSetupBanner(){
+  const host = document.getElementById('qs-sample-banner');
+  if(!host) return;
+  const q = orgSettings && orgSettings.quick_setup;
+  if(currentRole !== 'admin' || !q || q.dismissed){ host.style.display = 'none'; host.innerHTML = ''; return; }
+  host.style.display = 'flex';
+  host.innerHTML = `
+    <div class="qs-banner-text"><b>Vzorová pobočka a tým jsou připravení.</b> Klikni na <b>Automaticky doplnit</b> a uvidíš první rozpis. Jména přejmenuješ v záložkách Pobočky a Zaměstnanci.</div>
+    <div class="qs-banner-actions">
+      <button class="btn-outline" onclick="deleteQuickSetupData()">Smazat vzorová data</button>
+      <button class="btn-accent" onclick="dismissQuickSetupBanner()">Rozumím</button>
+    </div>`;
+}
+
+async function dismissQuickSetupBanner(){
+  if(!orgSettings.quick_setup) return;
+  orgSettings.quick_setup.dismissed = true;
+  renderQuickSetupBanner();
+  await saveOrgSettings();
+}
+
+async function deleteQuickSetupData(){
+  const q = orgSettings.quick_setup;
+  if(!q) return;
+  if(!confirm('Smazat vzorovou pobočku, její typy směn a vzorové zaměstnance včetně jejich směn?\n\nPak můžeš rychlé nastavení projít znovu.')) return;
+  const ids = (q.employee_ids || []).filter(id => employees.some(e => e.id === id));
+  if(ids.length){
+    const r = await dbRun(sb.from('employees').delete().in('id', ids), 'quick setup: delete employees', { action: 'Smazání vzorových zaměstnanců' });
+    if(r.error) return;
+  }
+  const br = branches.find(b => b.id === q.branch_id);
+  if(br){
+    const r = await dbRun(sb.from('branches').delete().eq('id', br.id), 'quick setup: delete branch', { action: 'Smazání vzorové pobočky' });
+    if(r.error) return;
+    if(orgSettings.branch_modes) delete orgSettings.branch_modes[br.code];
+    if(orgSettings.shift_meta) Object.keys(orgSettings.shift_meta).forEach(c => { if(shiftTypes.some(t => t.code === c && t.branch_id === br.id)) delete orgSettings.shift_meta[c]; });
+  }
+  delete orgSettings.quick_setup;
+  await saveOrgSettings();
+  logActivity('Vzorová data z rychlého nastavení smazána');
+  await loadBranches();
+  await loadEmployees();
+  renderCalendar();
+  renderQuickSetupBanner();
+  toast('Vzorová data smazána');
+  checkAndShowOnboarding();
 }
 
 // ============================================================
