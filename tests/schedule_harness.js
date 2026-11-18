@@ -340,5 +340,32 @@ for (const sc of SCEN) {
     'směn mimo uzavírku ' + open);
 }
 
+// ══ 10 — „Otevřít tento den": rozdělení uzavírky a rozbalení '*' ════════════
+{
+  const sb = makeSandbox(41);
+  const errs = [];
+  const call = (list, code, ds) => JSON.parse(vm.runInContext(
+    'JSON.stringify(closuresWithoutDay(' + JSON.stringify(list) + ',' + JSON.stringify(code) + ',' + JSON.stringify(ds) + ",['U','K','M']))", sb));
+  const days = list => { const o = {}; list.forEach(c => { let d = c.from; const to = c.to || c.from;
+    for (let i = 0; i < 60 && d <= to; i++) { (o[c.branch] = o[c.branch] || []).push(d); d = vm.runInContext('closureShiftDay("' + d + '",1)', sb); } }); return o; };
+  // jedna pobočka, víc dnů → uprostřed se rozdělí
+  let r = days(call([{ id: 'a', branch: 'U', from: '2026-12-24', to: '2026-12-26' }], 'U', '2026-12-25'));
+  if (JSON.stringify(r.U) !== JSON.stringify(['2026-12-24', '2026-12-26'])) errs.push('rozdělení U: ' + JSON.stringify(r.U));
+  // první / poslední den a jednodenní uzavírka
+  r = days(call([{ id: 'a', branch: 'U', from: '2026-12-24', to: '2026-12-26' }], 'U', '2026-12-24'));
+  if (JSON.stringify(r.U) !== JSON.stringify(['2026-12-25', '2026-12-26'])) errs.push('otevření prvního dne: ' + JSON.stringify(r.U));
+  r = call([{ id: 'a', branch: 'U', from: '2026-12-24' }], 'U', '2026-12-24');
+  if (r.length) errs.push('jednodenní uzavírka měla po otevření zmizet');
+  // '*' → ostatní pobočky zůstanou zavřené, otevřená je jen ta jedna a jen ten den
+  r = days(call([{ id: 'a', branch: '*', from: '2026-12-24', to: '2026-12-25' }], 'K', '2026-12-24'));
+  if (JSON.stringify(r.U) !== JSON.stringify(['2026-12-24', '2026-12-25'])) errs.push("'*' → U: " + JSON.stringify(r.U));
+  if (JSON.stringify(r.M) !== JSON.stringify(['2026-12-24', '2026-12-25'])) errs.push("'*' → M: " + JSON.stringify(r.M));
+  if (JSON.stringify(r.K) !== JSON.stringify(['2026-12-25'])) errs.push("'*' → K: " + JSON.stringify(r.K));
+  // cizí den a jiná pobočka zůstanou beze změny
+  r = call([{ id: 'a', branch: 'M', from: '2026-12-24' }], 'U', '2026-12-24');
+  if (r.length !== 1 || r[0].id !== 'a') errs.push('uzavírka jiné pobočky se změnila');
+  check('[10] otevření jednoho dne: rozdělení víc-denní uzavírky a rozbalení „všechny pobočky"', errs, '5 scénářů');
+}
+
 console.log(fail ? '\n' + fail + ' kontrol(a) selhalo' : '\nvšechny kontroly prošly');
 process.exit(fail ? 1 : 0);
