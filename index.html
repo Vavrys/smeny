@@ -1090,6 +1090,7 @@ body.dark .search-input{color:var(--ink)}
 #bublik-speech.l{transform-origin:bottom left}
 #bublik-speech::after{content:"";position:absolute;bottom:-9px;right:var(--tail,26px);width:14px;height:14px;background:var(--surface);border-right:2px solid var(--ink);border-bottom:2px solid var(--ink);transform:rotate(45deg)}
 #bublik-speech.l::after{right:auto;left:var(--tail,26px)}
+.bub-tag{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--accent-ink);background:var(--accent-soft);border-radius:5px;padding:1px 6px;margin-bottom:3px}
 .bub-menu{display:flex;flex-direction:column;gap:4px;margin-top:6px}
 .bub-menu button{font:600 13px var(--font-body);text-align:left;padding:7px 9px;border-radius:7px;border:1.5px solid var(--line);background:var(--paper);color:var(--ink);cursor:pointer}
 .bub-menu button:hover{border-color:var(--accent);background:var(--accent-soft)}
@@ -2587,7 +2588,7 @@ window.addEventListener('unhandledrejection', e => {
 // odsud, ručně je nepřepisuj. sw.js se od v0.9.29 nebumpuje — je z něj
 // kill-switch bez cache (viz killServiceWorkers() a komentář v sw.js).
 // ============================================================
-const APP_VERSION = '0.9.45';
+const APP_VERSION = '0.9.46';
 
 // Krátký git hash nasazeného buildu. Placeholder níž přepíše build-stamp.js
 // z CF_PAGES_COMMIT_SHA (Cloudflare Pages build command: `node build-stamp.js`).
@@ -3762,6 +3763,7 @@ async function bootstrapAfterAuth(){
     if(!checkAndShowOnboarding()) maybeStartTutorial();
     renderQuickSetupBanner();
     Bublik.start(bublikPref()); // v0.9.45
+    bublikGreet();              // v0.9.46 — nejvýš 1× denně
   } catch(err){
     document.getElementById('loading-screen').style.display = 'none';
     document.getElementById('auth-shell').style.display = 'flex';
@@ -4150,8 +4152,8 @@ const BUBLIK_SVG = `
 <svg viewBox="-36 -62 72 66" aria-hidden="true">
   <defs>
     <radialGradient id="bub-g-body" cx="38%" cy="32%" r="75%">
-      <stop offset="0" stop-color="#8af0bd"/><stop offset=".45" stop-color="#2fda8a"/>
-      <stop offset=".85" stop-color="#1daf6d"/><stop offset="1" stop-color="#10845a"/>
+      <stop offset="0" stop-color="#74e2ab"/><stop offset=".45" stop-color="#22c47c"/>
+      <stop offset=".85" stop-color="#159a5e"/><stop offset="1" stop-color="#0b7148"/>
     </radialGradient>
     <radialGradient id="bub-g-shadow" cx="50%" cy="50%" r="50%">
       <stop offset="0" stop-color="rgba(22,64,44,.35)"/><stop offset="1" stop-color="rgba(22,64,44,0)"/>
@@ -4164,8 +4166,8 @@ const BUBLIK_SVG = `
     <circle cx="-2" cy="-39.5" r="1.6" fill="#fff" opacity=".85"/>
     <g data-b="sweat" opacity="0"><path d="M 19 -38 q 3.5 5 0 7 q -3.5 -2 0 -7 z" fill="#9fd8ff" stroke="#3b7fb0" stroke-width=".8"/></g>
     <g data-b="face">
-      <ellipse class="bub-cheek" cx="-14" cy="-17.5" rx="4.2" ry="2.6" fill="#ff6f8e" opacity=".72"/>
-      <ellipse class="bub-cheek" cx="14" cy="-17.5" rx="4.2" ry="2.6" fill="#ff6f8e" opacity=".72"/>
+      <ellipse class="bub-cheek" cx="-14" cy="-17.5" rx="4.2" ry="2.6" fill="#ff6f8e" opacity="0"/>
+      <ellipse class="bub-cheek" cx="14" cy="-17.5" rx="4.2" ry="2.6" fill="#ff6f8e" opacity="0"/>
       ${[-7.5, 7.5].map(x => `<g class="bub-eye" transform="translate(${x} -25)">
         <g class="e-open"><ellipse rx="3.4" ry="4.8" fill="#102a1e"/><circle cx="1.1" cy="-1.8" r="1.25" fill="#fff"/><circle cx="-1" cy="1.6" r=".55" fill="#fff" opacity=".8"/></g>
         <path class="e-happy" d="M -3.6 1.2 Q 0 -3.6 3.6 1.2" fill="none" stroke="#102a1e" stroke-width="2" stroke-linecap="round" style="display:none"/>
@@ -4173,6 +4175,11 @@ const BUBLIK_SVG = `
         <path class="e-dizzy" d="M -3 -3 L 3 3 M 3 -3 L -3 3" stroke="#102a1e" stroke-width="1.9" stroke-linecap="round" style="display:none"/>
       </g>`).join('')}
       <path data-b="mouth" d="M -4 -16 Q 0 -12.5 4 -16" fill="none" stroke="#102a1e" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+    <g data-b="hat" style="display:none">
+      <path d="M -17 -40 Q -2 -66 20 -52 Q 9 -46 7 -38 Z" fill="#d63b3b" stroke="#7d1717" stroke-width="1"/>
+      <rect x="-19" y="-43" width="28" height="7" rx="3.5" fill="#fff" stroke="#c9ccd4" stroke-width=".8" transform="rotate(-8 -5 -40)"/>
+      <circle cx="21" cy="-52" r="4" fill="#fff" stroke="#c9ccd4" stroke-width=".8"/>
     </g>
   </g></g>
 </svg>`;
@@ -4189,6 +4196,7 @@ const Bublik = (()=>{
     mode: 'idle', busy: null, waking: false,
     lastInput: 0, nextAntic: 0, nextBlink: 0,   // nastaví start() — při načtení skriptu nesahat na browser API (harness je nemá)
     pointer: null, pointerStill: 0, clicks: [], pops: 0, breathT: 0,
+    blush: 0, blushUntil: 0, dart: null, nextDart: 0,
     pref: 'play',
   };
   const T = { bored: 60000, between: [12000, 25000], sleep: 240000 };
@@ -4264,6 +4272,8 @@ const Bublik = (()=>{
       e.querySelector('.e-' + k).style.display = mode === k ? '' : 'none';
     }));
   }
+  // v0.9.46: tvářičky jen když se stydí / bouchne
+  function blush(ms = 1800){ S.blushUntil = Math.max(S.blushUntil, performance.now() + ms); }
   function defaultFace(){
     setEyes('open'); setMouth('smile'); S.eyeWide = 1; S.cheekPuff = 1;
     sweat.setAttribute('opacity', '0'); S.lookOverride = null; S.tilt = 0;
@@ -4354,22 +4364,35 @@ const Bublik = (()=>{
     const br = reduceMotion ? 0 : Math.sin(S.breathT) * (S.mode === 'sleep' ? .045 : .022);
     const sx = S.sx * (1 - br * .6), sy = S.sy * (1 + br);
 
-    if(S.mode !== 'sleep' && S.eyeMode === 'open' && now > S.nextBlink){ blink(); S.nextBlink = now + rand(2200, 6200); }
+    if(S.mode !== 'sleep' && S.eyeMode === 'open' && now > S.nextBlink){ blink(); S.nextBlink = now + rand(1800, 4800); }
+    // v0.9.46: občas krátce těkne očima jinam a zase zpátky
+    if(S.mode === 'idle' && !S.lookOverride && now > S.nextDart){
+      S.dart = { x: rand(-1, 1), y: rand(-1, .4), until: now + rand(220, 520) };
+      S.nextDart = now + rand(2500, 6500);
+    }
+    if(S.dart && now > S.dart.until) S.dart = null;
 
+    // kam kouká: vynucený pohled > těknutí > kurzor > střed obrazovky
     let tx = 0, ty = 0;
     if(S.lookOverride){ tx = S.lookOverride.x; ty = S.lookOverride.y; }
-    else if(S.pointer && S.mode !== 'sleep'){
+    else if(S.dart){ tx = S.dart.x; ty = S.dart.y; }
+    else if(S.mode !== 'sleep'){
       const r = el.getBoundingClientRect();
-      const dx = S.pointer.x - (r.left + r.width / 2), dy = S.pointer.y - (r.top + r.height * .45);
-      const dist = Math.hypot(dx, dy) || 1, k = Math.min(1, dist / 120);
+      const target = S.pointer || { x: vw() / 2, y: vh() / 2 };
+      const dx = target.x - (r.left + r.width / 2), dy = target.y - (r.top + r.height * .45);
+      const dist = Math.hypot(dx, dy) || 1, k = Math.min(1, dist / 90);
       tx = dx / dist * k; ty = dy / dist * k;
     }
-    S.look.x += (tx - S.look.x) * Math.min(1, dt * 9);
-    S.look.y += (ty - S.look.y) * Math.min(1, dt * 9);
+    const lk = S.dart ? 22 : 9;
+    S.look.x += (tx - S.look.x) * Math.min(1, dt * lk);
+    S.look.y += (ty - S.look.y) * Math.min(1, dt * lk);
 
-    const ex = S.look.x * 2.6, ey = S.look.y * 2.2;
+    S.blush += ((now < S.blushUntil ? 1 : 0) - S.blush) * Math.min(1, dt * 6);
+    cheeks.forEach(c => c.setAttribute('opacity', (S.blush * .78).toFixed(2)));
+
+    const ex = S.look.x * 3.3, ey = S.look.y * 2.6;
     eyes.forEach((e, i) => e.setAttribute('transform', `translate(${(i ? 7.5 : -7.5) + ex} ${-25 + ey}) scale(${S.eyeWide} ${S.eyeScaleY * S.eyeWide})`));
-    face.setAttribute('transform', `translate(${S.look.x * 2.4} ${S.look.y * 1.6})`);
+    face.setAttribute('transform', `translate(${S.look.x * 3.2} ${S.look.y * 2})`);
     cheeks.forEach(c => { const cx = c.getAttribute('cx'), cy = c.getAttribute('cy'); c.setAttribute('transform', `translate(${cx} ${cy}) scale(${S.cheekPuff}) translate(${-cx} ${-cy})`); });
 
     const lean = S.tilt + (S.mode === 'idle' ? S.look.x * 4 : 0);
@@ -4395,7 +4418,8 @@ const Bublik = (()=>{
     if(idleFor > T.sleep){ run(sleep); return; }
     if(idleFor > T.bored && now > S.nextAntic){
       run(weighted([
-        [lookAround, 3], [burp, 3], [bigBubble, 2], [crawl, isTouch ? 0 : 2], [peek, 1.5], [yawn, 1.2],
+        [lookAround, 2], [burp, 3], [bigBubble, 2], [crawl, isTouch ? 0 : 3.5], [peek, 1.5], [yawn, 1],
+        [dance, 1.5], [juggle, 1.8], [stretch, 1.2], [roll, 1],
         [hunt, (S.pointer && !isTouch && S.pointerStill > 2500) ? 1.5 : 0],
       ]));
       S.nextAntic = now + rand(...T.between);
@@ -4461,6 +4485,7 @@ const Bublik = (()=>{
   }
   async function burp(tk){
     S.lookOverride = { x: 0, y: .3 };
+    blush(1400);
     await tween(500, e => { S.cheekPuff = 1 + .55 * e; S.sx = 1 + .1 * e; S.sy = 1 - .07 * e; setMouth('flat'); }, tk);
     await wait(250, tk);
     setMouth('o'); S.eyeWide = 1.12;
@@ -4494,7 +4519,7 @@ const Bublik = (()=>{
     } catch(e){ b.pop(false); throw e; }
     await wait(300, tk);
     b.pop(false);
-    S.cheekPuff = 1; S.eyeScaleY = 1; setMouth('big'); S.eyeWide = 1.3; S.lookOverride = { x: 0, y: 0 };
+    S.cheekPuff = 1; S.eyeScaleY = 1; setMouth('big'); S.eyeWide = 1.3; S.lookOverride = { x: 0, y: 0 }; blush(2200);
     await tween(260, (e, p) => { S.hop = Math.sin(p * Math.PI) * 12; S.sy = 1 + .1 * Math.sin(p * Math.PI); }, tk, ease.lin);
     S.hop = 0; await wobble(.22, 600, tk);
     await wait(500, tk);
@@ -4575,6 +4600,58 @@ const Bublik = (()=>{
     setMouth('sleep'); await wait(500, tk);
     setEyes('open'); S.eyeScaleY = .55; await wait(600, tk); S.eyeScaleY = 1;
   }
+  // v0.9.46: další kousky
+  async function dance(tk){
+    setEyes('happy'); setMouth('grin');
+    for(let i = 0; i < 6; i++){
+      const dir = i % 2 ? -1 : 1;
+      await tween(150, e => { S.sx = 1 + .12 * e; S.sy = 1 - .1 * e; S.tilt = dir * 10 * e; }, tk);
+      await tween(230, (e, p) => { S.hop = Math.sin(p * Math.PI) * 14; S.sx = 1.12 - .2 * Math.sin(p * Math.PI); S.sy = .9 + .22 * Math.sin(p * Math.PI); S.tilt = dir * 10 * (1 - e); }, tk, ease.lin);
+      S.hop = 0;
+    }
+    S.tilt = 0; await wobble(.18, 500, tk);
+  }
+  async function juggle(tk){
+    // vyplivne bublinku a 3× ji odrazí hlavou, pak ji nechá uletět
+    S.lookOverride = { x: 0, y: -1 }; setMouth('o');
+    const p0 = svgPoint(0, -48);
+    const b = spawnBubble(p0.x, p0.y, 16, { vx: 0, vy: 0, life: 999, big: true });
+    const place = (yy) => { const c = svgPoint(0, 0); b.x = c.x; b.y = yy; b.el.style.transform = `translate(${b.x - b.d / 2}px,${b.y - b.d / 2}px)`; };
+    try{
+      for(let i = 0; i < 3; i++){
+        const top = svgPoint(0, -48).y - (S.hop * size() / 72);
+        await tween(200, e => { S.sx = 1 + .14 * e; S.sy = 1 - .14 * e; place(top - 4); }, tk);
+        await tween(560, (e, p) => {
+          const head = svgPoint(0, -48).y;
+          place(head - 8 - Math.sin(p * Math.PI) * 70);
+          S.sx = 1.14 - .14 * Math.min(1, p * 4); S.sy = .86 + .14 * Math.min(1, p * 4);
+        }, tk, ease.lin);
+        if(i === 1){ setEyes('happy'); setMouth('grin'); }
+      }
+    } catch(e){ b.pop(false); throw e; }
+    b.big = false; b.vy = -60; b.vx = rand(-20, 20); b.t = 0; b.life = rand(2.5, 4);
+    S.lookOverride = { x: .3, y: -1 }; await wait(900, tk);
+  }
+  async function stretch(tk){
+    setEyes('closed'); setMouth('o');
+    await tween(700, e => { S.sy = 1 + .28 * e; S.sx = 1 - .14 * e; }, tk, ease.out);
+    await tween(260, (e, p) => { S.tilt = Math.sin(p * Math.PI * 2) * 6; }, tk, ease.lin);
+    await tween(220, e => { S.sy = 1.28 - .4 * e; S.sx = .86 + .32 * e; }, tk);
+    setEyes('happy'); setMouth('cat');
+    await wobble(.22, 650, tk);
+    await wait(400, tk);
+  }
+  async function roll(tk){
+    // kotrmelec na místě
+    setMouth('o'); S.eyeWide = 1.1;
+    await tween(160, e => { S.sx = 1 + .15 * e; S.sy = 1 - .15 * e; }, tk);
+    await tween(620, (e, p) => { S.hop = Math.sin(p * Math.PI) * 34; S.tilt = 360 * e; S.sx = 1 - .08 * Math.sin(p * Math.PI); S.sy = 1 + .1 * Math.sin(p * Math.PI); }, tk, ease.inOut);
+    S.hop = 0; S.tilt = 0; S.eyeWide = 1;
+    await wobble(.26, 650, tk);
+    if(Math.random() < .5){ setEyes('dizzy'); blush(1500); await wait(700, tk); setEyes('open'); }
+    setEyes('happy'); setMouth('grin'); await wait(500, tk);
+  }
+
   async function sleep(tk){
     setEyes('closed'); setMouth('sleep'); S.lookOverride = { x: 0, y: .3 };
     await tween(800, e => { S.sy = 1 - .08 * e; S.sx = 1 + .06 * e; S.tilt = -6 * e; }, tk);
@@ -4656,8 +4733,8 @@ const Bublik = (()=>{
     (function k(now){
       const dt = Math.min(.033, (now - last) / 1000); last = now;
       vy += 2600 * dt; x += vx * dt; y += vy * dt;
-      if(x < s / 2 + 4){ x = s / 2 + 4; vx = -vx * .6; S.sx = .8; S.sy = 1.15; }
-      if(x > vw() - s / 2 - 4){ x = vw() - s / 2 - 4; vx = -vx * .6; S.sx = .8; S.sy = 1.15; }
+      if(x < s / 2 + 4){ x = s / 2 + 4; vx = -vx * .6; S.sx = .8; S.sy = 1.15; if(Math.abs(vx) > 200) blush(2000); }
+      if(x > vw() - s / 2 - 4){ x = vw() - s / 2 - 4; vx = -vx * .6; S.sx = .8; S.sy = 1.15; if(Math.abs(vx) > 200) blush(2000); }
       if(y < s + 4){ y = s + 4; vy = Math.abs(vy) * .4; }
       const sp = Math.min(1, Math.hypot(vx, vy) / 1500);
       S.sx += ((1 - .12 * sp) - S.sx) * .3; S.sy += ((1 + .18 * sp) - S.sy) * .3;
@@ -4665,7 +4742,7 @@ const Bublik = (()=>{
       if(y >= floorY()){
         y = floorY();
         if(Math.abs(vy) > 260 && bounces < 3){
-          vy = -vy * .45; vx *= .7; bounces++; S.sx = 1.3; S.sy = .72;
+          vy = -vy * .45; vx *= .7; bounces++; S.sx = 1.3; S.sy = .72; blush(2400);
           setEyes(bounces > 1 ? 'dizzy' : 'open');
         } else {
           S.x = x; S.y = y; S.tilt = 0; S.homeX = x;
@@ -4690,14 +4767,14 @@ const Bublik = (()=>{
     S.lastInput = performance.now();
     const now = performance.now();
     S.clicks = S.clicks.filter(t => now - t < 1800); S.clicks.push(now);
-    if(S.mode === 'sleep'){ run(() => Promise.resolve()); say('Hm? Jo, jsem vzhůru. Úplně. Vůbec jsem nespal.', 3500); return; }
+    if(S.mode === 'sleep'){ run(() => Promise.resolve()); blush(2600); say('Hm? Jo, jsem vzhůru. Úplně. Vůbec jsem nespal.', 3500); return; }
     if(S.clicks.length >= 5){
       // dřívější easter egg tlačítka „?" (5 kliků) — teď se mu točí hlava
       S.clicks = [];
       cancelBusy(); const tk = token(); S.mode = 'react';
       (async () => {
         try{
-          setEyes('dizzy'); setMouth('wavy');
+          setEyes('dizzy'); setMouth('wavy'); blush(2600);
           await tween(900, (e, p) => { S.tilt = Math.sin(p * Math.PI * 6) * 12 * (1 - p); S.sx = 1 + .08 * Math.sin(p * 30); S.sy = 1 - .08 * Math.sin(p * 30); }, tk, ease.lin);
           say(pick(['Hej! To lechtá!', 'Dobře, dobře, vzdávám se! Zkus radši kliknout na verzi v hlavičce.', 'Ještě jednou a začnu bublat do klávesnice.']), 3500);
           await wait(900, tk);
@@ -4801,6 +4878,7 @@ const Bublik = (()=>{
     el.style.display = '';
     try{ const hx = parseFloat(localStorage.getItem('bublik_home_x')); if(!isNaN(hx)) S.homeX = vw() - hx; } catch(_){}
     defaultFace();
+    el.querySelector('[data-b="hat"]').style.display = new Date().getMonth() === 11 ? '' : 'none';
     S.x = homeX(); S.y = floorY(); S.hop = reduceMotion ? 0 : 220;
     S.lastInput = performance.now(); S.nextAntic = S.lastInput + T.bored; S.nextBlink = S.lastInput + 1500;
     lastT = performance.now();
@@ -4830,7 +4908,14 @@ const Bublik = (()=>{
     if(el) el.style.display = 'none';
     S.mode = 'idle';
   }
-  return { start, stop, react, say, get pref(){ return S.pref; } };
+  // v0.9.46: hláška při přihlášení (vybírá bublikGreet)
+  function greet(pick){
+    if(!started || !pick) return;
+    react('hello');
+    if(pick.shy) blush(4000);
+    setTimeout(() => say((pick.tag ? `<span class="bub-tag">${pick.tag}</span><br>` : '') + pick.html, 9000), 380);
+  }
+  return { start, stop, react, say, greet, get pref(){ return S.pref; } };
 })();
 
 function bublikPref(){
@@ -4851,6 +4936,197 @@ async function setBublikPref(v){
     const { error } = await sb.auth.updateUser({ data: { bublik: v } });
     if(error) console.warn('[Bublík] uložení volby do účtu selhalo (zůstává v prohlížeči)', error);
   }
+}
+
+
+// ============================================================
+// BUBLÍK — HLÁŠKY PŘI PŘIHLÁŠENÍ (v0.9.46)
+// ============================================================
+// Nejvýš 1× denně na účet a zařízení, sama zmizí. Přednost má to, co se týká
+// právě tebe (tvůj svátek, státní svátek), pak užitečné věci ze směn (~70 %),
+// jinak den/čas, jmeniny týmu nebo zajímavost. Nikdy nevyčítá.
+// Čisté funkce czNameDays / bublikGreetingCandidates / bublikPickGreeting
+// kryje tests/bublik_greet.js; bublikGreetContext() jen sbírá data z appky.
+
+// Občanský kalendář jmen (ČR). Zdroj: myczechrepublic.com/culture/czech-name-days
+// (ověřeno 11/2026). '-' = státní svátek / bez jména, '/' = víc jmen.
+function czNameDays(month0, day){
+  const M = [
+    '-|Karina|Radmila|Diana|Dalimil|-|Vilma|Čestmír|Vladan|Břetislav|Bohdana|Pravoslav|Edita|Radovan|Alice|Ctirad|Drahoslav|Vladislav|Doubravka|Ilona|Běla|Slavomír|Zdeněk|Milena|Miloš|Zora|Ingrid|Otýlie|Zdislava|Robin|Marika',
+    'Hynek|Nela|Blažej|Jarmila|Dobromila|Vanda|Veronika|Milada|Apolena|Mojmír|Božena|Slavěna|Věnceslav|Valentýn|Jiřina|Ljuba|Miloslava|Gizela|Patrik|Oldřich|Lenka|Petr|Svatopluk|Matěj|Liliana|Dorota|Alexandr|Lumír|-',
+    'Bedřich|Anežka|Kamil|Stela|Kazimír|Miroslav|Tomáš|Gabriela|Františka|Viktorie|Anděla|Řehoř|Růžena|Rút/Matylda|Ida|Elena/Herbert|Vlastimil|Eduard|Josef|Světlana|Radek|Leona|Ivona|Gabriel|Marián|Emanuel|Dita|Soňa|Taťána|Arnošt|Kvido',
+    'Hugo|Erika|Richard|Ivana|Miroslava|Vendula|Herman/Hermína|Ema|Dušan|Darja|Izabela|Julius|Aleš|Vincenc|Anastázie|Irena|Rudolf|Valérie|Rostislav|Marcela|Alexandra|Evženie|Vojtěch|Jiří|Marek|Oto|Jaroslav|Vlastislav|Robert|Blahoslav',
+    '-|Zikmund|Alexej|Květoslav|Klaudie|Radoslav|Stanislav|-|Ctibor|Blažena|Svatava|Pankrác|Servác|Bonifác|Žofie|Přemysl|Aneta|Nataša|Ivo|Zbyšek|Monika|Emil|Vladimír|Jana|Viola|Filip|Valdemar|Vilém|Maxmilián|Ferdinand|Kamila',
+    'Laura|Jarmil|Tamara|Dalibor|Dobroslav|Norbert|Iveta|Medard|Stanislava|Gita|Bruno|Antonie|Antonín|Roland|Vít|Zbyněk|Adolf|Milan|Leoš|Květa|Alois|Pavla|Zdeňka|Jan|Ivan|Adriana|Ladislav|Lubomír|Petr/Pavel|Šárka',
+    'Jaroslava|Patricie|Radomír|Prokop|-|-|Bohuslava|Nora|Drahoslava|Libuše/Amálie|Olga|Borek|Markéta|Karolína|Jindřich|Luboš|Martina|Drahomíra|Čeněk|Ilja|Vítězslav|Magdaléna|Libor|Kristýna|Jakub|Anna|Věroslav|Viktor|Marta|Bořivoj|Ignác',
+    'Oskar|Gustav|Miluše|Dominik|Kristián|Oldřiška|Lada|Soběslav|Roman|Vavřinec|Zuzana|Klára|Alena|Alan|Hana|Jáchym|Petra|Helena|Ludvík|Bernard|Johana|Bohuslav|Sandra|Bartoloměj|Radim|Luděk|Otakar|Augustýn|Evelína|Vladěna|Pavlína',
+    'Linda/Samuel|Adéla|Bronislav|Jindřiška|Boris|Boleslav|Regína|Mariana|Daniela|Irma|Denisa|Marie|Lubor|Radka|Jolana|Ludmila|Naděžda|Kryštof|Zita|Oleg|Matouš|Darina|Berta|Jaromír|Zlata|Andrea|Jonáš|Václav|Michal|Jeroným',
+    'Igor|Olívie/Oliver|Bohumil|František|Eliška|Hanuš|Justýna|Věra|Štefan/Sára|Marina|Andrej|Marcel|Renáta|Agáta|Tereza|Havel|Hedvika|Lukáš|Michaela|Vendelín|Brigita|Sabina|Teodor|Nina|Beáta|Erik|Šarlota/Zoe|-|Silvie|Tadeáš|Štěpánka',
+    'Felix|-|Hubert|Karel|Miriam|Liběna|Saskie|Bohumír|Bohdan|Evžen|Martin|Benedikt|Tibor|Sáva|Leopold|Otmar|Mahulena|Romana|Alžběta|Nikola|Albert|Cecílie|Klement|Emílie|Kateřina|Artur|Xenie|René|Zina|Ondřej',
+    'Iva|Blanka|Svatoslav|Barbora|Jitka|Mikuláš|Ambrož|Květoslava|Vratislav|Julie|Dana|Simona|Lucie|Lýdie|Radana|Albína|Daniel|Miloslav|Ester|Dagmar|Natálie|Šimon|Vlasta|Adam/Eva|-|Štěpán|Žaneta|Bohumila|Judita|David|Silvestr',
+  ];
+  const v = (M[month0] || '').split('|')[day - 1];
+  return (!v || v === '-') ? [] : v.split('/');
+}
+
+const BUB_MONTHS_GEN = ['ledna','února','března','dubna','května','června','července','srpna','září','října','listopadu','prosince'];
+const BUB_MONTHS_LOC = ['lednu','únoru','březnu','dubnu','květnu','červnu','červenci','srpnu','září','říjnu','listopadu','prosinci'];
+const BUB_MONTHS_NOM = ['leden','únor','březen','duben','květen','červen','červenec','srpen','září','říjen','listopad','prosinec'];
+const BUB_DOW_LOC = ['v neděli','v pondělí','v úterý','ve středu','ve čtvrtek','v pátek','v sobotu'];
+const BUB_HOLIDAYS = { '1-1':'Nový rok', '5-1':'Svátek práce', '5-8':'Den vítězství', '7-5':'Den věrozvěstů Cyrila a Metoděje', '7-6':'Den upálení mistra Jana Husa', '9-28':'Den české státnosti', '10-28':'Den vzniku samostatného Československa', '11-17':'Den boje za svobodu a demokracii', '12-24':'Štědrý den', '12-25':'1. svátek vánoční', '12-26':'2. svátek vánoční' };
+
+function bubFirstName(full){ return String(full || '').trim().split(/\s+/)[0] || ''; }
+function bubDaysWord(n){ return n === 1 ? 'den' : n < 5 ? 'dny' : 'dní'; }
+
+// ctx: { now:Date, role, myName, team:[jména], pendingLeaves, month:{ y, m0, shiftCount, holes:[dny], published },
+//        nextPublished, myNext:{ inDays, dateStr, label } | null | 'none' }
+function bublikGreetingCandidates(ctx){
+  const out = [];
+  const add = (prio, kind, html, tag = null, shy = false) => out.push({ prio, kind, html, tag, shy });
+  const now = ctx.now, m0 = now.getMonth(), d = now.getDate(), h = now.getHours(), dow = now.getDay();
+  const today = czNameDays(m0, d);
+  const holiday = BUB_HOLIDAYS[(m0 + 1) + '-' + d];
+  const me = bubFirstName(ctx.myName);
+  const isAdmin = ctx.role === 'admin';
+
+  // 1) to tvoje — vždy přednost
+  if(me && today.includes(me)) add(100, 'me', `Dnes má svátek <b>${me}</b>. To jsi přece ty! Všechno nejlepší.`, 'Svátek', true);
+  if(holiday){
+    if(m0 === 11 && d === 24) add(90, 'holiday', 'Štědrý den! Doufám, že dnes nikdo nemusí být v práci dlouho.', 'Svátek');
+    else if(m0 === 0 && d === 1) add(90, 'holiday', 'Šťastný nový rok! Nový rok, nový rozpis.', 'Svátek');
+    else add(80, 'holiday', `Dnes je státní svátek (${holiday}). Kdo dnes pracuje, má podle zákoníku práce nárok na náhradní volno nebo příplatek.`, 'Svátek');
+  }
+  if(m0 === 11 && d === 31) add(85, 'holiday', 'Silvestr! Kdo dnes večer slouží, má můj obdiv. A bublinky.', 'Svátek');
+
+  // 2) užitečné — ze směn
+  const useful = [];
+  const mm = ctx.month, mNom = BUB_MONTHS_NOM[mm.m0], mLoc = BUB_MONTHS_LOC[mm.m0];
+  if(isAdmin){
+    if(ctx.pendingLeaves > 0) useful.push(`Čekají na tebe <b>${ctx.pendingLeaves} ${ctx.pendingLeaves === 1 ? 'žádost' : ctx.pendingLeaves < 5 ? 'žádosti' : 'žádostí'} o volno</b>. Najdeš je v záložce Žádosti.`);
+    if(mm.shiftCount === 0) useful.push(`Rozpis na ${mNom} je zatím prázdný. Stačí kliknout na <b>Automaticky doplnit</b>.`);
+    else if(mm.holes.length){
+      const list = mm.holes.slice(0, 3).map(x => x + '.').join(', ') + (mm.holes.length > 3 ? '…' : '');
+      useful.push(`V ${mLoc} chybí obsadit <b>${mm.holes.length} ${bubDaysWord(mm.holes.length)}</b> (${list}). Ukáže ti je záložka Mezery.`);
+    } else if(!mm.published) useful.push(`${mNom[0].toUpperCase() + mNom.slice(1)} je obsazený, jen ještě není zveřejněný.`);
+    const dim = new Date(now.getFullYear(), m0 + 1, 0).getDate();
+    if(d >= 20 && !ctx.nextPublished){
+      const left = dim - d + 1, nNom = BUB_MONTHS_NOM[(m0 + 1) % 12];
+      useful.push(`Za ${left} ${bubDaysWord(left)} začíná ${nNom} a jeho rozpis ještě není zveřejněný.`);
+    }
+    if(!useful.length && mm.shiftCount > 0) useful.push(`${mNom[0].toUpperCase() + mNom.slice(1)} je obsazený i zveřejněný. Můžeš si dát kafe.`);
+  } else {
+    if(!mm.published) useful.push(`Rozpis na ${mNom} ještě není zveřejněný. Jakmile bude, najdeš ho v Můj rozpis.`);
+    else if(ctx.myNext === 'none') useful.push('Do konce měsíce už nemáš žádnou směnu. Užij si volno!');
+    else if(ctx.myNext){
+      const n = ctx.myNext, when = n.inDays === 0 ? 'Dnes máš' : n.inDays === 1 ? 'Zítra máš' : `${BUB_DOW_LOC[new Date(n.dateStr + 'T00:00:00').getDay()][0].toUpperCase() + BUB_DOW_LOC[new Date(n.dateStr + 'T00:00:00').getDay()].slice(1)} ${Number(n.dateStr.slice(8))}. máš`;
+      useful.push(`${when} <b>${n.label}</b>.`);
+    }
+  }
+  useful.forEach((u, i) => add(50 - i, 'useful', u, 'Směny'));
+
+  // 3) pro radost
+  const team = (ctx.team || []).map(bubFirstName).filter(n => n && n !== me);
+  const teamToday = today.filter(n => team.includes(n));
+  if(teamToday.length) add(60, 'team', `Dnes má svátek <b>${teamToday.join(' a ')}</b> z vašeho týmu. Popřeješ?`, 'Svátek');
+  else {
+    for(let i = 1; i <= 7; i++){
+      const dt = new Date(now); dt.setDate(d + i);
+      const hit = czNameDays(dt.getMonth(), dt.getDate()).filter(n => team.includes(n));
+      if(hit.length){ add(20, 'team', `Za ${i} ${bubDaysWord(i)} má svátek <b>${hit.join(' a ')}</b> z vašeho týmu, tak ať se nezapomene.`, 'Svátek'); break; }
+    }
+    if(today.length) add(10, 'nameday', `Dnes má svátek ${today.join(' a ')}. Z týmu nikdo, ale stejně: hurá!`, 'Svátek');
+  }
+  if(h < 10) add(10, 'time', 'Dobré ráno! Kafe máš? Já si dám rosu.');
+  if(h >= 22 || h < 5) add(10, 'time', 'Plánuješ směny po desáté večer? Obdivuju. Já bych už spal.');
+  if(dow === 1) add(10, 'time', 'Pondělí. Nebudu to komentovat.');
+  if(dow === 5) add(10, 'time', 'Pátek! Kdo má víkend volno, ať zvedne ruku. …Já ruce nemám.');
+  if(m0 === 11 && d < 24) add(15, 'season', 'Prosinec. Nasadil jsem čepici, jinak se nic nemění.');
+  [
+    'Věděl jsi, že bublina je kulatá, protože koule má při stejném objemu nejmenší povrch? Já taky šetřím energii.',
+    'Mýdlová bublina je tenká jen asi jako setina vlasu. Proto ty duhy. Já jsem silnější, neboj.',
+    'Já mám nejdelší směnu ze všech: pořád, bez pauzy. Zákoník práce by se divil.',
+    'Utekl jsem z přihlašovací obrazovky. Tam se bubliny navzájem žerou. Tady je to klidnější.',
+  ].forEach(t => add(5, 'fun', t, 'Zajímavost'));
+  return out;
+}
+
+// rnd: () => 0..1 (v testu deterministický). Přednost: prio ≥ 80 vždy;
+// jinak se 70 % užitečné (pokud nějaké je), zbytek náhodně z ostatních.
+function bublikPickGreeting(cands, rnd){
+  if(!cands.length) return null;
+  const top = cands.filter(c => c.prio >= 80).sort((a, b) => b.prio - a.prio)[0];
+  if(top) return top;
+  const team = cands.find(c => c.kind === 'team' && c.prio >= 60);
+  if(team && rnd() < .6) return team;
+  const useful = cands.filter(c => c.kind === 'useful').sort((a, b) => b.prio - a.prio);
+  if(useful.length && rnd() < .7) return useful[0];
+  const rest = cands.filter(c => c.kind !== 'useful');
+  const pool = rest.length ? rest : cands;
+  const tot = pool.reduce((a, c) => a + c.prio, 0);
+  let r = rnd() * tot;
+  for(const c of pool){ if((r -= c.prio) <= 0) return c; }
+  return pool[pool.length - 1];
+}
+
+function bublikGreetContext(){
+  const now = new Date();
+  const y = schedYear, m0 = schedMonth, dim = new Date(y, m0 + 1, 0).getDate();
+  const inMonth = Object.values(shifts).filter(s => s && s.shift_type_code && s.shift_type_code !== 'X');
+  const holes = [];
+  if(inMonth.length){
+    for(let d = 1; d <= dim; d++){
+      const ds = isoDate(y, m0 + 1, d);
+      const cnt = code => employees.filter(e => { const s = shifts[e.id + ':' + ds]; return s && s.shift_type_code === code; }).length;
+      if(requiredGroupsForDay(ds).some(g => Math.min(groupCoverage(g, cnt), g.need) < g.need)) holes.push(d);
+    }
+  }
+  const nm = (m0 + 1) % 12, ny = m0 === 11 ? y + 1 : y;
+  let myNext = null;
+  const me = employees.find(e => e.id === currentEmployeeId);
+  if(me && currentRole !== 'admin' && isMonthPublished(y, m0)){
+    myNext = 'none';
+    const todayStr = isoDate(now.getFullYear(), now.getMonth() + 1, now.getDate());
+    for(let d = 1; d <= dim; d++){
+      const ds = isoDate(y, m0 + 1, d);
+      if(ds < todayStr) continue;
+      const s = shifts[me.id + ':' + ds];
+      if(!s || !s.shift_type_code || s.shift_type_code === 'X') continue;
+      const st = shiftTypes.find(t => t.code === s.shift_type_code);
+      const br = st ? branches.find(b => b.id === st.branch_id) : branches.find(b => b.code === s.shift_type_code);
+      const label = escapeHtml(st ? `${st.label}${br ? ' · ' + br.name : ''}` : (br ? br.name : s.shift_type_code));
+      myNext = { inDays: Math.round((new Date(ds + 'T00:00:00') - new Date(todayStr + 'T00:00:00')) / 864e5), dateStr: ds, label };
+      break;
+    }
+  }
+  return {
+    now, role: currentRole,
+    myName: me ? me.name : '',
+    team: employees.filter(e => e.active !== false).map(e => e.name),
+    pendingLeaves: currentRole === 'admin' ? leaveRequests.filter(l => l.status === 'pending').length : 0,
+    month: { y, m0, shiftCount: inMonth.length, holes, published: isMonthPublished(y, m0) },
+    nextPublished: isMonthPublished(ny, nm),
+    myNext,
+  };
+}
+
+// Volá bootstrap po startu Bublíka. Počká na načtení směn aktuálního měsíce.
+async function bublikGreet(){
+  if(Bublik.pref === 'off' || !currentUser || !currentOrg) return;
+  const key = 'bublik_greet_' + currentUser.id;
+  const todayKey = new Date().toDateString();
+  try{ if(localStorage.getItem(key) === todayKey) return; } catch(_){}
+  const want = `${currentOrg.id}_${schedYear}_${schedMonth}`;
+  for(let i = 0; i < 40 && window._shiftsLoadedKey !== want; i++) await new Promise(r => setTimeout(r, 150));
+  await new Promise(r => setTimeout(r, 1600));            // ať nejdřív doletí
+  if(Bublik.pref === 'off' || !currentUser) return;
+  // nepřekřikovat rychlé nastavení ani průvodce — zkusí to příště
+  if(document.getElementById('onboarding-wizard-overlay')?.classList.contains('open') || (typeof tutActive !== 'undefined' && tutActive)) return;
+  let pick = null;
+  try{ pick = bublikPickGreeting(bublikGreetingCandidates(bublikGreetContext()), Math.random); }
+  catch(e){ console.warn('[Bublík] hláška se nepodařila sestavit', e); return; }
+  if(!pick) return;
+  try{ localStorage.setItem(key, todayKey); } catch(_){}
+  Bublik.greet(pick);
 }
 
 // ============================================================
@@ -5975,6 +6251,7 @@ async function loadShiftsForMonth(forceRefresh=false){
   if(!forceRefresh && _shiftCache[cacheKey] && isArchiveMonth && isArchiveMonth()){
     shifts  = _shiftCache[cacheKey].shifts;
     unavail = _shiftCache[cacheKey].unavail;
+    window._shiftsLoadedKey = cacheKey;
     renderCalendar();
     if(document.getElementById('pane-gaps')?.style.display !== 'none') renderGaps();
     if(typeof renderMySchedule === 'function') renderMySchedule(); // v0.9.1 B1 — sám si hlídá viditelnost
@@ -6012,6 +6289,7 @@ async function loadShiftsForMonth(forceRefresh=false){
   unavail = {};
   (shiftRows||[]).forEach(s=>{ shifts[s.employee_id+':'+s.shift_date] = s; });
   (unavRows||[]).forEach(u=>{ unavail[u.employee_id+':'+u.unavail_date] = true; });
+  window._shiftsLoadedKey = cacheKey; // v0.9.46: Bublíkova hláška čeká na data měsíce
   // Feature 8: cache for archive months
   if(typeof isArchiveMonth === 'function' && isArchiveMonth()){
     _shiftCache[cacheKey] = { shifts: {...shifts}, unavail: {...unavail} };

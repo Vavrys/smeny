@@ -2,7 +2,7 @@
   "name": "smeny-tools",
   "private": true,
   "scripts": {
-    "test": "node ../tests/schedule_harness.js && node ../tests/membership_guard.js && node ../tests/quick_setup.js && node check_syntax.js",
+    "test": "node ../tests/schedule_harness.js && node ../tests/membership_guard.js && node ../tests/quick_setup.js && node ../tests/bublik_greet.js && node check_syntax.js",
     "test:e2e": "playwright test"
   },
   "devDependencies": {
