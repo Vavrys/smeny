@@ -2520,7 +2520,7 @@ window.addEventListener('unhandledrejection', e => {
 // odsud, ručně je nepřepisuj. sw.js se od v0.9.29 nebumpuje — je z něj
 // kill-switch bez cache (viz killServiceWorkers() a komentář v sw.js).
 // ============================================================
-const APP_VERSION = '0.9.38';
+const APP_VERSION = '0.9.39';
 
 // Krátký git hash nasazeného buildu. Placeholder níž přepíše build-stamp.js
 // z CF_PAGES_COMMIT_SHA (Cloudflare Pages build command: `node build-stamp.js`).
@@ -6073,8 +6073,22 @@ function openPicker(cell){
     const bCode = slotBranchCode(code);
     const bl = (emp.branch_limits||{})[bCode];
 
-    // Not assigned to this branch at all → forbidden (see FEATURE 13)
-    if(!bl) return { allowed: false, warn: `${bCode}: zaměstnanec nemá přiřazenou tuto pobočku` };
+    // v0.9.39: nepřiřazená pobočka už ruční přiřazení NEBLOKUJE (nová pobočka,
+    // výpomoc…). Přiřazení poboček v profilu dál řídí automatický rozpis
+    // (FEATURE 13) — ten sem člověka sám nedá. Ruční klik jen upozorní.
+    if(!bl){
+      const existing = shifts[empId+':'+dateStr];
+      const isOverwriteNA = !!(existing && existing.shift_type_code && existing.shift_type_code!=='X');
+      if(!isOverwriteNA){
+        const capNA = manualSlotState(dateStr, code, empId);
+        if(capNA.full && capNA.occupants.length){
+          const isTyped = !!shiftTypes.find(s=>s.code===code);
+          return { allowed: true, warnLevel: 'warn',
+            warn: (isTyped ? `${ICONS.status_warning} Slot ${code} je obsazen — kliknutím nahradíš` : `${ICONS.status_warning} ${bCode} plná — kliknutím nahradíš`) + ' · mimo přiřazené pobočky' };
+        }
+      }
+      return { allowed: true, warnLevel: 'warn', warn: `Mimo přiřazené pobočky — jen ručně, automat sem nedá` };
+    }
 
     const maxAllowed = bl.max !== undefined ? bl.max : 31;
 
