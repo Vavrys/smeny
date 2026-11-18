@@ -307,5 +307,38 @@ for (const sc of SCEN) {
     'e0 volných víkendů ' + free + ', přiřazení celkem ' + Object.keys(S).length);
 }
 
+// ══ 9 — uzavírky poboček (v0.9.40) ═════════════════════════════════════════
+// Zavřená pobočka nemá poptávku: požadavky dne jsou prázdné, generátor tam nikoho
+// nenaplánuje (a to bez žádanek X) a ostatní dny se plánují dál.
+{
+  const sb = makeSandbox(31);
+  const employees = mkEmployees(6, 0);
+  seedData(sb, { year: 2026, month: 10, employees: employees });          // listopad 2026
+  vm.runInContext("orgSettings.branch_closures = [{ id:'t1', branch:'A', from:'2026-11-24', to:'2026-11-26', note:'test' }]; rebuildClosureIndex();", sb);
+  const dim = daysIn(2026, 10);
+  const errs = [];
+  const closed = ['2026-11-24', '2026-11-25', '2026-11-26'];
+  closed.forEach(ds => {
+    const slots = sb.requiredSlotsForDay(ds);
+    if (slots.length) errs.push(ds + ': zavřená pobočka má ' + slots.length + ' požadovaných slotů');
+  });
+  if (!sb.requiredSlotsForDay('2026-11-23').length) errs.push('2026-11-23: otevřený den nemá žádný požadavek');
+  if (!sb.requiredSlotsForDay('2026-11-27').length) errs.push('2026-11-27: otevřený den nemá žádný požadavek');
+  const S = sb.buildSchedule(dim, {});
+  Object.values(S).forEach(s => {
+    if (closed.includes(s.shift_date) && s.shift_type_code && s.shift_type_code !== 'X') {
+      errs.push('směna ' + s.shift_type_code + ' na zavřený den ' + s.shift_date);
+    }
+  });
+  const open = Object.values(S).filter(s => s.shift_type_code && s.shift_type_code !== 'X' && !closed.includes(s.shift_date)).length;
+  if (!open) errs.push('mimo uzavírku se nenaplánovala žádná směna');
+  // celá firma ('*') a jednodenní uzavírka bez "do"
+  vm.runInContext("orgSettings.branch_closures = [{ id:'t2', branch:'*', from:'2026-11-10' }]; rebuildClosureIndex();", sb);
+  if (sb.requiredSlotsForDay('2026-11-10').length) errs.push("uzavírka '*' bez 'to' neplatí pro jeden den");
+  if (!sb.requiredSlotsForDay('2026-11-11').length) errs.push("uzavírka '*' bez 'to' zasáhla i následující den");
+  check('[9] uzavírky poboček: zavřený den nemá poptávku a nikdo se tam neplánuje', errs,
+    'směn mimo uzavírku ' + open);
+}
+
 console.log(fail ? '\n' + fail + ' kontrol(a) selhalo' : '\nvšechny kontroly prošly');
 process.exit(fail ? 1 : 0);
