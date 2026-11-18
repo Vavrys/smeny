@@ -26,6 +26,7 @@
 !tests/schedule_harness.js
 !tests/membership_guard.js
 !tests/quick_setup.js
+!tests/bublik_greet.js
 !tests/e2e/
 !tests/e2e/**
 !scripts/
