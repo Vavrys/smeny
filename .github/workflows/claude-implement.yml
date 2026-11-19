@@ -65,12 +65,12 @@ jobs:
     outputs:
       pr: ${{ steps.check.outputs.pr }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
           cache-dependency-path: tools/package-lock.json
       - run: npm ci && npx playwright install --with-deps chromium
@@ -130,7 +130,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ needs.pick.outputs.branch }}
           fetch-depth: 0
@@ -147,7 +147,7 @@ jobs:
           prompt: |
             Jsi nezávislý reviewer projektu Směny. PR #${{ needs.implement.outputs.pr }} k issue #${{ needs.pick.outputs.issue }}.
             Přečti CLAUDE.md, `gh issue view ${{ needs.pick.outputs.issue }} --comments` (poslední specifikace) a `gh pr diff ${{ needs.implement.outputs.pr }}`.
-            Kontroluj: shodu se specifikací (nic nechybí, nic navíc) · porušení CLAUDE.md (CRLF, doménová pravidla, sémantické barvy) ·
+            Kontroluj: shodu se specifikací (nic nechybí, nic navíc) · porušení CLAUDE.md (konce řádků LF, doménová pravidla, sémantické barvy) ·
             Supabase volání (ošetřený error, existující tabulky/sloupce, porovnej s ostatními dotazy v kódu) · regrese (kdo další volá změněné funkce) ·
             mobil 390 px · kvalitu a smysluplnost testů.
             Výstup: JEDEN komentář přes `gh pr comment`. První řádek je verdikt: `✅ Doporučuji merge` / `⚠️ Merge s výhradou` / `❌ Nemergovat`.
