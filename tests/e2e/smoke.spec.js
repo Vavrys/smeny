@@ -25,6 +25,7 @@ async function expectCleanLogin(page, viewport) {
   await page.goto('/');
   await page.locator('#login-email').waitFor({ state: 'visible' });
   await expect(page.locator('#login-btn')).toBeVisible();
+  await expect(page.locator('#help-fab')).toBeHidden();
 
   expect(pageErrors, pageErrors.join('\n')).toHaveLength(0);
   expect(consoleErrors, consoleErrors.join('\n')).toHaveLength(0);
