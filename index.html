@@ -2380,7 +2380,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
 <!-- ============================================================
      HELP CENTER — tree-based, no AI, no API
      ============================================================ -->
-<button class="help-fab" id="help-fab" onclick="handleHelpFabClick()" title="Pomoc">
+<button class="help-fab" id="help-fab" onclick="handleHelpFabClick()" title="Pomoc" style="display:none">
   <span data-icon="btn_napoveda">❓</span>
 </button>
 <div class="help-panel" id="help-panel">
@@ -2670,7 +2670,7 @@ window.addEventListener('unhandledrejection', e => {
 // odsud, ručně je nepřepisuj. sw.js se od v0.9.29 nebumpuje — je z něj
 // kill-switch bez cache (viz killServiceWorkers() a komentář v sw.js).
 // ============================================================
-const APP_VERSION = '0.9.50';
+const APP_VERSION = '0.9.51';
 
 // Krátký git hash nasazeného buildu. Placeholder níž přepíše build-stamp.js
 // z CF_PAGES_COMMIT_SHA (Cloudflare Pages build command: `node build-stamp.js`).
@@ -3296,7 +3296,7 @@ async function doLogout(){
   const banner = document.getElementById('session-timeout-banner');
   if(banner) banner.style.display = 'none';
   Bublik.stop(); // v0.9.45
-  const helpFab = document.getElementById('help-fab'); if(helpFab) helpFab.style.display = '';
+  const helpFab = document.getElementById('help-fab'); if(helpFab) helpFab.style.display = 'none'; // v0.9.51: na přihlašovací obrazovce nápověda nemá co dělat
   await sb.auth.signOut();
   currentUser = null; currentOrg = null; currentRole = null;
   document.getElementById('app-shell').style.display = 'none';
