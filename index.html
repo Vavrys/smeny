@@ -1109,13 +1109,19 @@ body.dark .search-input{color:var(--ink)}
 
 /* Help center — floating fab + panel (350×500), replaces the old AI chat */
 .help-fab{
-  position:fixed;bottom:24px;right:24px;z-index:400;
-  width:52px;height:52px;border-radius:50%;border:none;cursor:pointer;
-  background:linear-gradient(135deg,var(--accent),#1f5a3f);color:#fff;
-  display:flex;align-items:center;justify-content:center;font-size:22px;
-  box-shadow:0 6px 18px rgba(43,110,79,.4);transition:transform .15s,box-shadow .15s;
+  position:fixed;bottom:16px;right:20px;z-index:400;
+  width:64px;height:59px;padding:0;border:none;background:none;cursor:pointer;
+  display:flex;align-items:flex-end;justify-content:center;
 }
-.help-fab:hover{transform:scale(1.08);box-shadow:0 8px 22px rgba(43,110,79,.5)}
+/* v0.9.52: schovaný Bublík = prázdná bublina, která tiše dýchá; klik ho vrátí */
+.help-fab svg{width:100%;height:100%;overflow:visible;display:block}
+.help-fab .fab-body{transform-box:fill-box;transform-origin:50% 100%;animation:bubFabBreath 3.2s ease-in-out infinite;transition:transform .15s}
+.help-fab:hover .fab-body{animation:bubFabWobble .6s ease-out}
+.help-fab:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:50%}
+@keyframes bubFabBreath{0%,100%{transform:scale(1,1)}50%{transform:scale(1.03,.975)}}
+@keyframes bubFabWobble{0%{transform:scale(1,1)}30%{transform:scale(1.12,.9)}55%{transform:scale(.95,1.06)}80%{transform:scale(1.03,.98)}100%{transform:scale(1,1)}}
+@media (prefers-reduced-motion: reduce){ .help-fab .fab-body{animation:none} }
+@media (max-width:640px){ .help-fab{width:54px;height:50px} }
 /* ── Bublík (v0.9.45) ── */
 #bublik{position:fixed;left:0;top:0;width:76px;height:70px;z-index:400;touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab;will-change:transform}
 #bublik.dragging{cursor:grabbing}
@@ -1137,12 +1143,7 @@ body.dark .search-input{color:var(--ink)}
 @keyframes bubPuf{from{transform:var(--t) scale(.5);opacity:.9}to{transform:var(--t) scale(1.8);opacity:0}}
 .bub-zzz{position:fixed;left:0;top:0;z-index:402;pointer-events:none;font:700 16px var(--font-display);color:var(--accent-ink);animation:bubZzz 2.6s ease-out forwards}
 @keyframes bubZzz{0%{opacity:0;transform:var(--t) translate(0,0) scale(.6)}20%{opacity:1}100%{opacity:0;transform:var(--t) translate(22px,-46px) scale(1.25)}}
-.bub-pref{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
-.bub-pref button{display:flex;flex-direction:column;gap:2px;text-align:left;padding:8px 9px;border-radius:8px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer;font-family:inherit}
-.bub-pref button strong{font-size:13px}
-.bub-pref button span{font-size:11.5px;line-height:1.35;color:var(--ink-soft)}
-.bub-pref button.on{border:2px solid var(--accent);background:var(--accent-soft);padding:7.5px 8.5px}
-@media (max-width:640px){ #bublik{width:60px;height:56px} .bub-pref{grid-template-columns:1fr} }
+@media (max-width:640px){ #bublik{width:60px;height:56px} }
 @media print{ #bublik,#bublik-speech,.bub-mini,.bub-zzz{display:none !important} }
 /* v0.9.48: při otevřeném modálu Bublík i „?“ zmizí — na mobilu jinak zakrývaly tlačítka Uložit */
 body:has(.modal-overlay.open) #bublik, body:has(.modal-overlay.open) #bublik-speech, body:has(.modal-overlay.open) .help-fab,
@@ -2381,7 +2382,24 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
      HELP CENTER — tree-based, no AI, no API
      ============================================================ -->
 <button class="help-fab" id="help-fab" onclick="handleHelpFabClick()" title="Pomoc" style="display:none">
-  <span data-icon="btn_napoveda">❓</span>
+  <svg viewBox="-36 -62 72 66" aria-hidden="true">
+    <defs>
+      <radialGradient id="bub-fab-g" cx="38%" cy="32%" r="75%">
+        <stop offset="0" stop-color="#74e2ab"/><stop offset=".45" stop-color="#22c47c"/>
+        <stop offset=".85" stop-color="#159a5e"/><stop offset="1" stop-color="#0b7148"/>
+      </radialGradient>
+      <radialGradient id="bub-fab-sh" cx="50%" cy="50%" r="50%">
+        <stop offset="0" stop-color="rgba(22,64,44,.35)"/><stop offset="1" stop-color="rgba(22,64,44,0)"/>
+      </radialGradient>
+    </defs>
+    <ellipse cx="0" cy="1.5" rx="20" ry="3.6" fill="url(#bub-fab-sh)"/>
+    <g class="fab-body">
+      <circle cx="0" cy="-23" r="23" fill="url(#bub-fab-g)" stroke="#0b6b46" stroke-opacity=".55" stroke-width="1.3"/>
+      <ellipse cx="-9" cy="-35" rx="6.5" ry="3.6" fill="#fff" opacity=".85" transform="rotate(-32 -9 -35)"/>
+      <circle cx="-2" cy="-39.5" r="1.6" fill="#fff" opacity=".85"/>
+      <ellipse cx="9" cy="-10" rx="5" ry="2" fill="#fff" opacity=".22" transform="rotate(-28 9 -10)"/>
+    </g>
+  </svg>
 </button>
 <div class="help-panel" id="help-panel">
   <div class="help-header">
@@ -2670,7 +2688,7 @@ window.addEventListener('unhandledrejection', e => {
 // odsud, ručně je nepřepisuj. sw.js se od v0.9.29 nebumpuje — je z něj
 // kill-switch bez cache (viz killServiceWorkers() a komentář v sw.js).
 // ============================================================
-const APP_VERSION = '0.9.51';
+const APP_VERSION = '0.9.52';
 
 // Krátký git hash nasazeného buildu. Placeholder níž přepíše build-stamp.js
 // z CF_PAGES_COMMIT_SHA (Cloudflare Pages build command: `node build-stamp.js`).
@@ -3845,7 +3863,7 @@ async function bootstrapAfterAuth(){
     // v0.9.44: průvodce až po rychlém nastavení, ne přes něj
     if(!checkAndShowOnboarding()) maybeStartTutorial();
     renderQuickSetupBanner();
-    Bublik.start(bublikPref()); // v0.9.45
+    Bublik.start(bublikPref(), bublikPrefExplicit()); // v0.9.45, v0.9.52 explicit
     bublikGreet();              // v0.9.46 — nejvýš 1× denně
   } catch(err){
     document.getElementById('loading-screen').style.display = 'none';
@@ -4224,12 +4242,13 @@ async function deleteQuickSetupData(){
 // Bublinka, která utekla z přihlašovací obrazovky. Fáze 1: žije.
 //   • vždy: dýchá (squash & stretch), mrká, oči sledují kurzor
 //   • reakce: najetí, klik = menu (nápověda, průvodci…), naklikání, chycení a hození
-//   • nuda (jen režim „hravý"): po 60 s nečinnosti občas zablbne, po 4 min usne
+//   • nuda (jen režim „hravý"): po 45 s nečinnosti občas zablbne, po 4 min usne
+//     (uspaný z menu spí, dokud na něj neklikneš)
 // Pravidla: nic sám neotevře, nezakryje obsah natrvalo, nikdy nevyčítá. Každý
 // klik / klávesa / scroll ho okamžitě zastaví a pošle domů. Respektuje
-// prefers-reduced-motion. Ve skryté kartě stojí (rAF se zastaví sám).
-// Režim (hravý / klidný / vypnutý) je per účet v user_metadata.bublik,
-// vypnutý = vrátí se staré tlačítko „?" (#help-fab).
+// prefers-reduced-motion, dokud si uživatel režim nevybere sám. Ve skryté kartě stojí.
+// Režim (hravý / klidný / vypnutý) je per účet v user_metadata.bublik a mění se
+// v jeho menu; vypnutý = vpravo dole jen prázdná bublina (#help-fab), klik ho vrátí.
 // Prototyp a koncept: https://claude.ai/artifact/UKLNwuGq9znyNNuHoPAcDp
 const BUBLIK_SVG = `
 <svg viewBox="-36 -62 72 66" aria-hidden="true">
@@ -4280,9 +4299,10 @@ const Bublik = (()=>{
     lastInput: 0, nextAntic: 0, nextBlink: 0,   // nastaví start() — při načtení skriptu nesahat na browser API (harness je nemá)
     pointer: null, pointerStill: 0, clicks: [], pops: 0, breathT: 0,
     blush: 0, blushUntil: 0, dart: null, nextDart: 0,
-    pref: 'play',
+    pref: 'play', explicit: false, deepSleep: false,
   };
-  const T = { bored: 60000, between: [12000, 25000], sleep: 240000 };
+  // v0.9.52: první kousek po 45 s klidu (dřív 60 s), pak každých 10–22 s
+  const T = { bored: 45000, between: [10000, 22000], sleep: 240000 };
 
   const rand = (a, b) => a + Math.random() * (b - a);
   const pick = arr => arr[Math.floor(Math.random() * arr.length)];
@@ -4297,7 +4317,11 @@ const Bublik = (()=>{
   const vw = () => window.innerWidth, vh = () => window.innerHeight;
   const floorY = () => vh() - 16;
   const homeX = () => S.homeX != null ? clamp(S.homeX, size() / 2 + 8, vw() - size() / 2 - 8) : vw() - size() / 2 - 20;
-  const playful = () => S.pref === 'play' && !reduceMotion;
+  // v0.9.52: „omezit animace“ v systému tlumí Bublíka jen ve výchozím stavu. Když si
+  // uživatel režim vybral sám (menu, bublinka), jeho volba má přednost — dřív ve Windows
+  // s vypnutými efekty animací Bublík jen koukal a nikdy si nehrál ani nedýchal.
+  const calm = () => reduceMotion && !S.explicit;
+  const playful = () => S.pref === 'play' && !calm();
 
   // ── zrušitelné animace ────────────────────────────────────
   class Cancel extends Error {}
@@ -4444,7 +4468,7 @@ const Bublik = (()=>{
     stepBubbles(dt);
 
     S.breathT += dt * (S.mode === 'sleep' ? 1.3 : 2.4);
-    const br = reduceMotion ? 0 : Math.sin(S.breathT) * (S.mode === 'sleep' ? .045 : .022);
+    const br = calm() ? 0 : Math.sin(S.breathT) * (S.mode === 'sleep' ? .045 : .022);
     const sx = S.sx * (1 - br * .6), sy = S.sy * (1 + br);
 
     if(S.mode !== 'sleep' && S.eyeMode === 'open' && now > S.nextBlink){ blink(); S.nextBlink = now + rand(1800, 4800); }
@@ -4498,7 +4522,7 @@ const Bublik = (()=>{
   function brain(now){
     if(!playful() || S.mode !== 'idle') return;
     const idleFor = now - S.lastInput;
-    if(idleFor > T.sleep){ run(sleep); return; }
+    if(idleFor > T.sleep){ S.deepSleep = false; run(sleep); return; }
     if(idleFor > T.bored && now > S.nextAntic){
       run(weighted([
         [lookAround, 2], [burp, 3], [bigBubble, 2], [crawl, isTouch ? 0 : 3.5], [peek, 1.5], [yawn, 1],
@@ -4530,7 +4554,11 @@ const Bublik = (()=>{
   function userActive(kind){
     S.lastInput = performance.now();
     S.nextAntic = S.lastInput + T.bored;
-    if(S.mode === 'sleep'){ run(() => Promise.resolve()); return; }
+    if(S.mode === 'sleep'){
+      // v0.9.52: uspaný z menu spí, dokud na něj neklikneš; sám usnulý se probudí, když se vrátíš
+      if(S.deepSleep) return;
+      run(() => Promise.resolve()); return;
+    }
     if(S.mode !== 'antic' || S.waking){ anticMove = 0; return; }
     if(kind === 'move'){ anticMove += 40; if(anticMove < 200) return; }
     anticMove = 0; interrupt();
@@ -4759,7 +4787,7 @@ const Bublik = (()=>{
       if(kind === 'celebrate'){
         setMouth('grin'); setEyes('happy');
         await tween(160, e => { S.sx = 1 + .18 * e; S.sy = 1 - .16 * e; }, tk);
-        await tween(520, (e, p) => { S.hop = Math.sin(p * Math.PI) * 58; S.sx = 1 - .12 * Math.sin(p * Math.PI); S.sy = 1 + .2 * Math.sin(p * Math.PI); S.tilt = reduceMotion ? 0 : 360 * e; }, tk, ease.lin);
+        await tween(520, (e, p) => { S.hop = Math.sin(p * Math.PI) * 58; S.sx = 1 - .12 * Math.sin(p * Math.PI); S.sy = 1 + .2 * Math.sin(p * Math.PI); S.tilt = calm() ? 0 : 360 * e; }, tk, ease.lin);
         S.tilt = 0; S.hop = 0;
         const c = svgPoint(0, -35);
         for(let i = 0; i < 9; i++){ const a = -Math.PI / 2 + rand(-1.3, 1.3); spawnBubble(c.x, c.y, rand(8, 16), { vx: Math.cos(a) * rand(60, 120), vy: Math.sin(a) * rand(60, 110), life: rand(1.6, 2.8) }); }
@@ -4890,13 +4918,21 @@ const Bublik = (()=>{
       } catch(e){}
       if(S.busy === tk){ S.busy = null; S.mode = 'idle'; defaultFace(); }
     })();
-    say(`<b>Co potřebuješ?</b><div class="bub-menu">
+    say(menuHtml('<b>Co potřebuješ?</b>'), 0);
+  }
+  function menuHtml(intro){
+    return `${intro}<div class="bub-menu">
       <button data-m="help">Nápověda</button>
       <button data-m="tours">Průvodci aplikací</button>
       ${S.pref === 'play'
         ? `<button data-m="sleep">Jdi spát, Bublíku</button><button data-m="quiet">Buď v klidu (nebude blbnout)</button>`
         : `<button data-m="play">Můžeš si zase hrát</button>`}
-      <button data-m="off">Schovej se</button></div>`, 0);
+      <button data-m="off">Schovej se</button></div>`;
+  }
+  // v0.9.52: návrat přes bublinku vpravo dole — přistane a rovnou nabídne menu
+  function openMenu(intro){
+    if(!started) return;
+    setTimeout(() => { if(started) say(menuHtml(intro || '<b>Co potřebuješ?</b>'), 0); }, calm() ? 150 : 1500);
   }
   function onSpeechClick(e){
     const b = e.target.closest('button[data-m]');
@@ -4904,10 +4940,10 @@ const Bublik = (()=>{
     const m = b.dataset.m; hush();
     if(m === 'help') openHelpCenter();
     else if(m === 'tours') openTutorialMenu();
-    else if(m === 'sleep'){ S.lastInput = performance.now(); run(sleep); }
+    else if(m === 'sleep'){ S.lastInput = performance.now(); S.deepSleep = true; run(sleep); say('Dobrou. Vzbudíš mě kliknutím.', 2600); }
     else if(m === 'quiet'){ setBublikPref('quiet'); say('Dobře. Budu jen dýchat a koukat. Kdybys mě chtěl, klikni na mě.', 3500); }
     else if(m === 'play'){ setBublikPref('play'); react('hello'); }
-    else if(m === 'off'){ setBublikPref('off'); toast('Bublík se schoval. Vrátíš ho v Profilu.'); }
+    else if(m === 'off'){ setBublikPref('off'); toast('Bublík se schoval. Zavoláš ho zpátky kliknutím na bublinku vpravo dole.'); }
   }
 
   // aktivita kdekoli na stránce
@@ -4963,8 +4999,9 @@ const Bublik = (()=>{
   }
 
   // ── veřejné API ───────────────────────────────────────────
-  function start(pref){
+  function start(pref, explicit){
     S.pref = pref || 'play';
+    S.explicit = !!explicit;
     const fab = document.getElementById('help-fab');
     if(S.pref === 'off'){ stop(); if(fab) fab.style.display = ''; return; }
     if(fab) fab.style.display = 'none';
@@ -4977,7 +5014,7 @@ const Bublik = (()=>{
     try{ const hx = parseFloat(localStorage.getItem('bublik_home_x')); if(!isNaN(hx)) S.homeX = vw() - hx; } catch(_){}
     defaultFace();
     el.querySelector('[data-b="hat"]').style.display = new Date().getMonth() === 11 ? '' : 'none';
-    S.x = homeX(); S.y = floorY(); S.hop = reduceMotion ? 0 : 220;
+    S.x = homeX(); S.y = floorY(); S.hop = calm() ? 0 : 220;
     S.lastInput = performance.now(); S.nextAntic = S.lastInput + T.bored; S.nextBlink = S.lastInput + 1500;
     lastT = performance.now();
     listen(true);
@@ -4986,7 +5023,7 @@ const Bublik = (()=>{
     const tk = token(); S.mode = 'react';
     (async () => {
       try{
-        if(!reduceMotion){
+        if(!calm()){
           setEyes('closed'); setMouth('o');
           await tween(650, e => { S.hop = 220 * (1 - e); S.sy = 1 + .18 * (1 - e); S.sx = 1 - .1 * (1 - e); }, tk, t => t * t);
           S.hop = 0; setEyes('open'); S.eyeWide = 1.2;
@@ -5017,26 +5054,32 @@ const Bublik = (()=>{
   let lastWorry = 0;
   function worry(){
     if(!started || S.mode === 'drag' || S.mode === 'fall' || S.mode === 'react') return;
+    if(S.mode === 'sleep' && S.deepSleep) return; // kvůli chybové hlášce ho nebudíme
     const now = performance.now(); if(now - lastWorry < 5000) return;
     lastWorry = now; react('worry');
   }
-  return { start, stop, react, say, greet, worry, get pref(){ return S.pref; } };
+  return { start, stop, react, say, greet, worry, openMenu, get pref(){ return S.pref; } };
 })();
 
-function bublikPref(){
+function bublikStoredPref(){
   const meta = currentUser && currentUser.user_metadata && currentUser.user_metadata.bublik;
   if(['play', 'quiet', 'off'].includes(meta)) return meta;
   let local = null;
   try{ local = localStorage.getItem('bublik_pref'); } catch(_){}
   if(['play', 'quiet', 'off'].includes(local)) return local;
-  return currentRole === 'admin' ? 'play' : 'quiet';   // zaměstnanci výchozí klidný
+  return null;
 }
+function bublikPref(){
+  return bublikStoredPref() || (currentRole === 'admin' ? 'play' : 'quiet');   // zaměstnanci výchozí klidný
+}
+// v0.9.52: vybral si režim sám? (pak má přednost před „omezit animace“ v systému)
+function bublikPrefExplicit(){ return !!bublikStoredPref(); }
 async function setBublikPref(v){
   if(!['play', 'quiet', 'off'].includes(v)) return;
+  if(v === 'off'){ const cur = Bublik.pref; if(cur !== 'off'){ try{ localStorage.setItem('bublik_prev', cur); } catch(_){} } }
   try{ localStorage.setItem('bublik_pref', v); } catch(_){}
   if(currentUser) currentUser.user_metadata = { ...(currentUser.user_metadata || {}), bublik: v };
-  Bublik.start(v);
-  document.querySelectorAll('[data-bubpref]').forEach(b => b.classList.toggle('on', b.dataset.bubpref === v));
+  Bublik.start(v, true);
   if(currentUser){
     const { error } = await sb.auth.updateUser({ data: { bublik: v } });
     if(error) console.warn('[Bublík] uložení volby do účtu selhalo (zůstává v prohlížeči)', error);
@@ -11581,13 +11624,6 @@ async function openEmployeeSettings(){
         <button onclick="saveProfile()" class="btn-primary" style="width:100%;padding:8px">${ICONS.btn_ulozit} Uložit údaje</button>
         <div id="prof-save-result" style="font-size:12px;margin-top:6px;display:none"></div>
       </div>
-      <div style="border-top:1px solid var(--line);padding-top:16px">
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--ink-soft);margin-bottom:8px">Bublík — pomocník vpravo dole</div>
-        <div class="bub-pref">
-          ${[['play','Hravý','dýchá, kouká a občas zablbne'],['quiet','Klidný','jen dýchá a kouká'],['off','Schovaný','místo něj tlačítko „?"']].map(([v,t,h]) =>
-            `<button type="button" data-bubpref="${v}" class="${bublikPref()===v?'on':''}" onclick="setBublikPref('${v}')"><strong>${t}</strong><span>${h}</span></button>`).join('')}
-        </div>
-      </div>
       ${myEmp ? `
       <div style="border-top:1px solid var(--line);padding-top:16px">
         <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--ink-soft);margin-bottom:8px">${ICONS.nav_zadosti} Moje směny a volno</div>
@@ -17287,18 +17323,13 @@ function openHelpCenter(){
   helpGoHome();
 }
 
-// Easter egg: 5 clicks on the help fab within 3s teases the version-label easter egg.
-let _helpFabClicks = [];
+// v0.9.52: bublina vpravo dole = schovaný Bublík. Klik ho vrátí (do režimu, který měl
+// před schováním) a on rovnou nabídne menu s nápovědou. Nastavení v Profilu už není.
 function handleHelpFabClick(){
-  const now = Date.now();
-  _helpFabClicks = _helpFabClicks.filter(t => now - t < 3000);
-  _helpFabClicks.push(now);
-  if(_helpFabClicks.length >= 5){
-    _helpFabClicks = [];
-    toast('🎉 Našel jsi tajnou funkci! Bohužel ti neřekneme jakou. Ale zkus kliknout na verzi aplikace v hlavičce...', 'ok');
-    return;
-  }
-  openHelpCenter();
+  let prev = null;
+  try{ prev = localStorage.getItem('bublik_prev'); } catch(_){}
+  setBublikPref(['play', 'quiet'].includes(prev) ? prev : 'play');
+  Bublik.openMenu('<b>Jsem zpátky!</b> Co potřebuješ?');
 }
 
 function handleVersionClick(){
