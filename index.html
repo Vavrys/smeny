@@ -2691,7 +2691,7 @@ window.addEventListener('unhandledrejection', e => {
 // odsud, ručně je nepřepisuj. sw.js se od v0.9.29 nebumpuje — je z něj
 // kill-switch bez cache (viz killServiceWorkers() a komentář v sw.js).
 // ============================================================
-const APP_VERSION = '0.9.55';
+const APP_VERSION = '0.9.56';
 
 // Krátký git hash nasazeného buildu. Placeholder níž přepíše build-stamp.js
 // z CF_PAGES_COMMIT_SHA (Cloudflare Pages build command: `node build-stamp.js`).
@@ -4955,16 +4955,24 @@ const Bublik = (()=>{
   function onDown(e){
     e.preventDefault(); e.stopPropagation();
     try{ el.setPointerCapture(e.pointerId); } catch(_){}
-    down = { x: e.clientX, y: e.clientY, ox: S.x - e.clientX, oy: S.y - e.clientY, moved: false, hist: [] };
+    down = { x: e.clientX, y: e.clientY, ox: S.x - e.clientX, oy: S.y - e.clientY, moved: false, hist: [], sleepy: false };
     S.lastInput = performance.now(); S.nextAntic = S.lastInput + T.bored;   // v0.9.54: hraní s ním = aktivita
+    // v0.9.56: podržení tlačítka (bez pohybu) ho zvedne — i spícího, i na dotyku
+    const d = down;
+    d.timer = setTimeout(() => { if(down === d && !d.moved){ pickUp(d); S.y -= 8; S.sx = 1.06; S.sy = .95; } }, 380);
+  }
+  function pickUp(d){
+    d.moved = true; clearTimeout(d.timer);
+    d.sleepy = S.mode === 'sleep';
+    d.deep = d.sleepy && S.deepSleep;
+    cancelBusy(); hush();
+    S.mode = 'drag'; el.classList.add('dragging');
+    if(d.sleepy){ setEyes('closed'); setMouth('sleep'); S.lookOverride = { x: 0, y: .3 }; }   // nese se a spí dál
+    else { setEyes('open'); S.eyeWide = 1.25; setMouth('big'); S.lookOverride = { x: 0, y: 1 }; }
   }
   function onMove(e){
     if(!down) return;
-    if(!down.moved && Math.hypot(e.clientX - down.x, e.clientY - down.y) > 12){   // v0.9.54: dřív 6 px, klik se měnil v hod
-      down.moved = true; cancelBusy(); hush();
-      S.mode = 'drag'; el.classList.add('dragging');
-      setEyes('open'); S.eyeWide = 1.25; setMouth('big'); S.lookOverride = { x: 0, y: 1 };
-    }
+    if(!down.moved && Math.hypot(e.clientX - down.x, e.clientY - down.y) > 12) pickUp(down);   // v0.9.54: dřív 6 px, klik se měnil v hod
     if(!down.moved) return;
     const now = performance.now();
     down.hist.push({ x: e.clientX, y: e.clientY, t: now }); if(down.hist.length > 6) down.hist.shift();
@@ -4972,16 +4980,20 @@ const Bublik = (()=>{
     const a = down.hist[0], b = down.hist[down.hist.length - 1], dt = Math.max(16, b.t - a.t);
     const vx = (b.x - a.x) / dt, vy = (b.y - a.y) / dt, sp = Math.min(1, Math.hypot(vx, vy) / 2.5);
     S.sx = 1 - .15 * sp; S.sy = 1 + .25 * sp; S.tilt = clamp(vx * 12, -25, 25);
+    if(down.sleepy && Math.random() < .015) zzz();
   }
   function onUp(){
     if(!down) return;
     const d = down; down = null;
+    clearTimeout(d.timer);
     el.classList.remove('dragging');
     if(d.moved){
       const h = d.hist; let vx = 0, vy = 0;
       if(h.length > 1){ const a = h[0], b = h[h.length - 1], dt = Math.max(16, b.t - a.t); vx = (b.x - a.x) / dt * 1000; vy = (b.y - a.y) / dt * 1000; }
       // v0.9.54: držel ho chvíli v klidu → pustil, ne hodil (dřív se počítala stará rychlost)
       if(h.length && performance.now() - h[h.length - 1].t > 110){ vx = 0; vy = 0; }
+      // v0.9.56: spícího jen přeneseš — pomalu se snese dolů, spí dál a tady bude bydlet; prudký hod ho vzbudí
+      if(d.sleepy && Math.hypot(vx, vy) < 900){ sleepyDrop(d.deep); return; }
       // přenesený (pomalu a nízko puštěný) = nový domov; hozený nebo puštěný z výšky = po dopadu se vrátí domů
       throwFall(vx, vy, Math.hypot(vx, vy) < 350 && floorY() - S.y < 120);
     } else onClick();
@@ -5003,6 +5015,26 @@ const Bublik = (()=>{
       const vx = away ? away * rand(70, 230) : rand(-180, 180);
       spawnBubble(px + away * 6, py + rand(-14, 10), rand(5, 11), { vx, vy: -rand(50, 170), life: rand(1.2, 2.2) });
     }
+  }
+  function sleepyDrop(deep){
+    S.mode = 'fall'; S.tilt = 0; S.lookOverride = { x: 0, y: .3 };
+    const tk = token(), y0 = S.y, x0 = S.x, dist = Math.max(0, floorY() - y0);
+    (async () => {
+      try{
+        if(dist > 2) await tween(Math.min(2600, 300 + dist * 4), (e, p) => {
+          S.y = y0 + dist * e; S.x = x0 + Math.sin(p * Math.PI * 2) * Math.min(14, dist / 20);
+          S.sx = 1 + Math.sin(p * Math.PI * 4) * .03; S.sy = 1 - Math.sin(p * Math.PI * 4) * .03;
+        }, tk, ease.inOut);
+        S.y = floorY(); S.x = x0;
+        await tween(160, e => { S.sx = 1 + .08 * e; S.sy = 1 - .08 * e; }, tk);
+        await tween(260, e => { S.sx = 1.08 - .08 * e; S.sy = .92 + .08 * e; }, tk);
+        S.homeX = S.x;
+        try{ localStorage.setItem('bublik_home_r2', String(Math.round(vw() - S.x))); } catch(_){}
+      } catch(e){ return; }
+      if(S.busy !== tk) return;
+      S.busy = null; S.mode = 'idle'; S.deepSleep = !!deep; S.lastInput = performance.now();
+      run(sleep);
+    })();
   }
   function throwFall(vx, vy, placed){
     S.mode = 'fall'; S.lookOverride = null;
