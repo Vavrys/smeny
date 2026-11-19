@@ -30,6 +30,7 @@
 !tests/bulk_employees.js
 !tests/labor_check.js
 !tests/labor_generator.js
+!tests/bublik_idle.js
 !tests/e2e/
 !tests/e2e/**
 !scripts/
