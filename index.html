@@ -1158,6 +1158,10 @@ body.dark .search-input{color:var(--ink)}
 /* v0.9.55: zelený flek po rozplácnutí o kraj / zem */
 .bub-splat{position:fixed;left:0;top:0;border-radius:50%;pointer-events:none;z-index:399;background:radial-gradient(ellipse at center,rgba(18,164,106,.62),rgba(18,164,106,.26) 55%,rgba(18,164,106,0) 72%);animation:bubSplat 3s ease-out forwards}
 @keyframes bubSplat{0%{opacity:0;transform:var(--t) scale(.3)}8%{opacity:1;transform:var(--t) scale(1.08)}20%{transform:var(--t) scale(1)}100%{opacity:0;transform:var(--t) scale(1)}}
+/* v0.9.60: Bublík dloubne do směny — jen se zavlní, nic se nemění */
+.bub-poked{display:inline-block;animation:bubPoke .7s ease-out}
+@keyframes bubPoke{0%{transform:none}20%{transform:translateX(3px) rotate(8deg) scale(1.15)}45%{transform:translateX(-2px) rotate(-6deg)}70%{transform:rotate(3deg)}100%{transform:none}}
+@media (prefers-reduced-motion: reduce){ .bub-poked{animation:none} }
 @keyframes bubPuf{from{transform:var(--t) scale(.5);opacity:.9}to{transform:var(--t) scale(1.8);opacity:0}}
 .bub-zzz{position:fixed;left:0;top:0;z-index:402;pointer-events:none;font:700 16px var(--font-display);color:var(--accent-ink);animation:bubZzz 2.6s ease-out forwards}
 @keyframes bubZzz{0%{opacity:0;transform:var(--t) translate(0,0) scale(.6)}20%{opacity:1}100%{opacity:0;transform:var(--t) translate(22px,-46px) scale(1.25)}}
@@ -2706,7 +2710,7 @@ window.addEventListener('unhandledrejection', e => {
 // odsud, ručně je nepřepisuj. sw.js se od v0.9.29 nebumpuje — je z něj
 // kill-switch bez cache (viz killServiceWorkers() a komentář v sw.js).
 // ============================================================
-const APP_VERSION = '0.9.59';
+const APP_VERSION = '0.9.60';
 
 // Krátký git hash nasazeného buildu. Placeholder níž přepíše build-stamp.js
 // z CF_PAGES_COMMIT_SHA (Cloudflare Pages build command: `node build-stamp.js`).
@@ -4638,7 +4642,7 @@ const Bublik = (()=>{
     // v0.9.59: úrovně nečinnosti — při přechodu hláška, myšlenky čím dál častěji
     const stage = bublikIdleStage(idleFor), free = S.mode === 'idle' || S.mode === 'antic';
     if(stage !== S.stage){
-      const prev = S.stage; S.stage = stage;
+      const prev = S.stage; S.stage = stage; anticBag = [];   // nové kousky vyšší úrovně hned do pytlíku
       if(stage > prev && stage >= 2 && free){ think(pick(BUB_IDLE_MILESTONES[stage]), 5200, true); S.nextThought = now + 9000; }
     }
     if(stage >= 1 && free && now > S.nextThought){
@@ -4655,6 +4659,8 @@ const Bublik = (()=>{
         [lookAround, 2], [burp, 2.5], [bigBubble, 1.8], [crawl, isTouch || away || !floor ? 0 : 2.5], [peek, floor ? 1.3 : 0], [yawn, .8],
         [dance, 1.3], [juggle, 1.5], [stretch, 1], [roll, 1],
         [explore, isTouch ? 0 : 5],
+        // v0.9.60: Průzkumník (od 3 min) — hraje si s appkou, jen vizuálně
+        ...(S.stage >= 2 && !isTouch ? [[sitOnButton, 2], [pokeChip, 2.5], [readNames, 1.4], [railWalk, 1.4], [climbWall, 1.6], [hangTop, 1.3]] : []),
         [goHome, away ? 2.2 : 0],
         [hunt, (S.pointer && !isTouch && S.pointerStill > 1500) ? 2.5 : 0],
       ]));
@@ -4738,10 +4744,10 @@ const Bublik = (()=>{
     const tk = token(); S.mode = 'react';
     try{
       setMouth('o'); S.eyeWide = 1.15;
-      const fx = S.x, fy = S.y, fh = S.hop, tx = homeX(), ty = homeY();
-      if(Math.abs(fx - tx) > 4 || Math.abs(fy - ty) > 4 || fh > 1){
+      const fx = S.x, fy = S.y, fh = S.hop, ft = S.tilt, tx = homeX(), ty = homeY();
+      if(Math.abs(fx - tx) > 4 || Math.abs(fy - ty) > 4 || fh > 1 || Math.abs(ft) > 1){
         await tween(clamp(Math.hypot(fx - tx, fy - ty) * 1.1, 280, 800), (e, p) => {
-          S.x = fx + (tx - fx) * e; S.y = fy + (ty - fy) * e;
+          S.x = fx + (tx - fx) * e; S.y = fy + (ty - fy) * e; S.tilt = ft * (1 - e);
           S.hop = fh * (1 - e) + Math.sin(p * Math.PI) * 28;
           S.sx = 1 - Math.sin(p * Math.PI) * .08; S.sy = 1 + Math.sin(p * Math.PI) * .12;
         }, tk);
@@ -4856,6 +4862,117 @@ const Bublik = (()=>{
       }
       await wobble(.14, 380, tk);
     }
+  }
+  // ── v0.9.60: Průzkumník — sedí na tlačítkách, dloubá do směn, čte jména, chodí po tabulce, leze po zdi, visí shora ──
+  function visibleEls(sel, minW = 8){
+    const s = size(), out = [];
+    document.querySelectorAll(sel).forEach(n => {
+      const r = n.getBoundingClientRect();
+      if(r.width >= minW && r.height > 0 && r.left >= 4 && r.right <= vw() - 4 && r.top >= s + 12 && r.bottom <= vh() - 8) out.push({ n, r });
+    });
+    return out;
+  }
+  const bubEsc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  function empFirstName(id){
+    try{ const e = (employees || []).find(x => String(x.id) === String(id)); return e ? bubEsc(bubFirstName(e.name)) : ''; } catch(_){ return ''; }
+  }
+  async function sitOnButton(tk){
+    const cands = visibleEls('#auto-schedule-btn, #publish-btn, .sched-toolbar button, header button', 30).filter(c => c.r.width < vw() * .5);
+    if(!cands.length) return explore(tk);
+    const c = pick(cands), s = size();
+    await flyTo(clamp(c.r.left + c.r.width / 2, s / 2 + 8, vw() - s / 2 - 8), c.r.top + 2, tk);
+    await tween(220, e => { S.sx = 1 + .08 * e; S.sy = 1 - .08 * e; }, tk);
+    const id = c.n.id, txt = (c.n.textContent || '').trim().slice(0, 30);
+    think(id === 'publish-btn' ? pick(['Publikovat? Klidně bych to zmáčkl. …Ale nezmáčknu.', 'Sedím na Publikovat. Nikdo se nebojte.'])
+      : id === 'auto-schedule-btn' ? pick(['Automaticky doplnit. Kdyby to šlo i s obědem.', 'Tohle tlačítko je teplé. Asi hodně pracuje.'])
+      : pick([`„${bubEsc(txt)}“. Pohodlné tlačítko, pět hvězdiček.`, 'Tady je výhled. A je to měkké.']), 4200, true);
+    const t0 = performance.now(), dur = rand(3200, 5200);
+    await tween(dur, () => { const t = (performance.now() - t0) / 1000; S.tilt = Math.sin(t * 3.2) * 7; S.lookOverride = { x: Math.sin(t * 1.3), y: .3 }; }, tk, ease.lin);
+    S.tilt = 0; S.lookOverride = null;
+    await tween(260, e => { S.sx = 1.08 - .08 * e; S.sy = .92 + .08 * e; }, tk);
+  }
+  async function pokeChip(tk){
+    const cands = visibleEls('.sched-table .sched-chip:not(.x-chip)', 6);
+    if(!cands.length) return explore(tk);
+    const c = pick(cands), s = size(), side = c.r.left > vw() / 2 ? 1 : -1;
+    const x = clamp(c.r.left + c.r.width / 2 + side * (c.r.width / 2 + s * .42), s / 2 + 8, vw() - s / 2 - 8);
+    await flyTo(x, Math.min(floorY(), c.r.bottom + 10), tk);
+    S.lookOverride = { x: -side, y: -.2 }; setMouth('cat');
+    await wait(500, tk);
+    const x0 = S.x;
+    await tween(140, e => { S.x = x0 - side * 9 * e; S.tilt = -side * 10 * e; }, tk);
+    c.n.classList.remove('bub-poked'); void c.n.offsetWidth; c.n.classList.add('bub-poked');
+    setTimeout(() => c.n.classList.remove('bub-poked'), 800);
+    await tween(200, e => { S.x = x0 - side * 9 * (1 - e); S.tilt = -side * 10 * (1 - e); }, tk);
+    const td = c.n.closest('td'), name = td ? empFirstName(td.dataset.emp) : '', day = td && td.dataset.date ? Number(td.dataset.date.slice(8)) : 0;
+    const code = bubEsc((c.n.textContent || '').trim());
+    await wait(350, tk);
+    if(name && day) think(pick([`${name}, ${day}. — ${code}. Dobrá volba.`, `Dloubnul jsem do ${code}. ${name} to snad nepoznal.`, `${code}… ${name}… ${day}.… Hm, sedí to.`]), 3800, true);
+    else think(`${code}. Je to měkké, jak jsem čekal.`, 3400, true);
+    if(Math.random() < .5){ setEyes('happy'); await wait(700, tk); setEyes('open'); }
+    S.lookOverride = null; setMouth('smile');
+  }
+  async function readNames(tk){
+    const rows = visibleEls('.sched-table tbody tr', 40);
+    const names = [];
+    rows.forEach(r => { const td = r.n.querySelector('td[data-emp]'); const nm = td ? empFirstName(td.dataset.emp) : ''; if(nm && !names.includes(nm)) names.push(nm); });
+    if(names.length < 2) return explore(tk);
+    const first = rows[0].r, s = size();
+    await flyTo(clamp(first.left + 150 + s / 2, s / 2 + 8, vw() - s / 2 - 8), clamp(first.top + s * .9, s + 8, floorY()), tk);
+    S.lookOverride = { x: -1, y: 0 }; setMouth('o');
+    const pickN = names.sort(() => Math.random() - .5).slice(0, 3);
+    for(const nm of pickN){ think(`${nm}…`, 900, true); await wait(950, tk); }
+    S.lookOverride = null; setMouth('smile');
+    think(pick(['Samí dobří lidé. Jen nevím, kdo z nich krmí kytky.', `${pickN[0]} má hezké jméno. Já mám Bublík. Taky hezké.`, 'Kdyby tohle byla třída, byl bych třídní.']), 3800, true);
+  }
+  async function railWalk(tk){
+    const t = document.getElementById('sched-table');
+    if(!t) return explore(tk);
+    const r = t.getBoundingClientRect(), s = size();
+    if(r.top < s + 12 || r.top > floorY() - 10 || r.width < 300) return explore(tk);
+    const lo = clamp(r.left + s / 2, s / 2 + 8, vw() - s / 2 - 8), hi = clamp(Math.min(r.right, vw()) - s / 2, s / 2 + 8, vw() - s / 2 - 8);
+    const fromLeft = Math.abs(S.x - lo) < Math.abs(S.x - hi);
+    await flyTo(fromLeft ? lo : hi, r.top, tk);
+    think(pick(['Balancuju na tabulce. Nedívej se dolů.', 'Procházka po okraji rozpisu. Doporučuju.', 'Tohle je moje zábradlí. Moje!']), 3800, true);
+    S.y = r.top;
+    await walkTo(fromLeft ? hi : lo, tk);
+    if(Math.random() < .4){ setEyes('happy'); await hopSmall(tk, 14); setEyes('open'); }
+  }
+  async function climbWall(tk){
+    const s = size(), left = S.x < vw() / 2, wx = left ? s / 2 + 2 : vw() - s / 2 - 2;
+    await flyTo(wx, floorY(), tk);
+    // škrábe o kraj (jako kočka)
+    S.lookOverride = { x: left ? -1 : 1, y: 0 }; setMouth('flat');
+    for(let i = 0; i < 4; i++) await tween(110, e => { S.tilt = (left ? -1 : 1) * (6 + 6 * Math.sin(e * Math.PI)); }, tk);
+    // přichytí se a leze nahoru
+    const lean = left ? -78 : 78, y0 = S.y, top = Math.max(s + 20, vh() * rand(.25, .5));
+    await tween(300, e => { S.tilt = lean * e; }, tk);
+    setMouth('cat'); S.lookOverride = { x: 0, y: -1 };
+    let y = y0;
+    while(y - top > 6){
+      const step = Math.min(34, y - top), from = y;
+      await tween(240, (e, p) => { S.y = from - step * e; S.sx = 1 - .1 * Math.sin(p * Math.PI); S.sy = 1 + .12 * Math.sin(p * Math.PI); }, tk);
+      y = from - step;
+      await wait(rand(60, 180), tk);
+    }
+    think(pick(['Lezu po zdi. Ruce na to nepotřebuju.', 'Tady nahoře je to jiný svět.', 'Kdo řekl, že bubliny nelezou?']), 3600, true);
+    await wait(rand(900, 1600), tk);
+    await tween(400, e => { S.tilt = lean * (1 - e); }, tk);
+    S.lookOverride = null; setMouth('smile');
+  }
+  async function hangTop(tk){
+    const s = size(), x = rand(s + 40, vw() - s - 40);
+    think(pick(['Jdu se podívat na strop.', 'Zkusím to vzhůru nohama.']), 2200, true);
+    await flyTo(x, s + 8, tk);
+    const y0 = S.y;
+    await tween(520, e => { S.y = y0 - (y0 - 6) * e; S.tilt = 180 * e; }, tk, ease.inOut);
+    hush();
+    const t0 = performance.now();
+    await tween(rand(2600, 3800), () => { const t = (performance.now() - t0) / 1000; S.tilt = 180 + Math.sin(t * 2.6) * 12 * Math.exp(-t * .25); }, tk, ease.lin);
+    if(Math.random() < .5){ setEyes('happy'); await wait(600, tk); setEyes('open'); }
+    await tween(520, e => { S.y = 6 + (y0 - 6) * e; S.tilt = 180 * (1 - e); }, tk, ease.inOut);
+    S.tilt = 0;
+    think(pick(['Svět vzhůru nohama. Rozpis taky.', 'Krev se mi nahrnula do… nemám krev. Dobrý.']), 3200, true);
   }
   async function snoop(tk){
     const r = Math.random();
