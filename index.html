@@ -2588,7 +2588,7 @@ window.addEventListener('unhandledrejection', e => {
 // odsud, ručně je nepřepisuj. sw.js se od v0.9.29 nebumpuje — je z něj
 // kill-switch bez cache (viz killServiceWorkers() a komentář v sw.js).
 // ============================================================
-const APP_VERSION = '0.9.46';
+const APP_VERSION = '0.9.47';
 
 // Krátký git hash nasazeného buildu. Placeholder níž přepíše build-stamp.js
 // z CF_PAGES_COMMIT_SHA (Cloudflare Pages build command: `node build-stamp.js`).
@@ -2902,6 +2902,7 @@ function toast(msg, type){
   t.className = 'toast show' + (type === 'error' ? ' toast-error' : type === 'ok' ? ' toast-ok' : '');
   clearTimeout(toast._timer);
   toast._timer = setTimeout(()=>t.classList.remove('show'), type === 'error' ? 4000 : 2600);
+  if(type === 'error'){ try{ Bublik.worry(); } catch(_){} } // v0.9.47: chyba → Bublík se zapotí (try: toast může běžet dřív, než Bublík existuje)
 }
 function toastError(msg){ toast(ICONS.status_warning + ' ' + msg, 'error'); }
 function toastOk(msg){ toast('✓ ' + msg, 'ok'); }
@@ -4671,6 +4672,7 @@ const Bublik = (()=>{
   async function react(kind, text){
     if(!started || S.mode === 'drag' || S.mode === 'fall') return;
     cancelBusy(); const tk = token(); S.mode = 'react';
+    hush(); // starý text nesmí viset nad novou reakcí
     try{
       if(kind === 'celebrate'){
         setMouth('grin'); setEyes('happy');
@@ -4686,6 +4688,20 @@ const Bublik = (()=>{
         setEyes('happy'); setMouth('grin');
         await hopSmall(tk, 20);
         await wait(400, tk);
+      } else if(kind === 'worry'){
+        // v0.9.47: starost — kapka potu, vlnitá pusa, cuknutí (při chybě nebo nesplnitelném rozpisu)
+        sweat.setAttribute('opacity', '1'); setMouth('wavy'); S.lookOverride = { x: -.5, y: -.8 }; S.eyeWide = 1.1;
+        for(let i = 0; i < 4; i++) await tween(90, e => { S.tilt = (i % 2 ? -1 : 1) * 4 * e; }, tk);
+        S.tilt = 0;
+        if(text) say(text, 7000);
+        await wait(text ? 2600 : 1400, tk);
+      } else if(kind === 'nudge'){
+        // v0.9.47: „mám tip" — 2× nadskočí a kouká k obsahu, nic sám neotevírá
+        S.lookOverride = { x: -1, y: -.6 }; setMouth('o'); S.eyeWide = 1.15;
+        await hopSmall(tk, 14); await hopSmall(tk, 10);
+        S.eyeWide = 1; setMouth('smile');
+        if(text) say('<span class="bub-tag">Mám tip</span><br>' + text, 9000);
+        await wait(1500, tk);
       }
     } catch(e){ return; }
     if(S.busy === tk){ S.busy = null; S.mode = 'idle'; defaultFace(); }
@@ -4915,7 +4931,14 @@ const Bublik = (()=>{
     if(pick.shy) blush(4000);
     setTimeout(() => say((pick.tag ? `<span class="bub-tag">${pick.tag}</span><br>` : '') + pick.html, 9000), 380);
   }
-  return { start, stop, react, say, greet, get pref(){ return S.pref; } };
+  // v0.9.47: chyba v appce → jen krátká starost bez textu (nejvýš 1× za 5 s, neruší drag/hod)
+  let lastWorry = 0;
+  function worry(){
+    if(!started || S.mode === 'drag' || S.mode === 'fall' || S.mode === 'react') return;
+    const now = performance.now(); if(now - lastWorry < 5000) return;
+    lastWorry = now; react('worry');
+  }
+  return { start, stop, react, say, greet, worry, get pref(){ return S.pref; } };
 })();
 
 function bublikPref(){
@@ -4977,6 +5000,7 @@ const BUB_HOLIDAYS = { '1-1':'Nový rok', '5-1':'Svátek práce', '5-8':'Den ví
 
 function bubFirstName(full){ return String(full || '').trim().split(/\s+/)[0] || ''; }
 function bubDaysWord(n){ return n === 1 ? 'den' : n < 5 ? 'dny' : 'dní'; }
+function bubDayList(days){ return days.slice(0, 3).map(x => x + '.').join(', ') + (days.length > 3 ? ' a další' : ''); }
 
 // ctx: { now:Date, role, myName, team:[jména], pendingLeaves, month:{ y, m0, shiftCount, holes:[dny], published },
 //        nextPublished, myNext:{ inDays, dateStr, label } | null | 'none' }
@@ -5005,8 +5029,7 @@ function bublikGreetingCandidates(ctx){
     if(ctx.pendingLeaves > 0) useful.push(`Čekají na tebe <b>${ctx.pendingLeaves} ${ctx.pendingLeaves === 1 ? 'žádost' : ctx.pendingLeaves < 5 ? 'žádosti' : 'žádostí'} o volno</b>. Najdeš je v záložce Žádosti.`);
     if(mm.shiftCount === 0) useful.push(`Rozpis na ${mNom} je zatím prázdný. Stačí kliknout na <b>Automaticky doplnit</b>.`);
     else if(mm.holes.length){
-      const list = mm.holes.slice(0, 3).map(x => x + '.').join(', ') + (mm.holes.length > 3 ? '…' : '');
-      useful.push(`V ${mLoc} chybí obsadit <b>${mm.holes.length} ${bubDaysWord(mm.holes.length)}</b> (${list}). Ukáže ti je záložka Mezery.`);
+      useful.push(`V ${mLoc} chybí obsadit <b>${mm.holes.length} ${bubDaysWord(mm.holes.length)}</b> (${bubDayList(mm.holes)}). Ukáže ti je záložka Mezery.`);
     } else if(!mm.published) useful.push(`${mNom[0].toUpperCase() + mNom.slice(1)} je obsazený, jen ještě není zveřejněný.`);
     const dim = new Date(now.getFullYear(), m0 + 1, 0).getDate();
     if(d >= 20 && !ctx.nextPublished){
@@ -5068,18 +5091,23 @@ function bublikPickGreeting(cands, rnd){
   return pool[pool.length - 1];
 }
 
+// Dny zobrazeného měsíce, kde chybí povinné obsazení (stejný výpočet jako skóre).
+function bublikHoleDays(){
+  const y = schedYear, m0 = schedMonth, dim = new Date(y, m0 + 1, 0).getDate();
+  const holes = [];
+  for(let d = 1; d <= dim; d++){
+    const ds = isoDate(y, m0 + 1, d);
+    const cnt = code => employees.filter(e => { const s = shifts[e.id + ':' + ds]; return s && s.shift_type_code === code; }).length;
+    if(requiredGroupsForDay(ds).some(g => Math.min(groupCoverage(g, cnt), g.need) < g.need)) holes.push(d);
+  }
+  return holes;
+}
+
 function bublikGreetContext(){
   const now = new Date();
   const y = schedYear, m0 = schedMonth, dim = new Date(y, m0 + 1, 0).getDate();
   const inMonth = Object.values(shifts).filter(s => s && s.shift_type_code && s.shift_type_code !== 'X');
-  const holes = [];
-  if(inMonth.length){
-    for(let d = 1; d <= dim; d++){
-      const ds = isoDate(y, m0 + 1, d);
-      const cnt = code => employees.filter(e => { const s = shifts[e.id + ':' + ds]; return s && s.shift_type_code === code; }).length;
-      if(requiredGroupsForDay(ds).some(g => Math.min(groupCoverage(g, cnt), g.need) < g.need)) holes.push(d);
-    }
-  }
+  const holes = inMonth.length ? bublikHoleDays() : [];
   const nm = (m0 + 1) % 12, ny = m0 === 11 ? y + 1 : y;
   let myNext = null;
   const me = employees.find(e => e.id === currentEmployeeId);
@@ -5107,6 +5135,32 @@ function bublikGreetContext(){
     nextPublished: isMonthPublished(ny, nm),
     myNext,
   };
+}
+
+// ── v0.9.47: reakce na appku ──────────────────────────────────
+// Čisté funkce (tests/bublik_greet.js): co Bublík řekne po Automaticky doplnit
+// a po publikování. Reaguje jen na to, co uživatel právě udělal — nic sám neotevře.
+function bublikAutofillMessage(feasible, pct, holes){
+  const list = bubDayList(holes);
+  if(!feasible) return { kind: 'worry', html: `Udělal jsem, co šlo (${pct} %), ale tvrdé podmínky se při tomhle nastavení splnit nedají. Tlačítko <b>Proč?</b> ukáže důvod.` };
+  if(holes.length) return { kind: 'nudge', html: `Hotovo, ${pct} %. Zbývá obsadit <b>${holes.length} ${bubDaysWord(holes.length)}</b> (${list}). Záložka Mezery ukáže, kdo by mohl.` };
+  return { kind: 'celebrate', html: `Hotovo! ${pct} % a žádná díra. Až budeš spokojený, klikni na <b>Publikovat</b>.` };
+}
+function bublikPublishMessage(monthLabel, notifFailed){
+  return notifFailed
+    ? `Rozpis na ${monthLabel} je venku! Jen upozornění týmu se nepodařilo doručit, tak jim radši dej vědět.`
+    : `Rozpis na ${monthLabel} je venku! Tým dostal upozornění. Plácnem si?`;
+}
+function bublikAfterAutofill(feasible, pct){
+  if(Bublik.pref === 'off') return;
+  try{
+    const m = bublikAutofillMessage(feasible, pct, bublikHoleDays());
+    Bublik.react(m.kind, m.html);
+  } catch(e){ console.warn('[Bublík] reakce po doplnění selhala', e); }
+}
+function bublikAfterPublish(monthLabel, notifFailed){
+  if(Bublik.pref === 'off') return;
+  Bublik.react('celebrate', bublikPublishMessage(monthLabel, notifFailed));
 }
 
 // Volá bootstrap po startu Bublíka. Počká na načtení směn aktuálního měsíce.
@@ -8367,6 +8421,7 @@ async function runAutoSchedule(){
     const monthLabel2 = new Date(schedYear, schedMonth, 1).toLocaleDateString('cs-CZ',{month:'long',year:'numeric'});
     showAutoResultPanel(feasibleFound, chosenPct, run);
     logActivity(`Rozpis ${monthLabel2} vygenerován (${chosenPct}%, ${toInsert.length} směn${feasibleFound?'':', tvrdé podmínky nesplněny'})`);
+    bublikAfterAutofill(feasibleFound, chosenPct); // v0.9.47
   }
 
   progressWrap.innerHTML='';
@@ -11758,6 +11813,7 @@ async function _doPublishScheduleInner(){
     : `${ICONS.btn_publikovat} Rozpis ${monthLabel} publikován`, 'ok');
   logActivity(`Rozpis ${monthLabel} byl publikován`);
   updatePublishBtn();
+  bublikAfterPublish(monthLabel, notifFailed); // v0.9.47
 }
 
 function getNotifLogKey(){ return `notif_log_${currentOrg?.id}`; }

@@ -27,11 +27,12 @@ function extractConst(name){
 const ctx = {};
 vm.createContext(ctx);
 vm.runInContext([
-  extract('czNameDays'), extract('bubFirstName'), extract('bubDaysWord'),
+  extract('czNameDays'), extract('bubFirstName'), extract('bubDaysWord'), extract('bubDayList'),
   extractConst('BUB_MONTHS_GEN'), extractConst('BUB_MONTHS_LOC'), extractConst('BUB_MONTHS_NOM'),
   extractConst('BUB_DOW_LOC'), extractConst('BUB_HOLIDAYS'),
   extract('bublikGreetingCandidates'), extract('bublikPickGreeting'),
-  'this.C = bublikGreetingCandidates; this.P = bublikPickGreeting; this.N = czNameDays;',
+  extract('bublikAutofillMessage'), extract('bublikPublishMessage'),
+  'this.C = bublikGreetingCandidates; this.P = bublikPickGreeting; this.N = czNameDays; this.AF = bublikAutofillMessage; this.PM = bublikPublishMessage;',
 ].join('\n'), ctx);
 
 let fail = 0;
@@ -68,7 +69,7 @@ const has = (c, re) => c.some(x => re.test(x.html));
 }
 {
   const c = ctx.C(base({ month: { y: 2026, m0: 10, shiftCount: 120, holes: [9, 17, 23, 28], published: true } }));
-  check('admin: díry v rozpisu (4 dny, první 3 vypsané)', has(c, /chybí obsadit <b>4 dny<\/b> \(9\., 17\., 23\.…\)/));
+  check('admin: díry v rozpisu (4 dny, první 3 vypsané)', has(c, /chybí obsadit <b>4 dny<\/b> \(9\., 17\., 23\. a další\)/));
 }
 {
   const c = ctx.C(base({ month: { y: 2026, m0: 10, shiftCount: 0, holes: [], published: false } }));
@@ -125,6 +126,18 @@ const has = (c, re) => c.some(x => re.test(x.html));
   const all = [];
   for(let m = 0; m < 12; m++) for(const h of [7, 14, 23]) ctx.C(base({ now: new Date(2026, m, 15, h), pendingLeaves: 3 })).forEach(c => all.push(c.html));
   check('žádná hláška nevyčítá', !all.some(t => /měl bys|zase jsi|nezapomeň|proč jsi/i.test(t)));
+}
+
+// ── reakce na appku (v0.9.47) ────────────────────────────────
+{
+  const a = ctx.AF(true, 92, []);
+  check('doplnění bez děr → oslava + Publikovat', a.kind === 'celebrate' && /92 % a žádná díra/.test(a.html) && /Publikovat/.test(a.html));
+  const b = ctx.AF(true, 88, [3, 9, 17, 23, 30]);
+  check('doplnění s dírami → tip, 5 dní, první 3 vypsané', b.kind === 'nudge' && /<b>5 dní<\/b> \(3\., 9\., 17\. a další\)/.test(b.html));
+  const c = ctx.AF(false, 71, [1, 2]);
+  check('nesplnitelné → starost + Proč?', c.kind === 'worry' && /Proč\?/.test(c.html));
+  check('publikování → plácnem si', /prosinec 2026 je venku!.*Plácnem si\?/.test(ctx.PM('prosinec 2026', false)));
+  check('publikování bez doručení → dej vědět', /nepodařilo doručit/.test(ctx.PM('prosinec 2026', true)));
 }
 
 if(fail){ console.error('\n' + fail + ' kontrol selhalo'); process.exit(1); }
