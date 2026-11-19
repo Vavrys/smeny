@@ -2688,7 +2688,7 @@ window.addEventListener('unhandledrejection', e => {
 // odsud, ručně je nepřepisuj. sw.js se od v0.9.29 nebumpuje — je z něj
 // kill-switch bez cache (viz killServiceWorkers() a komentář v sw.js).
 // ============================================================
-const APP_VERSION = '0.9.52';
+const APP_VERSION = '0.9.53';
 
 // Krátký git hash nasazeného buildu. Placeholder níž přepíše build-stamp.js
 // z CF_PAGES_COMMIT_SHA (Cloudflare Pages build command: `node build-stamp.js`).
@@ -4242,7 +4242,8 @@ async function deleteQuickSetupData(){
 // Bublinka, která utekla z přihlašovací obrazovky. Fáze 1: žije.
 //   • vždy: dýchá (squash & stretch), mrká, oči sledují kurzor
 //   • reakce: najetí, klik = menu (nápověda, průvodci…), naklikání, chycení a hození
-//   • nuda (jen režim „hravý"): po 45 s nečinnosti občas zablbne, po 4 min usne
+//   • nuda (jen režim „hravý"): po 30 s nečinnosti blbne (kousek každých 5–11 s), chodí
+//     na výlety po spodku obrazovky a okukuje; při tvé aktivitě se vrátí do kouta; po 4 min usne
 //     (uspaný z menu spí, dokud na něj neklikneš)
 // Pravidla: nic sám neotevře, nezakryje obsah natrvalo, nikdy nevyčítá. Každý
 // klik / klávesa / scroll ho okamžitě zastaví a pošle domů. Respektuje
@@ -4301,8 +4302,8 @@ const Bublik = (()=>{
     blush: 0, blushUntil: 0, dart: null, nextDart: 0,
     pref: 'play', explicit: false, deepSleep: false,
   };
-  // v0.9.52: první kousek po 45 s klidu (dřív 60 s), pak každých 10–22 s
-  const T = { bored: 45000, between: [10000, 22000], sleep: 240000 };
+  // v0.9.53: první kousek po 30 s klidu, pak každých 5–11 s (když už blbne, ať blbne)
+  const T = { bored: 30000, between: [5000, 11000], sleep: 240000 };
 
   const rand = (a, b) => a + Math.random() * (b - a);
   const pick = arr => arr[Math.floor(Math.random() * arr.length)];
@@ -4524,10 +4525,14 @@ const Bublik = (()=>{
     const idleFor = now - S.lastInput;
     if(idleFor > T.sleep){ S.deepSleep = false; run(sleep); return; }
     if(idleFor > T.bored && now > S.nextAntic){
+      // v0.9.53: víc chodí po obrazovce a okukuje; z výletu se vrací sám nebo při tvém pohybu
+      const away = Math.abs(S.x - homeX()) > 6;
       run(weighted([
-        [lookAround, 2], [burp, 3], [bigBubble, 2], [crawl, isTouch ? 0 : 3.5], [peek, 1.5], [yawn, 1],
-        [dance, 1.5], [juggle, 1.8], [stretch, 1.2], [roll, 1],
-        [hunt, (S.pointer && !isTouch && S.pointerStill > 2500) ? 1.5 : 0],
+        [lookAround, 2], [burp, 2.5], [bigBubble, 1.8], [crawl, isTouch || away ? 0 : 2.5], [peek, 1.3], [yawn, .8],
+        [dance, 1.3], [juggle, 1.5], [stretch, 1], [roll, 1],
+        [explore, isTouch ? 0 : 5],
+        [goHome, away ? 2.2 : 0],
+        [hunt, (S.pointer && !isTouch && S.pointerStill > 1500) ? 2.5 : 0],
       ]));
       S.nextAntic = now + rand(...T.between);
     }
@@ -4559,7 +4564,9 @@ const Bublik = (()=>{
       if(S.deepSleep) return;
       run(() => Promise.resolve()); return;
     }
-    if(S.mode !== 'antic' || S.waking){ anticMove = 0; return; }
+    // v0.9.53: stojí na výletě mimo svůj kout → při tvé aktivitě se vrátí, ať nic nezakrývá
+    const awayIdle = S.mode === 'idle' && !S.waking && Math.abs(S.x - homeX()) > 6;
+    if((S.mode !== 'antic' && !awayIdle) || S.waking){ anticMove = 0; return; }
     if(kind === 'move'){ anticMove += 40; if(anticMove < 200) return; }
     anticMove = 0; interrupt();
   }
@@ -4662,6 +4669,66 @@ const Bublik = (()=>{
       S.hop = 0;
     }
     await wobble(.16, 450, tk);
+  }
+  // v0.9.53: výlet — dojde (cupitá nebo hopká) na jiné místo, zvědavě se rozhlédne a zůstane tam
+  async function walkTo(target, tk){
+    const dir = target > S.x ? 1 : -1;
+    S.lookOverride = { x: dir, y: 0 }; setMouth('cat');
+    if(Math.random() < .5){
+      let x = S.x;
+      while(Math.abs(target - x) > 4){
+        const step = Math.min(30, Math.abs(target - x)) * dir, from = x;
+        await tween(190, e => { S.sx = 1 + .16 * e; S.sy = 1 - .11 * e; S.x = from + step * .65 * e; S.tilt = dir * 6 * e; }, tk);
+        await tween(170, e => { S.sx = 1.16 - .24 * e; S.sy = .89 + .19 * e; S.x = from + step * (.65 + .35 * e); S.tilt = dir * 6 * (1 - e); }, tk);
+        x = from + step;
+        await tween(100, e => { S.sx = .92 + .08 * e; S.sy = 1.08 - .08 * e; }, tk);
+      }
+      S.tilt = 0;
+    } else {
+      const dist = target - S.x, hops = Math.max(1, Math.round(Math.abs(dist) / 60));
+      for(let i = 0; i < hops; i++){
+        const from = S.x, step = dist / hops;
+        await tween(80, e => { S.sx = 1 + .1 * e; S.sy = 1 - .1 * e; }, tk);
+        await tween(300, (e, p) => { S.x = from + step * e; S.hop = Math.sin(p * Math.PI) * 20; S.sx = 1 - .07 * Math.sin(p * Math.PI); S.sy = 1 + .12 * Math.sin(p * Math.PI); }, tk, ease.lin);
+        S.hop = 0;
+      }
+      await wobble(.14, 380, tk);
+    }
+  }
+  async function snoop(tk){
+    const r = Math.random();
+    if(r < .35){
+      // čmuchá u země
+      S.lookOverride = { x: pick([-.7, .7]), y: .9 };
+      for(let i = 0; i < 3; i++){ await tween(160, e => { S.sy = 1 - .06 * e; S.sx = 1 + .05 * e; }, tk); await tween(160, e => { S.sy = .94 + .06 * e; S.sx = 1.05 - .05 * e; }, tk); }
+    } else if(r < .7 || !S.pointer){
+      // rozhlíží se, nakloní hlavu
+      for(const p of [{ x: -1, y: -.3 }, { x: 1, y: -.4 }, { x: 0, y: -1 }]){
+        S.lookOverride = p; await tween(220, e => { S.tilt = p.x * 8 * e; }, tk); await wait(rand(300, 600), tk);
+      }
+      S.tilt = 0;
+    } else {
+      // všimne si kurzoru a zaraduje se
+      S.lookOverride = null; S.eyeWide = 1.2; setMouth('o'); await wait(500, tk);
+      S.eyeWide = 1; setEyes('happy'); setMouth('grin'); await hopSmall(tk, 12); setEyes('open');
+    }
+    S.lookOverride = null; setMouth('smile');
+    if(Math.random() < .25){ blush(1200); await wait(400, tk); }
+  }
+  async function explore(tk){
+    const s = size(), lo = s / 2 + 10, hi = vw() - s / 2 - 10;
+    const stops = Math.random() < .45 ? 2 : 1;
+    for(let k = 0; k < stops; k++){
+      let target = rand(lo, hi);
+      if(Math.abs(target - S.x) < vw() * .15) target = clamp(S.x + (S.x > vw() / 2 ? -1 : 1) * vw() * rand(.2, .35), lo, hi);
+      await walkTo(target, tk);
+      await snoop(tk);
+    }
+  }
+  async function goHome(tk){
+    S.lookOverride = { x: homeX() > S.x ? 1 : -1, y: 0 };
+    await walkTo(homeX(), tk);
+    S.lookOverride = null; setEyes('happy'); await wait(400, tk); setEyes('open');
   }
   async function peek(tk){
     const s = size();
