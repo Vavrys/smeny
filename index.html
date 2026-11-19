@@ -1163,12 +1163,15 @@ body.dark .search-input{color:var(--ink)}
 @keyframes bubPoke{0%{transform:none}20%{transform:translateX(3px) rotate(8deg) scale(1.15)}45%{transform:translateX(-2px) rotate(-6deg)}70%{transform:rotate(3deg)}100%{transform:none}}
 @media (prefers-reduced-motion: reduce){ .bub-poked{animation:none} }
 @keyframes bubPuf{from{transform:var(--t) scale(.5);opacity:.9}to{transform:var(--t) scale(1.8);opacity:0}}
+.bub-clone{position:fixed;left:0;top:0;z-index:399;pointer-events:none;will-change:transform}
+.bub-clone svg{width:100%;height:100%;overflow:visible;display:block}
+.bub-brick{position:fixed;left:0;top:0;z-index:398;border-radius:50%;pointer-events:none;background:radial-gradient(circle at 35% 30%,rgba(95,207,152,.95),rgba(18,164,106,.92) 65%,rgba(8,110,70,.95));border:1px solid rgba(4,74,48,.6);transition:transform .25s cubic-bezier(.3,1.6,.5,1)}
 .bub-zzz{position:fixed;left:0;top:0;z-index:402;pointer-events:none;font:700 16px var(--font-display);color:var(--accent-ink);animation:bubZzz 2.6s ease-out forwards}
 @keyframes bubZzz{0%{opacity:0;transform:var(--t) translate(0,0) scale(.6)}20%{opacity:1}100%{opacity:0;transform:var(--t) translate(22px,-46px) scale(1.25)}}
 @media (max-width:640px){ #bublik{width:60px;height:56px} }
-@media print{ #bublik,#bublik-speech,.bub-mini,.bub-zzz,.bub-splat{display:none !important} }
+@media print{ #bublik,#bublik-speech,.bub-mini,.bub-zzz,.bub-splat,.bub-clone,.bub-brick{display:none !important} }
 /* v0.9.48: při otevřeném modálu Bublík i „?“ zmizí — na mobilu jinak zakrývaly tlačítka Uložit */
-body:has(.modal-overlay.open) #bublik, body:has(.modal-overlay.open) #bublik-speech, body:has(.modal-overlay.open) .help-fab,
+body:has(.modal-overlay.open) #bublik, body:has(.modal-overlay.open) #bublik-speech, body:has(.modal-overlay.open) .help-fab, body:has(.modal-overlay.open) .bub-clone, body:has(.modal-overlay.open) .bub-brick,
 body:has(.onboarding-overlay.open) #bublik, body:has(.onboarding-overlay.open) #bublik-speech, body:has(.onboarding-overlay.open) .help-fab{display:none !important}
 
 .help-panel{
@@ -2710,7 +2713,7 @@ window.addEventListener('unhandledrejection', e => {
 // odsud, ručně je nepřepisuj. sw.js se od v0.9.29 nebumpuje — je z něj
 // kill-switch bez cache (viz killServiceWorkers() a komentář v sw.js).
 // ============================================================
-const APP_VERSION = '0.9.60';
+const APP_VERSION = '0.9.61';
 
 // Krátký git hash nasazeného buildu. Placeholder níž přepíše build-stamp.js
 // z CF_PAGES_COMMIT_SHA (Cloudflare Pages build command: `node build-stamp.js`).
@@ -4455,7 +4458,8 @@ const Bublik = (()=>{
     let facts = [];
     try{ facts = bublikIdleFacts(bublikIdleContext()); } catch(_){}
     const useFact = facts.length && Math.random() < .35;
-    const t = bublikBagNext(useFact ? facts : bublikIdleThoughts(stage), seenThoughts, Math.random);
+    const useCrew = !useFact && crew.length && Math.random() < .4;
+    const t = bublikBagNext(useFact ? facts : useCrew ? BUB_CREW_LINES : bublikIdleThoughts(stage), seenThoughts, Math.random);
     if(seenThoughts.length > 250) seenThoughts.splice(0, seenThoughts.length - 250);
     try{ localStorage.setItem('bublik_seen_thoughts', JSON.stringify(seenThoughts)); } catch(_){}
     return t;
@@ -4516,6 +4520,312 @@ const Bublik = (()=>{
       }, i * 110);
     }
   }
+  // ── v0.9.61: Rozmnožení — Bublíčci s rolemi (vzor: Shimeji se množí, Lemmings mají role) ──
+  // Jen vizuální vrstva s pointer-events:none: nic neblokují, klik projde do appky a zároveň je uklidí.
+  const crew = [], bricks = [], trail = [];
+  let crewSeq = 0;
+  const CREW_ROLES = ['stavitel', 'padakar', 'lezec', 'spac', 'kopac'];
+  function crewSvg(){
+    return `<svg viewBox="-36 -62 72 66" aria-hidden="true">
+      <ellipse class="c-sh" cx="0" cy="1.5" rx="20" ry="3.6" fill="url(#bub-g-shadow)"/>
+      <g class="c-body">
+        <g class="c-umb" style="display:none"><path d="M 0 -48 L 0 -40" stroke="#5a3b12" stroke-width="1.6"/><path d="M -27 -50 Q 0 -80 27 -50 Q 13.5 -57 0 -50 Q -13.5 -57 -27 -50 Z" fill="#f7a531" stroke="#a85a12" stroke-width="1.2"/></g>
+        <circle cx="0" cy="-23" r="23" fill="url(#bub-g-body)" stroke="#044a30" stroke-opacity=".6" stroke-width="1.3"/>
+        <ellipse cx="-9" cy="-35" rx="6.5" ry="3.6" fill="#fff" opacity=".85" transform="rotate(-32 -9 -35)"/>
+        <g class="c-eyes"><g class="c-open"><ellipse cx="-7.5" cy="-25" rx="3.4" ry="4.8" fill="#102a1e"/><ellipse cx="7.5" cy="-25" rx="3.4" ry="4.8" fill="#102a1e"/><circle cx="-6.4" cy="-26.8" r="1.2" fill="#fff"/><circle cx="8.6" cy="-26.8" r="1.2" fill="#fff"/></g>
+        <path class="c-closed" style="display:none" d="M -11 -25.5 Q -7.5 -22 -4 -25.5 M 4 -25.5 Q 7.5 -22 11 -25.5" fill="none" stroke="#102a1e" stroke-width="2" stroke-linecap="round"/></g>
+        <path class="c-mouth" d="M -4 -16 Q 0 -12.5 4 -16" fill="none" stroke="#102a1e" stroke-width="1.7" stroke-linecap="round"/>
+      </g></svg>`;
+  }
+  const C_MOUTH = { smile: 'M -4 -16 Q 0 -12.5 4 -16', o: 'M -2 -15 a 2 2.4 0 1 0 4 0 a 2 2.4 0 1 0 -4 0', flat: 'M -3.5 -15 L 3.5 -15', grin: 'M -6 -17 Q 0 -10 6 -17 Z', wavy: 'M -6 -15 q 1.5 -2 3 0 t 3 0 t 3 0 t 3 0' };
+  function cFace(c, eyes, mouth){
+    if(eyes){ c.open.style.display = eyes === 'open' ? '' : 'none'; c.closed.style.display = eyes === 'closed' ? '' : 'none'; }
+    if(mouth){ c.mouth.setAttribute('d', C_MOUTH[mouth]); c.mouth.setAttribute('fill', mouth === 'grin' || mouth === 'o' ? '#102a1e' : 'none'); }
+  }
+  function spawnClone(x, y, role){
+    const c = { id: ++crewSeq, role, x, y, tx: x, ty: y, speed: 120, sc: .1, scT: rand(.52, .66), sx: 1, sy: 1, tilt: 0, ph: rand(0, 6), look: { x: 0, y: 0 },
+      act: 'idle', until: performance.now() + rand(800, 1800), tk: { cancelled: false }, dead: false };
+    c.el = document.createElement('div');
+    c.el.className = 'bub-clone';
+    c.el.innerHTML = crewSvg();
+    document.body.appendChild(c.el);
+    c.body = c.el.querySelector('.c-body'); c.eyes = c.el.querySelector('.c-eyes'); c.open = c.el.querySelector('.c-open');
+    c.closed = c.el.querySelector('.c-closed'); c.mouth = c.el.querySelector('.c-mouth'); c.umb = c.el.querySelector('.c-umb'); c.sh = c.el.querySelector('.c-sh');
+    crew.push(c);
+    return c;
+  }
+  function removeClone(c){
+    c.dead = true; c.tk.cancelled = true; c.el.remove();
+    const i = crew.indexOf(c); if(i >= 0) crew.splice(i, 1);
+  }
+  function cWH(c){ return { w: 76 * c.sc, h: 70 * c.sc }; }
+  function cClamp(c){
+    const { w, h } = cWH(c);
+    c.tx = clamp(c.tx, w / 2 + 6, vw() - w / 2 - 6); c.ty = clamp(c.ty, h + 6, floorY());
+  }
+  async function cGo(c, tx, ty, speed = 130){
+    c.tx = tx; c.ty = ty; c.speed = speed; cClamp(c);
+    const t0 = performance.now();
+    while(Math.hypot(c.tx - c.x, c.ty - c.y) > 3 && performance.now() - t0 < 9000) await wait(60, c.tk);
+  }
+  function cZzz(c){
+    const z = document.createElement('div');
+    z.className = 'bub-zzz'; z.textContent = pick(['z', 'Z']); z.style.fontSize = '12px';
+    z.style.setProperty('--t', `translate(${c.x + 10}px,${c.y - 70 * c.sc}px)`);
+    document.body.appendChild(z); setTimeout(() => z.remove(), 2700);
+  }
+  function addBrick(x, y, d){
+    const b = document.createElement('div');
+    b.className = 'bub-brick'; b.style.width = b.style.height = d + 'px';
+    b.style.transform = `translate(${x - d / 2}px,${y - d}px) scale(.2)`;
+    document.body.appendChild(b);
+    requestAnimationFrame(() => { b.style.transform = `translate(${x - d / 2}px,${y - d}px) scale(1)`; });
+    const o = { el: b, x, y: y - d / 2, d };
+    bricks.push(o);
+    return o;
+  }
+  function popBrick(o){ if(!o.el.isConnected) return; puf(o.x, o.y, o.d * 1.4); o.el.remove(); const i = bricks.indexOf(o); if(i >= 0) bricks.splice(i, 1); }
+  // role — každá je krátký příběh
+  const ROLE_ACT = {
+    async stavitel(c){
+      const fx = rand(vw() * .15, vw() * .85);
+      await cGo(c, fx, floorY(), 150);
+      cFace(c, 'open', 'flat'); c.look = { x: 1, y: 0 };
+      const mine = [], d = 15 * c.sc / .6;
+      try{
+        const nb = Math.floor(rand(4, 8));
+        for(let i = 0; i < nb; i++){
+          await tween(140, e => { c.sy = 1 - .15 * e; c.sx = 1 + .1 * e; }, c.tk);
+          mine.push(addBrick(c.x + 26 * c.sc / .6, floorY() - i * d * .86, d));
+          await tween(160, e => { c.sy = .85 + .15 * e; c.sx = 1.1 - .1 * e; }, c.tk);
+          await wait(rand(250, 500), c.tk);
+        }
+        cFace(c, 'closed', 'grin'); await wait(1500, c.tk); cFace(c, 'open', 'smile');
+        await wait(rand(3000, 6000), c.tk);
+        for(const b of mine.slice().reverse()){ popBrick(b); await wait(120, c.tk); }
+        cFace(c, 'open', 'o'); await wait(600, c.tk); cFace(c, 'open', 'smile');
+      } finally {
+        // když ho vyruší hra, věž stejně do chvíle praskne — nic nezůstane viset
+        if(mine.some(b => b.el.isConnected)) setTimeout(() => mine.slice().reverse().forEach((b, i) => setTimeout(() => popBrick(b), i * 120)), 2500);
+      }
+    },
+    async padakar(c){
+      const x = rand(vw() * .1, vw() * .9);
+      await cGo(c, x, 70 * c.sc + 30, 170);
+      c.umb.style.display = ''; cFace(c, 'open', 'grin');
+      const y0 = c.y, dist = floorY() - y0, dur = dist / 45 * 1000, x0 = c.x;
+      c.act = 'script';
+      await tween(dur, (e, p) => { c.y = c.ty = y0 + dist * p; c.x = c.tx = x0 + Math.sin(p * Math.PI * 4) * 30; c.tilt = Math.cos(p * Math.PI * 4) * 12; }, c.tk, ease.lin);
+      c.tilt = 0; c.umb.style.display = 'none'; cFace(c, 'open', 'smile');
+      await tween(200, e => { c.sy = 1 - .12 * Math.sin(e * Math.PI); c.sx = 1 + .1 * Math.sin(e * Math.PI); }, c.tk);
+    },
+    async lezec(c){
+      const left = c.x < vw() / 2, { w } = cWH(c);
+      await cGo(c, left ? w / 2 + 2 : vw() - w / 2 - 2, floorY(), 160);
+      const lean = left ? -78 : 78;
+      c.act = 'script';
+      await tween(260, e => { c.tilt = lean * e; }, c.tk);
+      const y0 = c.y, top = Math.max(80, vh() * rand(.2, .45));
+      await tween((y0 - top) / 60 * 1000, (e, p) => { c.y = c.ty = y0 - (y0 - top) * e; c.sy = 1 + .1 * Math.abs(Math.sin(p * Math.PI * 10)); }, c.tk, ease.lin);
+      cFace(c, 'open', 'grin'); await wait(rand(800, 1600), c.tk);
+      cFace(c, 'open', 'o');
+      await tween((y0 - top) / 240 * 1000, e => { c.y = c.ty = top + (y0 - top) * e; }, c.tk, t => t * t);
+      await tween(260, e => { c.tilt = lean * (1 - e); }, c.tk);
+      c.tilt = 0; cFace(c, 'open', 'smile');
+    },
+    async spac(c){
+      await cGo(c, rand(vw() * .1, vw() * .9), floorY(), 110);
+      c.act = 'sleep'; cFace(c, 'closed', 'smile'); c.sy = .92; c.sx = 1.05;
+      const until = performance.now() + rand(8000, 13000);
+      let pranked = false;
+      while(performance.now() < until){
+        cZzz(c); await wait(2200, c.tk);
+        const other = crew.find(o => o !== c && o.act === 'idle' && !o.dead);
+        if(!pranked && other && Math.random() < .35){
+          pranked = true;
+          other.act = 'script'; other.tk.cancelled = true; other.tk = { cancelled: false };
+          const ot = other.tk, side = other.x < c.x ? -1 : 1;
+          (async () => {
+            try{
+              await cGo(other, c.x + side * 40 * c.sc / .6, c.y, 170);
+              cFace(other, 'open', 'grin');
+              await tween(140, e => { other.x = other.tx = c.x + side * (40 - 16 * e) * c.sc / .6; }, ot);
+              await tween(160, e => { other.x = other.tx = c.x + side * (24 + 16 * e) * c.sc / .6; }, ot);
+            } catch(e){}
+          })();
+          await wait(700, c.tk);
+          cFace(c, 'open', 'flat'); c.sy = 1; c.sx = 1;
+          await tween(260, (e, p) => { c.y = floorY() - Math.sin(p * Math.PI) * 26; }, c.tk, ease.lin);
+          // naštvaně ho chvíli honí
+          c.act = 'script';
+          const t1 = performance.now();
+          other.tx = other.x - side * -1 * 300; other.speed = 190;
+          while(performance.now() - t1 < 2600 && !other.dead){ c.tx = other.x; c.ty = other.y; c.speed = 175; await wait(80, c.tk); }
+          if(!other.dead){ other.act = 'idle'; other.until = performance.now() + 500; }
+          break;
+        }
+      }
+      c.sy = 1; c.sx = 1; cFace(c, 'open', 'smile');
+    },
+    async kopac(c){
+      await cGo(c, rand(vw() * .1, vw() * .9), floorY(), 140);
+      c.act = 'script'; cFace(c, 'open', 'flat'); c.look = { x: 0, y: 1 };
+      const y0 = floorY();
+      for(let i = 0; i < 5; i++){
+        await tween(180, e => { c.y = y0 + 10 * e * c.sc / .6; c.sy = 1 - .12 * e; }, c.tk);
+        for(let k = 0; k < 2; k++) spawnBubble(c.x + rand(-12, 12), y0 - 4, rand(4, 7), { vx: rand(-70, 70), vy: -rand(50, 110), life: rand(.7, 1.2) });
+        await tween(200, e => { c.y = y0 + 10 * (1 - e) * c.sc / .6; c.sy = .88 + .12 * e; }, c.tk);
+      }
+      c.y = c.ty = y0; c.look = { x: 0, y: 0 };
+      cFace(c, 'open', 'grin'); await wait(700, c.tk); cFace(c, 'open', 'smile');
+    },
+  };
+  async function crewAct(c){
+    c.act = 'busy';
+    const myTk = c.tk;
+    try{ await ROLE_ACT[c.role](c); } catch(e){ if(!(e instanceof Cancel)) console.warn('[Bublík] Bublíček', e); }
+    if(c.dead) return;
+    c.umb.style.display = 'none'; c.sx = 1; c.sy = 1;
+    if(c.tk === myTk){ c.act = 'idle'; c.tilt = 0; c.until = performance.now() + rand(1500, 4000); cFace(c, 'open', 'smile'); }
+  }
+  function crewDecide(c, now){
+    const r = Math.random(), { w, h } = cWH(c);
+    if(r < .45 && now - (c.lastRole || 0) > 9000){ c.lastRole = now; crewAct(c); return; }
+    if(r < .65){ c.tx = S.x + rand(-90, 90); c.ty = S.y + rand(-60, 10); c.speed = 120; }
+    else { c.tx = rand(w / 2 + 8, vw() - w / 2 - 8); c.ty = Math.random() < .4 ? floorY() : rand(h + 20, floorY()); c.speed = rand(90, 160); }
+    cClamp(c);
+    c.until = now + rand(2500, 6000);
+  }
+  function stepCrew(dt, now){
+    for(const c of crew){
+      if(c.sc !== c.scT) c.sc += (c.scT - c.sc) * Math.min(1, dt * 6);
+      if(c.act === 'idle' && now > c.until) crewDecide(c, now);
+      if(c.act === 'train'){ const i = crew.indexOf(c), p = trail[Math.max(0, trail.length - 1 - (i + 1) * 12)]; if(p){ c.tx = p.x; c.ty = p.y; c.speed = 340; } }
+      if(c.act !== 'script' && c.act !== 'sleep'){
+        const dx = c.tx - c.x, dy = c.ty - c.y, d = Math.hypot(dx, dy);
+        if(d > .5){ const st = Math.min(d, c.speed * dt * (d < 40 ? .5 + d / 80 : 1)); c.x += dx / d * st; c.y += dy / d * st; c.look = { x: dx / d, y: dy / d }; }
+        if(c.act !== 'busy' || d > 2) c.tilt += ((d > 2 ? clamp(dx / Math.max(d, 1) * 10, -10, 10) : 0) - c.tilt) * Math.min(1, dt * 8);
+      }
+      const { w, h } = cWH(c), air = clamp(1 - (floorY() - c.y) / 60, 0, 1);
+      const bob = c.act === 'sleep' ? 0 : Math.sin(now / 420 + c.ph) * 2.2 * (1 - air * .7);
+      c.el.style.width = w + 'px'; c.el.style.height = h + 'px';
+      c.el.style.transform = `translate(${(c.x - w / 2).toFixed(1)}px,${(c.y - h + bob).toFixed(1)}px)`;
+      c.body.setAttribute('transform', `rotate(${c.tilt.toFixed(1)}) scale(${c.sx.toFixed(3)} ${c.sy.toFixed(3)})`);
+      c.eyes.setAttribute('transform', `translate(${(c.look.x * 2).toFixed(2)} ${(c.look.y * 1.5).toFixed(2)})`);
+      c.sh.setAttribute('opacity', air.toFixed(2));
+    }
+  }
+  function crewRelease(list){ list.forEach(c => { if(!c.dead && (c.act === 'game' || c.act === 'train')){ c.act = 'idle'; c.tilt = 0; c.until = performance.now() + rand(600, 2000); } }); }
+  function crewMax(idleFor){ return idleFor >= 900000 ? 4 : idleFor >= 600000 ? 3 : 2; }
+  // rozdělení: natáhne se, zaškrtí, prásk — a jsou dva (tři…)
+  async function crewSplit(tk){
+    const n = crew.length ? 1 : 2;
+    await travelTo(S.x, S.y, tk);
+    think(pick(['Rozdělím se. Je to vůbec legální?', 'Je mě málo. Spravím to.', 'Pozor, teď to bude lechtat.']), 2600, true);
+    setMouth('o'); S.eyeWide = 1.2;
+    await tween(700, e => { S.sx = 1 + .55 * e; S.sy = 1 - .25 * e; }, tk, ease.inOut);
+    await tween(260, e => { S.sx = 1.55 - .75 * e; S.sy = .75 + .45 * e; }, tk);
+    puf(S.x, S.y - size() * .35, size() * 1.3);
+    const used = crew.map(c => c.role);
+    for(let i = 0; i < n; i++){
+      const role = CREW_ROLES.filter(r => !used.includes(r))[0] || pick(CREW_ROLES); used.push(role);
+      const side = i === 0 ? -1 : 1, c = spawnClone(S.x + side * size() * .3, S.y, role);
+      c.tx = S.x + side * size() * .95; c.ty = S.y; c.speed = 160;
+    }
+    S.awayStats.clones = (S.awayStats.clones || 0) + n;
+    await wobble(.3, 750, tk);
+    S.eyeWide = 1; setEyes('happy'); setMouth('grin'); await wait(700, tk); setEyes('open'); setMouth('smile');
+    think(crew.length >= 3 ? pick(['Už nás je víc než na poradě.', 'Tým se rozrůstá. Bez pohovoru.']) : pick(['Jsme dva! Konečně můžeme hlasovat. Remíza.', 'Ahoj, já. Ahoj, já.']), 3600, true);
+  }
+  // společné hry (jen když je s kým)
+  async function crewPyramid(tk){
+    if(crew.length < 1) return lookAround(tk);
+    await travelTo(S.x, floorY(), tk);
+    think('Pyramida! Nikdo se nehýbe…', 2600, true);
+    const s = size(); let top = S.y - s * .82;
+    const list = crew.slice(0, 4);
+    list.forEach(c => { c.tk.cancelled = true; c.tk = { cancelled: false }; c.act = 'game'; });
+    for(const c of list){ c.tx = S.x + rand(-4, 4); c.ty = top; c.speed = 190; top -= 70 * c.sc * .88; }
+    try{
+    await wait(1800, tk);
+    for(let i = 0; i < 3; i++){ await tween(300, e => { S.tilt = Math.sin(e * Math.PI) * (i % 2 ? -4 : 4); list.forEach((c, k) => { c.tilt = Math.sin(e * Math.PI) * (i % 2 ? -1 : 1) * (5 + k * 3); }); }, tk); }
+    setMouth('o'); S.eyeWide = 1.25; await wait(500, tk);
+    list.forEach(c => { c.tx = c.x + rand(-180, 180); c.ty = floorY(); c.speed = 230; c.act = 'idle'; c.until = performance.now() + 1800; });
+    } finally { crewRelease(list); }
+    await wobble(.3, 700, tk); S.eyeWide = 1; S.tilt = 0;
+    think(pick(['Skoro. Příště bez Kopáče.', 'Rekord: dvě vteřiny.']), 3000, true);
+  }
+  async function crewTrain(tk){
+    if(crew.length < 1) return lookAround(tk);
+    think(pick(['Vláček! Všichni za mnou!', 'Mašinka jede, tú tú!']), 2600, true);
+    crew.forEach(c => { c.tk.cancelled = true; c.tk = { cancelled: false }; c.act = 'train'; });
+    const s = size();
+    try{ for(let i = 0; i < 4; i++) await flyTo(rand(s, vw() - s), rand(s + 30, floorY()), tk); }
+    finally { crewRelease(crew); }
+  }
+  async function crewTag(tk){
+    if(crew.length < 1) return lookAround(tk);
+    think(pick(['Honěná! Na koho to padne… na mě.', 'Kdo je chycený, kupuje kafe!']), 2600, true);
+    for(let i = 0; i < 4; i++){
+      const c = pick(crew); if(!c || c.dead) break;
+      c.tk.cancelled = true; c.tk = { cancelled: false }; c.act = 'idle'; c.until = performance.now() + 4000;
+      const { w, h } = cWH(c);
+      c.tx = c.x > vw() / 2 ? rand(w, vw() * .3) : rand(vw() * .7, vw() - w); c.ty = rand(h + 30, floorY()); c.speed = 170;
+      await flyTo(c.x, c.y, tk);
+      if(!c.dead){ cFace(c, 'closed', 'grin'); setTimeout(() => { if(!c.dead) cFace(c, 'open', 'smile'); }, 700); }
+      setEyes('happy'); await wait(400, tk); setEyes('open');
+    }
+  }
+  async function crewBall(tk){
+    if(crew.length < 1) return lookAround(tk);
+    const players = crew.slice(0, 3), s = size();
+    const xs = [vw() * .2, vw() * .5, vw() * .8];
+    players.forEach((c, i) => { c.tk.cancelled = true; c.tk = { cancelled: false }; c.act = 'game'; c.tx = xs[(i + 1) % 3]; c.ty = floorY(); c.speed = 180; });
+    await travelTo(xs[0], floorY(), tk);
+    think('Kopaná! Bublina je míč, kdo ji propíchne, prohrál.', 2800, true);
+    await wait(900, tk);
+    const ball = document.createElement('div'); ball.className = 'bub-mini bub-ball'; ball.style.width = ball.style.height = '26px'; ball.style.pointerEvents = 'none';
+    document.body.appendChild(ball);
+    let bx = S.x + s * .4, by = floorY() - 14;
+    const place = () => { ball.style.transform = `translate(${bx - 13}px,${by - 13}px)`; };
+    place();
+    const kickers = [{ who: 'me' }, ...players.map(c => ({ who: c }))];
+    try{
+      let cur = 0;
+      for(let k = 0; k < 7; k++){
+        let nxt = Math.floor(Math.random() * kickers.length); if(nxt === cur) nxt = (nxt + 1) % kickers.length;
+        const kk = kickers[cur];
+        if(kk.who === 'me'){ await tween(140, e => { S.sx = 1 + .15 * e; S.sy = 1 - .12 * e; }, tk); S.sx = 1; S.sy = 1; }
+        else if(!kk.who.dead){ kk.who.sx = 1.15; kk.who.sy = .88; setTimeout(() => { kk.who.sx = 1; kk.who.sy = 1; }, 150); }
+        const t = kickers[nxt], tx0 = t.who === 'me' ? S.x : t.who.x, x0 = bx;
+        await tween(750, (e, p) => { bx = x0 + (tx0 - x0) * e; by = floorY() - 14 - Math.sin(p * Math.PI) * 140; place(); }, tk, ease.lin);
+        cur = nxt;
+      }
+    } finally {
+      puf(bx, by, 40); ball.remove();
+      players.forEach(c => { if(!c.dead){ c.act = 'idle'; c.until = performance.now() + 1200; } });
+    }
+    think(pick(['Gól! …Kam jsme vlastně kopali?', 'Remíza. Míč praskl radostí.']), 3000, true);
+  }
+  // úklid: všichni se vcucnou zpátky do Bublíka (po návratu člověka nebo při vypnutí)
+  function crewRecall(fast){
+    bricks.slice().forEach(popBrick);
+    if(!crew.length) return;
+    const list = crew.slice();
+    list.forEach(c => { c.tk.cancelled = true; c.act = 'script'; });
+    if(fast){ list.forEach(removeClone); return; }
+    const t0 = performance.now();
+    (function k(){
+      const p = clamp((performance.now() - t0) / 520, 0, 1), e = ease.inOut(p);
+      list.forEach(c => {
+        if(c.dead) return;
+        if(c.fx == null){ c.fx = c.x; c.fy = c.y; c.fs = c.sc; }
+        c.x = c.fx + (S.x - c.fx) * e; c.y = c.fy + (S.y - size() * .3 - c.fy) * e; c.sc = c.scT = c.fs * (1 - e) + .05;
+      });
+      if(p < 1) requestAnimationFrame(k);
+      else { list.forEach(removeClone); if(started){ S.sx = 1.25; S.sy = .8; wobble(.25, 600).catch(() => {}); } }
+    })();
+  }
   function stepBubbles(dt){
     minis.forEach(m => {
       if(m.big) return;
@@ -4542,6 +4852,7 @@ const Bublik = (()=>{
     rafId = requestAnimationFrame(frame);
     const dt = Math.min(.05, (now - lastT) / 1000); lastT = now;
     stepBubbles(dt);
+    if(crew.length){ trail.push({ x: S.x, y: S.y }); if(trail.length > 240) trail.shift(); stepCrew(dt, now); }
 
     S.breathT += dt * (S.mode === 'sleep' || S.ko ? 1.1 : 2.4);
     const br = calm() ? 0 : Math.sin(S.breathT) * (S.mode === 'sleep' ? .045 : .022);
@@ -4654,6 +4965,11 @@ const Bublik = (()=>{
     if(idleFor > T.bored && now > S.nextAntic){
       // v0.9.53: víc chodí po obrazovce a okukuje; z výletu se vrací sám nebo při tvém pohybu
       const away = awayFromHome(), floor = onFloor();
+      // v0.9.61: od 5 min se rozdělí (2 Bublíčci, od 10 min 3, od 15 min 4)
+      if(stage >= 3 && !isTouch && crew.length < crewMax(idleFor) && now > (S.nextSplit || 0)){
+        S.nextSplit = now + 150000; S.awayStats.antics++;
+        run(crewSplit); S.nextAntic = now + rand(...T.between); return;
+      }
       S.awayStats.antics++;
       run(pickAntic([
         [lookAround, 2], [burp, 2.5], [bigBubble, 1.8], [crawl, isTouch || away || !floor ? 0 : 2.5], [peek, floor ? 1.3 : 0], [yawn, .8],
@@ -4661,6 +4977,8 @@ const Bublik = (()=>{
         [explore, isTouch ? 0 : 5],
         // v0.9.60: Průzkumník (od 3 min) — hraje si s appkou, jen vizuálně
         ...(S.stage >= 2 && !isTouch ? [[sitOnButton, 2], [pokeChip, 2.5], [readNames, 1.4], [railWalk, 1.4], [climbWall, 1.6], [hangTop, 1.3]] : []),
+        // v0.9.61: hry s Bublíčky
+        ...(crew.length ? [[crewPyramid, 1.8], [crewTrain, 1.6], [crewTag, 1.6], [crewBall, 1.4]] : []),
         [goHome, away ? 2.2 : 0],
         [hunt, (S.pointer && !isTouch && S.pointerStill > 1500) ? 2.5 : 0],
       ]));
@@ -4726,7 +5044,8 @@ const Bublik = (()=>{
       const msg = bublikReturnMessage(away, stats, extras);
       if(msg) setTimeout(() => { if(started && S.mode !== 'drag' && S.mode !== 'fall') say(msg, 7000); }, 1300);
     }
-    if(away >= 30000){ S.awayStats = { antics: 0, flights: 0, thoughts: 0 }; S.stage = 0; }
+    if(crew.length || bricks.length) crewRecall();   // v0.9.61: Bublíčci se vcucnou zpátky
+    if(away >= 30000){ S.awayStats = { antics: 0, flights: 0, thoughts: 0 }; S.stage = 0; S.nextSplit = 0; }
     if(S.mode === 'sleep'){
       // v0.9.52: uspaný z menu spí, dokud na něj neklikneš; sám usnulý se probudí, když se vrátíš
       if(S.deepSleep) return;
@@ -5586,6 +5905,7 @@ const Bublik = (()=>{
     cancelAnimationFrame(rafId);
     listen(false);
     minis.forEach(m => m.pop(false));
+    crewRecall(true);
     if(el) el.style.display = 'none';
     S.mode = 'idle';
   }
@@ -5764,6 +6084,21 @@ const BUB_IDLE_LINES = {
     'Začínám chápat, proč lidi chodí na kafe. Taky bych šel.',
   ],
 };
+// v0.9.61: myšlenky, když je Bublíků víc
+const BUB_CREW_LINES = [
+  'Kopáč zase něco kope. Nevím co. Asi tunel do Excelu.',
+  'Stavitel staví věž. Ptal jsem se proč. Řekl: „Protože tu je.“',
+  'Padákář tvrdí, že deštník je padák. Nechám ho.',
+  'Spáč spí. Má na to talent. Po mně.',
+  'Lezec se zase drží zdi. Říká, že je to meditace.',
+  'Uspořádali jsme poradu. Shodli jsme se, že porady jsou zbytečné.',
+  'Hlasovali jsme o obědě. Všichni chtějí bubliny.',
+  'Je nás víc, ale pořád jen jeden kurzor. To je nefér.',
+  'Zavedli jsme směny. Já mám B1, oni B2 až B4.',
+  'Kdo z nás je originál? Já. Asi. Doufám.',
+  'Kdyby nás bylo deset, otevřeli bychom pobočku.',
+  'Jsem šéf. Nikdo mě neposlouchá. Je to normální?',
+];
 // Hlášky z rozpisu. ctx: { now, y, m0, team:[{id,name}], shifts:[{emp,date,code}] (jen pracovní), xCount, branchOf:{kód:název} }
 function bublikIdleFacts(ctx){
   const out = [];
@@ -5827,6 +6162,7 @@ function bublikReturnMessage(ms, stats, extras){
     const dur = h ? `${h} ${bubWordForm(h, 'hodinu', 'hodiny', 'hodin')}${rest ? ' a ' + rest + ' ' + bubWordForm(rest, 'minutu', 'minuty', 'minut') : ''}` : `${min} ${mWord}`;
     t = `Dobré… ehm, kolik je hodin? Byl jsi pryč ${dur}. Spal jsem jako bublina.`;
   }
+  if(stats.clones){ const n = Math.min(4, stats.clones) + 1; t += ` Chvíli nás bylo ${n}, už jsem zase jeden.`; }
   const add = [];
   if(extras && extras.unread > 0) add.push(`${extras.unread} ${bubWordForm(extras.unread, 'nepřečtenou notifikaci', 'nepřečtené notifikace', 'nepřečtených notifikací')}`);
   if(extras && extras.pendingLeaves > 0) add.push(`${extras.pendingLeaves} ${bubWordForm(extras.pendingLeaves, 'žádost', 'žádosti', 'žádostí')} o volno`);

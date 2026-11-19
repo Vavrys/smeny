@@ -37,10 +37,10 @@ vm.createContext(ctx);
 vm.runInContext([
   extract('czNameDays'), extract('bubFirstName'), extract('bubDaysWord'), extract('bubWordForm'),
   extractBlock('BUB_MONTHS_GEN'), extractBlock('BUB_MONTHS_LOC'),
-  extractBlock('BUB_IDLE_MILESTONES'), extractBlock('BUB_IDLE_LINES'),
+  extractBlock('BUB_IDLE_MILESTONES'), extractBlock('BUB_IDLE_LINES'), extractBlock('BUB_CREW_LINES'),
   extract('bublikIdleStage'), extract('bublikBagNext'), extract('bublikIdleFacts'),
   extract('bublikIdleThoughts'), extract('bublikReturnMessage'),
-  'this.ST = bublikIdleStage; this.BAG = bublikBagNext; this.F = bublikIdleFacts; this.TH = bublikIdleThoughts; this.R = bublikReturnMessage; this.M = BUB_IDLE_MILESTONES; this.L = BUB_IDLE_LINES;',
+  'this.ST = bublikIdleStage; this.BAG = bublikBagNext; this.F = bublikIdleFacts; this.TH = bublikIdleThoughts; this.R = bublikReturnMessage; this.M = BUB_IDLE_MILESTONES; this.L = BUB_IDLE_LINES; this.CL = BUB_CREW_LINES;',
 ].join('\n'), ctx);
 
 let fail = 0;
@@ -72,6 +72,7 @@ check('úroveň 4 přidá šílené', t4.length > t3.length && t4.some(t => ctx.
 check('úroveň 0 nic', ctx.TH(0).length === 0);
 const all = [].concat(...Object.values(ctx.L));
 check('žádná hláška dvakrát', new Set(all).size === all.length);
+check('hlášky Bublíčků (≥ 10, bez duplicit, ne v ostatních)', ctx.CL.length >= 10 && new Set(ctx.CL).size === ctx.CL.length && ctx.CL.every(t => !all.includes(t)));
 check('žádná hláška s "…" na konci místo textu', all.every(t => t.length > 15));
 
 // fakta z rozpisu
@@ -98,6 +99,8 @@ check('4 minuty', /^Jé, jsi zpátky! Byl jsi pryč 4 minuty\. Stihl jsem 3 kous
 check('10 minut', ctx.R(600000, { antics: 12, flights: 4 }, {}).includes('10 minut. Mezitím jsem 12× zablbnul a 4× proletěl'));
 check('20 minut', ctx.R(1200000, {}, {}).startsWith('Konečně! 20 minut.'));
 check('hodina a půl', ctx.R(5400000, {}, {}).includes('1 hodinu a 30 minut'), ctx.R(5400000, {}, {}));
+check('Bublíčci v pointě', ctx.R(600000, { antics: 3, clones: 3 }, {}).includes('Chvíli nás bylo 4, už jsem zase jeden.'));
+check('víc než 4 Bublíčci = strop 5', ctx.R(600000, { clones: 9 }, {}).includes('nás bylo 5'));
 check('notifikace a žádosti', ctx.R(600000, {}, { unread: 2, pendingLeaves: 1 }).endsWith('Mimochodem: máš 2 nepřečtené notifikace a 1 žádost o volno.'));
 
 if(fail){ console.error(`\n${fail} kontrol selhalo`); process.exit(1); }
