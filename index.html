@@ -1166,10 +1166,21 @@ body.dark .search-input{color:var(--ink)}
 .bub-clone{position:fixed;left:0;top:0;z-index:399;pointer-events:none;will-change:transform}
 .bub-clone svg{width:100%;height:100%;overflow:visible;display:block}
 .bub-brick{position:fixed;left:0;top:0;z-index:398;border-radius:50%;pointer-events:none;background:radial-gradient(circle at 35% 30%,rgba(95,207,152,.95),rgba(18,164,106,.92) 65%,rgba(8,110,70,.95));border:1px solid rgba(4,74,48,.6);transition:transform .25s cubic-bezier(.3,1.6,.5,1)}
+.bub-print{position:fixed;left:0;top:0;width:12px;height:8px;border-radius:50%;background:rgba(14,110,72,.3);z-index:396;pointer-events:none;transition:opacity .5s}
+.bub-print.bye{opacity:0}
+.bub-note{position:fixed;left:0;top:0;width:120px;min-height:76px;padding:12px 10px 9px;box-sizing:border-box;background:#fff59d;color:#4a3b00;font:600 13px/1.25 var(--font-display);box-shadow:0 6px 14px rgba(0,0,0,.18);z-index:396;pointer-events:none;transform-origin:50% 0;transition:transform .4s cubic-bezier(.3,1.6,.5,1),opacity .4s;word-break:break-word}
+.bub-note::before{content:"";position:absolute;top:-7px;left:50%;width:44px;height:14px;margin-left:-22px;background:rgba(255,255,255,.55);box-shadow:0 1px 2px rgba(0,0,0,.08);transform:rotate(-3deg)}
+.bub-crack{position:fixed;left:0;top:0;width:160px;height:160px;pointer-events:none;z-index:396;transition:opacity .5s}
+.bub-crack.bye{opacity:0}
+.bub-letter{position:fixed;left:0;top:0;pointer-events:none;z-index:400;white-space:pre;line-height:1}
+.bub-gone{visibility:hidden}
+.bub-grass{position:fixed;left:0;right:0;bottom:0;height:22px;pointer-events:none;z-index:397;transform:scaleY(0);transform-origin:bottom;transition:transform 90s linear;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='26' height='22'%3E%3Cpath d='M2 22 Q4 10 3 4 Q6 12 6 22 Z M9 22 Q12 8 15 2 Q13 12 13 22 Z M17 22 Q18 12 22 6 Q21 14 21 22 Z' fill='%2315a065'/%3E%3Cpath d='M5 22 Q8 14 10 9 Q10 16 10 22 Z M20 22 Q23 15 25 11 Q25 17 24 22 Z' fill='%230b7d4f'/%3E%3C/svg%3E") repeat-x bottom}
+.bub-grass.grow{transform:scaleY(1)}
 .bub-zzz{position:fixed;left:0;top:0;z-index:402;pointer-events:none;font:700 16px var(--font-display);color:var(--accent-ink);animation:bubZzz 2.6s ease-out forwards}
 @keyframes bubZzz{0%{opacity:0;transform:var(--t) translate(0,0) scale(.6)}20%{opacity:1}100%{opacity:0;transform:var(--t) translate(22px,-46px) scale(1.25)}}
 @media (max-width:640px){ #bublik{width:60px;height:56px} }
-@media print{ #bublik,#bublik-speech,.bub-mini,.bub-zzz,.bub-splat,.bub-clone,.bub-brick{display:none !important} }
+@media print{ #bublik,#bublik-speech,.bub-mini,.bub-zzz,.bub-splat,.bub-clone,.bub-brick,.bub-print,.bub-note,.bub-crack,.bub-letter,.bub-grass{display:none !important} }
+@media print{ .bub-gone{visibility:visible !important} }
 /* v0.9.48: při otevřeném modálu Bublík i „?“ zmizí — na mobilu jinak zakrývaly tlačítka Uložit */
 body:has(.modal-overlay.open) #bublik, body:has(.modal-overlay.open) #bublik-speech, body:has(.modal-overlay.open) .help-fab, body:has(.modal-overlay.open) .bub-clone, body:has(.modal-overlay.open) .bub-brick,
 body:has(.onboarding-overlay.open) #bublik, body:has(.onboarding-overlay.open) #bublik-speech, body:has(.onboarding-overlay.open) .help-fab{display:none !important}
@@ -2713,7 +2724,7 @@ window.addEventListener('unhandledrejection', e => {
 // odsud, ručně je nepřepisuj. sw.js se od v0.9.29 nebumpuje — je z něj
 // kill-switch bez cache (viz killServiceWorkers() a komentář v sw.js).
 // ============================================================
-const APP_VERSION = '0.9.61';
+const APP_VERSION = '0.9.62';
 
 // Krátký git hash nasazeného buildu. Placeholder níž přepíše build-stamp.js
 // z CF_PAGES_COMMIT_SHA (Cloudflare Pages build command: `node build-stamp.js`).
@@ -4713,6 +4724,7 @@ const Bublik = (()=>{
       c.body.setAttribute('transform', `rotate(${c.tilt.toFixed(1)}) scale(${c.sx.toFixed(3)} ${c.sy.toFixed(3)})`);
       c.eyes.setAttribute('transform', `translate(${(c.look.x * 2).toFixed(2)} ${(c.look.y * 1.5).toFixed(2)})`);
       c.sh.setAttribute('opacity', air.toFixed(2));
+      if(S.stage >= 4) maybePrint(c, c.x, c.y, .6);
     }
   }
   function crewRelease(list){ list.forEach(c => { if(!c.dead && (c.act === 'game' || c.act === 'train')){ c.act = 'idle'; c.tilt = 0; c.until = performance.now() + rand(600, 2000); } }); }
@@ -4826,6 +4838,211 @@ const Bublik = (()=>{
       else { list.forEach(removeClone); if(started){ S.sx = 1.25; S.sy = .8; wobble(.25, 600).catch(() => {}); } }
     })();
   }
+  // ── v0.9.62: Falešný chaos (od 15 min) — vypadá to, že něco rozbil; doopravdy se nic nerozbije ──
+  // Stopy (Desktop Goose), lepicí vzkazy, prasklina, ukradené písmeno, nakřivený řádek, tráva a sekání.
+  // Všechno se po kliknutí uklidí (chaosTidy) a vrátí do původního stavu.
+  const mess = { prints: [], notes: [], cracks: [], letter: null, rows: [], grass: null };
+  const lastPrint = {};
+  function messEl(cls, html){ const d = document.createElement('div'); d.className = cls; if(html) d.innerHTML = html; document.body.appendChild(d); return d; }
+  function messHit(){ S.awayStats.mess = (S.awayStats.mess || 0) + 1; }
+  function addPrint(x, y){
+    const p = messEl('bub-print');
+    p.style.transform = `translate(${(x - 6).toFixed(1)}px,${(y - 4).toFixed(1)}px) rotate(${rand(-25, 25).toFixed(0)}deg)`;
+    mess.prints.push(p);
+    if(mess.prints.length > 40) mess.prints.shift().remove();
+  }
+  // zelené stopy, když chodí po zemi (on i Bublíčci)
+  function maybePrint(o, x, y, k = 1){
+    if(y < floorY() - 6) return;
+    if(o._px == null){ o._px = x; return; }
+    if(Math.abs(x - o._px) > 30 * k){ o._px = x; o._pf = !o._pf; addPrint(x + (o._pf ? -7 : 7) * k, floorY() - 1); }
+  }
+  function randomFirstName(){
+    try{ const list = (employees || []).filter(e => e.active !== false); if(list.length) return bubEsc(bubFirstName(pick(list).name)); } catch(_){}
+    return '';
+  }
+  async function stickNote(tk){
+    if(mess.notes.length >= 5) return lookAround(tk);
+    const nm = randomFirstName();
+    const texts = ['Bublík byl tady', 'Nezapomeň na oběd!', 'Tahle buňka je moje', 'Kdo snědl moji bublinu?', 'Pomoc, jsem uvězněný v obrazovce', 'Nepublikovat, spím', nm ? `${nm} je super` : 'Jsi super', 'Úkoly: 1. být kulatý ✓', 'Vrátím se. Asi.', 'Zalít kytky (které?)'];
+    const used = mess.notes.map(n => n.dataset.t);
+    const text = pick(texts.filter(t => !used.includes(t))) || pick(texts);
+    const s = size(), x = rand(vw() * .12, vw() * .82), y = rand(vh() * .22, floorY() - 140);
+    await flyTo(x + 70, y + 74 + s * .9, tk);
+    S.lookOverride = { x: -1, y: -1 }; setMouth('cat');
+    await tween(160, e => { S.tilt = -10 * e; S.sx = 1 + .06 * e; }, tk);
+    const n = messEl('bub-note'); n.dataset.t = text; n.textContent = text;
+    const rot = rand(-9, 9).toFixed(1);
+    n.style.transform = `translate(${x}px,${y}px) rotate(${rot}deg) scale(.1)`;
+    requestAnimationFrame(() => { n.style.transform = `translate(${x}px,${y}px) rotate(${rot}deg) scale(1)`; });
+    n.dataset.x = x; n.dataset.y = y; n.dataset.r = rot;
+    mess.notes.push(n); messHit();
+    await tween(220, e => { S.tilt = -10 * (1 - e); S.sx = 1.06 - .06 * e; }, tk);
+    S.lookOverride = null;
+    think(pick(['Nechal jsem ti vzkaz. Kdyby ses nudil.', 'Lepicí papírky jsou moje vášeň.', 'Tohle si přečti. Je to důležité. Možná.']), 3400, true);
+  }
+  function crackSvg(){
+    const segs = [];
+    const n = 6 + Math.floor(Math.random() * 3);
+    for(let i = 0; i < n; i++){
+      let a = (i / n) * Math.PI * 2 + rand(-.3, .3), x = 0, y = 0, d = `M 0 0`;
+      const L = rand(35, 75), steps = 3 + Math.floor(Math.random() * 2);
+      for(let k = 0; k < steps; k++){
+        a += rand(-.45, .45); x += Math.cos(a) * L / steps; y += Math.sin(a) * L / steps; d += ` L ${x.toFixed(1)} ${y.toFixed(1)}`;
+        if(k === 1 && Math.random() < .6){ const b = a + rand(.5, 1) * (Math.random() < .5 ? -1 : 1); segs.push(`M ${x.toFixed(1)} ${y.toFixed(1)} L ${(x + Math.cos(b) * 18).toFixed(1)} ${(y + Math.sin(b) * 18).toFixed(1)}`); }
+      }
+      segs.push(d);
+    }
+    const p = segs.join(' ');
+    return `<svg width="160" height="160" viewBox="-80 -80 160 160"><path d="${p}" stroke="rgba(30,40,35,.7)" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="${p}" stroke="rgba(255,255,255,.85)" stroke-width=".7" fill="none" transform="translate(.9 .9)"/><circle r="5" fill="rgba(30,40,35,.18)"/></svg>`;
+  }
+  async function headbutt(tk){
+    if(mess.cracks.length >= 2) return lookAround(tk);
+    const s = size(), left = Math.random() < .5, dir = left ? -1 : 1;
+    const wx = left ? s / 2 + 4 : vw() - s / 2 - 4, y = rand(vh() * .3, floorY() - 20);
+    await flyTo(wx - dir * 140, y, tk);
+    think(pick(['Jestli prorazím obrazovku, dostanu se ven?', 'Jdu zjistit, co je za okrajem.', 'Rozběh… a teď!']), 2400, true);
+    S.lookOverride = { x: dir, y: 0 }; setMouth('flat');
+    const x0 = S.x;
+    await tween(420, e => { S.x = x0 - dir * 34 * e; S.sx = 1 - .1 * e; S.sy = 1 + .08 * e; }, tk);
+    const x1 = S.x;
+    await tween(170, e => { S.x = x1 + (wx - x1) * e; S.sx = .9 + .1 * e; S.sy = 1.08 - .08 * e; }, tk, t => t * t);
+    const cx = left ? 0 : vw(), cy = S.y - s * .4;
+    const c = messEl('bub-crack', crackSvg());
+    c.style.transform = `translate(${cx - 80}px,${cy - 80}px)`;
+    mess.cracks.push(c); messHit();
+    puf(cx, cy, 60);
+    S.sx = .7; S.sy = 1.25; setEyes('dizzy'); setMouth('wavy'); blush(3000); S.stars = true; S.starT = 0;
+    await tween(320, e => { S.x = wx - dir * 28 * e; S.sx = .7 + .3 * e; S.sy = 1.25 - .25 * e; }, tk);
+    await wait(1700, tk);
+    S.stars = false; setEyes('open'); S.lookOverride = { x: -dir, y: 0 };
+    think(pick(['To tam bylo už předtím.', 'Obrazovka vyhrála. Tentokrát.', 'Nic jsem neviděl. Ty taky ne.']), 3600, true);
+    await wait(600, tk); S.lookOverride = null; setMouth('smile');
+  }
+  async function stealLetter(tk){
+    if(mess.letter) return lookAround(tk);
+    const s = size(), cands = [];
+    document.querySelectorAll('#month-label, #mysched-month-label, .panel-title, .auth-title').forEach(el => {
+      const r = el.getBoundingClientRect();
+      if(!r.width || r.top < s + 20 || r.bottom > floorY() - 20) return;
+      const tn = [...el.childNodes].find(n => n.nodeType === 3 && /\p{L}/u.test(n.data));
+      if(tn) cands.push({ el, tn });
+    });
+    if(!cands.length) return stickNote(tk);
+    const { el, tn } = pick(cands);
+    const idxs = [...tn.data].map((ch, i) => /\p{L}/u.test(ch) ? i : -1).filter(i => i >= 0);
+    const idx = pick(idxs);
+    const range = document.createRange(); range.setStart(tn, idx); range.setEnd(tn, idx + 1);
+    const r = range.getBoundingClientRect();
+    if(!r.width) return stickNote(tk);
+    await flyTo(clamp(r.left + r.width / 2, s / 2 + 8, vw() - s / 2 - 8), clamp(r.bottom + s * 1.05, s + 8, floorY()), tk);
+    S.lookOverride = { x: 0, y: -1 }; setMouth('cat'); await wait(500, tk);
+    // písmeno nahradí neviditelný span stejné šířky → nic neposkočí; div s písmenem pak nosí nad hlavou
+    const after = tn.splitText(idx); after.splitText(1);
+    const span = document.createElement('span'); span.className = 'bub-gone';
+    after.parentNode.insertBefore(span, after); span.appendChild(after);
+    const cs = getComputedStyle(el);
+    const L = messEl('bub-letter'); L.textContent = after.data;
+    L.style.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`; L.style.color = cs.color;
+    L.style.transform = `translate(${r.left}px,${r.top}px)`;
+    mess.letter = { span, el: L, w: r.width, h: r.height, carried: false, x: r.left, y: r.top };
+    messHit();
+    await tween(140, e => { S.hop = 10 * e; }, tk);
+    mess.letter.carried = true;
+    await tween(160, e => { S.hop = 10 * (1 - e); }, tk);
+    setEyes('happy'); setMouth('grin');
+    think(pick([`Půjčil jsem si písmeno „${bubEsc(after.data)}“. Vrátím ho. Asi.`, `„${bubEsc(after.data)}“ je moje nejoblíbenější písmeno. Teď je moje.`, 'Nikdo si toho nevšimne. Že ne?']), 3600, true);
+    await wait(900, tk); setEyes('open'); S.lookOverride = null;
+  }
+  function placeLetter(now){
+    const L = mess.letter; if(!L || !L.carried) return;
+    const s = size(), t = now / 1000;
+    // drží ho u boku a pohazuje si s ním (nad hlavou by zakrýval myšlenky)
+    L.x = S.x + s * .4 + Math.sin(t * 2.2) * 4; L.y = S.y - S.hop - s * .5 - L.h / 2 - Math.abs(Math.sin(t * 3.1)) * 14;
+    L.el.style.transform = `translate(${L.x.toFixed(1)}px,${L.y.toFixed(1)}px) rotate(${(Math.sin(t * 2.2) * 25).toFixed(0)}deg)`;
+  }
+  function returnLetter(fast){
+    const L = mess.letter; if(!L) return;
+    mess.letter = null; L.carried = false;
+    const restore = () => {
+      if(L.span.isConnected){ const t = L.span.firstChild; L.span.replaceWith(t || document.createTextNode('')); if(t && t.parentNode) t.parentNode.normalize(); }
+      L.el.remove();
+    };
+    if(fast || !L.span.isConnected) return restore();
+    const r = L.span.getBoundingClientRect(), x0 = L.x, y0 = L.y, t0 = performance.now();
+    (function k(){
+      const p = clamp((performance.now() - t0) / 600, 0, 1), e = ease.inOut(p);
+      L.el.style.transform = `translate(${x0 + (r.left - x0) * e}px,${y0 + (r.top - y0) * e - Math.sin(p * Math.PI) * 60}px)`;
+      if(p < 1) requestAnimationFrame(k); else restore();
+    })();
+  }
+  async function crookRow(tk){
+    if(mess.rows.length >= 2) return lookAround(tk);
+    const rows = visibleEls('.sched-table tbody tr', 200).filter(r => !mess.rows.includes(r.n));
+    if(!rows.length) return stickNote(tk);
+    const { n, r } = pick(rows), s = size();
+    await flyTo(clamp(Math.min(r.right, vw()) - s * .3, s / 2 + 8, vw() - s / 2 - 8), clamp(r.bottom + s * .6, s + 8, floorY()), tk);
+    S.lookOverride = { x: -1, y: -.5 }; setMouth('flat');
+    await tween(160, e => { S.tilt = -14 * e; }, tk);
+    const deg = (Math.random() < .5 ? -1 : 1) * rand(.8, 1.6);
+    n.style.transition = 'transform .6s cubic-bezier(.3,1.6,.5,1)'; n.style.transformOrigin = 'left center'; n.style.transform = `rotate(${deg.toFixed(2)}deg)`;
+    mess.rows.push(n); messHit();
+    await tween(200, e => { S.tilt = -14 * (1 - e); }, tk);
+    blush(2600); S.lookOverride = { x: 1, y: .2 };
+    think(pick(['Nezdá se ti ta tabulka trochu nakřivo? …To nic.', 'Já jsem na to jen sáhl.', 'Říká se tomu moderní design.']), 3600, true);
+    await wait(1400, tk);
+    if(Math.random() < .45){
+      // provinile narovná — a trochu přehne na druhou stranu
+      S.lookOverride = { x: -1, y: -.5 };
+      await tween(160, e => { S.tilt = -10 * e; }, tk);
+      n.style.transform = `rotate(${(-deg * .3).toFixed(2)}deg)`;
+      await tween(200, e => { S.tilt = -10 * (1 - e); }, tk);
+      think('Lepší. Skoro.', 2400, true);
+    }
+    S.lookOverride = null; setMouth('smile');
+  }
+  function growGrass(){
+    if(mess.grass) return;
+    const g = messEl('bub-grass');
+    mess.grass = { el: g, t0: performance.now() };
+    requestAnimationFrame(() => requestAnimationFrame(() => g.classList.add('grow')));
+  }
+  async function mowGrass(tk){
+    const g = mess.grass;
+    if(!g || performance.now() - g.t0 < 60000) return lookAround(tk);
+    const s = size(), fromLeft = S.x < vw() / 2, dir = fromLeft ? 1 : -1;
+    const x0 = fromLeft ? s / 2 + 8 : vw() - s / 2 - 8, x1 = fromLeft ? vw() - s / 2 - 8 : s / 2 + 8;
+    await travelTo(x0, floorY(), tk);
+    think(pick(['Sekám trávník. Brrrrm.', 'Údržba zeleně, prosím nerušit.', 'Tráva roste rychleji než rozpis.']), 3000, true);
+    setMouth('grin'); S.lookOverride = { x: dir, y: .3 };
+    let lastP = 0;
+    await tween(Math.abs(x1 - x0) / 230 * 1000, (e, p) => {
+      S.x = x0 + (x1 - x0) * e; S.hop = Math.abs(Math.sin(p * 80)) * 2.5;
+      g.el.style.clipPath = fromLeft ? `inset(0 0 0 ${S.x.toFixed(0)}px)` : `inset(0 ${(vw() - S.x).toFixed(0)}px 0 0)`;
+      if(p - lastP > .025){ lastP = p; spawnBubble(S.x - dir * s * .3, floorY() - 6, rand(3, 5), { vx: -dir * rand(60, 130), vy: -rand(40, 100), life: .8 }); }
+    }, tk, ease.lin);
+    S.hop = 0; g.el.remove(); if(mess.grass === g) mess.grass = null; S.lookOverride = null; messHit();
+    S.nextGrass = performance.now() + 180000;
+    think(pick(['Hotovo. Teď ještě zalít… ne, to radši ne.', 'Anglický trávník. Skoro.']), 3000, true);
+  }
+  // úklid po návratu — do vteřiny je všechno jako dřív
+  function chaosTidy(fast){
+    const any = mess.prints.length || mess.notes.length || mess.cracks.length || mess.letter || mess.rows.length || mess.grass;
+    if(!any) return false;
+    const gone = (el, cls, ms) => { if(fast){ el.remove(); return; } if(cls) el.classList.add(cls); setTimeout(() => el.remove(), ms); };
+    mess.prints.forEach(p => gone(p, 'bye', 500));
+    mess.notes.forEach((n, i) => setTimeout(() => {
+      if(fast){ n.remove(); return; }
+      n.style.transform = `translate(${n.dataset.x}px,${Number(n.dataset.y) - 80}px) rotate(${Number(n.dataset.r) + 40}deg) scale(.4)`; n.style.opacity = '0';
+      setTimeout(() => n.remove(), 450);
+    }, fast ? 0 : i * 80));
+    mess.cracks.forEach(c => gone(c, 'bye', 500));
+    mess.rows.forEach(r => { if(r.isConnected){ r.style.transform = ''; setTimeout(() => { r.style.transition = ''; r.style.transformOrigin = ''; }, 700); } });
+    if(mess.grass){ const g = mess.grass.el; g.style.transition = 'transform .5s'; g.classList.remove('grow'); setTimeout(() => g.remove(), fast ? 0 : 520); }
+    returnLetter(fast);
+    mess.prints = []; mess.notes = []; mess.cracks = []; mess.rows = []; mess.grass = null;
+    return true;
+  }
   function stepBubbles(dt){
     minis.forEach(m => {
       if(m.big) return;
@@ -4853,6 +5070,8 @@ const Bublik = (()=>{
     const dt = Math.min(.05, (now - lastT) / 1000); lastT = now;
     stepBubbles(dt);
     if(crew.length){ trail.push({ x: S.x, y: S.y }); if(trail.length > 240) trail.shift(); stepCrew(dt, now); }
+    if(S.stage >= 4) maybePrint(lastPrint, S.x, S.y);   // v0.9.62: zelené stopy
+    if(mess.letter) placeLetter(now);
 
     S.breathT += dt * (S.mode === 'sleep' || S.ko ? 1.1 : 2.4);
     const br = calm() ? 0 : Math.sin(S.breathT) * (S.mode === 'sleep' ? .045 : .022);
@@ -4956,6 +5175,7 @@ const Bublik = (()=>{
       const prev = S.stage; S.stage = stage; anticBag = [];   // nové kousky vyšší úrovně hned do pytlíku
       if(stage > prev && stage >= 2 && free){ think(pick(BUB_IDLE_MILESTONES[stage]), 5200, true); S.nextThought = now + 9000; }
     }
+    if(stage >= 4 && !isTouch && !mess.grass && now > (S.nextGrass || 0)) growGrass();   // v0.9.62: tráva zarůstá spodek
     if(stage >= 1 && free && now > S.nextThought){
       if(think(nextThought(stage))) S.awayStats.thoughts++;
       S.nextThought = now + (stage >= 3 ? rand(14000, 26000) : rand(18000, 34000));
@@ -4979,6 +5199,8 @@ const Bublik = (()=>{
         ...(S.stage >= 2 && !isTouch ? [[sitOnButton, 2], [pokeChip, 2.5], [readNames, 1.4], [railWalk, 1.4], [climbWall, 1.6], [hangTop, 1.3]] : []),
         // v0.9.61: hry s Bublíčky
         ...(crew.length ? [[crewPyramid, 1.8], [crewTrain, 1.6], [crewTag, 1.6], [crewBall, 1.4]] : []),
+        // v0.9.62: Falešný chaos (od 15 min)
+        ...(S.stage >= 4 && !isTouch ? [[stickNote, 2], [headbutt, 1.5], [stealLetter, 1.6], [crookRow, 1.6], [mowGrass, mess.grass && now - mess.grass.t0 > 60000 ? 2.2 : 0]] : []),
         [goHome, away ? 2.2 : 0],
         [hunt, (S.pointer && !isTouch && S.pointerStill > 1500) ? 2.5 : 0],
       ]));
@@ -5045,6 +5267,7 @@ const Bublik = (()=>{
       if(msg) setTimeout(() => { if(started && S.mode !== 'drag' && S.mode !== 'fall') say(msg, 7000); }, 1300);
     }
     if(crew.length || bricks.length) crewRecall();   // v0.9.61: Bublíčci se vcucnou zpátky
+    chaosTidy();                                      // v0.9.62: úklid nepořádku
     if(away >= 30000){ S.awayStats = { antics: 0, flights: 0, thoughts: 0 }; S.stage = 0; S.nextSplit = 0; }
     if(S.mode === 'sleep'){
       // v0.9.52: uspaný z menu spí, dokud na něj neklikneš; sám usnulý se probudí, když se vrátíš
@@ -5905,7 +6128,7 @@ const Bublik = (()=>{
     cancelAnimationFrame(rafId);
     listen(false);
     minis.forEach(m => m.pop(false));
-    crewRecall(true);
+    crewRecall(true); chaosTidy(true);
     if(el) el.style.display = 'none';
     S.mode = 'idle';
   }
@@ -6163,6 +6386,7 @@ function bublikReturnMessage(ms, stats, extras){
     t = `Dobré… ehm, kolik je hodin? Byl jsi pryč ${dur}. Spal jsem jako bublina.`;
   }
   if(stats.clones){ const n = Math.min(4, stats.clones) + 1; t += ` Chvíli nás bylo ${n}, už jsem zase jeden.`; }
+  if(stats.mess) t += ' A kdyby ses divil, co tu bylo za nepořádek — už je uklizeno.';
   const add = [];
   if(extras && extras.unread > 0) add.push(`${extras.unread} ${bubWordForm(extras.unread, 'nepřečtenou notifikaci', 'nepřečtené notifikace', 'nepřečtených notifikací')}`);
   if(extras && extras.pendingLeaves > 0) add.push(`${extras.pendingLeaves} ${bubWordForm(extras.pendingLeaves, 'žádost', 'žádosti', 'žádostí')} o volno`);
