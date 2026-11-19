@@ -39,8 +39,8 @@ vm.runInContext([
   extractBlock('BUB_MONTHS_GEN'), extractBlock('BUB_MONTHS_LOC'),
   extractBlock('BUB_IDLE_MILESTONES'), extractBlock('BUB_IDLE_LINES'), extractBlock('BUB_CREW_LINES'),
   extract('bublikIdleStage'), extract('bublikBagNext'), extract('bublikIdleFacts'),
-  extract('bublikIdleThoughts'), extract('bublikReturnMessage'),
-  'this.ST = bublikIdleStage; this.BAG = bublikBagNext; this.F = bublikIdleFacts; this.TH = bublikIdleThoughts; this.R = bublikReturnMessage; this.M = BUB_IDLE_MILESTONES; this.L = BUB_IDLE_LINES; this.CL = BUB_CREW_LINES;',
+  extract('bublikIdleThoughts'), extract('bublikReturnMessage'), extract('bublikVillagePhase'), extractBlock('BUB_VILLAGE_LINES'),
+  'this.ST = bublikIdleStage; this.BAG = bublikBagNext; this.F = bublikIdleFacts; this.TH = bublikIdleThoughts; this.R = bublikReturnMessage; this.M = BUB_IDLE_MILESTONES; this.L = BUB_IDLE_LINES; this.CL = BUB_CREW_LINES; this.VP = bublikVillagePhase; this.VL = BUB_VILLAGE_LINES;',
 ].join('\n'), ctx);
 
 let fail = 0;
@@ -102,6 +102,10 @@ check('hodina a půl', ctx.R(5400000, {}, {}).includes('1 hodinu a 30 minut'), c
 check('Bublíčci v pointě', ctx.R(600000, { antics: 3, clones: 3 }, {}).includes('Chvíli nás bylo 4, už jsem zase jeden.'));
 check('víc než 4 Bublíčci = strop 5', ctx.R(600000, { clones: 9 }, {}).includes('nás bylo 5'));
 check('nepořádek v pointě', ctx.R(1200000, { mess: 3 }, {}).includes('už je uklizeno'));
+check('fáze dne', ['noc','noc','rano','rano','prace','prace','obed','prace','vecer','vecer','noc'].join() === [0,5,6,8,9,11,12,16,17,21,22].map(h => ctx.VP(h)).join(), [0,5,6,8,9,11,12,16,17,21,22].map(h => ctx.VP(h)).join());
+check('hlášky Bublíkova bez duplicit', ctx.VL.length >= 8 && new Set(ctx.VL).size === ctx.VL.length && ctx.VL.every(t => !all.includes(t) && !ctx.CL.includes(t)));
+check('pointa s vesnicí', ctx.R(7200000, {}, {}).includes('Spal jsem') && ctx.R(7200000, { village: { houses: 4, fire: true, pop: 9 } }, {}).includes('Mezitím vzniklo Bublíkovo: 4 domky, táborák a 9 obyvatel.'), ctx.R(7200000, { village: { houses: 4, fire: true, pop: 9 } }, {}));
+check('pointa s vesnicí (1 domek, 3 obyvatelé)', ctx.R(3600000, { village: { houses: 1, fire: false, pop: 3 } }, {}).includes('1 domek a 3 obyvatelé.'));
 check('notifikace a žádosti', ctx.R(600000, {}, { unread: 2, pendingLeaves: 1 }).endsWith('Mimochodem: máš 2 nepřečtené notifikace a 1 žádost o volno.'));
 
 if(fail){ console.error(`\n${fail} kontrol selhalo`); process.exit(1); }
