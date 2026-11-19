@@ -101,6 +101,7 @@ check('20 minut', ctx.R(1200000, {}, {}).startsWith('Konečně! 20 minut.'));
 check('hodina a půl', ctx.R(5400000, {}, {}).includes('1 hodinu a 30 minut'), ctx.R(5400000, {}, {}));
 check('Bublíčci v pointě', ctx.R(600000, { antics: 3, clones: 3 }, {}).includes('Chvíli nás bylo 4, už jsem zase jeden.'));
 check('víc než 4 Bublíčci = strop 5', ctx.R(600000, { clones: 9 }, {}).includes('nás bylo 5'));
+check('nepořádek v pointě', ctx.R(1200000, { mess: 3 }, {}).includes('už je uklizeno'));
 check('notifikace a žádosti', ctx.R(600000, {}, { unread: 2, pendingLeaves: 1 }).endsWith('Mimochodem: máš 2 nepřečtené notifikace a 1 žádost o volno.'));
 
 if(fail){ console.error(`\n${fail} kontrol selhalo`); process.exit(1); }
