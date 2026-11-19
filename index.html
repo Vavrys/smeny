@@ -1893,7 +1893,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
         <!-- v0.9.49: Zákoník práce — kontrola -->
         <div id="labor-rules-section" style="margin-bottom:0">
           <p class="rules-section-title">Zákoník práce — kontrola rozpisu</p>
-          <p class="rules-section-hint">Hlídá jen směny, které mají nastavený čas (Pobočky → upravit pobočku → u typu směny „od – do“). Počítá se na člověka přes všechny pobočky, týden od pondělí do neděle. Je to pomůcka, ne právní posouzení. Generátor tahle pravidla zatím nerespektuje, jen ukáže upozornění nad rozpisem.</p>
+          <p class="rules-section-hint">Hlídá jen směny, které mají nastavený čas (Pobočky → upravit pobočku → u typu směny „od – do“). Počítá se na člověka přes všechny pobočky, týden od pondělí do neděle. Je to pomůcka, ne právní posouzení. Automatické doplnění hlídá odpočinek mezi směnami, odpočinek v týdnu a týdenní strop. Ručně zadané směny appka jen upozorní.</p>
           <div class="field" style="max-width:580px;margin-bottom:10px">
             <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
               <input type="checkbox" id="labor-enabled" onchange="saveLaborRules()" style="width:16px;height:16px">
@@ -2670,7 +2670,7 @@ window.addEventListener('unhandledrejection', e => {
 // odsud, ručně je nepřepisuj. sw.js se od v0.9.29 nebumpuje — je z něj
 // kill-switch bez cache (viz killServiceWorkers() a komentář v sw.js).
 // ============================================================
-const APP_VERSION = '0.9.49';
+const APP_VERSION = '0.9.50';
 
 // Krátký git hash nasazeného buildu. Placeholder níž přepíše build-stamp.js
 // z CF_PAGES_COMMIT_SHA (Cloudflare Pages build command: `node build-stamp.js`).
@@ -4077,7 +4077,7 @@ function renderQuickSetup(){
         </label>
       </div>`}
       <div class="qs-types">${plan.types.map(t => `<span class="qs-type" style="--c:${t.color}">${escapeHtml(t.label)}</span>`).join('')}</div>
-      ${s.length === 24 ? `<div class="qs-note warn">Pozor: zákoník práce povoluje směnu nejvýš 12 hodin (výjimky má jen zdravotnictví). 24h služby se obvykle řeší pohotovostí nebo dohodou. Kontrolu pravidel přidáme v další verzi.</div>` : ''}`;
+      ${s.length === 24 ? `<div class="qs-note warn">Pozor: zákoník práce povoluje směnu nejvýš 12 hodin (výjimky má jen zdravotnictví). 24h služby se obvykle řeší pohotovostí nebo dohodou. Appka na to nad rozpisem upozorní; výjimku § 83a zapneš v Pravidlech.</div>` : ''}`;
   }
 
   el.innerHTML = `
@@ -4108,7 +4108,7 @@ function renderQuickSetup(){
         <div>Plný úvazek: <b>${String(st.weeklyHours).replace('.', ',')} h týdně</b> ≈ ${st.monthHours} h měsíčně → cca <b>${st.perPerson} směn</b>${s.mode === 'fixed' ? ` po ${plan.length} h` : ''} na člověka.</div>
         <div>${s.mode === 'fixed' ? `Na ${st.perDay} ${st.perDay === 1 ? 'směnu' : st.perDay < 5 ? 'směny' : 'směn'} denně` : `Aby bylo denně v práci ${st.perDay}`} potřebuješ zhruba <b>${st.needPeople} lidí</b> na plný úvazek. ${st.enough ? `Máš ${s.employees}, to stačí.` : `Máš ${s.employees}, rozpis bude mít díry.`}</div>
       </div>
-      ${plan.night ? `<div class="qs-note">Odpočinek po noční (11 h mezi směnami) zatím hlídáš sám. Automatickou kontrolu přidáme v další verzi.</div>` : ''}
+      ${plan.night ? `<div class="qs-note">Automatické doplnění hlídá odpočinek 11 h mezi směnami (třeba po noční) i 35 h volna v týdnu.</div>` : ''}
 
       <div class="auth-error" id="qs-error" style="display:none"></div>
       <button class="btn-primary qs-go" id="qs-go" onclick="applyQuickSetup()" ${s.busy ? 'disabled' : ''}>${s.busy ? 'Vytvářím…' : 'Vytvořit a začít'}</button>
@@ -5278,7 +5278,8 @@ async function bublikGreet(){
 //         počítáno na pětidenní týden (zde v rámci měsíce)
 //   týdenní hodiny nad nastavený strop (výchozí 48 h = 40 + 8 přesčas)
 // Výjimky (zkrácení odpočinku na 8 h podle § 90a apod.) appka nezná.
-// Generátor tahle pravidla zatím nerespektuje — jen se zobrazují upozornění.
+// Generátor (v0.9.50) hlídá § 90, § 92 a týdenní strop při automatickém doplnění
+// (laborAllowsS v buildSchedule); ruční směny se jen hlásí.
 const LABOR_DEFAULTS = { enabled: true, min_rest: 11, weekly_rest: 35, max_shift: 12, long_exception: false, max_week: 48, night_avg: true };
 function laborRules(settings){ return Object.assign({}, LABOR_DEFAULTS, (settings && settings.labor_rules) || {}); }
 
@@ -9288,6 +9289,73 @@ function buildSchedule(daysInMonth, prevMonthShifts){
     return true;
   }
 
+  // ── v0.9.50: zákoník práce v generátoru ───────────────────────
+  // Jen pro typy směn s nastaveným časem (org_settings.shift_meta). Bez časů
+  // (Beer Spa) je LAB_ON false → laborAllowsS vrací hned true a generátor
+  // běží přesně jako dřív (žádná volba navíc, žádné volání RNG).
+  // Hlídá § 90 (odpočinek mezi směnami), § 92 (35 h volna v týdnu po–ne)
+  // a týdenní strop hodin. Délku směny ani § 94 (průměr nočních) generátor
+  // neřeší — to jsou vlastnosti typu / celého měsíce, hlásí je kontrola nad rozpisem.
+  const _labRules = laborRules(orgSettings);
+  const _labMeta = (orgSettings && orgSettings.shift_meta) || {};
+  const LAB_ON = !!_labRules.enabled && Object.keys(_labMeta).length > 0;
+  function _labCodeAt(empId, ds, extra){
+    if(extra && extra[ds] !== undefined) return extra[ds];
+    const s = S[empId+':'+ds] || prevMonthShifts[empId+':'+ds];
+    return (s && s.shift_type_code && s.shift_type_code !== 'X') ? s.shift_type_code : null;
+  }
+  function _labSpanAt(empId, ds, extra){
+    const c = _labCodeAt(empId, ds, extra);
+    return c && _labMeta[c] ? laborSpan(ds, _labMeta[c]) : null;
+  }
+  function _labShiftDate(ds, off){
+    const [y, m, d] = ds.split('-').map(Number);
+    const t = new Date(Date.UTC(y, m - 1, d + off));
+    return t.toISOString().slice(0, 10);
+  }
+  // Smí empId vzít `code` v den dateStr? `extra` = hypotetické další směny {ds: code}
+  // (plán víkendového bloku, který ještě není v S). Vlastní směnu v dateStr ignoruje.
+  function laborAllowsS(empId, dateStr, code, extra){
+    if(!LAB_ON || !_labMeta[code]) return true;
+    const sp = laborSpan(dateStr, _labMeta[code]);
+    if(!sp) return true;
+    const minRest = _labRules.min_rest * 60;
+    for(const off of [-2, -1, 1, 2]){
+      const n = _labSpanAt(empId, _labShiftDate(dateStr, off), extra);
+      if(!n) continue;
+      if(n.end > sp.start && n.start < sp.end) return false;                 // překryv
+      if(n.end <= sp.start && sp.start - n.end < minRest) return false;      // před
+      if(n.start >= sp.end && n.start - sp.end < minRest) return false;      // po
+    }
+    // týden po–ne obsahující dateStr
+    const [y, m, d] = dateStr.split('-').map(Number);
+    const dow = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+    const mondayOff = -((dow + 6) % 7);
+    const weekStart = Date.UTC(y, m - 1, d + mondayOff) / 60000, weekEnd = weekStart + 7 * 1440;
+    const spans = [sp];
+    for(let i = 0; i < 7; i++){
+      const ds = _labShiftDate(dateStr, mondayOff + i);
+      if(ds === dateStr) continue;
+      const n = _labSpanAt(empId, ds, extra);
+      if(n) spans.push(n);
+    }
+    const before = _labSpanAt(empId, _labShiftDate(dateStr, mondayOff - 1), extra);   // neděle předchozího týdne může přesahovat
+    if(before) spans.push(before);
+    spans.sort((a, b) => a.start - b.start);
+    const hours = spans.filter(n => n.start >= weekStart && n.start < weekEnd).reduce((a, n) => a + (n.end - n.start), 0);
+    if(hours > _labRules.max_week * 60) return false;
+    let longest = 0, cur = weekStart;
+    spans.forEach(n => { if(n.end <= weekStart || n.start >= weekEnd) return; longest = Math.max(longest, n.start - cur); cur = Math.max(cur, n.end); });
+    longest = Math.max(longest, weekEnd - cur);
+    if(longest < _labRules.weekly_rest * 60) return false;
+    return true;
+  }
+  function laborPlanOk(empId, plan){
+    if(!LAB_ON) return true;
+    const extra = {}; plan.forEach(p => { extra[p.ds] = p.code; });
+    return plan.every(p => laborAllowsS(empId, p.ds, p.code, extra));
+  }
+
   function canWork(emp, dateStr, code){
     if(S[emp.id+':'+dateStr]) return false;
     if(empShiftCount(emp.id) >= emp.max_shifts) return false;
@@ -9309,6 +9377,7 @@ function buildSchedule(daysInMonth, prevMonthShifts){
       for(let i=dayIdx-1-rest;i>=LOOKBACK_LIMIT;i--){ if(isWorkingAt(emp.id, i)) prev++; else break; }
       if(prev>0 && rest < emp.min_rest) return false;
     }
+    if(code && LAB_ON && !laborAllowsS(emp.id, dateStr, code)) return false; // v0.9.50
     return true;
   }
 
@@ -9434,7 +9503,8 @@ function buildSchedule(daysInMonth, prevMonthShifts){
             (!subtype || days.every(ds=>nextSubtypeCode(codes, cc=>countFilled(ds, cc))===c)) &&
             days.every(ds=>canWork(emp, ds, c)) &&
             blockRespectsLimits(emp, days.length, c) &&
-            empShiftCount(emp.id) + days.length <= emp.max_shifts // v0.9.34: canWork hlídá max jen po jednom dni
+            empShiftCount(emp.id) + days.length <= emp.max_shifts && // v0.9.34: canWork hlídá max jen po jednom dni
+            laborPlanOk(emp.id, days.map(ds=>({ ds, code: c })))     // v0.9.50: odpočinek i mezi dny bloku
           );
           if(shared) return days.map(ds=>({ ds, code: shared }));
           // v0.9.34: plán po dnech musí počítat i s dny, které už sám naplánoval —
@@ -9456,7 +9526,8 @@ function buildSchedule(daysInMonth, prevMonthShifts){
             const c = codes.find(cc=>
               (!subtype || nextSubtypeCode(codes, x=>countFilled(ds, x))===cc) &&
               canWork(emp, ds, cc) &&
-              branchLimitAllows(emp, cc) && planAllows(cc)
+              branchLimitAllows(emp, cc) && planAllows(cc) &&
+              (!LAB_ON || laborAllowsS(emp.id, ds, cc, Object.fromEntries(plan.map(p=>[p.ds, p.code])))) // v0.9.50
             );
             if(c) plan.push({ ds, code: c });
           }
@@ -9592,6 +9663,7 @@ function buildSchedule(daysInMonth, prevMonthShifts){
           }
         }
         if(!code) continue;
+        if(!laborAllowsS(emp.id, dateStr, code)) continue; // v0.9.50: canWork výš běží bez kódu
         setShift(emp.id, dateStr, code);
         need--;
       }
@@ -9662,6 +9734,7 @@ function buildSchedule(daysInMonth, prevMonthShifts){
           if(getBranchDayMin(b, dow2, dateStr) <= 0) return; // branch has no demand today
           if(countFilled(dateStr, b.code) >= getBranchDayMax(b, dow2, dateStr)) return;
           if(!branchLimitAllows(emp, b.code)) return;
+          if(!laborAllowsS(emp.id, dateStr, b.code)) return; // v0.9.50: canWork výš běží bez kódu
           avail.push(b.code);
         } else {
           const bCodes = bSts.map(s=>s.code);
@@ -9671,7 +9744,7 @@ function buildSchedule(daysInMonth, prevMonthShifts){
           const cap = Math.min(Math.max(getBranchDayMax(b, dow2, dateStr), needN), bCodes.length);
           if(subtypeCoverage(bCodes, c=>countFilled(dateStr, c)) >= cap) return;
           const nx = nextSubtypeCode(bCodes, c=>countFilled(dateStr, c));
-          const c = (nx && branchLimitAllows(emp, nx)) ? nx : null;
+          const c = (nx && branchLimitAllows(emp, nx) && laborAllowsS(emp.id, dateStr, nx)) ? nx : null; // v0.9.50
           if(c) avail.push(c);
         }
       });
@@ -10152,7 +10225,8 @@ function buildSchedule(daysInMonth, prevMonthShifts){
                 // Přijmi, když (a) klesne součet, NEBO (b) klesne nejhorší z dvojice
                 // a součet se nezhorší (férové vyrovnání extrému bez celkové ztráty).
                 const improves = sumAfter < sumBefore || (worstAfter < worstBefore && sumAfter <= sumBefore);
-                if(improves && canHaveCode(X, cB) && canHaveCode(Y, cA)){
+                if(improves && canHaveCode(X, cB) && canHaveCode(Y, cA) &&
+                   laborAllowsS(X.id, dateStr, cB) && laborAllowsS(Y.id, dateStr, cA)){ // v0.9.50
                   setShift(X.id, dateStr, cB);
                   setShift(Y.id, dateStr, cA);
                   progressedB = true; swapped = true; break;
