@@ -487,6 +487,19 @@ table.data-table tr:hover td{background:var(--paper)}
 .modal-overlay.open{display:flex}
 .modal{background:var(--surface);border-radius:16px;box-shadow:var(--shadow-lg);width:100%;max-width:440px;padding:26px;max-height:88vh;overflow-y:auto}
 .modal h3{margin:0 0 18px;font-size:17px}
+/* v0.9.49: zákoník práce */
+.sched-cell.labor-warn{box-shadow:inset 0 0 0 2px var(--status-warn)}
+.labor-ok{font-size:12.5px;color:var(--ink);background:var(--status-ok-soft);border:1.5px solid var(--status-ok);border-radius:8px;padding:6px 11px;margin-bottom:10px}
+.labor-warn-box{font-size:13px;color:var(--ink);background:var(--status-warn-soft);border:1.5px solid var(--status-warn);border-radius:8px;padding:8px 12px;margin-bottom:10px}
+.labor-warn-box summary{cursor:pointer;line-height:1.45}
+.labor-warn-box ul{margin:8px 0 6px;padding-left:18px;max-height:220px;overflow-y:auto;line-height:1.5}
+.labor-note{font-size:12px;color:var(--ink-soft)}
+.labor-grid{display:grid;grid-template-columns:repeat(3,minmax(0,180px));gap:10px}
+.labor-grid label{display:flex;flex-direction:column;gap:4px;font-size:12.5px;font-weight:600;color:var(--ink)}
+.labor-grid input{padding:7px 9px;border:1.5px solid var(--line);border-radius:7px;font-size:14px;font-family:inherit;max-width:120px}
+.labor-grid span{font-size:11.5px;font-weight:500;color:var(--ink-soft)}
+.st-time-head{display:grid;grid-template-columns:56px minmax(0,1fr) 62px 62px 40px auto;gap:6px;font-size:11px;font-weight:700;text-transform:uppercase;color:var(--ink-soft);padding-bottom:2px}
+@media (max-width:560px){ .labor-grid{grid-template-columns:1fr} }
 /* v0.9.48: hromadné nastavení zaměstnanců */
 .bulk-sec{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--ink);margin:14px 0 7px}
 .bulk-who{display:flex;flex-wrap:wrap;gap:6px;max-height:170px;overflow-y:auto;padding:8px;border:1.5px solid var(--line);border-radius:10px}
@@ -1645,6 +1658,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
           <div style="font-size:12px;color:#666" id="print-subtitle"></div>
         </div>
         <div id="auto-result-wrap"></div>
+        <div id="labor-check-wrap"></div>
         <div id="score-bar-wrap"></div>
         <div id="labor-cost-wrap" style="margin-bottom:8px"></div>
         <div id="auto-progress-wrap"></div>
@@ -1872,6 +1886,35 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
             <span data-icon="status_warning">⚠️</span> Pozor: příliš mnoho neporušitelných podmínek může znemožnit nalezení řešení. Doporučujeme max. 1.
           </div>
           <div id="weights-sum-warning" style="font-size:12px;color:var(--red);margin-top:8px;display:none"><span data-icon="status_warning">⚠️</span> Součet vah není 100 % — uprav hodnoty.</div>
+        </div>
+
+        <hr class="rules-section-sep">
+
+        <!-- v0.9.49: Zákoník práce — kontrola -->
+        <div id="labor-rules-section" style="margin-bottom:0">
+          <p class="rules-section-title">Zákoník práce — kontrola rozpisu</p>
+          <p class="rules-section-hint">Hlídá jen směny, které mají nastavený čas (Pobočky → upravit pobočku → u typu směny „od – do“). Počítá se na člověka přes všechny pobočky, týden od pondělí do neděle. Je to pomůcka, ne právní posouzení. Generátor tahle pravidla zatím nerespektuje, jen ukáže upozornění nad rozpisem.</p>
+          <div class="field" style="max-width:580px;margin-bottom:10px">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+              <input type="checkbox" id="labor-enabled" onchange="saveLaborRules()" style="width:16px;height:16px">
+              <span style="font-size:13px">Kontrolovat rozpis podle zákoníku práce</span>
+            </label>
+          </div>
+          <div class="labor-grid">
+            <label>Odpočinek mezi směnami (h)<input type="number" id="labor-min-rest" min="0" max="24" step="0.5" onchange="saveLaborRules()"><span>§ 90: aspoň 11 h</span></label>
+            <label>Odpočinek v týdnu (h)<input type="number" id="labor-weekly-rest" min="0" max="72" step="1" onchange="saveLaborRules()"><span>§ 92: aspoň 35 h</span></label>
+            <label>Strop hodin za týden<input type="number" id="labor-max-week" min="1" max="100" step="1" onchange="saveLaborRules()"><span>40 h + max 8 h přesčas</span></label>
+          </div>
+          <div class="field" style="max-width:580px;margin:10px 0 0">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+              <input type="checkbox" id="labor-night" onchange="saveLaborRules()" style="width:16px;height:16px">
+              <span style="font-size:13px">Hlídat noční pracovníky: průměrná směna max 8 h (§ 94)</span>
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-top:6px">
+              <input type="checkbox" id="labor-long" onchange="saveLaborRules()" style="width:16px;height:16px">
+              <span style="font-size:13px">Povolit směny do 24 h (§ 83a, jen zdravotnictví). Jinak je strop 12 h (§ 83).</span>
+            </label>
+          </div>
         </div>
 
         <hr class="rules-section-sep">
@@ -2627,7 +2670,7 @@ window.addEventListener('unhandledrejection', e => {
 // odsud, ručně je nepřepisuj. sw.js se od v0.9.29 nebumpuje — je z něj
 // kill-switch bez cache (viz killServiceWorkers() a komentář v sw.js).
 // ============================================================
-const APP_VERSION = '0.9.48';
+const APP_VERSION = '0.9.49';
 
 // Krátký git hash nasazeného buildu. Placeholder níž přepíše build-stamp.js
 // z CF_PAGES_COMMIT_SHA (Cloudflare Pages build command: `node build-stamp.js`).
@@ -5223,6 +5266,201 @@ async function bublikGreet(){
 }
 
 // ============================================================
+// ZÁKONÍK PRÁCE — KONTROLA ROZPISU (v0.9.49)
+// ============================================================
+// Pomůcka, ne právní posouzení. Hlídá jen směny, které mají nastavené časy
+// (org_settings.shift_meta[kód] = {from,to}) — flexibilní pobočky bez časů
+// (Beer Spa) se nekontrolují vůbec. Počítá se na ČLOVĚKA přes všechny pobočky.
+//   § 83  délka směny max 12 h (24 h jen za podmínek § 83a)
+//   § 90  nepřetržitý denní odpočinek aspoň 11 h
+//   § 92  nepřetržitý odpočinek v týdnu aspoň 35 h (týden = 7 po sobě jdoucích dnů)
+//   § 94  zaměstnanec pracující v noci (≥ 3 h v 22–6): průměrná směna max 8 h,
+//         počítáno na pětidenní týden (zde v rámci měsíce)
+//   týdenní hodiny nad nastavený strop (výchozí 48 h = 40 + 8 přesčas)
+// Výjimky (zkrácení odpočinku na 8 h podle § 90a apod.) appka nezná.
+// Generátor tahle pravidla zatím nerespektuje — jen se zobrazují upozornění.
+const LABOR_DEFAULTS = { enabled: true, min_rest: 11, weekly_rest: 35, max_shift: 12, long_exception: false, max_week: 48, night_avg: true };
+function laborRules(settings){ return Object.assign({}, LABOR_DEFAULTS, (settings && settings.labor_rules) || {}); }
+
+// '6' | '06:00' | '22:30' | '24' → minuty od půlnoci
+function laborParseHM(v){
+  const m = /^\s*(\d{1,2})(?::(\d{2}))?\s*$/.exec(String(v ?? ''));
+  if(!m) return null;
+  const h = +m[1], mi = +(m[2] || 0);
+  if(h > 24 || mi > 59 || (h === 24 && mi)) return null;
+  return h * 60 + mi;
+}
+// Směna v absolutních minutách (UTC, bez letního času). Konec ≤ začátek → přes půlnoc;
+// stejný čas = 24 h.
+function laborSpan(dateStr, meta){
+  const a = laborParseHM(meta && meta.from), b0 = laborParseHM(meta && meta.to);
+  if(a === null || b0 === null) return null;
+  const [y, mo, d] = dateStr.split('-').map(Number);
+  const base = Date.UTC(y, mo - 1, d) / 60000;
+  let b = b0; if(b <= a) b += 1440;
+  return { start: base + a, end: base + b };
+}
+// Minuty směny v noční době 22–6
+function laborNightMinutes(sp){
+  let n = 0;
+  const day0 = Math.floor(sp.start / 1440) * 1440 - 1440;
+  for(let d = day0; d < sp.end; d += 1440){
+    const ns = d + 1320, ne = d + 1440 + 360;              // 22:00 → 6:00 dalšího dne
+    n += Math.max(0, Math.min(sp.end, ne) - Math.max(sp.start, ns));
+  }
+  return n;
+}
+function laborHours(min){ return Math.round(min / 6) / 10; }   // 1 desetinné místo
+function laborFmtH(min){ return String(laborHours(min)).replace('.', ','); }
+
+// Čistá funkce (tests/labor_check.js).
+// input: { year, month0, rules, meta:{kód:{from,to}}, people:[{ id, name, shifts:[{ date:'RRRR-MM-DD', code }] }] }
+// výstup: { checked: bool (aspoň jedna směna s časem), violations:[{ empId, name, date|null, kind, text }] }
+function laborCheck(input){
+  const r = Object.assign({}, LABOR_DEFAULTS, input.rules || {});
+  const out = { checked: false, violations: [] };
+  if(!r.enabled) return out;
+  const { year, month0 } = input;
+  const dim = new Date(year, month0 + 1, 0).getDate();
+  const iso = d => `${year}-${String(month0 + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+  const maxShift = r.long_exception ? 24 : r.max_shift;
+  const monthStart = Date.UTC(year, month0, 1) / 60000, monthEnd = Date.UTC(year, month0, dim + 1) / 60000;
+  // týdny po–ne, které celé leží v měsíci (o okrajových nevíme, co je v sousedním měsíci)
+  const weeks = [];
+  for(let d = 1; d <= dim; d++){
+    if(new Date(year, month0, d).getDay() !== 1) continue;
+    const ws = Date.UTC(year, month0, d) / 60000;
+    weeks.push({ day: d, start: ws, end: ws + 7 * 1440, full: d + 6 <= dim });
+  }
+  (input.people || []).forEach(p => {
+    const spans = (p.shifts || [])
+      .map(s => { const m = input.meta && input.meta[s.code]; const sp = m && laborSpan(s.date, m); return sp ? { ...sp, date: s.date, code: s.code } : null; })
+      .filter(Boolean)
+      .sort((a, b) => a.start - b.start);
+    if(!spans.length) return;
+    out.checked = true;
+    const add = (date, kind, text) => out.violations.push({ empId: p.id, name: p.name, date, kind, text });
+
+    spans.forEach((sp, i) => {
+      const len = sp.end - sp.start;
+      if(len > maxShift * 60) add(sp.date, 'shift', `Směna ${laborFmtH(len)} h je delší než ${maxShift} h (§ 83).`);
+      if(i > 0){
+        const gap = sp.start - spans[i - 1].end;
+        if(gap < r.min_rest * 60) add(sp.date, 'rest', gap < 0
+          ? `Směna se překrývá s předchozí (${spans[i - 1].date.slice(8).replace(/^0/, '')}.).`
+          : `Mezi směnami jen ${laborFmtH(gap)} h odpočinku, minimum je ${r.min_rest} h (§ 90).`);
+      }
+    });
+
+    weeks.forEach(w => {
+      const inWeek = spans.filter(sp => sp.end > w.start && sp.start < w.end);
+      const hours = spans.filter(sp => sp.start >= w.start && sp.start < w.end).reduce((a, sp) => a + (sp.end - sp.start), 0);
+      if(hours > r.max_week * 60) add(iso(w.day), 'week_hours', `Týden od ${w.day}.: ${laborFmtH(hours)} h práce, víc než ${r.max_week} h.`);
+      if(!w.full) return;
+      let longest = 0, cur = w.start;
+      inWeek.forEach(sp => { longest = Math.max(longest, sp.start - cur); cur = Math.max(cur, sp.end); });
+      longest = Math.max(longest, w.end - cur);
+      if(longest < r.weekly_rest * 60) add(iso(w.day), 'week_rest', `Týden od ${w.day}.: nejdelší volno ${laborFmtH(longest)} h, nepřetržitý odpočinek v týdnu má být aspoň ${r.weekly_rest} h (§ 92).`);
+    });
+
+    if(r.night_avg){
+      const nights = spans.filter(sp => laborNightMinutes(sp) >= 180).length;
+      const weeksN = dim / 7;
+      if(nights >= weeksN){                                   // v průměru aspoň jednou týdně
+        const total = spans.filter(sp => sp.start >= monthStart && sp.start < monthEnd).reduce((a, sp) => a + (sp.end - sp.start), 0);
+        const avg = total / (weeksN * 5);                      // přepočet na pětidenní týden
+        if(avg > 8 * 60) add(null, 'night_avg', `Pracuje v noci a průměrná směna (přepočet na pětidenní týden) vychází ${laborFmtH(avg)} h, víc než 8 h (§ 94).`);
+      }
+    }
+  });
+  return out;
+}
+
+function laborInputForMonth(){
+  const people = employees.map(e => {
+    const list = [];
+    Object.values(shifts).forEach(s => {
+      if(s && s.employee_id === e.id && s.shift_type_code && s.shift_type_code !== 'X') list.push({ date: s.shift_date, code: s.shift_type_code });
+    });
+    return { id: e.id, name: e.name, shifts: list };
+  });
+  return { year: schedYear, month0: schedMonth, rules: laborRules(orgSettings), meta: (orgSettings && orgSettings.shift_meta) || {}, people };
+}
+
+// Pruh nad rozpisem + orámování buněk. Jen admin/vedoucí, jen když nějaká směna má čas.
+function renderLaborCheck(){
+  const wrap = document.getElementById('labor-check-wrap');
+  if(!wrap) return;
+  document.querySelectorAll('.sched-cell.labor-warn').forEach(td => { td.classList.remove('labor-warn'); if(td.dataset.laborTitle !== undefined){ td.title = td.dataset.laborTitle; delete td.dataset.laborTitle; } });
+  if(!['admin', 'manager', 'branch_manager'].includes(currentRole) || isPendingMode){ wrap.innerHTML = ''; return; }
+  let res;
+  try{ res = laborCheck(laborInputForMonth()); } catch(e){ console.warn('[ZP] kontrola selhala', e); wrap.innerHTML = ''; return; }
+  if(!res.checked){ wrap.innerHTML = ''; return; }
+  const v = res.violations;
+  if(!v.length){
+    wrap.innerHTML = `<div class="labor-ok">${ICONS.status_ok || '✓'} Zákoník práce: bez upozornění (odpočinek mezi směnami, délka směn, odpočinek v týdnu).</div>`;
+    return;
+  }
+  const people = new Set(v.map(x => x.empId)).size;
+  wrap.innerHTML = `<details class="labor-warn-box">
+    <summary>${ICONS.status_warning || '⚠️'} <b>Zákoník práce: ${v.length} ${v.length === 1 ? 'upozornění' : v.length < 5 ? 'upozornění' : 'upozornění'}</b> u ${people} ${people === 1 ? 'člověka' : 'lidí'}. Klikni pro seznam.</summary>
+    <ul>${v.map(x => `<li><b>${escapeHtml(x.name)}</b>${x.date ? ` · ${Number(x.date.slice(8))}.` : ''} — ${escapeHtml(x.text)}</li>`).join('')}</ul>
+    <div class="labor-note">Pomůcka podle zákoníku práce, ne právní posouzení. Výjimky (např. zkrácený odpočinek podle § 90a) appka nezná. Nastavení: záložka Pravidla.</div>
+  </details>`;
+  v.forEach(x => {
+    if(!x.date) return;
+    const td = document.querySelector(`td.sched-cell[data-emp="${x.empId}"][data-date="${x.date}"]`);
+    if(!td) return;
+    if(td.dataset.laborTitle === undefined) td.dataset.laborTitle = td.title || '';
+    td.classList.add('labor-warn');
+    td.title = (td.title ? td.title + '\n' : '') + 'Zákoník práce: ' + x.text;
+  });
+}
+
+// ── Časy typů směn (Pobočky → typ směny) ─────────────────────
+function laborToHHMM(v){ const m = laborParseHM(v); if(m === null) return ''; const h = Math.floor(m / 60) % 24, mi = m % 60; return `${String(h).padStart(2, '0')}:${String(mi).padStart(2, '0')}`; }
+async function setShiftTypeTime(stId, field, value){
+  const st = editingBranchShiftTypes.find(s => s.id === stId) || shiftTypes.find(s => s.id === stId);
+  if(!st) return;
+  if(value && laborParseHM(value) === null){ toast('Čas zadej jako 6, 6:30 nebo 22:00', 'error'); renderShiftTypesList(); return; }
+  const meta = { ...((orgSettings.shift_meta || {})[st.code] || {}) };
+  meta[field] = value ? laborToHHMM(value) : '';
+  if(!meta.from && !meta.to){
+    if(orgSettings.shift_meta) delete orgSettings.shift_meta[st.code];
+  } else {
+    const sp = meta.from && meta.to ? laborSpan('2026-01-05', meta) : null;
+    if(sp){ meta.hours = laborHours(sp.end - sp.start); meta.night = laborNightMinutes(sp) >= 180; }
+    orgSettings.shift_meta = { ...(orgSettings.shift_meta || {}), [st.code]: meta };
+  }
+  if(await saveOrgSettings()){ renderShiftTypesList(); renderCalendar(); }
+}
+
+// ── Nastavení v záložce Pravidla ─────────────────────────────
+function loadLaborRulesUI(){
+  const r = laborRules(orgSettings);
+  const set = (id, prop, val) => { const el = document.getElementById(id); if(el) el[prop] = val; };
+  set('labor-enabled', 'checked', !!r.enabled);
+  set('labor-min-rest', 'value', r.min_rest);
+  set('labor-weekly-rest', 'value', r.weekly_rest);
+  set('labor-max-week', 'value', r.max_week);
+  set('labor-long', 'checked', !!r.long_exception);
+  set('labor-night', 'checked', !!r.night_avg);
+}
+async function saveLaborRules(){
+  const num = (id, def, lo, hi) => { const v = parseFloat(document.getElementById(id)?.value); return isNaN(v) ? def : Math.max(lo, Math.min(hi, v)); };
+  orgSettings.labor_rules = {
+    enabled: !!document.getElementById('labor-enabled')?.checked,
+    min_rest: num('labor-min-rest', 11, 0, 24),
+    weekly_rest: num('labor-weekly-rest', 35, 0, 72),
+    max_shift: 12,
+    long_exception: !!document.getElementById('labor-long')?.checked,
+    max_week: num('labor-max-week', 48, 1, 100),
+    night_avg: !!document.getElementById('labor-night')?.checked,
+  };
+  if(await saveOrgSettings()){ toast('Pravidla zákoníku práce uložena', 'ok'); renderCalendar(); }
+}
+
+// ============================================================
 // APP TABS
 // ============================================================
 function switchAppTab(tab){
@@ -5970,16 +6208,23 @@ function renderShiftTypesList(){
     list.innerHTML = `<p class="field-hint">Zatím žádné typy — pobočka má jen jednu pozici za směnu.</p>`;
     return;
   }
-  list.innerHTML = editingBranchShiftTypes.map(st => `
-    <div style="display:grid;grid-template-columns:70px 1fr 44px auto;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line)">
+  const metaAll = (orgSettings && orgSettings.shift_meta) || {};
+  list.innerHTML = `<div class="st-time-head"><span>Kód</span><span>Název</span><span>Od</span><span>Do</span><span></span><span></span></div>` + editingBranchShiftTypes.map(st => `
+    <div style="display:grid;grid-template-columns:56px minmax(0,1fr) 62px 62px 40px auto;gap:6px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line)">
       <input type="text" value="${escapeHtml(st.code)}" maxlength="6"
         style="font-family:var(--font-mono);font-weight:600;text-transform:uppercase;padding:5px 7px;border:1.5px solid var(--line);border-radius:6px;font-size:12px"
         onchange="updateShiftTypeField('${st.id}','code',this.value.trim().toUpperCase())">
       <input type="text" value="${escapeHtml(st.label)}"
         style="padding:5px 8px;border:1.5px solid var(--line);border-radius:6px;font-size:13px"
         onchange="updateShiftTypeField('${st.id}','label',this.value.trim())">
+      <input type="text" inputmode="numeric" placeholder="6:00" value="${laborToHHMM(metaAll[st.code]?.from)}" title="Začátek směny, např. 6 nebo 6:30 (nepovinné — jen pro kontrolu zákoníku práce)"
+        style="padding:5px 6px;border:1.5px solid var(--line);border-radius:6px;font-size:13px;width:100%;box-sizing:border-box;text-align:center"
+        onchange="setShiftTypeTime('${st.id}','from',this.value.trim())">
+      <input type="text" inputmode="numeric" placeholder="14:00" value="${laborToHHMM(metaAll[st.code]?.to)}" title="Konec směny, např. 14 nebo 22:00 (dřív než začátek = přes půlnoc, stejný čas = 24 h)"
+        style="padding:5px 6px;border:1.5px solid var(--line);border-radius:6px;font-size:13px;width:100%;box-sizing:border-box;text-align:center"
+        onchange="setShiftTypeTime('${st.id}','to',this.value.trim())">
       <input type="color" value="${st.color||'#888888'}"
-        style="padding:2px;height:32px;width:44px;border:1.5px solid var(--line);border-radius:6px;cursor:pointer"
+        style="padding:2px;height:32px;width:40px;border:1.5px solid var(--line);border-radius:6px;cursor:pointer"
         onchange="updateShiftTypeField('${st.id}','color',this.value)">
       <button class="icon-btn danger" onclick="removeShiftType('${st.id}')" title="Smazat">✕</button>
     </div>`).join('');
@@ -6042,6 +6287,12 @@ async function updateShiftTypeField(id, field, value){
   const gst = shiftTypes.find(s=>s.id===id);
   if(gst){ gst[field] = value; renderCalendar(); } // re-render calendar with new color
   if(field === 'code' && oldCode && oldCode !== value){
+    // v0.9.49: časy typu (shift_meta) jsou klíčované kódem — přenést na nový kód
+    if(orgSettings.shift_meta && orgSettings.shift_meta[oldCode]){
+      orgSettings.shift_meta[value] = orgSettings.shift_meta[oldCode];
+      delete orgSettings.shift_meta[oldCode];
+      await saveOrgSettings();
+    }
     const branch = branches.find(b=>b.id===(st?.branch_id||gst?.branch_id));
     if(branch) await syncShiftTypeRenamedForEmployees(branch.code, oldCode, value);
   }
@@ -6076,6 +6327,7 @@ async function removeShiftType(id){
   editingBranchShiftTypes = editingBranchShiftTypes.filter(s=>s.id!==id);
   shiftTypes = shiftTypes.filter(s=>s.id!==id); // purge stale global entry so the calendar can't show a deleted type
   if(st){
+    if(orgSettings.shift_meta && orgSettings.shift_meta[st.code]){ delete orgSettings.shift_meta[st.code]; await saveOrgSettings(); } // v0.9.49
     const branch = branches.find(b=>b.id===st.branch_id);
     if(branch) await syncShiftTypeRemovedFromEmployees(branch.code, st.code);
   }
@@ -6370,6 +6622,7 @@ async function loadOrgSettings(){
   if(swapApprovalEl) swapApprovalEl.checked = (orgSettings['swap_approval_mode'] || 'approval') === 'approval';
   updateSwapApprovalHint();
   loadScoringUI(); // load scoring weights and hard constraints
+  loadLaborRulesUI(); // v0.9.49
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -7209,6 +7462,7 @@ function renderCalendar(){
 
   markTodayColumn();
   markClosedDays();
+  renderLaborCheck(); // v0.9.49
   renderScoreBar();
   renderLaborCost();
   requestAnimationFrame(()=>{ initTableResize(); applyAccessibilityAttributes(); scheduleDraftSave(); });
@@ -7356,6 +7610,7 @@ function renderCalendarBranch(thead, tbody, daysInMonth, DOW_SHORT){
   // v0.9.25: až teď — táhlo vzniká s hlavičkou první pobočky, ne v thead
   initNameColResize();
   markClosedDays();
+  renderLaborCheck(); // v0.9.49
 
   renderScoreBar();
   renderLaborCost();

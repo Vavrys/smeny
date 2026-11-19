@@ -28,6 +28,7 @@
 !tests/quick_setup.js
 !tests/bublik_greet.js
 !tests/bulk_employees.js
+!tests/labor_check.js
 !tests/e2e/
 !tests/e2e/**
 !scripts/
