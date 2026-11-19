@@ -1109,7 +1109,7 @@ body.dark .search-input{color:var(--ink)}
 
 /* Help center — floating fab + panel (350×500), replaces the old AI chat */
 .help-fab{
-  position:fixed;bottom:16px;right:20px;z-index:400;
+  position:fixed;bottom:16px;right:54px;z-index:400;
   width:64px;height:59px;padding:0;border:none;background:none;cursor:pointer;
   display:flex;align-items:flex-end;justify-content:center;
 }
@@ -1140,11 +1140,14 @@ body.dark .search-input{color:var(--ink)}
   background:radial-gradient(circle at 32% 28%,rgba(255,255,255,.95),rgba(255,255,255,0) 30%),radial-gradient(circle at 40% 35%,rgba(95,207,152,.75),rgba(18,164,106,.78) 70%,rgba(8,110,70,.92));
   border:1.3px solid rgba(4,74,48,.6);box-shadow:0 3px 8px rgba(22,64,44,.3), inset 0 0 0 1px rgba(255,255,255,.55)}
 .bub-puf{position:fixed;left:0;top:0;border-radius:50%;pointer-events:none;z-index:402;border:2px solid rgba(43,160,105,.7);animation:bubPuf .45s ease-out forwards}
+/* v0.9.55: zelený flek po rozplácnutí o kraj / zem */
+.bub-splat{position:fixed;left:0;top:0;border-radius:50%;pointer-events:none;z-index:399;background:radial-gradient(ellipse at center,rgba(18,164,106,.62),rgba(18,164,106,.26) 55%,rgba(18,164,106,0) 72%);animation:bubSplat 3s ease-out forwards}
+@keyframes bubSplat{0%{opacity:0;transform:var(--t) scale(.3)}8%{opacity:1;transform:var(--t) scale(1.08)}20%{transform:var(--t) scale(1)}100%{opacity:0;transform:var(--t) scale(1)}}
 @keyframes bubPuf{from{transform:var(--t) scale(.5);opacity:.9}to{transform:var(--t) scale(1.8);opacity:0}}
 .bub-zzz{position:fixed;left:0;top:0;z-index:402;pointer-events:none;font:700 16px var(--font-display);color:var(--accent-ink);animation:bubZzz 2.6s ease-out forwards}
 @keyframes bubZzz{0%{opacity:0;transform:var(--t) translate(0,0) scale(.6)}20%{opacity:1}100%{opacity:0;transform:var(--t) translate(22px,-46px) scale(1.25)}}
 @media (max-width:640px){ #bublik{width:60px;height:56px} }
-@media print{ #bublik,#bublik-speech,.bub-mini,.bub-zzz{display:none !important} }
+@media print{ #bublik,#bublik-speech,.bub-mini,.bub-zzz,.bub-splat{display:none !important} }
 /* v0.9.48: při otevřeném modálu Bublík i „?“ zmizí — na mobilu jinak zakrývaly tlačítka Uložit */
 body:has(.modal-overlay.open) #bublik, body:has(.modal-overlay.open) #bublik-speech, body:has(.modal-overlay.open) .help-fab,
 body:has(.onboarding-overlay.open) #bublik, body:has(.onboarding-overlay.open) #bublik-speech, body:has(.onboarding-overlay.open) .help-fab{display:none !important}
@@ -2688,7 +2691,7 @@ window.addEventListener('unhandledrejection', e => {
 // odsud, ručně je nepřepisuj. sw.js se od v0.9.29 nebumpuje — je z něj
 // kill-switch bez cache (viz killServiceWorkers() a komentář v sw.js).
 // ============================================================
-const APP_VERSION = '0.9.54';
+const APP_VERSION = '0.9.55';
 
 // Krátký git hash nasazeného buildu. Placeholder níž přepíše build-stamp.js
 // z CF_PAGES_COMMIT_SHA (Cloudflare Pages build command: `node build-stamp.js`).
@@ -4285,12 +4288,17 @@ const BUBLIK_SVG = `
       <rect x="-19" y="-43" width="28" height="7" rx="3.5" fill="#fff" stroke="#c9ccd4" stroke-width=".8" transform="rotate(-8 -5 -40)"/>
       <circle cx="21" cy="-52" r="4" fill="#fff" stroke="#c9ccd4" stroke-width=".8"/>
     </g>
+  </g>
+  <g style="display:none">
+    <ellipse rx="24" ry="5.6" fill="none" stroke="#1d2b22" stroke-width="1" stroke-opacity=".75" transform="rotate(-7)"/>
+    <ellipse rx="21" ry="4.6" fill="none" stroke="#1d2b22" stroke-width=".9" stroke-opacity=".6" transform="rotate(8)"/>
+    ${[0, 1, 2].map(() => `<path class="bub-star" d="M 0.00 -5.20 L 1.29 -1.78 L 4.95 -1.61 L 2.09 0.68 L 3.06 4.21 L 0.00 2.20 L -3.06 4.21 L -2.09 0.68 L -4.95 -1.61 L -1.29 -1.78 Z" fill="#f7a531" stroke="#a85a12" stroke-width=".9" stroke-linejoin="round"/>`).join('')}
   </g></g>
 </svg>`;
 
 const Bublik = (()=>{
   let el = null, speech = null, started = false, rafId = 0;
-  let bodyg, lift, face, mouth, shadow, sweat, cheeks, eyes;
+  let bodyg, lift, face, mouth, shadow, sweat, cheeks, eyes, starsG, starEls;
   let reduceMotion = false, isTouch = false;   // zjistí start()
 
   const S = {
@@ -4302,7 +4310,7 @@ const Bublik = (()=>{
     pointer: null, pointerStill: 0, clicks: [], pops: 0, breathT: 0,
     blush: 0, blushUntil: 0, dart: null, nextDart: 0,
     gaze: null, gazeUntil: 0, nextMood: 0, moodUntil: 0,
-    grow: 1, faceA: 1, ko: false,   // v0.9.54: zrození z malé bublinky; ko = omdlel   // v0.9.54: kam kouká, když kurzor stojí; občasná vlnitá pusa
+    grow: 1, faceA: 1, ko: false, stars: false, starT: 0,   // v0.9.54: zrození z malé bublinky; ko = omdlel   // v0.9.54: kam kouká, když kurzor stojí; občasná vlnitá pusa
     pref: 'play', explicit: false, deepSleep: false,
   };
   // v0.9.53: první kousek po 30 s klidu, pak každých 5–11 s (když už blbne, ať blbne)
@@ -4320,7 +4328,8 @@ const Bublik = (()=>{
   const size = () => (el && el.getBoundingClientRect().width) || 76;
   const vw = () => window.innerWidth, vh = () => window.innerHeight;
   const floorY = () => vh() - 16;
-  const homeX = () => S.homeX != null ? clamp(S.homeX, size() / 2 + 8, vw() - size() / 2 - 8) : vw() - size() / 2 - 20;
+  const defHomeX = () => vw() - size() / 2 - 48;   // v0.9.55: dál od pravého okraje (dřív 20 px)
+  const homeX = () => S.homeX != null ? clamp(S.homeX, size() / 2 + 8, vw() - size() / 2 - 8) : defHomeX();
   // v0.9.52: „omezit animace“ v systému tlumí Bublíka jen ve výchozím stavu. Když si
   // uživatel režim vybral sám (menu, bublinka), jeho volba má přednost — dřív ve Windows
   // s vypnutými efekty animací Bublík jen koukal a nikdy si nehrál ani nedýchal.
@@ -4386,7 +4395,7 @@ const Bublik = (()=>{
   // v0.9.46: tvářičky jen když se stydí / bouchne
   function blush(ms = 1800){ S.blushUntil = Math.max(S.blushUntil, performance.now() + ms); }
   function defaultFace(){
-    S.ko = false; S.eyeScaleY = 1;
+    S.ko = false; S.stars = false; S.eyeScaleY = 1;
     setEyes('open'); setMouth('smile'); S.eyeWide = 1; S.cheekPuff = 1;
     sweat.setAttribute('opacity', '0'); S.lookOverride = null; S.tilt = 0;
   }
@@ -4548,6 +4557,18 @@ const Bublik = (()=>{
     const lean = S.tilt + (S.mode === 'idle' ? S.look.x * 4 : 0);
     bodyg.setAttribute('transform', `rotate(${lean} 0 0) scale(${sx * S.grow} ${sy * S.grow})`);
     face.setAttribute('opacity', S.faceA.toFixed(2));
+    // v0.9.55: točící se hvězdičky nad hlavou po velkém pádu
+    if(S.stars){
+      if(starsG.style.display) starsG.style.display = '';
+      S.starT += dt;
+      const t = S.tilt * Math.PI / 180, hh = 46 * sy * S.grow + 8;
+      starsG.setAttribute('transform', `translate(${(Math.sin(t) * hh).toFixed(2)} ${(-Math.cos(t) * hh).toFixed(2)}) rotate(${(S.tilt * .4).toFixed(1)})`);
+      starEls.forEach((st, i) => {
+        const a = S.starT * 3.6 + i * 2.094, f = (Math.sin(a) + 1) / 2;
+        st.setAttribute('transform', `translate(${(Math.cos(a) * 23).toFixed(2)} ${(Math.sin(a) * 5.4).toFixed(2)}) scale(${(.6 + .45 * f).toFixed(2)})`);
+        st.setAttribute('opacity', (.45 + .55 * f).toFixed(2));
+      });
+    } else if(!starsG.style.display) starsG.style.display = 'none';
     lift.setAttribute('transform', `translate(0 ${-S.hop * (72 / size())})`);
     const sh = clamp(1 - S.hop / 120, .35, 1);
     shadow.setAttribute('transform', `scale(${sh * sx * S.grow} 1)`);
@@ -4965,37 +4986,100 @@ const Bublik = (()=>{
       throwFall(vx, vy, Math.hypot(vx, vy) < 350 && floorY() - S.y < 120);
     } else onClick();
   }
-  // v0.9.54: dopad podle síly — malý nic, střední zatočí hlavou, velký = omdlí;
-  // plesknutý silně o kraj obrazovky se na něm na chvíli přilepí jako placka a sjede dolů
+  // v0.9.55: dopad podle výšky pádu v poměru k výšce okna: do 30 % nic, do 50 % zatočí hlavou,
+  // do 70 % otřesený s hvězdičkami, do 90 % omdlí s hvězdičkami, nad 90 % se rozplácne o zem. Plesknutý silně o kraj se rozplácne
+  // na stěně, rosolovitě dozní, odlepí se shora, spadne a je omráčený.
+  function splat(px, py, kind){
+    const wall = kind !== 'floor', w = wall ? 48 : 110, h = wall ? 96 : 24;
+    const m = document.createElement('div');
+    m.className = 'bub-splat';
+    m.style.width = w + 'px'; m.style.height = h + 'px';
+    m.style.setProperty('--t', `translate(${px - w / 2}px,${py - h / 2}px)`);
+    document.body.appendChild(m);
+    setTimeout(() => m.remove(), 3100);
+    puf(px, py, wall ? 56 : 80);
+    const away = kind === 'L' ? 1 : kind === 'R' ? -1 : 0;
+    for(let i = 0; i < 6; i++){
+      const vx = away ? away * rand(70, 230) : rand(-180, 180);
+      spawnBubble(px + away * 6, py + rand(-14, 10), rand(5, 11), { vx, vy: -rand(50, 170), life: rand(1.2, 2.2) });
+    }
+  }
   function throwFall(vx, vy, placed){
     S.mode = 'fall'; S.lookOverride = null;
-    let x = S.x, y = S.y, last = performance.now(), bounces = 0, impact = 0, stuck = null;
+    let x = S.x, y = S.y, last = performance.now(), bounces = 0, impact = 0, stuck = null, stunned = false;
     vx = clamp(vx, -2400, 2400); vy = clamp(vy, -2400, 2400);
     const s = size(), halfW = s * 23 / 72;
+    const vmax = Math.sqrt(2 * 2600 * Math.max(200, floorY() - s - 4));   // rychlost pádu z úplného vršku
+    function land(fall){
+      S.x = x; S.y = y; S.tilt = 0;
+      const placedNow = placed && fall === 'soft';
+      if(placedNow){
+        S.homeX = x;
+        try{ localStorage.setItem('bublik_home_r2', String(Math.round(vw() - x))); } catch(_){}
+      }
+      const tk = token(); S.mode = 'react';
+      (async () => {
+        try{
+          if(fall === 'soft'){ setEyes('open'); setMouth('smile'); await wobble(.16, 480, tk); }
+          else if(fall === 'dizzy'){
+            await wobble(.28, 700, tk);
+            setEyes('dizzy'); setMouth('wavy'); await wait(1100, tk);
+            say(pick(['Jůůů. Ještě jednou! …Ne, počkej.', 'To bylo rychlejší než výměna směny.', 'Svět se točí. Hlavně ty směny ne.']), 3500);
+          }
+          else if(fall === 'shaken'){
+            await wobble(.3, 680, tk);
+            setEyes('dizzy'); setMouth('wavy'); S.stars = true; S.starT = 0; blush(2400);
+            const t0 = performance.now();
+            await tween(2300, () => { const t = (performance.now() - t0) / 1000; S.tilt = Math.sin(t * 5) * 7; }, tk, ease.lin);
+            S.tilt = 0; S.stars = false;
+            say(pick(['Hvězdičky! Jedna, dvě… tři. Dobrý, jsem tu.', 'Tohle by chtělo zapsat do rozpisu jako pracovní úraz.', 'Uf. Svět se ještě chvilku točí.']), 3500);
+          }
+          else if(fall === 'faint'){ await wobble(.32, 650, tk); await faint(tk, {}); }
+          else if(fall === 'splat'){ await floorSplat(tk); await faint(tk, { flat: true }); }
+          else if(fall === 'stun'){ await wobble(.22, 500, tk); await faint(tk, { short: true, wall: true }); }
+          if(placedNow){
+            if(Math.abs(x - defHomeX()) > 40 && Math.random() < .5){ setEyes('happy'); say('Tak tady teď bydlím. Pěkný výhled.', 3000); await wait(900, tk); }
+          } else if(Math.abs(S.x - homeX()) > 6){
+            setEyes('open'); setMouth('wavy'); await wait(500, tk);
+            await walkTo(homeX(), tk);
+          }
+        } catch(e){}
+        if(S.busy === tk){ S.busy = null; S.mode = 'idle'; defaultFace(); }
+      })();
+    }
     (function k(now){
       if(S.mode !== 'fall' || !started) return;   // znovu chycený / vypnutý → tahle smyčka končí
       const dt = Math.min(.033, (now - last) / 1000); last = now;
       if(stuck){
-        // placka na kraji: drží, pak pomalu sjíždí a odlepí se
-        const t = (now - stuck.t0) / 1000;
-        const flat = t < stuck.hold ? .38 : clamp(.38 + (t - stuck.hold) * .9, .38, 1);
-        S.sx = flat; S.sy = 1 + (1 - flat) * .55; S.tilt = 0;
-        if(t > stuck.hold) y = Math.min(floorY() - 2, y + 42 * dt);
+        // placka na stěně: náraz → rosolovité dozvuky → drží a třese se → sjíždí a odlepuje se shora
+        const t = (now - stuck.t0) / 1000, H = stuck.hold, P = 1.1;
+        let flat, tilt = 0;
+        if(t < .16) flat = 1 - .7 * ease.out(t / .16);
+        else if(t < .9){ const q = (t - .16) / .74; flat = .3 + .14 * Math.exp(-4 * q) * Math.abs(Math.sin(q * Math.PI * 4)); }
+        else if(t < H) flat = .31 + Math.sin(t * 24) * .007;
+        else {
+          const q = clamp((t - H) / P, 0, 1);
+          flat = .31 + .44 * ease.inOut(q); tilt = -stuck.side * 30 * ease.inOut(q);
+          y = Math.min(floorY() - 2, y + 24 * dt);
+        }
+        S.sx = flat; S.sy = 1 + (1 - flat) * .75; S.tilt = tilt;
         x = stuck.side < 0 ? halfW * flat + 2 : vw() - halfW * flat - 2;
         S.x = x; S.y = y;
-        if(flat >= .95 || y >= floorY() - 2){
-          stuck = null; vx = -Math.sign(x - vw() / 2) * 90; vy = 0;
-          setEyes('open'); setMouth('o');
+        if(t >= H + P){
+          vx = -stuck.side * 170; vy = -140; stuck = null; stunned = true;
+          S.sx = 1.12; S.sy = .92; setEyes('dizzy'); setMouth('o');
         }
         requestAnimationFrame(k); return;
       }
       vy += 2600 * dt; x += vx * dt; y += vy * dt;
       const hitL = x < s / 2 + 4, hitR = x > vw() - s / 2 - 4;
       if(hitL || hitR){
-        if(Math.abs(vx) > 1100 && !calm()){
-          stuck = { side: hitL ? -1 : 1, t0: now, hold: rand(1.3, 2.1) };
+        if(Math.abs(vx) > 1100 && !stunned && !calm()){
+          const side = hitL ? -1 : 1;
           y = clamp(y, s + 4, floorY() - 2);
-          setEyes('dizzy'); setMouth('wavy'); blush(3500);
+          stuck = { side, t0: now, hold: rand(1.6, 2.4) };
+          setEyes('dizzy'); setMouth('wavy'); blush(4500);
+          splat(side < 0 ? 2 : vw() - 2, y - s * .3, side < 0 ? 'L' : 'R');
           requestAnimationFrame(k); return;
         }
         x = hitL ? s / 2 + 4 : vw() - s / 2 - 4;
@@ -5007,34 +5091,20 @@ const Bublik = (()=>{
       S.tilt += vx * dt * .4;
       if(y >= floorY()){
         y = floorY();
-        if(!bounces) impact = Math.abs(vy);
-        if(impact < 700){ vy = 0; }   // malá výška: žádné skákání, jen se zhoupne
+        if(!bounces){
+          impact = Math.abs(vy);
+          const fr = Math.min(1, (impact / vmax) ** 2);   // výška pádu jako podíl výšky okna
+          if(stunned){ land('stun'); return; }
+          if(fr >= .9 && !calm()){ land('splat'); return; }
+          if(fr < .3) vy = 0;                     // malá výška: žádné skákání, jen se zhoupne
+          else puf(x, floorY() - 4, s * (.6 + fr * .6));
+        }
         if(Math.abs(vy) > 260 && bounces < 3){
           vy = -vy * .45; vx *= .7; bounces++; S.sx = 1.3; S.sy = .72; blush(2400);
           setEyes(bounces > 1 ? 'dizzy' : 'open');
         } else {
-          S.x = x; S.y = y; S.tilt = 0;
-          const fall = impact >= 1500 ? 'faint' : impact >= 700 ? 'dizzy' : 'soft';
-          if(placed){
-            S.homeX = x;
-            try{ localStorage.setItem('bublik_home_r', String(Math.round(vw() - x))); } catch(_){}
-          }
-          const tk = token(); S.mode = 'react';
-          (async () => {
-            try{
-              if(fall === 'soft'){ setEyes('open'); setMouth('smile'); await wobble(.14, 450, tk); }
-              else await wobble(.28, 700, tk);
-              if(fall === 'faint' && !calm()) await faint(tk);
-              else if(fall === 'dizzy' && bounces >= 1){ setEyes('dizzy'); setMouth('wavy'); await wait(1100, tk); say(pick(['Jůůů. Ještě jednou! …Ne, počkej.', 'To bylo rychlejší než výměna směny.', 'Svět se točí. Hlavně ty směny ne.']), 3500); }
-              if(placed){
-                if(Math.abs(x - (vw() - size() / 2 - 20)) > 40 && Math.random() < .5){ setEyes('happy'); say('Tak tady teď bydlím. Pěkný výhled.', 3000); await wait(900, tk); }
-              } else if(Math.abs(S.x - homeX()) > 6){
-                setEyes('open'); setMouth('wavy'); await wait(500, tk);
-                await walkTo(homeX(), tk);
-              }
-            } catch(e){}
-            if(S.busy === tk){ S.busy = null; S.mode = 'idle'; defaultFace(); }
-          })();
+          const fr = Math.min(1, (impact / vmax) ** 2);
+          land(calm() ? (fr >= .3 ? 'dizzy' : 'soft') : fr >= .7 ? 'faint' : fr >= .5 ? 'shaken' : fr >= .3 ? 'dizzy' : 'soft');
           return;
         }
       }
@@ -5042,15 +5112,25 @@ const Bublik = (()=>{
       requestAnimationFrame(k);
     })(performance.now());
   }
-
-  // v0.9.54: omdlení po pádu z velké výšky — leží bez hnutí, pak se pomalu probere
-  async function faint(tk){
-    hush(); setEyes('dizzy'); setMouth('o'); S.lookOverride = { x: 0, y: .4 }; blush(0);
+  // rozplácnutí o zem z úplného vršku: placka, dozvuky, drží, pak se zvedne do polohy omdlení
+  async function floorSplat(tk){
+    hush(); setEyes('dizzy'); setMouth('wavy'); blush(5000); S.lookOverride = { x: 0, y: .3 };
+    splat(S.x, floorY() - 3, 'floor');
+    await tween(140, e => { S.sy = 1 - .74 * e; S.sx = 1 + .8 * e; S.tilt = 0; }, tk, ease.out);
+    await tween(650, (e, q) => { const j = Math.exp(-4 * q) * Math.abs(Math.sin(q * Math.PI * 4)); S.sy = .26 + .12 * j; S.sx = 1.8 - .25 * j; }, tk, ease.lin);
+    const hold = rand(1300, 1900), t0 = performance.now();
+    await tween(hold, () => { const t = (performance.now() - t0) / 1000; S.sy = .27 + Math.sin(t * 24) * .006; }, tk, ease.lin);
+    await tween(520, e => { S.sy = .27 + .43 * e; S.sx = 1.8 - .56 * e; }, tk, ease.back);
+  }
+  // omdlení: leží placatě nakloněný, křížky, hvězdičky nad hlavou, pomalé dýchání, pak se probere
+  async function faint(tk, o){
+    hush(); setEyes('dizzy'); setMouth('o'); S.lookOverride = { x: 0, y: .4 };
     const side = Math.random() < .5 ? -1 : 1;
-    S.ko = true;
-    await tween(380, e => { S.tilt = side * 16 * e; S.sx = 1 + .24 * e; S.sy = 1 - .3 * e; S.hop = 0; }, tk, ease.back);
+    S.ko = true; S.stars = true; S.starT = 0;
+    if(o.flat){ await tween(300, e => { S.tilt = side * 16 * e; S.sx = 1.24; S.sy = .7; }, tk); }
+    else await tween(380, e => { S.tilt = side * 16 * e; S.sx = 1 + .24 * e; S.sy = 1 - .3 * e; S.hop = 0; }, tk, ease.back);
     setMouth('wavy');
-    await wait(rand(4200, 6200), tk);          // bezvědomí (dýchání je při omdlení pomalé)
+    await wait(o.short ? rand(2600, 3600) : rand(4200, 6200), tk);
     setEyes('closed'); setMouth('flat'); await wait(700, tk);
     setEyes('open'); S.eyeScaleY = .35; await wait(500, tk); S.eyeScaleY = .7; await wait(300, tk); S.eyeScaleY = 1;
     S.lookOverride = { x: -side * .8, y: -.2 }; await wait(450, tk);
@@ -5059,8 +5139,10 @@ const Bublik = (()=>{
     await tween(700, e => { S.tilt = side * 16 * (1 - e); S.sx = 1.24 - .24 * e; S.sy = .7 + .3 * e; }, tk, ease.inOut);
     S.tilt = 0;
     for(let i = 0; i < 4; i++) await tween(90, e => { S.tilt = (i % 2 ? -1 : 1) * 9 * e; }, tk);
-    S.tilt = 0; sweat.setAttribute('opacity', '1'); blush(2600); S.lookOverride = null;
-    say(pick(['Co… co se stalo? Kolik je hodin?', 'Viděl jsem hvězdičky. A tvůj rozpis.', 'Jsem v pořádku. Asi. Kolik prstů držím? Aha, nemám prsty.']), 3800);
+    S.tilt = 0; S.stars = false; sweat.setAttribute('opacity', '1'); blush(2600); S.lookOverride = null;
+    say(o.wall
+      ? pick(['Au. Ta stěna tam předtím nebyla.', 'Kraj obrazovky je tvrdší, než vypadá.', 'Příště mě hoď radši do rozpisu. Je měkčí.'])
+      : pick(['Co… co se stalo? Kolik je hodin?', 'Viděl jsem hvězdičky. A tvůj rozpis.', 'Jsem v pořádku. Asi. Kolik prstů držím? Aha, nemám prsty.']), 3800);
     await wait(1600, tk); sweat.setAttribute('opacity', '0');
   }
   function onClick(){
@@ -5150,6 +5232,7 @@ const Bublik = (()=>{
     document.body.appendChild(el); document.body.appendChild(speech);
     const q = sel => el.querySelector(`[data-b="${sel}"]`);
     bodyg = q('body'); lift = q('lift'); face = q('face'); mouth = q('mouth'); shadow = q('shadow'); sweat = q('sweat');
+    starsG = q('stars'); starEls = [...el.querySelectorAll('.bub-star')];
     cheeks = [...el.querySelectorAll('.bub-cheek')]; eyes = [...el.querySelectorAll('.bub-eye')];
     el.addEventListener('pointerenter', onEnter);
     el.addEventListener('pointerleave', onLeave);
@@ -5187,7 +5270,8 @@ const Bublik = (()=>{
     started = true;
     el.style.display = '';
     // v0.9.54: nový klíč — starý domov (bublik_home_x) se nastavoval i omylem, všichni začínají zase vpravo
-    try{ localStorage.removeItem('bublik_home_x'); const hx = parseFloat(localStorage.getItem('bublik_home_r')); if(!isNaN(hx)) S.homeX = vw() - hx; } catch(_){}
+    // v0.9.55: klíč znovu nový (bublik_home_r2), ať všichni začnou na novém výchozím místě
+    try{ ['bublik_home_x', 'bublik_home_r'].forEach(k => localStorage.removeItem(k)); const hx = parseFloat(localStorage.getItem('bublik_home_r2')); if(!isNaN(hx)) S.homeX = vw() - hx; } catch(_){}
     defaultFace();
     el.querySelector('[data-b="hat"]').style.display = new Date().getMonth() === 11 ? '' : 'none';
     S.x = homeX(); S.y = floorY(); S.hop = 0;
