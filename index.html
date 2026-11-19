@@ -1120,6 +1120,11 @@ body.dark .search-input{color:var(--ink)}
 .help-fab:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:50%}
 @keyframes bubFabBreath{0%,100%{transform:scale(1,1)}50%{transform:scale(1.03,.975)}}
 @keyframes bubFabWobble{0%{transform:scale(1,1)}30%{transform:scale(1.12,.9)}55%{transform:scale(.95,1.06)}80%{transform:scale(1.03,.98)}100%{transform:scale(1,1)}}
+/* v0.9.57: schovanou bublinu jde podržet a přesunout jinam */
+.help-fab{touch-action:none;user-select:none;-webkit-user-select:none}
+.help-fab.dragging{cursor:grabbing}
+.help-fab.dragging .fab-body{animation:none;transform:scale(1.08,.94)}
+.help-fab.landed .fab-body{animation:bubFabWobble .6s ease-out}
 @media (prefers-reduced-motion: reduce){ .help-fab .fab-body{animation:none} }
 @media (max-width:640px){ .help-fab{width:54px;height:50px} }
 /* ── Bublík (v0.9.45) ── */
@@ -2691,7 +2696,7 @@ window.addEventListener('unhandledrejection', e => {
 // odsud, ručně je nepřepisuj. sw.js se od v0.9.29 nebumpuje — je z něj
 // kill-switch bez cache (viz killServiceWorkers() a komentář v sw.js).
 // ============================================================
-const APP_VERSION = '0.9.56';
+const APP_VERSION = '0.9.57';
 
 // Krátký git hash nasazeného buildu. Placeholder níž přepíše build-stamp.js
 // z CF_PAGES_COMMIT_SHA (Cloudflare Pages build command: `node build-stamp.js`).
@@ -5293,7 +5298,7 @@ const Bublik = (()=>{
     S.pref = pref || 'play';
     S.explicit = !!explicit;
     const fab = document.getElementById('help-fab');
-    if(S.pref === 'off'){ stop(); if(fab) fab.style.display = ''; return; }
+    if(S.pref === 'off'){ stop(); if(fab){ fab.style.display = ''; placeHelpFab(fab); } return; }
     if(fab) fab.style.display = 'none';
     if(started){ if(!playful() && (S.mode === 'antic' || S.mode === 'sleep')) interrupt(); return; }
     reduceMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
@@ -17629,11 +17634,67 @@ function openHelpCenter(){
 // v0.9.52: bublina vpravo dole = schovaný Bublík. Klik ho vrátí (do režimu, který měl
 // před schováním) a on rovnou nabídne menu s nápovědou. Nastavení v Profilu už není.
 function handleHelpFabClick(){
+  const fab = document.getElementById('help-fab');
+  if(fab && fab.dataset.dragged){ delete fab.dataset.dragged; return; }   // v0.9.57: po přesunu to nebyl klik
   let prev = null;
   try{ prev = localStorage.getItem('bublik_prev'); } catch(_){}
   setBublikPref(['play', 'quiet'].includes(prev) ? prev : 'play');
   Bublik.openMenu('<b>Jsem zpátky!</b> Co potřebuješ?');
 }
+
+// v0.9.57: schovaná bublina sedí tam, kde Bublík bydlí (bublik_home_r2 = vzdálenost středu od pravého kraje).
+// Podržením (~0,4 s) nebo tažením ji přesuneš; po puštění se snese dolů a tam bude Bublík bydlet.
+function placeHelpFab(fab){
+  fab = fab || document.getElementById('help-fab'); if(!fab) return;
+  let r = NaN;
+  try{ r = parseFloat(localStorage.getItem('bublik_home_r2')); } catch(_){}
+  const w = fab.offsetWidth || 64;
+  fab.style.right = isNaN(r) ? '' : Math.max(4, Math.min(window.innerWidth - w - 4, r - w / 2)) + 'px';
+  fab.style.bottom = '';
+}
+function initHelpFabDrag(){
+  const fab = typeof document !== 'undefined' && document.getElementById('help-fab');
+  if(!fab || fab.dataset.dragInit) return;
+  fab.dataset.dragInit = '1';
+  let d = null;
+  const lift = () => { if(!d || d.moved) return; d.moved = true; clearTimeout(d.timer); fab.classList.add('dragging'); fab.style.transition = 'none'; fab.style.bottom = (d.b0 + 8) + 'px'; };
+  fab.addEventListener('pointerdown', e => {
+    if(e.button !== 0) return;
+    e.preventDefault();
+    try{ fab.setPointerCapture(e.pointerId); } catch(_){}
+    const cs = getComputedStyle(fab);
+    d = { x: e.clientX, y: e.clientY, r0: parseFloat(cs.right) || 54, b0: parseFloat(cs.bottom) || 16, moved: false };
+    d.timer = setTimeout(lift, 380);
+  });
+  fab.addEventListener('pointermove', e => {
+    if(!d) return;
+    if(!d.moved && Math.hypot(e.clientX - d.x, e.clientY - d.y) > 12) lift();
+    if(!d.moved) return;
+    const w = fab.offsetWidth || 64, h = fab.offsetHeight || 59;
+    fab.style.right = Math.max(4, Math.min(window.innerWidth - w - 4, d.r0 - (e.clientX - d.x))) + 'px';
+    fab.style.bottom = Math.max(d.b0, Math.min(window.innerHeight - h - 4, d.b0 + 8 - (e.clientY - d.y))) + 'px';
+  });
+  const up = () => {
+    if(!d) return;
+    const dd = d; d = null; clearTimeout(dd.timer);
+    if(!dd.moved) return;   // obyčejný klik vyřeší onclick
+    fab.dataset.dragged = '1';
+    setTimeout(() => { delete fab.dataset.dragged; }, 400);
+    fab.classList.remove('dragging');
+    const w = fab.offsetWidth || 64, right = parseFloat(fab.style.right) || dd.r0;
+    const fall = Math.max(0, (parseFloat(fab.style.bottom) || dd.b0) - dd.b0);
+    fab.style.transition = `bottom ${Math.min(.9, .2 + fall / 900).toFixed(2)}s cubic-bezier(.5,0,.8,.4)`;
+    fab.style.bottom = dd.b0 + 'px';
+    setTimeout(() => {
+      fab.style.transition = ''; fab.style.bottom = '';
+      fab.classList.remove('landed'); void fab.offsetWidth; fab.classList.add('landed');
+    }, Math.min(900, 200 + fall / .9));
+    try{ localStorage.setItem('bublik_home_r2', String(Math.round(right + w / 2))); } catch(_){}
+  };
+  fab.addEventListener('pointerup', up);
+  fab.addEventListener('pointercancel', up);
+}
+if(typeof document !== 'undefined') initHelpFabDrag();
 
 function handleVersionClick(){
   toast('🎉 Gratuluju, odemkl jsi... nic. Ale díky že jsi zvědavý!', 'ok');
