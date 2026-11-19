@@ -1140,6 +1140,13 @@ body.dark .search-input{color:var(--ink)}
 #bublik-speech.below{transform-origin:top right}
 #bublik-speech.below.l{transform-origin:top left}
 #bublik-speech.below::after{bottom:auto;top:-9px;transform:rotate(225deg)}
+/* v0.9.59: myšlenka = obláček s kolečky místo ocásku */
+#bublik-speech.thought{border-radius:22px;font-style:italic;font-weight:500}
+#bublik-speech.thought::after{width:12px;height:12px;border-radius:50%;border:2px solid var(--ink);transform:none;bottom:-16px}
+#bublik-speech.thought::before{content:"";position:absolute;width:7px;height:7px;border-radius:50%;background:var(--surface);border:2px solid var(--ink);bottom:-27px;right:calc(var(--tail,26px) + 10px)}
+#bublik-speech.thought.l::before{right:auto;left:calc(var(--tail,26px) + 10px)}
+#bublik-speech.thought.below::after{bottom:auto;top:-16px}
+#bublik-speech.thought.below::before{bottom:auto;top:-27px}
 .bub-tag{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--accent-ink);background:var(--accent-soft);border-radius:5px;padding:1px 6px;margin-bottom:3px}
 .bub-menu{display:flex;flex-direction:column;gap:4px;margin-top:6px}
 .bub-menu button{font:600 13px var(--font-body);text-align:left;padding:7px 9px;border-radius:7px;border:1.5px solid var(--line);background:var(--paper);color:var(--ink);cursor:pointer}
@@ -2699,7 +2706,7 @@ window.addEventListener('unhandledrejection', e => {
 // odsud, ručně je nepřepisuj. sw.js se od v0.9.29 nebumpuje — je z něj
 // kill-switch bez cache (viz killServiceWorkers() a komentář v sw.js).
 // ============================================================
-const APP_VERSION = '0.9.58';
+const APP_VERSION = '0.9.59';
 
 // Krátký git hash nasazeného buildu. Placeholder níž přepíše build-stamp.js
 // z CF_PAGES_COMMIT_SHA (Cloudflare Pages build command: `node build-stamp.js`).
@@ -4318,11 +4325,13 @@ const Bublik = (()=>{
     pointer: null, pointerStill: 0, clicks: [], pops: 0, breathT: 0,
     blush: 0, blushUntil: 0, dart: null, nextDart: 0,
     gaze: null, gazeUntil: 0, nextMood: 0, moodUntil: 0,
-    grow: 1, faceA: 1, ko: false, stars: false, starT: 0,   // v0.9.54: zrození z malé bublinky; ko = omdlel   // v0.9.54: kam kouká, když kurzor stojí; občasná vlnitá pusa
+    grow: 1, faceA: 1, ko: false, stars: false, starT: 0,
+    stage: 0, nextThought: 0, awayStats: { antics: 0, flights: 0, thoughts: 0 },   // v0.9.59   // v0.9.54: zrození z malé bublinky; ko = omdlel   // v0.9.54: kam kouká, když kurzor stojí; občasná vlnitá pusa
     pref: 'play', explicit: false, deepSleep: false,
   };
   // v0.9.53: první kousek po 30 s klidu, pak každých 5–11 s (když už blbne, ať blbne)
-  const T = { bored: 30000, between: [5000, 11000], sleep: 240000 };
+  // v0.9.59: usne až po hodině — mezi tím nečinnost graduje (dlouhodobé dění přijde v dalších dávkách)
+  const T = { bored: 30000, between: [5000, 11000], sleep: 3600000 };
 
   const rand = (a, b) => a + Math.random() * (b - a);
   const pick = arr => arr[Math.floor(Math.random() * arr.length)];
@@ -4423,12 +4432,30 @@ const Bublik = (()=>{
   let speechTimer = null;
   function say(html, ms = 5000){
     clearTimeout(speechTimer);
+    speech.classList.remove('thought');
     speech.innerHTML = html;
     speech.classList.add('show');
     placeSpeech();
     if(ms) speechTimer = setTimeout(hush, ms);
   }
   function hush(){ if(speech) speech.classList.remove('show'); }
+  // v0.9.59: myšlenka = obláček; nepřekřikuje rozjetou řeč ani menu
+  function think(html, ms = 4600, force){
+    if(!speech || (!force && speech.classList.contains('show'))) return false;
+    say(html, ms); speech.classList.add('thought');
+    return true;
+  }
+  let seenThoughts = null;
+  function nextThought(stage){
+    if(!seenThoughts){ try{ seenThoughts = JSON.parse(localStorage.getItem('bublik_seen_thoughts') || '[]'); } catch(_){ seenThoughts = []; } }
+    let facts = [];
+    try{ facts = bublikIdleFacts(bublikIdleContext()); } catch(_){}
+    const useFact = facts.length && Math.random() < .35;
+    const t = bublikBagNext(useFact ? facts : bublikIdleThoughts(stage), seenThoughts, Math.random);
+    if(seenThoughts.length > 250) seenThoughts.splice(0, seenThoughts.length - 250);
+    try{ localStorage.setItem('bublik_seen_thoughts', JSON.stringify(seenThoughts)); } catch(_){}
+    return t;
+  }
   function placeSpeech(){
     if(!speech || !speech.classList.contains('show')) return;
     const w = speech.offsetWidth, h = speech.offsetHeight, s = size();
@@ -4606,13 +4633,25 @@ const Bublik = (()=>{
 
   // ── mozek ─────────────────────────────────────────────────
   function brain(now){
-    if(!playful() || S.mode !== 'idle') return;
+    if(!playful()) return;
     const idleFor = now - S.lastInput;
+    // v0.9.59: úrovně nečinnosti — při přechodu hláška, myšlenky čím dál častěji
+    const stage = bublikIdleStage(idleFor), free = S.mode === 'idle' || S.mode === 'antic';
+    if(stage !== S.stage){
+      const prev = S.stage; S.stage = stage;
+      if(stage > prev && stage >= 2 && free){ think(pick(BUB_IDLE_MILESTONES[stage]), 5200, true); S.nextThought = now + 9000; }
+    }
+    if(stage >= 1 && free && now > S.nextThought){
+      if(think(nextThought(stage))) S.awayStats.thoughts++;
+      S.nextThought = now + (stage >= 3 ? rand(14000, 26000) : rand(18000, 34000));
+    }
+    if(S.mode !== 'idle') return;
     if(idleFor > T.sleep){ S.deepSleep = false; run(sleep); return; }
     if(idleFor > T.bored && now > S.nextAntic){
       // v0.9.53: víc chodí po obrazovce a okukuje; z výletu se vrací sám nebo při tvém pohybu
       const away = awayFromHome(), floor = onFloor();
-      run(weighted([
+      S.awayStats.antics++;
+      run(pickAntic([
         [lookAround, 2], [burp, 2.5], [bigBubble, 1.8], [crawl, isTouch || away || !floor ? 0 : 2.5], [peek, floor ? 1.3 : 0], [yawn, .8],
         [dance, 1.3], [juggle, 1.5], [stretch, 1], [roll, 1],
         [explore, isTouch ? 0 : 5],
@@ -4621,6 +4660,21 @@ const Bublik = (()=>{
       ]));
       S.nextAntic = now + rand(...T.between);
     }
+  }
+  // v0.9.59: pytlík kousků — žádný se nezopakuje, dokud nepřijdou na řadu ostatní (váha = kolikrát je v pytlíku)
+  let anticBag = [], lastAntic = null;
+  function pickAntic(list){
+    const avail = list.filter(([, w]) => w > 0).map(([f]) => f);
+    let cand = anticBag.filter(f => avail.includes(f) && f !== lastAntic);
+    if(!cand.length){
+      anticBag = [];
+      list.forEach(([f, w]) => { if(w > 0) for(let i = 0; i < Math.max(1, Math.round(w / 1.3)); i++) anticBag.push(f); });
+      cand = anticBag.filter(f => f !== lastAntic);
+      if(!cand.length) cand = anticBag.slice();
+    }
+    const f = cand[Math.floor(Math.random() * cand.length)];
+    anticBag.splice(anticBag.indexOf(f), 1); lastAntic = f;
+    return f;
   }
   function weighted(pool){
     const tot = pool.reduce((a, p) => a + p[1], 0); let r = Math.random() * tot;
@@ -4642,8 +4696,31 @@ const Bublik = (()=>{
   // Uživatel něco dělá: malý pohyb myši blbnutí nezastaví (oči ho sledují), větší ano.
   let anticMove = 0;
   function userActive(kind){
-    S.lastInput = performance.now();
+    const now0 = performance.now(), away = now0 - S.lastInput;
+    // v0.9.59: po 5+ min nečinnosti pohyb myši představení neukončí (ať ho ten, kdo přijde, stihne vidět);
+    // když myší hýbeš souvisle přes 3 s, nabídne „klikni“. Ukončí ho klik, klávesa nebo kolečko.
+    if(kind === 'move' && S.stage >= 3 && playful()){
+      // souvislý pohyb myši déle než 3 s = asi ses vrátil → Bublík nabídne „klikni“
+      if(now0 - (S.moveLast || 0) > 450) S.moveStreak = now0;
+      S.moveLast = now0;
+      if(now0 - S.moveStreak > 3000 && now0 - (S.noticedAt || 0) > 20000){
+        S.noticedAt = now0;
+        think(pick(['Jé, ahoj! Klikni někam a uklidím to.', 'Psst, jsi tu? Klikni a vrátím se do práce.', 'Ahoj! Ještě chvilku… klikni, až budeš chtít.']), 4200, true);
+      }
+      return;
+    }
+    S.lastInput = now0;
     S.nextAntic = S.lastInput + T.bored;
+    S.nextThought = S.lastInput + T.bored + rand(4000, 10000);
+    // v0.9.59: po delší nepřítomnosti pointa (kolik byl pryč, co stihl, co čeká)
+    if(away >= 180000 && playful()){
+      const stats = S.awayStats;
+      let extras = {};
+      try{ extras = bublikReturnExtras(); } catch(_){}
+      const msg = bublikReturnMessage(away, stats, extras);
+      if(msg) setTimeout(() => { if(started && S.mode !== 'drag' && S.mode !== 'fall') say(msg, 7000); }, 1300);
+    }
+    if(away >= 30000){ S.awayStats = { antics: 0, flights: 0, thoughts: 0 }; S.stage = 0; }
     if(S.mode === 'sleep'){
       // v0.9.52: uspaný z menu spí, dokud na něj neklikneš; sám usnulý se probudí, když se vrátíš
       if(S.deepSleep) return;
@@ -4806,6 +4883,7 @@ const Bublik = (()=>{
     tx = clamp(tx, s / 2 + 8, vw() - s / 2 - 8); ty = clamp(ty, s + 8, floorY());
     const fx = S.x, fy = S.y, dx = tx - fx, dy = ty - fy, dist = Math.hypot(dx, dy);
     if(dist < 3) return;
+    S.awayStats.flights++;
     const nx = -dy / dist, ny = dx / dist, sway = Math.min(26, dist * .12) * (Math.random() < .5 ? -1 : 1);
     S.lookOverride = { x: dx / dist, y: dy / dist }; setMouth(Math.random() < .5 ? 'cat' : 'o');
     let trail = 0;
@@ -5355,6 +5433,7 @@ const Bublik = (()=>{
     el.querySelector('[data-b="hat"]').style.display = new Date().getMonth() === 11 ? '' : 'none';
     S.x = homeX(); S.y = homeY(); S.hop = 0;
     S.lastInput = performance.now(); S.nextAntic = S.lastInput + T.bored; S.nextBlink = S.lastInput + 1500;
+    S.nextThought = S.lastInput + T.bored + rand(4000, 10000); S.stage = 0;
     lastT = performance.now();
     listen(true);
     rafId = requestAnimationFrame(frame);
@@ -5477,6 +5556,167 @@ function bubFirstName(full){ return String(full || '').trim().split(/\s+/)[0] ||
 function bubDaysWord(n){ return n === 1 ? 'den' : n < 5 ? 'dny' : 'dní'; }
 function bubDayList(days){ return days.slice(0, 3).map(x => x + '.').join(', ') + (days.length > 3 ? ' a další' : ''); }
 
+// ── v0.9.59: nečinnost má příběh — úrovně, myšlenky bez opakování, pointa po návratu ──
+// Úrovně (ms nečinnosti): 0 nic · 1 nuda (30 s) · 2 průzkumník (3 min) · 3 rozmnožení (5 min)
+// · 4 falešný chaos (15 min) · 5 komunita (30 min+, dlouhodobé dění). Kousky pro úrovně 2–5 přijdou v dalších dávkách;
+// zatím se mění myšlenky, jejich četnost a hláška při přechodu.
+function bublikIdleStage(ms){
+  return ms >= 1800000 ? 5 : ms >= 900000 ? 4 : ms >= 300000 ? 3 : ms >= 180000 ? 2 : ms >= 30000 ? 1 : 0;
+}
+// Pytlík bez opakování: vrátí další položku, kterou ještě neviděl; když už viděl všechny, začne znovu.
+// used = pole klíčů (mění se na místě). rnd: () => 0..1.
+function bublikBagNext(items, used, rnd){
+  if(!items.length) return null;
+  let left = items.filter(t => !used.includes(t));
+  if(!left.length){ used.length = 0; left = items.slice(); }
+  const pick = left[Math.floor(rnd() * left.length) % left.length];
+  used.push(pick);
+  return pick;
+}
+function bubWordForm(n, one, few, many){ return n === 1 ? one : (n >= 2 && n <= 4) ? few : many; }
+const BUB_IDLE_MILESTONES = {
+  2: ['Haló? Jsi tam? …Dobře, budu si hrát sám.', 'Tři minuty ticha. Beru to jako svolení k průzkumu.', 'Ťuk ťuk. Nikdo? Tak jo.'],
+  3: ['Pět minut. Začínám mít podezření, že jsi na kafi.', 'Pět minut bez tebe. Myslím, že se rozdělím, ať nejsem sám.', 'Tohle je nejdelší porada mého života.'],
+  4: ['Čtvrthodina. Prozkoumal jsem každý pixel. Dvakrát.', 'Patnáct minut. Kdyby se něco rozbilo, nebyl jsem to já.', 'Už jsem si začal vést deník. Den první: ticho.'],
+  5: ['Půl hodiny. Začínám plánovat vlastní civilizaci.', 'Je to oficiální: jsi pryč. Obrazovka je moje.', 'Třicet minut. Píšu ústavu Bublíkovské republiky.'],
+};
+const BUB_IDLE_LINES = {
+  // od úrovně 1
+  any: [
+    'Kdyby směny byly bubliny, já bych je všechny nafoukl stejně velké.',
+    'Zajímá mě, jestli tabulky sní o tom, že jsou grafy.',
+    'Počítám buňky v rozpisu. Zatím jich je hodně.',
+    'Nikdo neví, že mám rád pondělky. Psst.',
+    'Jaké by to bylo mít ruce? Asi bych pořád něco klikal.',
+    'Kdybych měl směnu, chtěl bych M1. Zní to jako název robota.',
+    'Uvažuju, jestli je X v rozpisu volno, nebo poklad.',
+    'Myslím, že kurzor je můj nejlepší kamarád. Jen o tom neví.',
+    'Mám pocit, že na mě ta tabulka kouká.',
+    'Kdyby se dalo plavat v rozpisu, plaval bych prsa.',
+    'Dneska je ten správný den na nicnedělání. Jako každý den.',
+    'Zkusil jsem meditovat. Usnul jsem.',
+    'Kdo vymyslel slovo „směna“? Mění se, nebo směňuje?',
+    'Napadlo mě: co když jsem já taky jen něčí kurzor?',
+    'Chtěl bych jednou vidět moře. Nebo aspoň velkou vanu.',
+    'Mám teorii, že kafe je jen hnědá bublina.',
+    'Tichoučko… slyším, jak se načítá internet.',
+    'Kdybych byl emoji, byl bych to zelené kulaté. A hezké.',
+    'Přemýšlím, jestli umím pískat. …Neumím.',
+    'Pondělí, úterý, středa… stejně mám jen jeden den: teď.',
+    'Kdyby rozpis byl písnička, refrén by byl „volno, volno, M2“.',
+    'Kolik bublin by se vešlo do jednoho Excelu? Spočítám to.',
+    'Jsem kulatý, protože rohy jsou přeceňované.',
+    'Hm. Kdo zalévá kytky v pobočkách?',
+    'Kdybych mohl, dal bych všem pátek volno. Kromě sebe, já mám rád pátky.',
+    'Mýdlová bublina vydrží v průměru pár vteřin. Já celý den. Jsem šampion.',
+    'Bubliny se lepí k sobě, aby měly co nejmenší povrch. Já se lepím k tobě.',
+    'Nejtěžší na mojí práci? Vypadat, že nic nedělám. To mi jde.',
+    'Píšu si seznam věcí, co neumím: ruce, nohy, pískání.',
+    'Ty buňky mají tolik barev. Je to jako duha, jen s rozpisem.',
+  ],
+  // o sobě
+  self: [
+    'Narodil jsem se na přihlašovací obrazovce. Měl jsem těžké dětství.',
+    'Moje oblíbená barva? Smaragdová. Překvapivě.',
+    'Někdy si představuju, že jsem plážový míč. Pak se stydím.',
+    'Kdybych praskl, udělal bych to aspoň elegantně.',
+    'Trénuju výraz „pracuju“. Jak to vypadá?',
+    'Moje největší obava: jehla. Druhá největší: prázdný rozpis.',
+    'Když spím, sním o obrovské vaně plné pěny.',
+    'Jsem jediný zaměstnanec, který nemá v rozpisu ani jedno X.',
+  ],
+  // od úrovně 3 — začíná být osamělý
+  lonely: [
+    'Mluvím sám se sebou. A dokonce si odpovídám.',
+    'Kdyby tu byl ještě jeden Bublík, hráli bychom na honěnou.',
+    'Napočítal jsem do tisíce. Pak jsem se spletl a začal znovu.',
+    'Zkusil jsem tleskat. Bez rukou to moc nejde.',
+    'Jestli se nevrátíš do deseti minut, přejmenuju si tě na Ticho.',
+    'Ještě chvíli a začnu tu přestavovat nábytek.',
+    'Myslím, že mi začíná přeskakovat. Nebo se jen nudím.',
+    'Kurzor se nehýbe. Je v pořádku? Mám zavolat pomoc?',
+  ],
+  // od úrovně 4 — šílenější
+  silly: [
+    'Prohlašuji tuto obrazovku za své království.',
+    'Zavedl jsem novou směnu: B1 — Bublík jedna. Jen já, celý den.',
+    'Kdyby se tě někdo ptal, ta prasklina tam byla už předtím.',
+    'Nezdá se ti, že ta tabulka trochu nakřivo? …To nic.',
+    'Naučil jsem se žonglovat. S ničím. Je to těžší, než vypadá.',
+    'Uspořádal jsem si soutěž v koukání do zdi. Vyhrál jsem.',
+    'Začínám chápat, proč lidi chodí na kafe. Taky bych šel.',
+  ],
+};
+// Hlášky z rozpisu. ctx: { now, y, m0, team:[{id,name}], shifts:[{emp,date,code}] (jen pracovní), xCount, branchOf:{kód:název} }
+function bublikIdleFacts(ctx){
+  const out = [];
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const mLoc = BUB_MONTHS_LOC[ctx.m0];
+  const fn = id => { const e = ctx.team.find(t => String(t.id) === String(id)); return e ? esc(bubFirstName(e.name)) : ''; };
+  const per = {};
+  ctx.shifts.forEach(s => { per[s.emp] = (per[s.emp] || 0) + 1; });
+  const ranked = Object.entries(per).filter(([id]) => fn(id)).sort((a, b) => b[1] - a[1]);
+  if(ranked.length >= 2){
+    const [topId, topN] = ranked[0];
+    if(topN > ranked[1][1]) out.push(`${fn(topId)} má v ${mLoc} ${topN} ${bubWordForm(topN, 'směnu', 'směny', 'směn')}. Nejvíc z celého týmu. Zasloužil by si bublinu.`);
+    const [lowId, lowN] = ranked[ranked.length - 1];
+    if(lowN < ranked[ranked.length - 2][1]) out.push(`${fn(lowId)} má zatím jen ${lowN} ${bubWordForm(lowN, 'směnu', 'směny', 'směn')}. Asi šetří síly na něco velkého.`);
+  }
+  const wk = {};
+  ctx.shifts.forEach(s => { const dw = new Date(s.date + 'T00:00:00').getDay(); if(dw === 0 || dw === 6) wk[s.emp] = (wk[s.emp] || 0) + 1; });
+  const wkTop = Object.entries(wk).filter(([id]) => fn(id)).sort((a, b) => b[1] - a[1])[0];
+  if(wkTop && wkTop[1] >= 3) out.push(`${fn(wkTop[0])} je víkendový hrdina: ${wkTop[1]} ${bubWordForm(wkTop[1], 'směna', 'směny', 'směn')} o víkendu. Klobouk dolů. Kdybych měl klobouk.`);
+  const perDay = {};
+  ctx.shifts.forEach(s => { perDay[s.date] = (perDay[s.date] || 0) + 1; });
+  const busy = Object.entries(perDay).sort((a, b) => b[1] - a[1])[0];
+  if(busy && busy[1] >= 2) out.push(`Nejvíc lidí je v práci ${Number(busy[0].slice(8))}. ${BUB_MONTHS_GEN[ctx.m0]}: ${busy[1]}. To bude veselo.`);
+  if(ctx.shifts.length >= 10) out.push(`V ${mLoc} je dohromady ${ctx.shifts.length} směn. Kdybych za každou dostal bublinu, byl bych pěna.`);
+  const br = {};
+  ctx.shifts.forEach(s => { const b = ctx.branchOf[s.code]; if(b) br[b] = (br[b] || 0) + 1; });
+  const brTop = Object.entries(br).sort((a, b) => b[1] - a[1]);
+  if(brTop.length >= 2 && brTop[0][1] > brTop[1][1]) out.push(`Nejvíc směn má pobočka ${esc(brTop[0][0])} (${brTop[0][1]}). Prý tam mají nejlepší atmosféru.`);
+  if(ctx.xCount >= 5) out.push(`Volno (X) je v rozpisu ${ctx.xCount}×. Odpočinek je taky práce. Já to dělám profesionálně.`);
+  const todayStr = ctx.now.getFullYear() + '-' + String(ctx.now.getMonth() + 1).padStart(2, '0') + '-' + String(ctx.now.getDate()).padStart(2, '0');
+  const todays = [...new Set(ctx.shifts.filter(s => s.date === todayStr).map(s => fn(s.emp)).filter(Boolean))];
+  if(todays.length) out.push(`Dnes v práci: ${todays.slice(0, 3).join(', ')}${todays.length > 3 ? ' a další' : ''}. Držím palce. Teda… bych držel.`);
+  const names = ctx.team.map(t => bubFirstName(t.name)).filter(Boolean);
+  for(let i = 1; i <= 14; i++){
+    const dt = new Date(ctx.now); dt.setDate(ctx.now.getDate() + i);
+    const hit = czNameDays(dt.getMonth(), dt.getDate()).filter(n => names.includes(n));
+    if(hit.length){ out.push(`Psst: za ${i} ${bubDaysWord(i)} má svátek ${esc(hit[0])}. Jen aby se nezapomnělo.`); break; }
+  }
+  return out;
+}
+// Myšlenky pro danou úroveň (bez fakt z rozpisu — ta se přidávají zvlášť).
+function bublikIdleThoughts(stage){
+  if(stage < 1) return [];
+  let pool = BUB_IDLE_LINES.any.concat(BUB_IDLE_LINES.self);
+  if(stage >= 3) pool = pool.concat(BUB_IDLE_LINES.lonely);
+  if(stage >= 4) pool = pool.concat(BUB_IDLE_LINES.silly);
+  return pool;
+}
+// Pointa po návratu. stats: { antics, flights, thoughts }, extras: { unread, pendingLeaves }.
+function bublikReturnMessage(ms, stats, extras){
+  const min = Math.floor(ms / 60000);
+  if(min < 3) return null;
+  const mWord = bubWordForm(min, 'minutu', 'minuty', 'minut');
+  const a = stats.antics || 0, f = stats.flights || 0;
+  let t;
+  if(min < 5) t = `Jé, jsi zpátky! Byl jsi pryč ${min} ${mWord}. Stihl jsem ${a} ${bubWordForm(a, 'kousek', 'kousky', 'kousků')}.`;
+  else if(min < 15) t = `Vítej zpátky! ${min} ${mWord}. Mezitím jsem ${a}× zablbnul a ${f}× proletěl obrazovku. Nikdo nic neviděl.`;
+  else if(min < 30) t = `Konečně! ${min} ${mWord}. Prozkoumal jsem každý pixel a nic se nerozbilo. Asi.`;
+  else {
+    const h = Math.floor(min / 60), rest = min % 60;
+    const dur = h ? `${h} ${bubWordForm(h, 'hodinu', 'hodiny', 'hodin')}${rest ? ' a ' + rest + ' ' + bubWordForm(rest, 'minutu', 'minuty', 'minut') : ''}` : `${min} ${mWord}`;
+    t = `Dobré… ehm, kolik je hodin? Byl jsi pryč ${dur}. Spal jsem jako bublina.`;
+  }
+  const add = [];
+  if(extras && extras.unread > 0) add.push(`${extras.unread} ${bubWordForm(extras.unread, 'nepřečtenou notifikaci', 'nepřečtené notifikace', 'nepřečtených notifikací')}`);
+  if(extras && extras.pendingLeaves > 0) add.push(`${extras.pendingLeaves} ${bubWordForm(extras.pendingLeaves, 'žádost', 'žádosti', 'žádostí')} o volno`);
+  if(add.length) t += ` Mimochodem: máš ${add.join(' a ')}.`;
+  return t;
+}
+
 // ctx: { now:Date, role, myName, team:[jména], pendingLeaves, month:{ y, m0, shiftCount, holes:[dny], published },
 //        nextPublished, myNext:{ inDays, dateStr, label } | null | 'none' }
 function bublikGreetingCandidates(ctx){
@@ -5578,6 +5818,28 @@ function bublikHoleDays(){
   return holes;
 }
 
+// v0.9.59: data pro hlášky z rozpisu (bublikIdleFacts) a pro pointu po návratu
+function bublikIdleContext(){
+  const y = schedYear, m0 = schedMonth, prefix = `${y}-${String(m0 + 1).padStart(2, '0')}-`;
+  const list = []; let x = 0;
+  Object.entries(shifts || {}).forEach(([k, sh]) => {
+    if(!sh || !sh.shift_type_code) return;
+    const i = k.indexOf(':'), emp = k.slice(0, i), date = k.slice(i + 1);
+    if(!date.startsWith(prefix)) return;
+    if(sh.shift_type_code === 'X'){ x++; return; }
+    list.push({ emp, date, code: sh.shift_type_code });
+  });
+  const branchOf = {};
+  (shiftTypes || []).forEach(t => { const b = (branches || []).find(b => b.id === t.branch_id); if(b) branchOf[t.code] = b.name; });
+  (branches || []).forEach(b => { if(b.code && !branchOf[b.code]) branchOf[b.code] = b.name; });
+  return { now: new Date(), y, m0, team: (employees || []).filter(e => e.active !== false).map(e => ({ id: e.id, name: e.name })), shifts: list, xCount: x, branchOf };
+}
+function bublikReturnExtras(){
+  let unread = 0, pendingLeaves = 0;
+  try{ unread = (_notifications || []).filter(n => !n.read).length; } catch(_){}
+  try{ if(currentRole === 'admin') pendingLeaves = (leaveRequests || []).filter(l => l.status === 'pending').length; } catch(_){}
+  return { unread, pendingLeaves };
+}
 function bublikGreetContext(){
   const now = new Date();
   const y = schedYear, m0 = schedMonth, dim = new Date(y, m0 + 1, 0).getDate();
