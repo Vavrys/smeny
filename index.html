@@ -1137,6 +1137,9 @@ body.dark .search-input{color:var(--ink)}
 #bublik-speech.l{transform-origin:bottom left}
 #bublik-speech::after{content:"";position:absolute;bottom:-9px;right:var(--tail,26px);width:14px;height:14px;background:var(--surface);border-right:2px solid var(--ink);border-bottom:2px solid var(--ink);transform:rotate(45deg)}
 #bublik-speech.l::after{right:auto;left:var(--tail,26px)}
+#bublik-speech.below{transform-origin:top right}
+#bublik-speech.below.l{transform-origin:top left}
+#bublik-speech.below::after{bottom:auto;top:-9px;transform:rotate(225deg)}
 .bub-tag{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--accent-ink);background:var(--accent-soft);border-radius:5px;padding:1px 6px;margin-bottom:3px}
 .bub-menu{display:flex;flex-direction:column;gap:4px;margin-top:6px}
 .bub-menu button{font:600 13px var(--font-body);text-align:left;padding:7px 9px;border-radius:7px;border:1.5px solid var(--line);background:var(--paper);color:var(--ink);cursor:pointer}
@@ -2696,7 +2699,7 @@ window.addEventListener('unhandledrejection', e => {
 // odsud, ručně je nepřepisuj. sw.js se od v0.9.29 nebumpuje — je z něj
 // kill-switch bez cache (viz killServiceWorkers() a komentář v sw.js).
 // ============================================================
-const APP_VERSION = '0.9.57';
+const APP_VERSION = '0.9.58';
 
 // Krátký git hash nasazeného buildu. Placeholder níž přepíše build-stamp.js
 // z CF_PAGES_COMMIT_SHA (Cloudflare Pages build command: `node build-stamp.js`).
@@ -4335,6 +4338,17 @@ const Bublik = (()=>{
   const floorY = () => vh() - 16;
   const defHomeX = () => vw() - size() / 2 - 48;   // v0.9.55: dál od pravého okraje (dřív 20 px)
   const homeX = () => S.homeX != null ? clamp(S.homeX, size() / 2 + 8, vw() - size() / 2 - 8) : defHomeX();
+  // v0.9.58: domov může být kdekoli na obrazovce (i nahoře) — bez gravitace; null = na zemi
+  const homeY = () => S.homeY != null ? clamp(S.homeY, size() + 8, floorY()) : floorY();
+  const onFloor = () => S.y >= floorY() - 6;
+  const awayFromHome = () => Math.hypot(S.x - homeX(), S.y - homeY()) > 6;
+  function saveHome(x, y){
+    S.homeX = x; S.homeY = (y == null || y >= floorY() - 6) ? null : y;
+    try{
+      localStorage.setItem('bublik_home_r2', String(Math.round(vw() - x)));
+      localStorage.setItem('bublik_home_b', String(Math.round(vh() - (S.homeY == null ? floorY() : S.homeY))));
+    } catch(_){}
+  }
   // v0.9.52: „omezit animace“ v systému tlumí Bublíka jen ve výchozím stavu. Když si
   // uživatel režim vybral sám (menu, bublinka), jeho volba má přednost — dřív ve Windows
   // s vypnutými efekty animací Bublík jen koukal a nikdy si nehrál ani nedýchal.
@@ -4421,7 +4435,9 @@ const Bublik = (()=>{
     const leftSide = S.x < vw() / 2;
     const left = clamp(leftSide ? S.x - s * .35 : S.x + s * .35 - w, 8, vw() - w - 8);
     speech.style.left = left + 'px';
-    speech.style.top = Math.max(8, S.y - s * .95 - S.hop - h - 6) + 'px';
+    const above = S.y - s * .95 - S.hop - h - 6, below = above < 8;   // v0.9.58: nahoře nad ním není místo → bublina pod ním
+    speech.style.top = (below ? Math.min(vh() - h - 8, S.y - S.hop + 10) : above) + 'px';
+    speech.classList.toggle('below', below);
     speech.classList.toggle('l', leftSide);
     const tail = leftSide ? (S.x - s * .1) - left : (left + w) - (S.x + s * .1);
     speech.style.setProperty('--tail', clamp(tail, 12, w - 30) + 'px');
@@ -4577,7 +4593,7 @@ const Bublik = (()=>{
     lift.setAttribute('transform', `translate(0 ${-S.hop * (72 / size())})`);
     const sh = clamp(1 - S.hop / 120, .35, 1);
     shadow.setAttribute('transform', `scale(${sh * sx * S.grow} 1)`);
-    shadow.setAttribute('opacity', sh.toFixed(2));
+    shadow.setAttribute('opacity', (sh * clamp(1 - (floorY() - S.y) / 90, 0, 1)).toFixed(2));   // v0.9.58: ve vzduchu bez stínu
 
     el.style.transform = `translate(${(S.x - size() / 2).toFixed(1)}px, ${(S.y - el.offsetHeight + 4).toFixed(1)}px)`;
     placeSpeech();
@@ -4595,9 +4611,9 @@ const Bublik = (()=>{
     if(idleFor > T.sleep){ S.deepSleep = false; run(sleep); return; }
     if(idleFor > T.bored && now > S.nextAntic){
       // v0.9.53: víc chodí po obrazovce a okukuje; z výletu se vrací sám nebo při tvém pohybu
-      const away = Math.abs(S.x - homeX()) > 6;
+      const away = awayFromHome(), floor = onFloor();
       run(weighted([
-        [lookAround, 2], [burp, 2.5], [bigBubble, 1.8], [crawl, isTouch || away ? 0 : 2.5], [peek, 1.3], [yawn, .8],
+        [lookAround, 2], [burp, 2.5], [bigBubble, 1.8], [crawl, isTouch || away || !floor ? 0 : 2.5], [peek, floor ? 1.3 : 0], [yawn, .8],
         [dance, 1.3], [juggle, 1.5], [stretch, 1], [roll, 1],
         [explore, isTouch ? 0 : 5],
         [goHome, away ? 2.2 : 0],
@@ -4634,7 +4650,7 @@ const Bublik = (()=>{
       run(() => Promise.resolve()); return;
     }
     // v0.9.53: stojí na výletě mimo svůj kout → při tvé aktivitě se vrátí, ať nic nezakrývá
-    const awayIdle = S.mode === 'idle' && !S.waking && Math.abs(S.x - homeX()) > 6;
+    const awayIdle = S.mode === 'idle' && !S.waking && awayFromHome();
     if((S.mode !== 'antic' && !awayIdle) || S.waking){ anticMove = 0; return; }
     if(kind === 'move'){ anticMove += 40; if(anticMove < 200) return; }
     anticMove = 0; interrupt();
@@ -4645,9 +4661,9 @@ const Bublik = (()=>{
     const tk = token(); S.mode = 'react';
     try{
       setMouth('o'); S.eyeWide = 1.15;
-      const fx = S.x, fy = S.y, fh = S.hop, tx = homeX(), ty = floorY();
+      const fx = S.x, fy = S.y, fh = S.hop, tx = homeX(), ty = homeY();
       if(Math.abs(fx - tx) > 4 || Math.abs(fy - ty) > 4 || fh > 1){
-        await tween(clamp(Math.abs(fx - tx) * 1.1, 280, 700), (e, p) => {
+        await tween(clamp(Math.hypot(fx - tx, fy - ty) * 1.1, 280, 800), (e, p) => {
           S.x = fx + (tx - fx) * e; S.y = fy + (ty - fy) * e;
           S.hop = fh * (1 - e) + Math.sin(p * Math.PI) * 28;
           S.sx = 1 - Math.sin(p * Math.PI) * .08; S.sy = 1 + Math.sin(p * Math.PI) * .12;
@@ -4784,20 +4800,46 @@ const Bublik = (()=>{
     S.lookOverride = null; setMouth(Math.random() < .35 ? 'wavy' : 'smile');
     if(Math.random() < .25){ blush(1200); await wait(400, tk); }
   }
+  // v0.9.58: létání všemi směry bez gravitace — plave jako bublina, lehce se kolébá
+  async function flyTo(tx, ty, tk){
+    const s = size();
+    tx = clamp(tx, s / 2 + 8, vw() - s / 2 - 8); ty = clamp(ty, s + 8, floorY());
+    const fx = S.x, fy = S.y, dx = tx - fx, dy = ty - fy, dist = Math.hypot(dx, dy);
+    if(dist < 3) return;
+    const nx = -dy / dist, ny = dx / dist, sway = Math.min(26, dist * .12) * (Math.random() < .5 ? -1 : 1);
+    S.lookOverride = { x: dx / dist, y: dy / dist }; setMouth(Math.random() < .5 ? 'cat' : 'o');
+    let trail = 0;
+    await tween(clamp(dist * 3.4, 500, 2600), (e, p) => {
+      const w = Math.sin(p * Math.PI) * sway, bob = Math.sin(p * Math.PI * 6) * 3;
+      S.x = fx + dx * e + nx * w; S.y = fy + dy * e + ny * w + bob; S.hop = 0;
+      const st = Math.sin(p * Math.PI);
+      S.sx = 1 - .07 * st * Math.abs(dy / dist) + .06 * st * Math.abs(dx / dist);
+      S.sy = 1 + .1 * st * Math.abs(dy / dist) - .05 * st * Math.abs(dx / dist);
+      S.tilt = clamp(dx / dist * 12 * st, -12, 12);
+      if(p > trail){ trail = p + .22; const m = svgPoint(-dx / dist * 20, -24); spawnBubble(m.x, m.y, rand(4, 8), { vx: -dx / dist * 30, vy: -20, life: rand(.8, 1.4) }); }
+    }, tk, ease.inOut);
+    S.x = tx; S.y = ty; S.tilt = 0;
+    await wobble(.12, 380, tk);
+    S.lookOverride = null; setMouth('smile');
+  }
+  // na zemi cupitá, jinak letí
+  async function travelTo(tx, ty, tk){
+    if(onFloor() && ty >= floorY() - 6){ S.y = floorY(); await walkTo(tx, tk); }
+    else await flyTo(tx, ty, tk);
+  }
   async function explore(tk){
     const s = size(), lo = s / 2 + 10, hi = vw() - s / 2 - 10;
     const stops = Math.random() < .45 ? 2 : 1;
     for(let k = 0; k < stops; k++){
-      let target = rand(lo, hi);
-      if(Math.abs(target - S.x) < vw() * .15) target = clamp(S.x + (S.x > vw() / 2 ? -1 : 1) * vw() * rand(.2, .35), lo, hi);
-      await walkTo(target, tk);
+      let tx = rand(lo, hi), ty = Math.random() < .35 ? floorY() : rand(s + 40, floorY());
+      if(Math.hypot(tx - S.x, ty - S.y) < Math.min(vw(), vh()) * .2){ tx = clamp(S.x + (S.x > vw() / 2 ? -1 : 1) * vw() * rand(.2, .35), lo, hi); }
+      await travelTo(tx, ty, tk);
       await snoop(tk);
     }
   }
   async function goHome(tk){
-    S.lookOverride = { x: homeX() > S.x ? 1 : -1, y: 0 };
-    await walkTo(homeX(), tk);
-    S.lookOverride = null; setEyes('happy'); await wait(400, tk); setEyes('open');
+    await travelTo(homeX(), homeY(), tk);
+    setEyes('happy'); await wait(400, tk); setEyes('open');
   }
   async function peek(tk){
     const s = size();
@@ -4826,15 +4868,18 @@ const Bublik = (()=>{
     await tween(260, e => { S.sx = 1 + .16 * e; S.sy = 1 - .18 * e; S.eyeScaleY = 1 - .45 * e; }, tk);
     for(let i = 0; i < 3; i++) await tween(110, e => { S.tilt = (i % 2 ? -1 : 1) * 5 * e; }, tk);
     S.tilt = 0;
-    const from = S.x, dx = tx - from, peak = clamp(floorY() - S.pointer.y, 30, 140);
+    const from = S.x, dx = tx - from, fy = S.y;
+    const ty = onFloor() ? floorY() : clamp(S.pointer.y + s * .45, s + 8, floorY());   // v0.9.58: ve vzduchu skočí přímo za kurzorem
+    const peak = onFloor() ? clamp(floorY() - S.pointer.y, 30, 140) : 30;
     S.eyeScaleY = 1; S.eyeWide = 1.2; setMouth('big');
-    await tween(clamp(Math.abs(dx) * 1.2, 380, 800), (e, p) => { S.x = from + dx * e; S.hop = Math.sin(p * Math.PI) * peak; S.sx = 1 - .12 * Math.sin(p * Math.PI); S.sy = 1 + .2 * Math.sin(p * Math.PI); }, tk, ease.lin);
+    await tween(clamp(Math.hypot(dx, ty - fy) * 1.2, 380, 900), (e, p) => { S.x = from + dx * e; S.y = fy + (ty - fy) * e; S.hop = Math.sin(p * Math.PI) * peak; S.sx = 1 - .12 * Math.sin(p * Math.PI); S.sy = 1 + .2 * Math.sin(p * Math.PI); }, tk, ease.lin);
     S.hop = 0; await wobble(.25, 600, tk);
     S.eyeWide = 1; setMouth('cat');
     S.lookOverride = { x: 0, y: -1 }; await wait(500, tk);
     S.lookOverride = { x: -.8, y: -.6 }; await wait(380, tk);
     S.lookOverride = { x: .8, y: -.6 }; await wait(380, tk);
     setEyes('happy'); setMouth('grin'); await wait(600, tk); setEyes('open');
+    if(Math.abs(S.y - homeY()) > 6){ await flyTo(homeX(), homeY(), tk); return; }
     const back = homeX() - S.x, f2 = S.x, n = Math.max(1, Math.round(Math.abs(back) / 80));
     await tween(clamp(Math.abs(back) * 1.3, 350, 900), (e, p) => { S.x = f2 + back * e; S.hop = Math.abs(Math.sin(p * Math.PI * n)) * 18; }, tk, ease.lin);
     S.hop = 0; await wobble(.14, 400, tk);
@@ -5021,20 +5066,16 @@ const Bublik = (()=>{
       spawnBubble(px + away * 6, py + rand(-14, 10), rand(5, 11), { vx, vy: -rand(50, 170), life: rand(1.2, 2.2) });
     }
   }
+  // v0.9.58: spícího položíš kamkoli — zůstane viset tam, kam jsi ho dal (bez gravitace), a spí dál
   function sleepyDrop(deep){
     S.mode = 'fall'; S.tilt = 0; S.lookOverride = { x: 0, y: .3 };
-    const tk = token(), y0 = S.y, x0 = S.x, dist = Math.max(0, floorY() - y0);
+    const tk = token();
     (async () => {
       try{
-        if(dist > 2) await tween(Math.min(2600, 300 + dist * 4), (e, p) => {
-          S.y = y0 + dist * e; S.x = x0 + Math.sin(p * Math.PI * 2) * Math.min(14, dist / 20);
-          S.sx = 1 + Math.sin(p * Math.PI * 4) * .03; S.sy = 1 - Math.sin(p * Math.PI * 4) * .03;
-        }, tk, ease.inOut);
-        S.y = floorY(); S.x = x0;
+        S.y = clamp(S.y, size() + 8, floorY());
         await tween(160, e => { S.sx = 1 + .08 * e; S.sy = 1 - .08 * e; }, tk);
         await tween(260, e => { S.sx = 1.08 - .08 * e; S.sy = .92 + .08 * e; }, tk);
-        S.homeX = S.x;
-        try{ localStorage.setItem('bublik_home_r2', String(Math.round(vw() - S.x))); } catch(_){}
+        saveHome(S.x, S.y);
       } catch(e){ return; }
       if(S.busy !== tk) return;
       S.busy = null; S.mode = 'idle'; S.deepSleep = !!deep; S.lastInput = performance.now();
@@ -5050,10 +5091,7 @@ const Bublik = (()=>{
     function land(fall){
       S.x = x; S.y = y; S.tilt = 0;
       const placedNow = placed && fall === 'soft';
-      if(placedNow){
-        S.homeX = x;
-        try{ localStorage.setItem('bublik_home_r2', String(Math.round(vw() - x))); } catch(_){}
-      }
+      if(placedNow) saveHome(x, null);
       const tk = token(); S.mode = 'react';
       (async () => {
         try{
@@ -5076,9 +5114,9 @@ const Bublik = (()=>{
           else if(fall === 'stun'){ await wobble(.22, 500, tk); await faint(tk, { short: true, wall: true }); }
           if(placedNow){
             if(Math.abs(x - defHomeX()) > 40 && Math.random() < .5){ setEyes('happy'); say('Tak tady teď bydlím. Pěkný výhled.', 3000); await wait(900, tk); }
-          } else if(Math.abs(S.x - homeX()) > 6){
+          } else if(awayFromHome()){
             setEyes('open'); setMouth('wavy'); await wait(500, tk);
-            await walkTo(homeX(), tk);
+            await travelTo(homeX(), homeY(), tk);
           }
         } catch(e){}
         if(S.busy === tk){ S.busy = null; S.mode = 'idle'; defaultFace(); }
@@ -5255,7 +5293,7 @@ const Bublik = (()=>{
     userActive('click'); hush();
   }
   function onLeaveDoc(){ S.pointer = null; }
-  function onResize(){ S.x = clamp(S.x, size() / 2 + 8, vw() - size() / 2 - 8); S.y = floorY(); if(S.mode === 'idle') S.x = homeX(); }
+  function onResize(){ S.x = clamp(S.x, size() / 2 + 8, vw() - size() / 2 - 8); S.y = clamp(S.y, size() + 8, floorY()); if(S.mode === 'idle'){ S.x = homeX(); S.y = homeY(); } }
   function onVisible(){ if(!document.hidden){ lastT = performance.now(); S.lastInput = performance.now(); } }
 
   function mount(){
@@ -5308,10 +5346,14 @@ const Bublik = (()=>{
     el.style.display = '';
     // v0.9.54: nový klíč — starý domov (bublik_home_x) se nastavoval i omylem, všichni začínají zase vpravo
     // v0.9.55: klíč znovu nový (bublik_home_r2), ať všichni začnou na novém výchozím místě
-    try{ ['bublik_home_x', 'bublik_home_r'].forEach(k => localStorage.removeItem(k)); const hx = parseFloat(localStorage.getItem('bublik_home_r2')); if(!isNaN(hx)) S.homeX = vw() - hx; } catch(_){}
+    try{
+      ['bublik_home_x', 'bublik_home_r'].forEach(k => localStorage.removeItem(k));
+      const hx = parseFloat(localStorage.getItem('bublik_home_r2')); if(!isNaN(hx)) S.homeX = vw() - hx;
+      const hb = parseFloat(localStorage.getItem('bublik_home_b')); S.homeY = (!isNaN(hb) && vh() - hb < floorY() - 6) ? vh() - hb : null;
+    } catch(_){}
     defaultFace();
     el.querySelector('[data-b="hat"]').style.display = new Date().getMonth() === 11 ? '' : 'none';
-    S.x = homeX(); S.y = floorY(); S.hop = 0;
+    S.x = homeX(); S.y = homeY(); S.hop = 0;
     S.lastInput = performance.now(); S.nextAntic = S.lastInput + T.bored; S.nextBlink = S.lastInput + 1500;
     lastT = performance.now();
     listen(true);
@@ -17643,14 +17685,17 @@ function handleHelpFabClick(){
 }
 
 // v0.9.57: schovaná bublina sedí tam, kde Bublík bydlí (bublik_home_r2 = vzdálenost středu od pravého kraje).
-// Podržením (~0,4 s) nebo tažením ji přesuneš; po puštění se snese dolů a tam bude Bublík bydlet.
+// Podržením (~0,4 s) nebo tažením ji přesuneš kamkoli (i nahoru, bez padání) a tam bude Bublík bydlet.
 function placeHelpFab(fab){
   fab = fab || document.getElementById('help-fab'); if(!fab) return;
   let r = NaN;
   try{ r = parseFloat(localStorage.getItem('bublik_home_r2')); } catch(_){}
   const w = fab.offsetWidth || 64;
   fab.style.right = isNaN(r) ? '' : Math.max(4, Math.min(window.innerWidth - w - 4, r - w / 2)) + 'px';
-  fab.style.bottom = '';
+  let b = NaN;
+  try{ b = parseFloat(localStorage.getItem('bublik_home_b')); } catch(_){}
+  const h = fab.offsetHeight || 59;
+  fab.style.bottom = (isNaN(b) || b <= 16) ? '' : Math.min(window.innerHeight - h - 4, b) + 'px';
 }
 function initHelpFabDrag(){
   const fab = typeof document !== 'undefined' && document.getElementById('help-fab');
@@ -17681,15 +17726,15 @@ function initHelpFabDrag(){
     fab.dataset.dragged = '1';
     setTimeout(() => { delete fab.dataset.dragged; }, 400);
     fab.classList.remove('dragging');
+    // v0.9.58: zůstane tam, kam ji dáš (žádné padání); Bublík tam pak bude bydlet
     const w = fab.offsetWidth || 64, right = parseFloat(fab.style.right) || dd.r0;
-    const fall = Math.max(0, (parseFloat(fab.style.bottom) || dd.b0) - dd.b0);
-    fab.style.transition = `bottom ${Math.min(.9, .2 + fall / 900).toFixed(2)}s cubic-bezier(.5,0,.8,.4)`;
-    fab.style.bottom = dd.b0 + 'px';
-    setTimeout(() => {
-      fab.style.transition = ''; fab.style.bottom = '';
-      fab.classList.remove('landed'); void fab.offsetWidth; fab.classList.add('landed');
-    }, Math.min(900, 200 + fall / .9));
-    try{ localStorage.setItem('bublik_home_r2', String(Math.round(right + w / 2))); } catch(_){}
+    const bottom = Math.max(dd.b0, (parseFloat(fab.style.bottom) || dd.b0) - 8);
+    fab.style.transition = 'bottom .18s ease-out'; fab.style.bottom = bottom + 'px';
+    setTimeout(() => { fab.style.transition = ''; fab.classList.remove('landed'); void fab.offsetWidth; fab.classList.add('landed'); }, 190);
+    try{
+      localStorage.setItem('bublik_home_r2', String(Math.round(right + w / 2)));
+      localStorage.setItem('bublik_home_b', String(Math.round(bottom)));
+    } catch(_){}
   };
   fab.addEventListener('pointerup', up);
   fab.addEventListener('pointercancel', up);
