@@ -1196,10 +1196,32 @@ body.dark .search-input{color:var(--ink)}
 .bub-night i{position:absolute;width:3px;height:3px;border-radius:50%;background:#fff;box-shadow:0 0 6px #fff;animation:bubTwinkle 2.4s ease-in-out infinite alternate}
 @keyframes bubTwinkle{from{opacity:.25}to{opacity:1}}
 .bub-note-music{position:fixed;left:0;top:0;pointer-events:none;z-index:398;font:700 18px var(--font-display);color:#9b7bff;animation:bubZzz 2.6s ease-out forwards}
+.bub-era,.bub-ship,.bub-rocket,.bub-frame,.bub-podium{position:fixed;left:0;top:0;pointer-events:none;z-index:397;transition:opacity .4s}
+.bub-era svg,.bub-ship svg,.bub-rocket svg,.bub-frame svg,.bub-podium svg{width:100%;height:100%;overflow:visible;display:block}
+.bub-era{width:40px;height:41px}.bub-era.bub-flag{width:24px;height:30px}
+.bub-ship{width:120px;height:72px;animation:bubSail 46s ease-in-out infinite alternate}
+.bub-ship svg{animation:bubBob 2.2s ease-in-out infinite alternate}
+@keyframes bubSail{from{transform:translate(20px,var(--y))}to{transform:translate(var(--x1),var(--y))}}
+@keyframes bubBob{from{transform:rotate(-3deg) translateY(0)}to{transform:rotate(3deg) translateY(3px)}}
+.bub-rocket{width:48px;height:100px}
+.bub-frame{width:80px;height:60px;filter:drop-shadow(0 4px 6px rgba(0,0,0,.18))}
+.bub-podium{width:120px;height:41px}
+.bub-era.bye,.bub-ship.bye,.bub-rocket.bye,.bub-frame.bye,.bub-podium.bye{opacity:0}
+.bub-paper{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(20,24,30,.28);z-index:1000;opacity:0;transition:opacity .3s;cursor:pointer}
+.bub-paper.show{opacity:1}
+.bub-paper .bp-card{max-width:520px;width:calc(100% - 32px);background:#fbf7ec;color:#231d12;border:2px solid #231d12;border-radius:6px;padding:18px 22px;box-shadow:0 18px 40px rgba(0,0,0,.25);font-family:Georgia,'Times New Roman',serif;transform:rotate(-1deg) scale(.96);transition:transform .3s}
+.bub-paper.show .bp-card{transform:rotate(-1deg) scale(1)}
+.bub-paper .bp-mast{font:900 30px/1 Georgia,serif;text-align:center;border-bottom:3px double #231d12;padding-bottom:6px}
+.bub-paper .bp-date{text-align:center;font-size:12px;margin:6px 0 10px;font-style:italic}
+.bub-paper .bp-head{font:800 22px/1.2 Georgia,serif;margin:4px 0}
+.bub-paper .bp-sub{font-size:13px;font-style:italic;margin-bottom:10px}
+.bub-paper .bp-arts{margin:0 0 12px 18px;padding:0;font-size:14px;line-height:1.5}
+.bub-paper .bp-useful{font:500 13px/1.45 var(--font-display);background:#fff3c4;border:1px solid #c9a227;border-radius:6px;padding:8px 10px;margin-bottom:12px}
+.bub-paper .bp-close{display:block;margin:0 auto;font:600 13px var(--font-display);padding:8px 16px;border-radius:8px;border:1.5px solid #231d12;background:#fff;color:#231d12;cursor:pointer}
 .bub-zzz{position:fixed;left:0;top:0;z-index:402;pointer-events:none;font:700 16px var(--font-display);color:var(--accent-ink);animation:bubZzz 2.6s ease-out forwards}
 @keyframes bubZzz{0%{opacity:0;transform:var(--t) translate(0,0) scale(.6)}20%{opacity:1}100%{opacity:0;transform:var(--t) translate(22px,-46px) scale(1.25)}}
 @media (max-width:640px){ #bublik{width:60px;height:56px} }
-@media print{ #bublik,#bublik-speech,.bub-mini,.bub-zzz,.bub-splat,.bub-clone,.bub-brick,.bub-print,.bub-note,.bub-crack,.bub-letter,.bub-grass,.bub-house,.bub-fire,.bub-flower,.bub-chron,.bub-night,.bub-note-music{display:none !important} }
+@media print{ #bublik,#bublik-speech,.bub-mini,.bub-zzz,.bub-splat,.bub-clone,.bub-brick,.bub-print,.bub-note,.bub-crack,.bub-letter,.bub-grass,.bub-house,.bub-fire,.bub-flower,.bub-chron,.bub-night,.bub-note-music,.bub-era,.bub-ship,.bub-rocket,.bub-frame,.bub-podium,.bub-paper{display:none !important} }
 @media print{ .bub-gone{visibility:visible !important} }
 /* v0.9.48: při otevřeném modálu Bublík i „?“ zmizí — na mobilu jinak zakrývaly tlačítka Uložit */
 body:has(.modal-overlay.open) #bublik, body:has(.modal-overlay.open) #bublik-speech, body:has(.modal-overlay.open) .help-fab, body:has(.modal-overlay.open) .bub-clone, body:has(.modal-overlay.open) .bub-brick,
@@ -2744,7 +2766,7 @@ window.addEventListener('unhandledrejection', e => {
 // odsud, ručně je nepřepisuj. sw.js se od v0.9.29 nebumpuje — je z něj
 // kill-switch bez cache (viz killServiceWorkers() a komentář v sw.js).
 // ============================================================
-const APP_VERSION = '0.9.63';
+const APP_VERSION = '0.9.64';
 
 // Krátký git hash nasazeného buildu. Placeholder níž přepíše build-stamp.js
 // z CF_PAGES_COMMIT_SHA (Cloudflare Pages build command: `node build-stamp.js`).
@@ -5067,6 +5089,8 @@ const Bublik = (()=>{
   // ── v0.9.63: Komunita (od 30 min) — Bublíkovo: vesnička na spodním okraji, denní režim podle hodin, kronika ──
   // Vzor: Little Computer People (život v počítači podle denního režimu), kronika jako „vypravěč“ (emergent narrative).
   const VILLAGER_NAMES = ['Bublinka', 'Pěnička', 'Kulička', 'Šumák', 'Mydlík', 'Perlička', 'Kapka', 'Bublifuk', 'Pěnák', 'Šplouch'];
+  // v0.9.64: rod jmen, ať kronika říká „Bublinka postavila“, ne „postavil“
+  const g = (name, m, f) => bublikIsFem(name) ? f : m;
   let village = null;
   function vEl(cls, html, x, y){ const d = messEl(cls, html); if(x != null) d.style.transform = `translate(${x}px,${y}px)`; return d; }
   const HOUSE_SVG = `<svg viewBox="-40 -66 80 68" aria-hidden="true"><ellipse cx="0" cy="0" rx="34" ry="3.6" fill="rgba(22,64,44,.18)"/>
@@ -5109,7 +5133,7 @@ const Bublik = (()=>{
         const left = Math.random() < .5, c = spawnClone(left ? -30 : vw() + 30, floorY(), pick(CREW_ROLES));
         c.sc = c.scT; c.name = villagerName(); c.tx = rand(vw() * .2, vw() * .8); c.ty = floorY(); c.speed = 120;
         S.awayStats.clones = (S.awayStats.clones || 0) + 1;
-        chron(`Přistěhoval se ${c.name}. Prý kvůli dobré atmosféře.`);
+        chron(`${g(c.name, 'Přistěhoval', 'Přistěhovala')} se ${c.name}. Prý kvůli dobré atmosféře.`);
       }, 2500 + i * 4500);
     }
   }
@@ -5135,7 +5159,7 @@ const Bublik = (()=>{
       puf(x, floorY() - 25, 80);
       v.houses.push({ el: h, x });
       cFace(b, 'closed', 'grin');
-      chron(`${b.name} postavil domek č. ${v.houses.length}.${v.houses.length === 1 ? ' Kulatý, samozřejmě.' : ''}`);
+      chron(`${b.name} ${g(b.name, 'postavil', 'postavila')} domek č. ${v.houses.length}.${v.houses.length === 1 ? ' Kulatý, samozřejmě.' : ''}`);
       await wait(900, b.tk); cFace(b, 'open', 'smile');
     });
   }
@@ -5155,7 +5179,7 @@ const Bublik = (()=>{
       const f = vEl('bub-flower', FLOWER_SVG(pick(['#ff6f8e', '#f7a531', '#9b7bff', '#ff5d5d', '#58b6ff'])), x - 9, floorY() - 28);
       v.flowers.push(f);
       requestAnimationFrame(() => f.classList.add('grow'));
-      if(v.flowers.length === 1) chron(`${c.name} zasadil první kytku. Konečně má kdo zalévat.`);
+      if(v.flowers.length === 1) chron(`${c.name} ${g(c.name, 'zasadil', 'zasadila')} první kytku. Konečně má kdo zalévat.`);
     });
   }
   async function exercise(){
@@ -5264,12 +5288,12 @@ const Bublik = (()=>{
       v.nextNews = now + rand(50000, 110000);
       const names = crew.map(c => c.name).filter(Boolean), a = names.length ? pick(names) : 'Někdo', b = names.length > 1 ? pick(names.filter(n => n !== a)) : 'Bublík';
       const news = [
-        `${a} našel v rozpisu M2. Prý vzácnost.`, 'Volby starosty odloženy. Kandidát praskl.', 'Kopáč vykopal tunel. Vede zpátky na začátek.',
+        `${a} ${g(a, 'našel', 'našla')} v rozpisu M2. Prý vzácnost.`, 'Volby starosty odloženy. Kandidát praskl.', 'Kopáč vykopal tunel. Vede zpátky na začátek.',
         'Padákář hlásí: na obzoru kurzor. Nehýbe se.', 'Bublík pronesl projev. Nikdo neposlouchal, všichni tleskali.', 'Spáč vyhrál soutěž ve spaní. Zase.',
-        `${a} a ${b} se pohádali, kdo je kulatější. Remíza.`, `${a} založil kroužek pletení z bublin.`, `${b} tvrdí, že viděl v tabulce ducha. Byla to prázdná buňka.`,
-        'Zastupitelstvo schválilo nový svátek: Den kulatosti.', `${a} si otevřel kavárnu. Nabízí jen pěnu.`, 'Na radnici někdo nechal klíče. Radnice nemá dveře.',
-        `${b} napsal báseň. Rýmuje se jen „bublina“ a „bublina“.`, 'Proběhlo sčítání obyvatel. Výsledek: hodně.', `${a} se naučil pískat. Ostatní se naučili zacpat si uši.`,
-        'Počasí v Bublíkově: polojasno, místy pěna.', `${b} hledá práci. Umí být kulatý a mlčet.`, 'Bublíkovo vyhlásilo neutralitu vůči Excelu.',
+        `${a} a ${b} se pohádali, kdo je kulatější. Remíza.`, `${a} ${g(a, 'založil', 'založila')} kroužek pletení z bublin.`, `${b} tvrdí, že ${g(b, 'viděl', 'viděla')} v tabulce ducha. Byla to prázdná buňka.`,
+        'Zastupitelstvo schválilo nový svátek: Den kulatosti.', `${a} si ${g(a, 'otevřel', 'otevřela')} kavárnu. Nabízí jen pěnu.`, 'Na radnici někdo nechal klíče. Radnice nemá dveře.',
+        `${b} ${g(b, 'napsal', 'napsala')} báseň. Rýmuje se jen „bublina“ a „bublina“.`, 'Proběhlo sčítání obyvatel. Výsledek: hodně.', `${a} se ${g(a, 'naučil', 'naučila')} pískat. Ostatní se naučili zacpat si uši.`,
+        'Počasí v Bublíkově: polojasno, místy pěna.', `${b} hledá práci. Umí být ${g(b, 'kulatý', 'kulatá')} a mlčet.`, 'Bublíkovo vyhlásilo neutralitu vůči Excelu.',
       ];
       v.newsUsed = v.newsUsed || [];
       const line = bublikBagNext(news, v.newsUsed, Math.random);
@@ -5285,10 +5309,158 @@ const Bublik = (()=>{
     v.houses.forEach((h, i) => setTimeout(() => { if(!fast) puf(h.x, floorY() - 25, 70); h.el.remove(); }, fast ? 0 : i * 90));
     v.flowers.forEach(f => gone(f, 400));
     if(v.fire) gone(v.fire, 400);
+    (v.eraItems || []).forEach(el => gone(el, 400));   // v0.9.64: stavby epoch
     if(v.night){ const n = v.night; if(fast) n.remove(); else { n.classList.remove('on'); setTimeout(() => n.remove(), 900); } }
     gone(v.chron, 500);
     document.querySelectorAll('.bub-note-music').forEach(n => n.remove());
     return stats;
+  }
+  // ── v0.9.64: Civilizace (od hodiny ve vesnici) — epochy se větví podle péče; ráno noviny ──
+  const BALLOT_SVG = `<svg viewBox="-20 -40 40 41" aria-hidden="true"><rect x="-16" y="-30" width="32" height="30" rx="3" fill="#f3efe2" stroke="#4a3b20" stroke-width="1.4"/><rect x="-8" y="-31" width="16" height="3" rx="1.5" fill="#4a3b20"/><text x="0" y="-11" text-anchor="middle" font-size="8" font-weight="700" fill="#4a3b20">VOLBY</text></svg>`;
+  const SHIP_SVG = `<svg viewBox="-60 -70 120 72" aria-hidden="true"><path d="M -2 -64 L -2 -14" stroke="#5a3b12" stroke-width="2.4"/><path d="M 0 -62 Q 30 -44 0 -22 Z" fill="#fff" stroke="#8a7a5a" stroke-width="1.2"/><path d="M -4 -60 Q -30 -44 -4 -26 Z" fill="#f3efe2" stroke="#8a7a5a" stroke-width="1.2"/>
+    <path d="M -2 -64 L 14 -68 L -2 -72 Z" fill="#12a46a"/><circle cx="-20" cy="-22" r="7" fill="url(#bub-g-body)"/><circle cx="16" cy="-22" r="7" fill="url(#bub-g-body)"/><circle cx="-22" cy="-23" r="1.2" fill="#102a1e"/><circle cx="-18" cy="-23" r="1.2" fill="#102a1e"/><circle cx="14" cy="-23" r="1.2" fill="#102a1e"/><circle cx="18" cy="-23" r="1.2" fill="#102a1e"/>
+    <path d="M -52 -16 L 52 -16 L 40 0 L -40 0 Z" fill="#8b5a2b" stroke="#4a2e12" stroke-width="1.4"/><path d="M -46 -9 L 46 -9" stroke="#4a2e12" stroke-width="1"/></svg>`;
+  const ROCKET_SVG = `<svg viewBox="-24 -96 48 100" aria-hidden="true"><g class="r-flame" style="display:none"><path d="M -8 0 Q 0 26 8 0 Z" fill="#f7a531"/><path d="M -4 0 Q 0 14 4 0 Z" fill="#ffe48a"/></g>
+    <path d="M 0 -94 C 16 -76 16 -30 12 -4 L -12 -4 C -16 -30 -16 -76 0 -94 Z" fill="#f3f5f7" stroke="#4a5560" stroke-width="1.5"/><circle cx="0" cy="-58" r="7" fill="url(#bub-g-body)" stroke="#4a5560" stroke-width="1.2"/>
+    <path d="M -12 -26 L -22 -2 L -12 -6 Z M 12 -26 L 22 -2 L 12 -6 Z" fill="#12a46a" stroke="#044a30" stroke-width="1"/><text x="0" y="-16" text-anchor="middle" font-size="6.5" font-weight="700" fill="#4a5560">B-1</text></svg>`;
+  const PODIUM_SVG = `<svg viewBox="-60 -40 120 41" aria-hidden="true"><rect x="-20" y="-36" width="40" height="36" fill="#f7c948" stroke="#7a5a12" stroke-width="1.3"/><rect x="-58" y="-24" width="38" height="24" fill="#d9dde3" stroke="#5a6068" stroke-width="1.3"/><rect x="20" y="-16" width="38" height="16" fill="#d79a62" stroke="#6b4319" stroke-width="1.3"/>
+    <text x="0" y="-12" text-anchor="middle" font-size="16" font-weight="800" fill="#7a5a12">1</text><text x="-39" y="-6" text-anchor="middle" font-size="13" font-weight="800" fill="#5a6068">2</text><text x="39" y="-3" text-anchor="middle" font-size="11" font-weight="800" fill="#6b4319">3</text></svg>`;
+  const ART_TITLES = ['Kulatost v zeleném', 'Bublina při západu slunce', 'Bez názvu (prasklo)', 'Autoportrét s pěnou', 'Rozpis v modré', 'Pondělí', 'Kurzor v klidu'];
+  function eraItem(cls, svg, x, y){ const d = vEl(cls, svg, x, y); village.eraItems.push(d); return d; }
+  // volní Bublíčci; když jich je málo, epocha si vezme i ty, co zrovna něco dělají (jejich činnost se přeruší)
+  function crewFree(n){
+    const idle = crew.filter(c => !c.dead && !c.home && c.act === 'idle').slice(0, n);
+    return idle.length >= Math.min(2, n) ? idle : crew.filter(c => !c.dead && !c.home).slice(0, n);
+  }
+  function addCrown(c){
+    if(!c || c.dead || c.body.querySelector('.c-crown')) return;
+    c.body.insertAdjacentHTML('beforeend', '<path class="c-crown" d="M -10 -45 L -10 -54 L -5 -49.5 L 0 -56 L 5 -49.5 L 10 -54 L 10 -45 Z" fill="#f7c948" stroke="#a87b12" stroke-width="1"/>');
+  }
+  const ERA_RUN = {
+    async republika(info){
+      const v = village, bx = v.fireX + 100;
+      eraItem('bub-era', BALLOT_SVG, bx - 20, floorY() - 40);
+      const voters = crewFree(7);
+      if(voters.length < 2){ info.mayor = 'Bublík'; chron('Volby: jediný kandidát Bublík zvolen jednomyslně. Sám sebou.'); return; }
+      const cands = voters.slice(0, 2), tally = new Map(cands.map(c => [c, 0]));
+      chron(`Vyhlášeny volby starosty! Kandidáti: ${cands[0].name} a ${cands[1].name}.`);
+      await vScript(voters, async () => {
+        for(const c of voters){
+          if(c.dead) continue;
+          await cGo(c, bx, floorY(), 170);
+          await tween(200, e => { c.sy = 1 - .15 * Math.sin(e * Math.PI); }, c.tk);
+          const ch = Math.random() < .5 ? cands[0] : cands[1]; tally.set(ch, tally.get(ch) + 1);
+          c.tx = bx + rand(60, 160) * (Math.random() < .5 ? -1 : 1); c.speed = 150;
+        }
+      });
+      const [win, votes] = [...tally.entries()].sort((a, b) => b[1] - a[1])[0];
+      info.mayor = win.name; addCrown(win);
+      chron(`Volby ${g(win.name, 'vyhrál', 'vyhrála')} ${win.name} (${votes} ${bubWordForm(votes, 'hlas', 'hlasy', 'hlasů')}). Slibuje bubliny pro všechny.`);
+    },
+    async pirati(info){
+      const v = village;
+      const ship = eraItem('bub-ship', SHIP_SVG, 0, 0);
+      ship.style.setProperty('--y', `${floorY() - 74}px`); ship.style.setProperty('--x1', `${vw() - 140}px`);
+      chron('Ahoj! Na obzoru se objevila loď. Piráti hledají poklad.');
+      info.ship = true;
+      await wait(20000, { cancelled: false });
+      if(!village) return;
+      chron(pick(['Piráti našli poklad: tři bubliny a jednu M2.', 'Kapitán prohlásil spodní okraj za pirátské vody.', 'Piráti zakotvili u táboráku. Prý kvůli buřtům.']));
+    },
+    async veda(info){
+      const v = village, rx = v.fireX - 170;
+      const r = eraItem('bub-rocket', ROCKET_SVG, rx - 24, floorY() - 100);
+      chron('Začala stavba rakety Bublík-1. Cíl: strop.');
+      await wait(25000, { cancelled: false });
+      if(!village) return;
+      for(const n of ['3…', '2…', '1…']){ chron('Odpočet: ' + n); await wait(1200, { cancelled: false }); if(!village) return; }
+      r.querySelector('.r-flame').style.display = '';
+      const y0 = floorY() - 100, t0 = performance.now();
+      await new Promise(res => { (function k(){
+        if(!village || !r.isConnected) return res();
+        const p = (performance.now() - t0) / 3200, y = y0 - (vh() + 120) * p * p;
+        r.style.transform = `translate(${rx - 24}px,${y}px)`;
+        if(Math.random() < .5) spawnBubble(rx + rand(-6, 6), y + 100, rand(5, 10), { vx: rand(-30, 30), vy: rand(20, 60), life: rand(.8, 1.4) });
+        if(p < 1) requestAnimationFrame(k); else res();
+      })(); });
+      if(!village) return;
+      eraItem('bub-era bub-flag', '<svg viewBox="0 0 24 30" aria-hidden="true"><path d="M 2 0 L 2 30" stroke="#5a3b12" stroke-width="2"/><path d="M 3 2 L 22 7 L 3 12 Z" fill="#12a46a"/></svg>', rx - 4, 0);
+      info.rocket = true;
+      chron('Raketa Bublík-1 doletěla ke stropu. Malý skok pro bublinu, velký pro Bublíkovo.');
+    },
+    async umeni(info){
+      const v = village, painters = crewFree(3);
+      const xs = [.3, .5, .7].map(f => vw() * f), y = Math.max(140, floorY() - 210);
+      const frames = xs.map(x => eraItem('bub-frame', '<svg viewBox="0 0 80 60" aria-hidden="true"><rect x="2" y="2" width="76" height="56" fill="#fffdf6"/><g class="art"></g><rect x="2" y="2" width="76" height="56" fill="none" stroke="#8b5a2b" stroke-width="4"/></svg>', x - 40, y));
+      chron('Bublíkovo otevírá galerii. Malíři si berou štětce (jsou to bubliny).');
+      if(!painters.length) return;
+      await vScript(painters, async () => {
+        for(let round = 0; round < 6; round++){
+          for(let i = 0; i < painters.length; i++){
+            const c = painters[i]; if(c.dead) continue;
+            c.tx = xs[i] + (round % 2 ? 30 : -30); c.ty = y + 110; c.speed = 160;
+            const art = frames[i].querySelector('.art');
+            art.insertAdjacentHTML('beforeend', `<circle cx="${rand(12, 68).toFixed(0)}" cy="${rand(10, 50).toFixed(0)}" r="${rand(4, 12).toFixed(0)}" fill="${pick(['#12a46a', '#f7a531', '#ff6f8e', '#58b6ff', '#9b7bff', '#ffe48a'])}" opacity=".85"/>`);
+          }
+          await wait(2200, painters[0].tk);
+        }
+      });
+      const pool = ART_TITLES.slice().sort(() => Math.random() - .5);
+      const titles = painters.map((c, i) => `„${pool[i % pool.length]}“ (autor: ${c.name})`);
+      info.art = titles;
+      chron('Vernisáž: ' + titles.join(', ') + '.');
+    },
+    async olympiada(info){
+      const v = village, runners = crewFree(4);
+      if(runners.length < 2){ info.champion = 'Bublík'; chron('Olympiáda: Bublík závodil sám se sebou a vyhrál.'); return; }
+      chron('Zahájena první Bublíkovská olympiáda! Disciplína: běh přes obrazovku.');
+      const order = [];
+      await vScript(runners, async () => {
+        runners.forEach((c, i) => { c.tx = vw() * .08; c.ty = floorY(); c.speed = 170; });
+        await wait(3000, runners[0].tk);
+        chron('Na místa… připravit… teď!');
+        runners.forEach(c => { c.tx = vw() * .92; c.speed = rand(130, 260); });
+        const t0 = performance.now();
+        while(order.length < runners.length && performance.now() - t0 < 20000){
+          runners.forEach(c => { if(!order.includes(c) && Math.abs(c.x - vw() * .92) < 6) order.push(c); });
+          await wait(80, runners[0].tk);
+        }
+        eraItem('bub-podium', PODIUM_SVG, v.fireX + 120 - 60, floorY() - 40);
+        const tops = [-36, -24, -16], offs = [0, -39, 39];
+        order.slice(0, 3).forEach((c, i) => { c.tx = v.fireX + 120 + offs[i]; c.ty = floorY() + tops[i]; c.speed = 200; });
+        await wait(3500, runners[0].tk);
+        order.slice(0, 3).forEach(c => cFace(c, 'closed', 'grin'));
+        await wait(4000, runners[0].tk);
+      });
+      if(!order.length) return;
+      info.champion = order[0].name; addCrown(order[0]);
+      chron(`Zlato: ${order[0].name}${order[1] ? ', stříbro: ' + order[1].name : ''}${order[2] ? ', bronz: ' + order[2].name : ''}.`);
+    },
+  };
+  function civTick(now){
+    const v = village;
+    if(!v || v.busy || v.houses.length < 3) return;
+    if(!v.eras) { v.eras = []; v.eraItems = []; v.eraAt = v.t0 + 45 * 60000; }
+    if(now < v.eraAt || v.eras.length >= 3) return;
+    const id = bublikPickEra(bublikCareToday(), v.eras.map(e => e.id), Math.random);
+    if(!id) return;
+    const era = { id, info: {} };
+    v.eras.push(era); v.eraAt = now + 90 * 60000; v.busy = true;
+    chron({ republika: 'Nová epocha: Bublíkovská republika.', pirati: 'Nová epocha: piráti!', veda: 'Nová epocha: věk vědy.', umeni: 'Nová epocha: zlatý věk umění.', olympiada: 'Nová epocha: olympijská.' }[id]);
+    Promise.resolve(ERA_RUN[id](era.info)).catch(e => { if(!(e instanceof Cancel)) console.warn('[Bublík] epocha', e); }).finally(() => { if(village) village.busy = false; });
+  }
+  // ranní noviny — po dlouhé nepřítomnosti (hodina+) místo obyčejné hlášky
+  function showNewspaper(d){
+    document.querySelectorAll('.bub-paper').forEach(p => p.remove());
+    const p = document.createElement('div');
+    p.className = 'bub-paper'; p.setAttribute('role', 'dialog'); p.setAttribute('aria-label', 'Bublíkovské listy');
+    p.innerHTML = `<div class="bp-card">${bublikNewspaper(d)}</div>`;
+    document.body.appendChild(p);
+    requestAnimationFrame(() => p.classList.add('show'));
+    const close = () => { p.classList.remove('show'); setTimeout(() => p.remove(), 300); document.removeEventListener('keydown', onKey); };
+    const onKey = e => { if(e.key === 'Escape') close(); };
+    p.addEventListener('click', close);
+    document.addEventListener('keydown', onKey);
   }
   function stepBubbles(dt){
     minis.forEach(m => {
@@ -5320,7 +5492,7 @@ const Bublik = (()=>{
     if(crew.length){ trail.push({ x: S.x, y: S.y }); if(trail.length > 240) trail.shift(); stepCrew(dt, now); }
     if(S.stage >= 4) maybePrint(lastPrint, S.x, S.y);   // v0.9.62: zelené stopy
     if(mess.letter) placeLetter(now);
-    if(village) villageTick(now);
+    if(village){ villageTick(now); civTick(now); }
 
     S.breathT += dt * (S.mode === 'sleep' || S.ko ? 1.1 : 2.4);
     const br = calm() ? 0 : Math.sin(S.breathT) * (S.mode === 'sleep' ? .045 : .022);
@@ -5514,8 +5686,23 @@ const Bublik = (()=>{
       const stats = S.awayStats;
       let extras = {};
       try{ extras = bublikReturnExtras(); } catch(_){}
-      const msg = bublikReturnMessage(away, stats, extras);
-      if(msg) setTimeout(() => { if(started && S.mode !== 'drag' && S.mode !== 'fall') say(msg, 7000); }, 1300);
+      if(away >= 3600000 && village){
+        // v0.9.64: po hodině a víc ve vesnici ranní noviny místo hlášky
+        const v = village, pick3 = [];
+        const key = /Volby|Raketa|Vernisáž|Zlato|postavil|Přistěhoval|poklad|Piráti|olympiáda/;
+        for(let i = v.log.length - 1; i >= 0 && pick3.length < 3; i--) if(key.test(v.log[i])) pick3.unshift(v.log[i]);
+        for(let i = v.log.length - 1; i >= 0 && pick3.length < 3; i--) if(!pick3.includes(v.log[i])) pick3.unshift(v.log[i]);
+        const useful = [];
+        if(extras.unread) useful.push(`${extras.unread} ${bubWordForm(extras.unread, 'nepřečtená notifikace', 'nepřečtené notifikace', 'nepřečtených notifikací')}`);
+        if(extras.pendingLeaves) useful.push(`${extras.pendingLeaves} ${bubWordForm(extras.pendingLeaves, 'žádost', 'žádosti', 'žádostí')} o volno`);
+        try{ const h = bublikHoleDays(); if(h.length) useful.push(`mezery v rozpisu: ${bubDayList(h)}`); } catch(_){}
+        const paper = { date: new Date().toLocaleDateString('cs-CZ', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }),
+          eras: (v.eras || []).map(e => ({ id: e.id, info: e.info })), houses: v.houses.length, pop: crew.length + 1, articles: pick3, useful };
+        setTimeout(() => { if(started) showNewspaper(paper); }, 1100);
+      } else {
+        const msg = bublikReturnMessage(away, stats, extras);
+        if(msg) setTimeout(() => { if(started && S.mode !== 'drag' && S.mode !== 'fall') say(msg, 7000); }, 1300);
+      }
     }
     if(crew.length || bricks.length) crewRecall();   // v0.9.61: Bublíčci se vcucnou zpátky
     chaosTidy();                                      // v0.9.62: úklid nepořádku
@@ -6072,6 +6259,7 @@ const Bublik = (()=>{
     })();
   }
   function throwFall(vx, vy, placed){
+    if(!placed) bublikCare('throws');   // v0.9.64: péče — hody
     S.mode = 'fall'; S.lookOverride = null;
     let x = S.x, y = S.y, last = performance.now(), bounces = 0, impact = 0, stuck = null, stunned = false;
     vx = clamp(vx, -2400, 2400); vy = clamp(vy, -2400, 2400);
@@ -6210,6 +6398,7 @@ const Bublik = (()=>{
     await wait(1600, tk); sweat.setAttribute('opacity', '0');
   }
   function onClick(){
+    bublikCare('clicks');
     S.lastInput = performance.now();
     const now = performance.now();
     S.clicks = S.clicks.filter(t => now - t < 1800); S.clicks.push(now);
@@ -6261,7 +6450,7 @@ const Bublik = (()=>{
     const m = b.dataset.m; hush();
     if(m === 'help') openHelpCenter();
     else if(m === 'tours') openTutorialMenu();
-    else if(m === 'sleep'){ S.lastInput = performance.now(); S.deepSleep = true; run(sleep); say('Dobrou. Vzbudíš mě kliknutím.', 2600); }
+    else if(m === 'sleep'){ bublikCare('sleeps'); S.lastInput = performance.now(); S.deepSleep = true; run(sleep); say('Dobrou. Vzbudíš mě kliknutím.', 2600); }
     else if(m === 'quiet'){ setBublikPref('quiet'); say('Dobře. Budu jen dýchat a koukat. Kdybys mě chtěl, klikni na mě.', 3500); }
     else if(m === 'play'){ setBublikPref('play'); react('hello'); }
     else if(m === 'off'){ setBublikPref('off'); toast('Bublík se schoval. Zavoláš ho zpátky kliknutím na bublinku vpravo dole.'); }
@@ -6485,6 +6674,56 @@ function bublikBagNext(items, used, rnd){
   used.push(pick);
   return pick;
 }
+// v0.9.64: ženská jména Bublíčků (kvůli rodu sloves)
+function bublikIsFem(name){ return ['Bublinka', 'Pěnička', 'Kulička', 'Perlička', 'Kapka'].includes(name); }
+// ── v0.9.64: péče (Tamagotchi) — co se s Bublíkem dnes dělo; podle toho se větví civilizace ──
+function bublikCareKey(d){ d = d || new Date(); return 'bublik_care_' + d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+function bublikCare(kind){
+  try{
+    const k = bublikCareKey(), c = JSON.parse(localStorage.getItem(k) || '{}');
+    c[kind] = (c[kind] || 0) + 1;
+    localStorage.setItem(k, JSON.stringify(c));
+  } catch(_){}
+}
+function bublikCareToday(){ try{ return JSON.parse(localStorage.getItem(bublikCareKey()) || '{}'); } catch(_){ return {}; } }
+// Výběr epochy: každá má základ 1, péče ji posílí. Hody → piráti, práce (doplnění, publikování) → věda,
+// mazlení (kliky) → umění, uspávání → olympiáda (ať se rozhýbou), republika má náskok jako výchozí. done = už proběhlé.
+const BUB_ERAS = ['republika', 'pirati', 'veda', 'umeni', 'olympiada'];
+function bublikPickEra(care, done, rnd){
+  care = care || {}; done = done || [];
+  const w = {
+    republika: 1.6,
+    pirati: 1 + (care.throws || 0) * .6,
+    veda: 1 + ((care.autofill || 0) + (care.publish || 0)) * .8,
+    umeni: 1 + (care.clicks || 0) * .15,
+    olympiada: 1 + (care.sleeps || 0) * .8,
+  };
+  const pool = BUB_ERAS.filter(e => !done.includes(e));
+  if(!pool.length) return null;
+  const tot = pool.reduce((a, e) => a + w[e], 0);
+  let q = rnd() * tot;
+  for(const e of pool){ q -= w[e]; if(q <= 0) return e; }
+  return pool[pool.length - 1];
+}
+// Ranní noviny „Bublíkovské listy“. d: { date, eras:[{id, info}], houses, pop, articles:[], useful:[] }
+function bublikNewspaper(d){
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const last = d.eras && d.eras.length ? d.eras[d.eras.length - 1] : null, i = (last && last.info) || {};
+  const head = !last ? `Bublíkovo slaví: ${d.houses} ${bubWordForm(d.houses, 'domek', 'domky', 'domků')} a ${d.pop} ${bubWordForm(d.pop, 'obyvatel', 'obyvatelé', 'obyvatel')}`
+    : last.id === 'republika' ? `${i.mayor || 'Neznámý Bublík'} ${bublikIsFem(i.mayor) ? 'novou starostkou' : 'novým starostou'} Bublíkova!`
+    : last.id === 'pirati' ? 'Piráti obsadili spodní okraj obrazovky!'
+    : last.id === 'veda' ? 'Raketa Bublík-1 doletěla až ke stropu!'
+    : last.id === 'umeni' ? 'Vernisáž v Bublíkově: kritici nadšeni (kritici jsou Bublíci)'
+    : `${i.champion || 'Neznámý Bublík'} ${bublikIsFem(i.champion) ? 'vyhrála' : 'vyhrál'} první Bublíkovskou olympiádu!`;
+  const eraNames = { republika: 'republika', pirati: 'pirátská epocha', veda: 'věk vědy', umeni: 'zlatý věk umění', olympiada: 'olympiáda' };
+  const sub = d.eras && d.eras.length ? 'Mezitím: ' + d.eras.map(e => eraNames[e.id]).join(' → ') : 'Mezitím v Bublíkově klid';
+  const arts = (d.articles || []).slice(0, 3).map(a => `<li>${esc(a)}</li>`).join('');
+  const use = (d.useful || []).length ? `<div class="bp-useful"><b>Mezitím ve Směnách:</b> ${d.useful.map(esc).join(' · ')}</div>` : '';
+  return `<div class="bp-mast">Bublíkovské listy</div><div class="bp-date">${esc(d.date)} · cena 1 bublina</div>`
+    + `<h3 class="bp-head">${esc(head)}</h3><div class="bp-sub">${esc(sub)}</div>`
+    + (arts ? `<ul class="bp-arts">${arts}</ul>` : '') + use
+    + `<button class="bp-close" type="button">Zavřít noviny</button>`;
+}
 // v0.9.63: denní režim Bublíkova podle skutečných hodin
 function bublikVillagePhase(h){
   return (h >= 6 && h < 9) ? 'rano' : (h >= 12 && h < 13) ? 'obed' : (h >= 9 && h < 17) ? 'prace' : (h >= 17 && h < 22) ? 'vecer' : 'noc';
@@ -6565,6 +6804,8 @@ const BUB_IDLE_LINES = {
 };
 // v0.9.63: myšlenky z Bublíkova
 const BUB_VILLAGE_LINES = [
+  'Uvažujeme o vlastní hymně. Zatím umíme jen „blub“.',
+  'Kdo vyhraje volby, dostane korunu. Je z papíru, ale svítí.',
   'Bublíkovo roste. Zvažujeme vlastní měnu: bublinky.',
   'Starosta jsem já. Nikdo mě nevolil, ale nikdo nebyl proti.',
   'Na náměstí bude socha. Mě. Kulatá.',
@@ -6838,6 +7079,7 @@ function bublikPublishMessage(monthLabel, notifFailed){
     : `Rozpis na ${monthLabel} je venku! Tým dostal upozornění. Plácnem si?`;
 }
 function bublikAfterAutofill(feasible, pct){
+  bublikCare('autofill');
   if(Bublik.pref === 'off') return;
   try{
     const m = bublikAutofillMessage(feasible, pct, bublikHoleDays());
@@ -6845,6 +7087,7 @@ function bublikAfterAutofill(feasible, pct){
   } catch(e){ console.warn('[Bublík] reakce po doplnění selhala', e); }
 }
 function bublikAfterPublish(monthLabel, notifFailed){
+  bublikCare('publish');
   if(Bublik.pref === 'off') return;
   Bublik.react('celebrate', bublikPublishMessage(monthLabel, notifFailed));
 }
