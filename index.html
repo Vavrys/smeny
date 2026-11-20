@@ -2810,7 +2810,7 @@ window.addEventListener('unhandledrejection', e => {
 // odsud, ručně je nepřepisuj. sw.js se od v0.9.29 nebumpuje — je z něj
 // kill-switch bez cache (viz killServiceWorkers() a komentář v sw.js).
 // ============================================================
-const APP_VERSION = '0.9.70';
+const APP_VERSION = '0.9.71';
 
 // Krátký git hash nasazeného buildu. Placeholder níž přepíše build-stamp.js
 // z CF_PAGES_COMMIT_SHA (Cloudflare Pages build command: `node build-stamp.js`).
@@ -6444,7 +6444,11 @@ const Bublik = (()=>{
     // když myší hýbeš souvisle přes 3 s, nabídne „klikni“. Ukončí ho klik, klávesa nebo kolečko.
     // v0.9.66: od 5 min ho neukončí ani klávesa (probouzení obrazovky) ani kolečko — jen klik nebo Esc
     if((kind === 'move' || kind === 'key' || kind === 'wheel') && S.stage >= 3 && playful()){
-      if(kind !== 'move'){ S.moveStreak = now0 - 3100; S.moveLast = now0; }
+      if(kind !== 'move' && now0 - (S.noticedAt || 0) > 8000){
+        S.noticedAt = now0;
+        think(pick(['Ahoj! Klávesy teď nechám být, ať omylem něco nezmáčkneš. Klikni myší a uklidím to.', 'Jsi tu? Klikni myší (nebo Esc) a vrátím se do práce.']), 4600, true);
+        return;
+      }
       // souvislý pohyb myši déle než 3 s = asi ses vrátil → Bublík nabídne „klikni“
       if(now0 - (S.moveLast || 0) > 900) S.moveStreak = now0;
       S.moveLast = now0;
@@ -6661,21 +6665,43 @@ const Bublik = (()=>{
       await tween(260, e => { S.sy = .85 + .15 * e; S.y = ty - 6 + 10 * e; }, tk);
       think('Ťuk.', 1200, true); await wait(800, tk);
       // pfffff — vyfukuje se a lítá sem a tam
+      // v0.9.71: jedna plynulá dráha (Catmull-Rom přes náhodné body), pak pád s gravitací navazující na rychlost letu
       setMouth('big'); S.eyeWide = 1.3; say('Pfffffff…', 2800);
-      let x = S.x, y = S.y, spin = S.tilt;
+      const pts = [{ x: S.x, y: S.y }];
       for(let i = 0; i < 6; i++){
-        const nx = clamp(x + rand(-1, 1) * vw() * .35, s, vw() - s), ny = clamp(y + rand(-.2, 1) * vh() * .25, s * 1.3, floorY() - s * .2);
-        const fx = x, fy = y, g0 = S.grow, g1 = 1.45 - .45 * (i + 1) / 6, sp0 = spin, sp1 = spin + rand(140, 260) * (Math.random() < .5 ? -1 : 1);
-        let tr = 0;
-        await tween(rand(320, 520), (e, p) => {
-          S.x = fx + (nx - fx) * e; S.y = fy + (ny - fy) * e; S.grow = g0 + (g1 - g0) * e; S.tilt = sp0 + (sp1 - sp0) * e;
-          if(p > tr){ tr = p + .3; const m = svgPoint(0, -2); spawnBubble(m.x, m.y, rand(4, 9), { vx: rand(-50, 50), vy: rand(-30, 30), life: rand(.5, 1) }); }
-        }, tk, ease.lin);
-        x = nx; y = ny; spin = sp1;
+        const p = pts[pts.length - 1];
+        pts.push({ x: clamp(p.x + rand(-1, 1) * vw() * .35, s, vw() - s), y: clamp(p.y + rand(-.15, 1) * vh() * .22, s * 1.3, floorY() - s * .5) });
       }
-      S.tilt = 0; S.cheekPuff = 1; S.grow = 1;
-      const fy = S.y;
-      await tween(clamp((floorY() - fy) * 2.2, 300, 900), e => { S.y = fy + (floorY() - fy) * e; }, tk, t => t * t);
+      const P = i => pts[clamp(i, 0, pts.length - 1)];
+      const cr = (a, b, c, d, t) => .5 * (2 * b + (-a + c) * t + (2 * a - 5 * b + 4 * c - d) * t * t + (-a + 3 * b - 3 * c + d) * t * t * t);
+      const at = u => { const f = u * (pts.length - 1), i = Math.min(pts.length - 2, Math.floor(f)), t = f - i; return { x: cr(P(i - 1).x, P(i).x, P(i + 1).x, P(i + 2).x, t), y: cr(P(i - 1).y, P(i).y, P(i + 1).y, P(i + 2).y, t) }; };
+      const g0 = S.grow, spin0 = S.tilt, spinTo = spin0 + rand(540, 900) * (Math.random() < .5 ? -1 : 1), DUR = 2800;
+      let tr = 0;
+      await tween(DUR, (e, p) => {
+        const q = at(p);
+        S.x = q.x; S.y = q.y; S.grow = g0 + (1 - g0) * p; S.tilt = spin0 + (spinTo - spin0) * ease.inOut(p);
+        if(p > tr){ tr = p + .06; const m = svgPoint(0, -2); spawnBubble(m.x, m.y, rand(4, 9), { vx: rand(-50, 50), vy: rand(-30, 30), life: rand(.5, 1) }); }
+      }, tk, ease.lin);
+      S.cheekPuff = 1; S.grow = 1;
+      // pád: rychlost z konce dráhy, gravitace, dotočí se do stoje
+      const q1 = at(.985), q2 = at(1);
+      let vx = (q2.x - q1.x) / (DUR * .015 / 1000), vy = (q2.y - q1.y) / (DUR * .015 / 1000);
+      vx = clamp(vx, -500, 500); vy = clamp(vy, -300, 400);
+      const tilt0 = ((S.tilt % 360) + 540) % 360 - 180;
+      S.tilt = tilt0;
+      await new Promise((res, rej) => {
+        let last = performance.now();
+        (function k(){
+          if(tk.cancelled) return rej(new Cancel());
+          const now = performance.now(), dt = Math.min(.05, (now - last) / 1000); last = now;
+          vy += 2200 * dt; vx *= 1 - 1.5 * dt;
+          S.x = clamp(S.x + vx * dt, s / 2 + 8, vw() - s / 2 - 8); S.y = Math.min(floorY(), S.y + vy * dt);
+          S.tilt += (0 - S.tilt) * Math.min(1, dt * 5);
+          if(S.y >= floorY()) return res();
+          requestAnimationFrame(k);
+        })();
+      });
+      S.tilt = 0;
       S.sx = 1.3; S.sy = .7; setEyes('dizzy'); S.stars = true; S.starT = 0; await wobble(.3, 700, tk);
       await wait(1400, tk); S.stars = false; setEyes('open'); setMouth('wavy'); S.eyeWide = 1;
       think(pick(['Tohle už nikdy. Do zítřka.', 'Byl to krásný let. Přistání méně.']), 3000, true);
@@ -7785,6 +7811,17 @@ const Bublik = (()=>{
     if(moveAcc > 40){ moveAcc = 0; userActive('move'); }
   }
   function onWinKey(e){ userActive(e && e.type === 'wheel' ? 'wheel' : e && e.key === 'Escape' ? 'click' : 'key'); }
+  // v0.9.71: běží-li představení (5+ min), Enter/mezerník probouzející obrazovku nesmí nic zmáčknout —
+  // ani Bublíka (dřív ho to po kliknutí na něj „probudilo“ a vše zmizelo), ani tlačítko v appce, které má zrovna fokus.
+  const showOn = () => started && S.stage >= 3 && playful();
+  function onShowKey(e){
+    if(!showOn() || !(e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar')) return;
+    const a = document.activeElement, typing = a && (a.isContentEditable || a.tagName === 'TEXTAREA' || (a.tagName === 'INPUT' && !/^(button|submit|checkbox|radio|reset)$/i.test(a.type)));
+    if(typing && e.key !== 'Enter') return;
+    e.preventDefault(); e.stopPropagation();
+    if(a === el) el.blur();
+    userActive('key');
+  }
   function onWinDown(e){
     if(el.contains(e.target) || speech.contains(e.target)) return;
     userActive('click'); hush();
@@ -7814,12 +7851,13 @@ const Bublik = (()=>{
     el.addEventListener('pointermove', onMove);
     el.addEventListener('pointerup', onUp);
     el.addEventListener('pointercancel', onUp);
-    el.addEventListener('keydown', e => { if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); onClick(); } });
+    el.addEventListener('keydown', e => { if(showOn()) return; if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); onClick(); } });   // v0.9.71: během představení řeší klávesy onShowKey
     speech.addEventListener('click', onSpeechClick);
   }
   function listen(on){
     const f = on ? 'addEventListener' : 'removeEventListener';
     window[f]('pointermove', onWinMove, { passive: true });
+    window[f]('keydown', onShowKey, true);
     window[f]('keydown', onWinKey, { passive: true });
     window[f]('wheel', onWinKey, { passive: true });
     window[f]('pointerdown', onWinDown, true);
