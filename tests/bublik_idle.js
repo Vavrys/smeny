@@ -39,7 +39,7 @@ vm.runInContext([
   extractBlock('BUB_MONTHS_GEN'), extractBlock('BUB_MONTHS_LOC'),
   extractBlock('BUB_IDLE_MILESTONES'), extractBlock('BUB_IDLE_LINES'), extractBlock('BUB_CREW_LINES'),
   extract('bublikIdleStage'), extract('bublikBagNext'), extract('bublikIdleFacts'),
-  extract('bublikIdleThoughts'), extract('bublikReturnMessage'), extract('bublikVillagePhase'), extractBlock('BUB_VILLAGE_LINES'), extractBlock('BUB_ERAS'), extract('bublikPickEra'), extract('bublikNewspaper'), extract('bublikCareKey'), extract('bublikIsFem'),
+  extract('bublikIdleThoughts'), extract('bubJoinCz'), extract('bublikReturnMessage'), extract('bublikVillagePhase'), extractBlock('BUB_VILLAGE_LINES'), extractBlock('BUB_ERAS'), extract('bublikPickEra'), extract('bublikNewspaper'), extract('bublikCareKey'), extract('bublikIsFem'),
   'this.ST = bublikIdleStage; this.BAG = bublikBagNext; this.F = bublikIdleFacts; this.TH = bublikIdleThoughts; this.R = bublikReturnMessage; this.M = BUB_IDLE_MILESTONES; this.L = BUB_IDLE_LINES; this.CL = BUB_CREW_LINES; this.VP = bublikVillagePhase; this.VL = BUB_VILLAGE_LINES; this.PE = bublikPickEra; this.NP = bublikNewspaper; this.CK = bublikCareKey;',
 ].join('\n'), ctx);
 
@@ -94,18 +94,20 @@ check('jména jsou escapovaná', evil.every(f => !f.includes('<b>Zlý')), evil.j
 check('prázdný rozpis = žádná fakta o směnách', ctx.F({ now: new Date(), y: 2026, m0: 10, team, shifts: [], xCount: 0, branchOf: {} }).every(f => f.startsWith('Psst')));
 
 // pointa po návratu
-check('pod 3 min nic', ctx.R(170000, { antics: 5 }, {}) === null);
-check('4 minuty', /^Jé, jsi zpátky! Byl jsi pryč 4 minuty\. Stihl jsem 3 kousky\.$/.test(ctx.R(240000, { antics: 3 }, {})), ctx.R(240000, { antics: 3 }, {}));
-check('10 minut', ctx.R(600000, { antics: 12, flights: 4 }, {}).includes('10 minut. Mezitím jsem 12× zablbnul a 4× proletěl'));
-check('20 minut', ctx.R(1200000, {}, {}).startsWith('Konečně! 20 minut.'));
-check('hodina a půl', ctx.R(5400000, {}, {}).includes('1 hodinu a 30 minut'), ctx.R(5400000, {}, {}));
-check('Bublíčci v pointě', ctx.R(600000, { antics: 3, clones: 3 }, {}).includes('Chvíli nás bylo 4, už jsem zase jeden.'));
-check('víc než 4 Bublíčci = strop 5', ctx.R(600000, { clones: 9 }, {}).includes('nás bylo 5'));
-check('nepořádek v pointě', ctx.R(1200000, { mess: 3 }, {}).includes('už je uklizeno'));
+check('pod 3 min nic', ctx.R(170000, { moments: ['x'] }, {}) === null);
+const r0 = () => 0, r9 = () => .99;
+const M3 = ['vylezl po zdi', 'dloubal do směn', 'nalepil ti vzkaz'];
+check('4 minuty: alibi místo počítání', ctx.R(240000, { moments: ['vylezl po zdi'] }, {}, r0) === 'Jé, jsi zpátky! Já nic. Jen jsem vylezl po zdi.', ctx.R(240000, { moments: ['vylezl po zdi'] }, {}, r0));
+check('4 minuty bez momentů', ctx.R(240000, {}, {}, r0).startsWith('Jé, jsi zpátky!'));
+check('žádná čísla kousků', [240000, 600000, 1200000, 2400000].every(ms => [r0, r9].every(r => !/\d/.test(ctx.R(ms, { moments: M3, antics: 12, flights: 4 }, {}, r)))));
+check('10 minut: dvě věci', /vylezl po zdi|dloubal do směn|nalepil ti vzkaz/.test(ctx.R(600000, { moments: M3 }, {}, r0)) && / a /.test(ctx.R(600000, { moments: M3 }, {}, r0)), ctx.R(600000, { moments: M3 }, {}, r0));
+check('20 minut: tři věci', ctx.R(1200000, { moments: M3 }, {}, r0).split(/, | a /).length >= 3, ctx.R(1200000, { moments: M3 }, {}, r0));
+check('Bublíčci v pointě', ctx.R(600000, { clones: 3 }, {}, r0).includes('Chvíli nás bylo víc'));
+check('nepořádek v pointě', /uklizeno|jiný Bublík/.test(ctx.R(1200000, { mess: 3 }, {}, r9)), ctx.R(1200000, { mess: 3 }, {}, r9));
+check('česká spojka', ctx.R(1200000, { moments: ['a1', 'b2', 'c3'] }, {}, () => .5).match(/a1|b2|c3/g).length === 3);
 check('fáze dne', ['noc','noc','rano','rano','prace','prace','obed','prace','vecer','vecer','noc'].join() === [0,5,6,8,9,11,12,16,17,21,22].map(h => ctx.VP(h)).join(), [0,5,6,8,9,11,12,16,17,21,22].map(h => ctx.VP(h)).join());
 check('hlášky Bublíkova bez duplicit', ctx.VL.length >= 8 && new Set(ctx.VL).size === ctx.VL.length && ctx.VL.every(t => !all.includes(t) && !ctx.CL.includes(t)));
-check('pointa s vesnicí', ctx.R(7200000, {}, {}).includes('Spal jsem') && ctx.R(7200000, { village: { houses: 4, fire: true, pop: 9 } }, {}).includes('Mezitím vzniklo Bublíkovo: 4 domky, táborák a 9 obyvatel.'), ctx.R(7200000, { village: { houses: 4, fire: true, pop: 9 } }, {}));
-check('pointa s vesnicí (1 domek, 3 obyvatelé)', ctx.R(3600000, { village: { houses: 1, fire: false, pop: 3 } }, {}).includes('1 domek a 3 obyvatelé.'));
+check('pointa s vesnicí', ctx.R(7200000, {}, {}, r0).includes('Spal jsem') && /Bublíkovo|vesnici/.test(ctx.R(7200000, { village: { houses: 4, fire: true, pop: 9 } }, {}, r0)));
 // civilizace (v0.9.64)
 {
   let sd = 3; const r = () => { sd = (sd * 16807) % 2147483647; return sd / 2147483647; };

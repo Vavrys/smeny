@@ -1131,7 +1131,8 @@ body.dark .search-input{color:var(--ink)}
 #bublik{position:fixed;left:0;top:0;width:76px;height:70px;z-index:400;touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab;will-change:transform}
 #bublik.dragging{cursor:grabbing}
 #bublik:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:50%}
-#bublik svg{width:100%;height:100%;overflow:visible;display:block}
+#bublik svg{width:100%;height:100%;overflow:visible;display:block;transition:filter .3s}
+#bublik.bub-over svg{filter:drop-shadow(0 0 1.5px #fff) drop-shadow(0 0 4px rgba(255,255,255,.95)) drop-shadow(0 3px 6px rgba(0,0,0,.25))}
 #bublik-speech{position:fixed;left:0;top:0;z-index:401;max-width:260px;background:var(--surface);color:var(--ink);border:2px solid var(--ink);border-radius:14px;padding:10px 12px;font-size:13.5px;line-height:1.45;font-weight:500;box-shadow:0 8px 22px rgba(30,34,48,.18);opacity:0;transform:translateY(6px) scale(.96);transform-origin:bottom right;transition:opacity .2s,transform .2s;pointer-events:none}
 #bublik-speech.show{opacity:1;transform:none;pointer-events:auto}
 #bublik-speech.l{transform-origin:bottom left}
@@ -1190,7 +1191,17 @@ body.dark .search-input{color:var(--ink)}
 .bub-chron{position:fixed;right:12px;top:64px;width:270px;padding:8px 10px;background:rgba(255,253,240,.92);border:1.5px solid var(--ink);border-radius:10px;box-shadow:0 6px 16px rgba(0,0,0,.12);font-size:11.5px;line-height:1.4;color:var(--ink);pointer-events:none;z-index:399;transition:opacity .4s}
 .bub-chron .ch-title{font:700 12px var(--font-display);margin-bottom:3px;letter-spacing:.02em}
 .bub-chron .ch-lines div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.bub-house.bye,.bub-fire.bye,.bub-flower.bye,.bub-chron.bye{opacity:0}
+.bub-house.bye,.bub-fire.bye,.bub-flower.bye,.bub-chron.bye,.bub-bld.bye,.bub-path.bye{opacity:0}
+.bub-bld{position:fixed;left:0;top:0;pointer-events:none;z-index:397;transition:opacity .4s}
+.bub-bld svg{width:100%;height:100%;overflow:visible;display:block}
+.bub-bld.new{animation:bubHouseIn .5s cubic-bezier(.3,1.6,.5,1)}
+.bub-path{position:fixed;left:0;right:0;bottom:6px;height:7px;background:repeating-linear-gradient(90deg,rgba(139,90,43,.3) 0 18px,rgba(139,90,43,.18) 18px 26px);border-radius:4px;pointer-events:none;z-index:396;transition:opacity .4s}
+.bub-smoke{position:absolute;width:0;height:0}
+.bub-smoke i{position:absolute;left:-6px;top:-6px;width:12px;height:12px;border-radius:50%;background:rgba(200,205,210,.75);animation:bubSmoke 3.6s ease-out infinite}
+.bub-smoke i:nth-child(2){animation-delay:1.2s}.bub-smoke i:nth-child(3){animation-delay:2.4s}
+@keyframes bubSmoke{0%{transform:translate(0,0) scale(.5);opacity:0}15%{opacity:.85}100%{transform:translate(14px,-46px) scale(1.9);opacity:0}}
+.bub-lamp.lit .l-glass{fill:#ffe48a}
+.bub-lamp.lit::before{content:'';position:absolute;left:50%;top:0;width:64px;height:64px;margin:-26px 0 0 -32px;border-radius:50%;background:radial-gradient(circle,rgba(255,228,138,.6),rgba(255,228,138,0) 68%)}
 .bub-night{position:fixed;inset:0;background:rgba(8,16,40,.24);pointer-events:none;z-index:395;opacity:0;transition:opacity 3s}
 .bub-night.on{opacity:1}
 .bub-night i{position:absolute;width:3px;height:3px;border-radius:50%;background:#fff;box-shadow:0 0 6px #fff;animation:bubTwinkle 2.4s ease-in-out infinite alternate}
@@ -1218,10 +1229,38 @@ body.dark .search-input{color:var(--ink)}
 .bub-paper .bp-arts{margin:0 0 12px 18px;padding:0;font-size:14px;line-height:1.5}
 .bub-paper .bp-useful{font:500 13px/1.45 var(--font-display);background:#fff3c4;border:1px solid #c9a227;border-radius:6px;padding:8px 10px;margin-bottom:12px}
 .bub-paper .bp-close{display:block;margin:0 auto;font:600 13px var(--font-display);padding:8px 16px;border-radius:8px;border:1.5px solid #231d12;background:#fff;color:#231d12;cursor:pointer}
+.bub-prop{position:fixed;left:0;top:0;pointer-events:none;z-index:401;transform-origin:50% 50%}
+.bub-prop svg{width:100%;height:100%;display:block;overflow:visible}
+.bub-gum{position:fixed;left:0;top:0;border-radius:50%;pointer-events:none;z-index:402;background:radial-gradient(circle at 34% 30%,#ffe3ee,#ff9cc0 55%,#f0679a);box-shadow:inset 0 0 0 1px rgba(160,30,80,.35)}
+.bub-gum-face{position:fixed;left:0;top:0;pointer-events:none;z-index:402;background:#ff9cc0;border-radius:46% 54% 40% 60%/55% 45% 55% 45%;box-shadow:inset 0 0 0 1px rgba(160,30,80,.3)}
+.bub-ring{position:fixed;left:0;top:0;width:70px;height:70px;margin:-35px 0 0 -35px;border:2px solid rgba(18,164,106,.55);border-radius:50%;pointer-events:none;z-index:399;animation:bubRing 1.6s ease-out forwards}
+@keyframes bubRing{from{transform:var(--t) scale(.5);opacity:.9}to{transform:var(--t) scale(2.3);opacity:0}}
+.bub-flash{position:fixed;left:0;top:0;width:90px;height:90px;margin:-45px 0 0 -45px;border-radius:50%;pointer-events:none;z-index:403;background:radial-gradient(circle,#fff 0,rgba(255,255,255,.85) 30%,rgba(255,255,255,0) 70%);animation:bubFlash .35s ease-out forwards}
+@keyframes bubFlash{from{transform:var(--t) scale(.4);opacity:1}to{transform:var(--t) scale(1.6);opacity:0}}
+.bub-polaroid{position:fixed;left:0;top:0;width:78px;padding:6px 6px 4px;background:#fff;border-radius:3px;box-shadow:0 6px 16px rgba(0,0,0,.22);pointer-events:none;z-index:399;font:600 9px var(--font-display);color:#334;text-align:center;transition:opacity .5s,transform .5s}
+.bub-polaroid .ph{height:60px;background:linear-gradient(#cfeee0,#e9f7ef);display:flex;align-items:flex-end;justify-content:center;margin-bottom:4px}
+.bub-polaroid svg{width:52px;height:46px}
+.bub-csay{position:fixed;left:0;top:0;transform:translate(-50%,-100%);background:#fff;border:1.5px solid #1d2b22;border-radius:10px;padding:3px 8px;font:600 11px/1.25 var(--font-display);color:#1d2b22;max-width:170px;width:max-content;text-align:center;pointer-events:none;z-index:404;opacity:0;transition:opacity .2s}
+.bub-csay.show{opacity:1}
+.bub-csay::after{content:'';position:absolute;left:50%;bottom:-6px;margin-left:-5px;border:5px solid transparent;border-top-color:#1d2b22;border-bottom:0}
+.bub-stage{position:fixed;left:0;top:0;pointer-events:none;z-index:398}
+.bub-stage .val{position:absolute;left:-10px;right:-10px;top:0;height:22px;background:repeating-linear-gradient(90deg,#b02a2a 0 14px,#c93a3a 14px 28px);border-radius:4px 4px 12px 12px;box-shadow:0 3px 6px rgba(0,0,0,.2);z-index:1}
+.bub-stage .cur{position:absolute;top:12px;bottom:0;width:51%;background:repeating-linear-gradient(90deg,#9e2020 0 10px,#c93a3a 10px 20px);transition:transform 1s cubic-bezier(.5,0,.3,1);box-shadow:inset 0 -6px 8px rgba(0,0,0,.15)}
+.bub-stage .cur.l{left:0;transform-origin:left center}
+.bub-stage .cur.r{right:0;transform-origin:right center}
+.bub-stage.open .cur{transform:scaleX(.13)}
+.bub-stage .flr{position:absolute;left:-14px;right:-14px;bottom:-4px;height:8px;background:#8b5a2b;border-radius:3px}
+.bub-rope{position:fixed;left:0;top:0;height:4px;background:repeating-linear-gradient(45deg,#c9975a 0 4px,#8b5a2b 4px 8px);border-radius:2px;pointer-events:none;z-index:400}
+.bub-rope i{position:absolute;left:50%;top:-6px;width:6px;height:14px;margin-left:-3px;background:#d63b3b;border-radius:1px}
+.bub-line{position:fixed;left:0;top:0;width:1px;background:rgba(40,40,40,.7);pointer-events:none;z-index:398;transform-origin:top left}
+.bub-bobber{position:fixed;left:0;top:0;width:10px;height:10px;margin:-5px 0 0 -5px;border-radius:50%;background:linear-gradient(#e53935 50%,#fff 50%);border:1px solid #555;pointer-events:none;z-index:399}
+.bub-catch{position:fixed;left:0;top:0;pointer-events:none;z-index:400;font:800 15px var(--font-display);transform-origin:50% 0}
+.bub-catch.chip{background:#c33;color:#fff;border-radius:4px;padding:2px 5px;font-size:12px}
+.bub-note-music.bad{color:#d63b3b}
 .bub-zzz{position:fixed;left:0;top:0;z-index:402;pointer-events:none;font:700 16px var(--font-display);color:var(--accent-ink);animation:bubZzz 2.6s ease-out forwards}
 @keyframes bubZzz{0%{opacity:0;transform:var(--t) translate(0,0) scale(.6)}20%{opacity:1}100%{opacity:0;transform:var(--t) translate(22px,-46px) scale(1.25)}}
 @media (max-width:640px){ #bublik{width:60px;height:56px} }
-@media print{ #bublik,#bublik-speech,.bub-mini,.bub-zzz,.bub-splat,.bub-clone,.bub-brick,.bub-print,.bub-note,.bub-crack,.bub-letter,.bub-grass,.bub-house,.bub-fire,.bub-flower,.bub-chron,.bub-night,.bub-note-music,.bub-era,.bub-ship,.bub-rocket,.bub-frame,.bub-podium,.bub-paper{display:none !important} }
+@media print{ #bublik,#bublik-speech,.bub-mini,.bub-zzz,.bub-splat,.bub-clone,.bub-brick,.bub-print,.bub-note,.bub-crack,.bub-letter,.bub-grass,.bub-house,.bub-bld,.bub-path,.bub-fire,.bub-flower,.bub-chron,.bub-night,.bub-note-music,.bub-csay,.bub-stage,.bub-rope,.bub-line,.bub-bobber,.bub-catch,.bub-prop,.bub-gum,.bub-gum-face,.bub-ring,.bub-flash,.bub-polaroid,.bub-era,.bub-ship,.bub-rocket,.bub-frame,.bub-podium,.bub-paper{display:none !important} }
 @media print{ .bub-gone{visibility:visible !important} }
 /* v0.9.48: při otevřeném modálu Bublík i „?“ zmizí — na mobilu jinak zakrývaly tlačítka Uložit */
 body:has(.modal-overlay.open) #bublik, body:has(.modal-overlay.open) #bublik-speech, body:has(.modal-overlay.open) .help-fab, body:has(.modal-overlay.open) .bub-clone, body:has(.modal-overlay.open) .bub-brick,
@@ -2766,7 +2805,7 @@ window.addEventListener('unhandledrejection', e => {
 // odsud, ručně je nepřepisuj. sw.js se od v0.9.29 nebumpuje — je z něj
 // kill-switch bez cache (viz killServiceWorkers() a komentář v sw.js).
 // ============================================================
-const APP_VERSION = '0.9.65';
+const APP_VERSION = '0.9.69';
 
 // Krátký git hash nasazeného buildu. Placeholder níž přepíše build-stamp.js
 // z CF_PAGES_COMMIT_SHA (Cloudflare Pages build command: `node build-stamp.js`).
@@ -4610,6 +4649,7 @@ const Bublik = (()=>{
   }
   function removeClone(c){
     c.dead = true; c.tk.cancelled = true; c.el.remove();
+    if(c.sayEl){ c.sayEl.remove(); c.sayEl = null; } if(c.prop){ c.prop.el.remove(); c.prop = null; }
     const i = crew.indexOf(c); if(i >= 0) crew.splice(i, 1);
   }
   function cWH(c){ return { w: 76 * c.sc, h: 70 * c.sc }; }
@@ -4743,10 +4783,11 @@ const Bublik = (()=>{
     if(c.tk === myTk){ c.act = 'idle'; c.tilt = 0; c.until = performance.now() + rand(1500, 4000); cFace(c, 'open', 'smile'); }
   }
   function crewDecide(c, now){
+    if(village && village.things.length && !c.sleeping && village.phase !== 'noc' && Math.random() < .45){ villagerVisit(c); return; }   // v0.9.69
     const r = Math.random(), { w, h } = cWH(c);
     if(r < .45 && now - (c.lastRole || 0) > 9000){ c.lastRole = now; crewAct(c); return; }
-    if(r < .65){ c.tx = S.x + rand(-90, 90); c.ty = S.y + rand(-60, 10); c.speed = 120; }
-    else { c.tx = rand(w / 2 + 8, vw() - w / 2 - 8); c.ty = Math.random() < (village ? .75 : .4) ? floorY() : rand(h + 20, floorY()); c.speed = rand(90, 160); }
+    if(r < .65 && !overGrid(S.x, S.y)){ c.tx = S.x + rand(-90, 90); c.ty = S.y + rand(-60, 10); c.speed = 120; }
+    else { const sp = edgeSpot(w, h, village ? .75 : .4); c.tx = sp.x; c.ty = sp.y; c.speed = rand(90, 160); }   // v0.9.66: mimo střed rozpisu
     cClamp(c);
     c.until = now + rand(2500, 6000);
   }
@@ -4767,24 +4808,73 @@ const Bublik = (()=>{
       c.body.setAttribute('transform', `rotate(${c.tilt.toFixed(1)}) scale(${c.sx.toFixed(3)} ${c.sy.toFixed(3)})`);
       c.eyes.setAttribute('transform', `translate(${(c.look.x * 2).toFixed(2)} ${(c.look.y * 1.5).toFixed(2)})`);
       c.sh.setAttribute('opacity', air.toFixed(2));
+      if(c.sayEl){ c.sayEl.style.left = c.x.toFixed(0) + 'px'; c.sayEl.style.top = Math.max(30, c.y - h + bob - 6).toFixed(0) + 'px'; }   // v0.9.68
+      if(c.prop){ const p = c.prop, k = w / 72, f = c.sc * 1.25; p.el.style.transform = `translate(${(c.x + p.dx * k - p.w / 2).toFixed(1)}px,${(c.y + bob + p.dy * k - p.h / 2).toFixed(1)}px) rotate(${p.rot.toFixed(1)}deg) scale(${(f * p.sc * p.flip).toFixed(2)},${(f * p.sc).toFixed(2)})`; }
       if(S.stage >= 4) maybePrint(c, c.x, c.y, .6);
     }
   }
   function crewRelease(list){ list.forEach(c => { if(!c.dead && (c.act === 'game' || c.act === 'train')){ c.act = 'idle'; c.tilt = 0; c.until = performance.now() + rand(600, 2000); } }); }
-  function crewMax(idleFor){ return idleFor >= 900000 ? 4 : idleFor >= 600000 ? 3 : 2; }
+  // v0.9.67: od 5 min postupně — 2, pak každou minutu a půl další (nejvýš 6 Bublíčků před vesnicí)
+  function crewMax(idleFor){ return idleFor < 300000 ? 0 : Math.min(6, 2 + Math.floor((idleFor - 300000) / 90000)); }
   // rozdělení: natáhne se, zaškrtí, prásk — a jsou dva (tři…)
   async function crewSplit(tk){
     const n = crew.length ? 1 : 2;
     await travelTo(S.x, S.y, tk);
+    moment('rozdělil se na víc Bublíků');
+    const used = crew.map(c => c.role);
+    const nextRole = () => { const r = CREW_ROLES.filter(x => !used.includes(x))[0] || pick(CREW_ROLES); used.push(r); return r; };
+    // v0.9.67: další Bublíčci vznikají pokaždé jinak
+    const style = n === 2 ? 'split' : pick(['split', 'copy', 'bud', 'sneeze']);
+    if(style === 'copy'){
+      const side = S.x > vw() / 2 ? -1 : 1;
+      think('Ctrl+C…', 1300, true); setMouth('cat'); S.lookOverride = { x: side, y: 0 };
+      await tween(260, e => { S.sy = 1 - .1 * e; }, tk); await tween(260, e => { S.sy = .9 + .1 * e; }, tk);
+      await wait(700, tk);
+      think('…Ctrl+V.', 1600, true);
+      const c = spawnClone(S.x + side * size() * .95, S.y, nextRole());
+      c.tx = c.x; c.ty = S.y; puf(c.x, S.y - 22, 56);
+      S.awayStats.clones = (S.awayStats.clones || 0) + 1;
+      setEyes('happy'); setMouth('grin'); await wait(900, tk); setEyes('open');
+      think(pick(['Funguje to i na bubliny!', 'Kopie je skoro tak dobrá jako originál. Skoro.']), 3000, true);
+      return;
+    }
+    if(style === 'bud'){
+      // na hlavě mu vyroste bublinka, odpadne a dorostě v Bublíčka
+      think(pick(['Něco mi roste na hlavě…', 'Au. Ne, počkej, to je mimino.']), 2600, true);
+      S.lookOverride = { x: 0, y: -1 }; setMouth('o');
+      const b = spawnBubble(0, 0, 4, { vx: 0, vy: 0, life: 999, big: true });
+      try{
+        await tween(1600, (e, p) => { const m = svgPoint(0, -46); b.d = 4 + 26 * e; b.x = m.x; b.y = m.y - b.d * .4; b.el.style.width = b.el.style.height = b.d + 'px'; b.el.style.transform = `translate(${b.x - b.d / 2}px,${b.y - b.d / 2}px)`; S.sy = 1 + .05 * Math.sin(p * 20); }, tk, ease.out);
+        const side = S.x > vw() / 2 ? -1 : 1, x0 = b.x, y0 = b.y, x1 = S.x + side * size() * .9, y1 = S.y - 12;
+        await tween(520, (e, p) => { b.x = x0 + (x1 - x0) * e; b.y = y0 + (y1 - y0) * e - Math.sin(p * Math.PI) * 30; b.el.style.transform = `translate(${b.x - b.d / 2}px,${b.y - b.d / 2}px)`; }, tk, ease.lin);
+        b.pop(false);
+        const c = spawnClone(x1, S.y, nextRole()); c.tx = x1; c.ty = S.y;
+        S.awayStats.clones = (S.awayStats.clones || 0) + 1;
+      } catch(e){ b.pop(false); throw e; }
+      S.lookOverride = null; setEyes('happy'); setMouth('grin'); await wait(800, tk); setEyes('open');
+      think(pick(['Je to kluk! Nebo holka. Je to bublina.', 'Vypadá úplně jako já. Chudák.']), 3000, true);
+      return;
+    }
+    if(style === 'sneeze'){
+      const side = S.x > vw() / 2 ? -1 : 1;
+      think('Ha… haa…', 1200, true); setMouth('o'); S.eyeScaleY = .55;
+      await tween(700, e => { S.sy = 1 + .14 * e; S.tilt = -side * 8 * e; }, tk);
+      setEyes('closed'); setMouth('big'); S.eyeScaleY = 1; say('<b>HAPČÍ!</b>', 1200);
+      const c = spawnClone(S.x + side * 20, S.y - 20, nextRole()); c.tx = clamp(S.x + side * size() * 1.6, 40, vw() - 40); c.ty = S.y; c.speed = 320;
+      S.awayStats.clones = (S.awayStats.clones || 0) + 1;
+      await tween(300, e => { S.sy = 1.14 - .14 * e; S.tilt = -side * 8 + side * 16 * e; }, tk);
+      await tween(300, e => { S.tilt = side * 8 * (1 - e); }, tk);
+      setEyes('open'); setMouth('wavy'); blush(1800);
+      think(pick(['Na zdraví… nás obou.', 'Tak to je nová. Vykýchl jsem kamaráda.']), 3000, true);
+      return;
+    }
     think(pick(['Rozdělím se. Je to vůbec legální?', 'Je mě málo. Spravím to.', 'Pozor, teď to bude lechtat.']), 2600, true);
     setMouth('o'); S.eyeWide = 1.2;
     await tween(700, e => { S.sx = 1 + .55 * e; S.sy = 1 - .25 * e; }, tk, ease.inOut);
     await tween(260, e => { S.sx = 1.55 - .75 * e; S.sy = .75 + .45 * e; }, tk);
     puf(S.x, S.y - size() * .35, size() * 1.3);
-    const used = crew.map(c => c.role);
     for(let i = 0; i < n; i++){
-      const role = CREW_ROLES.filter(r => !used.includes(r))[0] || pick(CREW_ROLES); used.push(role);
-      const side = i === 0 ? -1 : 1, c = spawnClone(S.x + side * size() * .3, S.y, role);
+      const side = n === 1 ? (S.x > vw() / 2 ? -1 : 1) : i === 0 ? -1 : 1, c = spawnClone(S.x + side * size() * .3, S.y, nextRole());
       c.tx = S.x + side * size() * .95; c.ty = S.y; c.speed = 160;
     }
     S.awayStats.clones = (S.awayStats.clones || 0) + n;
@@ -4798,17 +4888,40 @@ const Bublik = (()=>{
     await travelTo(S.x, floorY(), tk);
     think('Pyramida! Nikdo se nehýbe…', 2600, true);
     const s = size(); let top = S.y - s * .82;
-    const list = crew.slice(0, 4);
+    const list = crew.filter(c => !c.dead && !c.home && !c.sleeping).slice(0, 4);
     list.forEach(c => { c.tk.cancelled = true; c.tk = { cancelled: false }; c.act = 'game'; });
     for(const c of list){ c.tx = S.x + rand(-4, 4); c.ty = top; c.speed = 190; top -= 70 * c.sc * .88; }
     try{
-    await wait(1800, tk);
-    for(let i = 0; i < 3; i++){ await tween(300, e => { S.tilt = Math.sin(e * Math.PI) * (i % 2 ? -4 : 4); list.forEach((c, k) => { c.tilt = Math.sin(e * Math.PI) * (i % 2 ? -1 : 1) * (5 + k * 3); }); }, tk); }
-    setMouth('o'); S.eyeWide = 1.25; await wait(500, tk);
-    list.forEach(c => { c.tx = c.x + rand(-180, 180); c.ty = floorY(); c.speed = 230; c.act = 'idle'; c.until = performance.now() + 1800; });
-    } finally { crewRelease(list); }
-    await wobble(.3, 700, tk); S.eyeWide = 1; S.tilt = 0;
-    think(pick(['Skoro. Příště bez Kopáče.', 'Rekord: dvě vteřiny.']), 3000, true);
+      await wait(1800, tk);
+      for(let i = 0; i < 3; i++){ await tween(300, e => { S.tilt = Math.sin(e * Math.PI) * (i % 2 ? -4 : 4); list.forEach((c, k) => { c.tilt = Math.sin(e * Math.PI) * (i % 2 ? -1 : 1) * (5 + k * 3); }); }, tk); }
+      // v0.9.68: tři konce — zřítí se, dobudou vrchol s vlajkou, nebo Bublík dole kýchne
+      const end = Math.random(), topC = list[list.length - 1];
+      if(end < .4 && topC){
+        cProp(topC, 'flag', 14, -40, 0); topC.prop.sc = .2;
+        await tween(400, e => { if(topC.prop) topC.prop.sc = .2 + .8 * e; }, tk, ease.back);
+        cSay(topC, pick(['Vrchol dobyt!', 'Vidím odsud až na konec měsíce!']), 2400);
+        setEyes('happy'); setMouth('grin'); think(pick(['Já jsem základ. Doslova.', 'Pyramida stojí! Kdo mě poškrábe na nose?']), 3000, true);
+        await wait(2400, tk); setEyes('open');
+        // seskákají jeden po druhém
+        for(let i = list.length - 1; i >= 0; i--){ const c = list[i]; if(c.dead) continue; cDrop(c); c.tx = S.x + (i % 2 ? -1 : 1) * rand(60, 140); c.ty = floorY(); c.speed = 260; await wait(380, tk); }
+        moment('postavil s Bublíčky pyramidu (stála!)');
+      } else if(end < .65){
+        setMouth('o'); S.eyeScaleY = .55; think('Ha… haa…', 1200, true);
+        list.forEach(c => { cSay(c, 'Ne! Teď ne!', 1400); });
+        await tween(800, e => { S.sy = 1 + .12 * e; }, tk);
+        setEyes('closed'); setMouth('big'); S.eyeScaleY = 1; say('<b>HAPČÍ!</b>', 1200);
+        list.forEach(c => { c.tx = c.x + rand(-260, 260); c.ty = floorY(); c.speed = 380; c.act = 'idle'; c.until = performance.now() + 2200; cFace(c, 'closed', 'o'); setTimeout(() => { if(!c.dead) cFace(c, 'open', 'smile'); }, 1400); });
+        await tween(260, e => { S.sy = 1.12 - .12 * e; }, tk); setEyes('open'); blush(2000);
+        think('Pardon. Statika: nedostatečná.', 3000, true);
+        moment('kýchnul pod pyramidou');
+      } else {
+        setMouth('o'); S.eyeWide = 1.25; await wait(500, tk);
+        list.forEach(c => { c.tx = c.x + rand(-180, 180); c.ty = floorY(); c.speed = 230; c.act = 'idle'; c.until = performance.now() + 1800; });
+        await wobble(.3, 700, tk);
+        think(pick(['Skoro. Příště bez Kopáče.', 'Rekord: dvě vteřiny.', 'Statika: nedostatečná.']), 3000, true);
+        moment('stavěl pyramidu (spadla)');
+      }
+    } finally { list.forEach(c => { cDrop(c); cSayOff(c); }); crewRelease(list); S.eyeWide = 1; S.tilt = 0; S.sy = 1; S.eyeScaleY = 1; }
   }
   async function crewTrain(tk){
     if(crew.length < 1) return lookAround(tk);
@@ -4861,6 +4974,407 @@ const Bublik = (()=>{
       players.forEach(c => { if(!c.dead){ c.act = 'idle'; c.until = performance.now() + 1200; } });
     }
     think(pick(['Gól! …Kam jsme vlastně kopali?', 'Remíza. Míč praskl radostí.']), 3000, true);
+  }
+  // ── v0.9.68: scénky Bublíčků — začátek, zápletka, pointa (víc konců) ──
+  const ROLE_NAME = { stavitel: 'Stavitel', padakar: 'Padákář', lezec: 'Lezec', spac: 'Spáč', kopac: 'Kopáč' };
+  const cName = c => c.name || ROLE_NAME[c.role] || 'Bublíček';
+  function cSay(c, text, ms = 2200){
+    if(!c || c.dead) return;
+    if(!c.sayEl){ c.sayEl = document.createElement('div'); c.sayEl.className = 'bub-csay'; document.body.appendChild(c.sayEl); }
+    c.sayEl.textContent = text; c.sayEl.classList.add('show');
+    clearTimeout(c.sayT); c.sayT = setTimeout(() => { if(c.sayEl) c.sayEl.classList.remove('show'); }, ms);
+  }
+  function cSayOff(c){ if(c && c.sayEl){ clearTimeout(c.sayT); c.sayEl.classList.remove('show'); } }
+  function cProp(c, name, dx, dy, rot = 0){
+    cDrop(c);
+    const d = PROPS[name], e2 = document.createElement('div');
+    e2.className = 'bub-prop'; e2.innerHTML = d.svg; e2.style.width = d.w + 'px'; e2.style.height = d.h + 'px';
+    document.body.appendChild(e2);
+    c.prop = { el: e2, w: d.w, h: d.h, dx, dy, rot, sc: 1, flip: 1 };
+    return c.prop;
+  }
+  function cDrop(c){ if(c && c.prop){ c.prop.el.remove(); c.prop = null; } }
+  // obsadí Bublíčky do scénky (přeruší jim, co dělali)
+  function cast(n){
+    const list = crew.filter(c => !c.dead && !c.home && !c.sleeping).slice(0, n);
+    list.forEach(c => { c.tk.cancelled = true; c.tk = { cancelled: false }; c.act = 'game'; c.tilt = 0; c.sx = c.sy = 1; });
+    return list;
+  }
+  function uncast(list){
+    list.forEach(c => {
+      cDrop(c); cSayOff(c);
+      if(c.dead) return;
+      c.x = clamp(c.x, 20, vw() - 20); c.y = Math.min(c.y, floorY());
+      c.sx = c.sy = 1; c.tilt = 0; cFace(c, 'open', 'smile');
+      if(c.act === 'game' || c.act === 'script'){ c.act = 'idle'; c.until = performance.now() + rand(600, 2000); }
+    });
+  }
+  function musicNote(x, y, bad){
+    const n = messEl('bub-note-music' + (bad ? ' bad' : ''), bad ? '♭' : pick(['♪', '♫', '♬']));
+    n.style.setProperty('--t', `translate(${x.toFixed(0)}px,${y.toFixed(0)}px)`);
+    setTimeout(() => n.remove(), 2600);
+  }
+  // v0.9.69: Kávovar — Bublík je šéf a píše e-maily čelem ke zdi; ostatní se plíží ke kávovaru.
+  // Když se otočí, všichni ztuhnou a dělají, že pracují. Koho přistihne, jde zpátky.
+  const COFFEE_SVG = '<svg viewBox="0 0 34 50" aria-hidden="true"><rect x="2" y="2" width="30" height="46" rx="3" fill="#3b4250" stroke="#1d2129" stroke-width="1.2"/><rect x="6" y="6" width="22" height="9" rx="1.5" fill="#9be7c4"/><text x="17" y="13" text-anchor="middle" font-size="5.5" font-weight="800" fill="#1d2129">KAFE</text><circle cx="10" cy="20" r="2" fill="#f7a531"/><circle cx="17" cy="20" r="2" fill="#e5e7eb"/><circle cx="24" cy="20" r="2" fill="#e5e7eb"/><rect x="8" y="26" width="18" height="16" rx="1.5" fill="#1d2129"/><path d="M14 31 h7 v7 q-3.5 2 -7 0 z" fill="#fff"/><path d="M21 33 q3 0 2 3 q-1 1 -2 0" fill="none" stroke="#fff" stroke-width="1"/></svg>';
+  async function skitStatues(tk){
+    const list = cast(Math.min(4, crew.length));
+    if(list.length < 2){ uncast(list); return lookAround(tk); }
+    const s = size(), wallLeft = S.x < vw() / 2, wx = wallLeft ? s / 2 + 12 : vw() - s / 2 - 12, dir = wallLeft ? 1 : -1;
+    const startX = wallLeft ? vw() * .78 : vw() * .22, mx = wx + dir * s * .95;
+    const mach = messEl('bub-prop', COFFEE_SVG);
+    mach.style.width = '34px'; mach.style.height = '50px'; mach.style.transform = `translate(${(mx - 17).toFixed(0)}px,${(floorY() - 48).toFixed(0)}px)`;
+    try{
+      await Promise.all([travelTo(wx, floorY(), tk), ...list.map((c, i) => cGo(c, startX + dir * i * 36, floorY(), 200))]);
+      think('Jdu psát e-maily. A ke kávovaru se chodí až o pauze.', 2800, true);
+      list.forEach(c => { c.look = { x: -dir, y: 0 }; });
+      await wait(1200, tk);
+      cSay(pick(list), pick(['Kafe…', 'Psst. Kafe.', 'Bez kafe to nedám.']), 1800);
+      await wait(1400, tk);
+      let winner = null;
+      for(let round = 0; round < 7 && !winner; round++){
+        S.lookOverride = { x: -dir, y: -.2 }; setEyes('open'); setMouth('flat');
+        say(pick(['<i>ťuk ťuk ťuk…</i>', 'Vážený pane, v návaznosti na…', 'Dobrý den, posílám v příloze…', 'Re: Re: Fwd: Re: směny']), 1900);
+        list.forEach(c => { c.speed = rand(80, 150); c.tx = clamp(c.x - dir * rand(110, 240), 20, vw() - 20); c.ty = floorY(); });
+        await wait(rand(1500, 2300), tk);
+        say(pick(['Copak?', 'Hm?', 'Že by někdo…?']), 1300);
+        S.eyeWide = 1.2; S.lookOverride = { x: dir, y: 0 };
+        await tween(160, e => { S.tilt = dir * 6 * e; }, tk);
+        list.forEach(c => { c.tx = c.x; });   // ztuhnou a dělají, že pracují
+        if(Math.random() < .5){ const c = pick(list); cSay(c, pick(['Jen tu… stojím.', 'Pracuju na tom.', 'Mám poradu. Se sebou.', 'Hledám tady jednu směnu.']), 1700); }
+        const wob = Math.random() < .45 ? pick(list) : null;
+        if(wob && !wob.dead){
+          wob.act = 'script';
+          await tween(700, (e, p) => { wob.tilt = Math.sin(p * Math.PI * 6) * 11; }, tk, ease.lin);
+          wob.tilt = 0; wob.act = 'game';
+          setMouth('flat'); say(`${cName(wob)}, ty nemáš práci?`, 2200);
+          cFace(wob, 'open', 'wavy'); cSay(wob, pick(['Mám. Už jdu.', 'Jdu jen… pro šanon.', 'To je protahovací cvik. Pro záda.']), 1900);
+          wob.speed = 220; wob.tx = startX; await wait(1700, tk); cFace(wob, 'open', 'smile');
+        } else {
+          setMouth('cat'); await wait(1100, tk);
+        }
+        S.eyeWide = 1; S.tilt = 0;
+        winner = list.find(c => !c.dead && Math.abs(c.x - mx) < s * .8);
+      }
+      const spac = list.find(c => c.role === 'spac' && !c.dead);
+      if(winner){
+        winner.tx = mx + dir * 22; await wait(500, tk);
+        for(let i = 0; i < 4; i++){ const m = svgPoint(0, 0); spawnBubble(mx + rand(-4, 4), floorY() - 30, rand(4, 7), { vx: rand(-10, 10), vy: -rand(30, 50), life: rand(.8, 1.4) }); }
+        cSay(winner, pick(['Kafe!!!', 'Mám ho. Je teplé.']), 2000);
+        S.lookOverride = { x: dir, y: 0 }; S.eyeWide = 1.3; setMouth('o'); await wait(900, tk);
+        list.filter(c => c !== winner).forEach(c => { c.tx = mx + dir * rand(30, 90); c.speed = 220; });
+        S.eyeWide = 1; setMouth('smile');
+        think(pick(['No dobře. Pětiminutovka. Ale jen pět.', 'Tak mi taky jedno udělej. Bez cukru.']), 3000, true);
+        await wait(1800, tk);
+      } else if(spac && Math.random() < .6){
+        S.lookOverride = { x: dir, y: 0 }; cFace(spac, 'closed', 'smile');
+        think('Spáč usnul ve stoje. Tomu už kafe nepomůže.', 3200, true);
+        for(let i = 0; i < 3; i++){ cZzz(spac); await wait(800, tk); }
+      } else think('Výborně, všichni pracují. Je pátek, 16:59. Podezřelé.', 3200, true);
+      moment('hlídal kávovar před Bublíčky');
+      await wait(1500, tk);
+    } finally { mach.remove(); S.lookOverride = null; S.eyeWide = 1; setEyes('open'); S.tilt = 0; S.hop = 0; uncast(list); }
+  }
+  const PLAYS = [
+    { title: 'Romeo a Bublinka', lines: ['Ó Bublinko, proč jsi bublina?', 'Protože jsem kulatá.', 'Vezmeš si mě?', 'Nejdřív se podívám do rozpisu.'] },
+    { title: 'Hamlet (zkrácený)', lines: ['Prasknout, či neprasknout?', 'Neprasknout.', 'Díky. To bylo rychlé.', 'Konec. Můžete jít domů.'] },
+    { title: 'Pracovní pohovor', lines: ['Proč chcete pracovat ve Směnách?', 'Jsem kulatý a mám rád rozpisy.', 'Kdy můžete nastoupit?', 'Včera.', 'Berem vás!'] },
+    { title: 'Hodnoticí pohovor', lines: ['Jak hodnotíte svůj výkon?', 'Kulatě.', 'A vaše slabé stránky?', 'Praskám pod tlakem.', 'Přidáme vám. Pěnu.'] },
+    { title: 'Porada', lines: ['Kdo vezme sobotní směnu?', '…', '…', 'Tak já. Zase.'] },
+    { title: 'Čekání na Bublíka', lines: ['Kdy přijde Bublík?', 'Nevím.', 'Počkáme.', 'Počkáme.'] },
+  ];
+  // Divadlo: opona, krátká hra, potlesk — někdy zapomenutý text, někdy opona spadne moc brzo
+  async function skitTheatre(tk){
+    const list = cast(2);
+    if(list.length < 2){ uncast(list); return lookAround(tk); }
+    const s = size(), W = 200, H = 112, fy = floorY();
+    const cx = clamp(S.x > vw() / 2 ? S.x - W / 2 - s * 1.2 : S.x + W / 2 + s * 1.2, W / 2 + 24, vw() - W / 2 - 24);
+    const audX = clamp(cx + (S.x > cx ? 1 : -1) * (W / 2 + s * .75), s / 2 + 8, vw() - s / 2 - 8);
+    const st = messEl('bub-stage', '<div class="cur l"></div><div class="cur r"></div><div class="val"></div><div class="flr"></div>');
+    st.style.width = W + 'px'; st.style.height = H + 'px'; st.style.transform = `translate(${cx - W / 2}px,${fy - H + 2}px)`;
+    try{
+      const play = pick(PLAYS);
+      think('Divadlo! Sedám si do první řady.', 2400, true);
+      await Promise.all([travelTo(audX, fy, tk), cGo(list[0], cx - 42, fy, 170), cGo(list[1], cx + 42, fy, 170)]);
+      list[0].look = { x: 1, y: 0 }; list[1].look = { x: -1, y: 0 };
+      S.lookOverride = { x: Math.sign(cx - S.x), y: 0 };
+      say(`Dnes hrajeme: <b>${bubEsc(play.title)}</b>`, 2400);
+      await wait(1800, tk);
+      st.classList.add('open');
+      await wait(1200, tk);
+      const forget = Math.random() < .3 ? 1 + Math.floor(Math.random() * (play.lines.length - 1)) : -1;
+      for(let i = 0; i < play.lines.length; i++){
+        const c = list[i % 2], line = play.lines[i];
+        if(c.dead) break;
+        if(i === forget){
+          cSay(c, '…', 1400); await wait(1500, tk); cSay(c, 'Nápověda?', 1600); await wait(1200, tk);
+          think(`(šeptá: „${bubEsc(line)}“)`, 2000, true); await wait(1500, tk);
+        }
+        cSay(c, line, 2600);
+        c.act = 'script';
+        await tween(clamp(line.length * 60, 1300, 2600), (e, p) => { c.sy = 1 + Math.sin(p * Math.PI * 8) * .04; }, tk, ease.lin);
+        c.sy = 1; c.act = 'game';
+        await wait(450, tk);
+      }
+      // úklona a potlesk
+      list.forEach(c => { c.act = 'script'; });
+      await tween(600, (e, p) => { list.forEach(c => { c.sy = 1 - .25 * Math.sin(p * Math.PI); c.sx = 1 + .1 * Math.sin(p * Math.PI); }); }, tk);
+      setEyes('happy'); setMouth('grin'); say(pick(['Bravo!', 'Bravo! Přídavek!', 'Bravíssimo!']), 2000);
+      for(let i = 0; i < 3; i++) await hopSmall(tk, 10);
+      setEyes('open');
+      const r = Math.random();
+      if(r < .35){
+        // hodí kytku na jeviště
+        const f = messEl('bub-flower', FLOWER_SVG('#ff6f8e')), x0 = S.x, y0 = S.y - s * .6, x1 = cx + rand(-20, 20), y1 = fy - 28;
+        await tween(800, (e, p) => { f.style.transform = `translate(${(x0 + (x1 - x0) * e - 9).toFixed(0)}px,${(y0 + (y1 - y0) * e - Math.sin(p * Math.PI) * 80).toFixed(0)}px) rotate(${(p * 540).toFixed(0)}deg)`; }, tk, ease.lin);
+        cSay(list[0], 'Děkujeme! Děkujeme!', 2000); cSay(list[1], 'Kytka! Pro mě?', 2000);
+        await wait(1800, tk); f.remove();
+      } else if(r < .6){
+        st.classList.remove('open'); await wait(300, tk);
+        cSay(list[1], 'Au!', 1400); list[1].act = 'script';
+        await tween(300, (e, p) => { list[1].sy = 1 - .3 * Math.sin(p * Math.PI); }, tk);
+        think('Technik opony má padáka.', 2600, true); await wait(1200, tk);
+      } else { cSay(list[0], 'Děkujeme, hrajeme celý týden!', 2400); await wait(1800, tk); }
+      setMouth('smile');
+      st.classList.remove('open'); await wait(1100, tk);
+      moment(`byl v divadle (hráli „${play.title}“)`);
+    } finally { st.remove(); document.querySelectorAll('.bub-stage').forEach(n => n.remove()); S.lookOverride = null; uncast(list); }
+  }
+  // Kapela: Bublík diriguje; někdo zahraje falešně → od začátku; finále (někdy praskne buben)
+  async function skitBand(tk){
+    const list = cast(Math.min(3, crew.length));
+    if(list.length < 2){ uncast(list); return lookAround(tk); }
+    const s = size(), inst = ['drum', 'guitar', 'trumpet'], pos = { drum: [14, -14, 0], guitar: [6, -16, -18], trumpet: [26, -26, -10] };
+    const side = S.x > vw() / 2 ? -1 : 1, x0 = clamp(S.x + side * s * 1.3, 40, vw() - 40);
+    const xs = list.map((c, i) => clamp(x0 + side * i * 52, 30, vw() - 30));
+    let p = null;
+    try{
+      think(pick(['Kapela! Já diriguju.', 'Zkouška kapely. Raz, dva…']), 2400, true);
+      await Promise.all([travelTo(S.x, floorY(), tk), ...list.map((c, i) => cGo(c, xs[i], floorY(), 180))]);
+      list.forEach((c, i) => { const k = inst[i]; cProp(c, k, ...pos[k]); c.look = { x: -side, y: -.2 }; });
+      p = holdProp('wand', side * 26, -34, side * -30);
+      S.lookOverride = { x: side, y: 0 };
+      say('Raz, dva, raz dva tři čtyři!', 1800); await wait(1600, tk);
+      const play = async (dur, speed = 6) => {
+        const t0 = performance.now();
+        list.forEach(c => { c.act = 'script'; });
+        await tween(dur, () => {
+          const t = (performance.now() - t0) / 1000;
+          p.rot = side * (-30 + Math.sin(t * speed) * 34);
+          list.forEach((c, i) => { if(c.dead) return; c.y = floorY() - Math.abs(Math.sin(t * speed + i)) * 7; c.tilt = Math.sin(t * speed / 2 + i) * 7; });
+          S.hop = Math.abs(Math.sin(t * speed)) * 5;
+          if(Math.random() < .07){ const c = pick(list); if(!c.dead) musicNote(c.x + rand(-6, 10), c.y - 50 * c.sc); }
+        }, tk, ease.lin);
+        S.hop = 0; list.forEach(c => { if(!c.dead){ c.y = floorY(); c.tilt = 0; } });
+      };
+      await play(rand(3200, 4200));
+      if(Math.random() < .55){
+        // falešný tón
+        const bad = pick(list);
+        musicNote(bad.x, bad.y - 50 * bad.sc, true); musicNote(bad.x + 8, bad.y - 60 * bad.sc, true);
+        cFace(bad, 'open', 'wavy'); list.forEach(c => { if(c !== bad) c.look = { x: Math.sign(bad.x - c.x) || 1, y: 0 }; });
+        setMouth('flat'); S.eyeWide = 1.15;
+        for(let i = 0; i < 3; i++){ await tween(120, e => { p.rot = side * (-30 + 25 * e); }, tk); await tween(120, e => { p.rot = side * (-5 - 25 * e); }, tk); }
+        say(pick(['Ťuk, ťuk. Znovu. Od začátku.', `${cName(bad)}, to bylo fis. Mělo být f.`]), 2400);
+        cSay(bad, pick(['Pardon…', 'To byl jazz!', 'Já ladil!']), 1800);
+        await wait(2000, tk); cFace(bad, 'open', 'smile'); S.eyeWide = 1; setMouth('smile');
+        list.forEach(c => { c.look = { x: -side, y: -.2 }; });
+        await play(rand(3000, 3800), 7);
+      } else await play(rand(2000, 2600), 7);
+      // finále
+      list.forEach(c => { c.act = 'script'; });
+      await tween(500, (e, q) => { list.forEach(c => { if(!c.dead) c.y = floorY() - Math.sin(q * Math.PI) * 26; }); S.hop = Math.sin(q * Math.PI) * 24; }, tk, ease.lin);
+      S.hop = 0; for(let i = 0; i < 6; i++) musicNote(xs[0] + rand(-20, 60) * side, floorY() - rand(50, 110));
+      const r = Math.random(), drummer = list[0];
+      if(r < .3 && drummer.prop){
+        puf(drummer.x + 6, drummer.y - 12, 34); cDrop(drummer); cSay(drummer, 'Ups. Buben je fuč.', 2000);
+        think('Rock’n’roll! Buben to nevydržel.', 3000, true);
+      } else if(r < .55){
+        say('Přídavek!', 1400); await wait(900, tk); await play(1800, 11);
+        think('Přídavek byl rychlejší. Nikdo nestíhal. Ani já.', 3000, true);
+      } else { setEyes('happy'); setMouth('grin'); think(pick(['Děkujeme, jsme tu celý týden!', 'Kapela Bubliny & Bublíček děkuje.']), 3000, true); }
+      await tween(500, (e, q) => { S.sy = 1 - .2 * Math.sin(q * Math.PI); }, tk);   // úklona
+      setEyes('open');
+      moment('dirigoval kapelu');
+      await wait(1000, tk);
+    } finally { if(p) dropProp(p); S.lookOverride = null; S.hop = 0; S.eyeWide = 1; uncast(list); }
+  }
+  // Přetahovaná: dva týmy a lano; vyhraje jeden, nebo lano praskne
+  async function skitTug(tk){
+    const list = cast(Math.min(5, crew.length));
+    if(list.length < 2){ uncast(list); return lookAround(tk); }
+    const s = size(), fy = floorY(), mid = clamp(vw() / 2 + rand(-1, 1) * vw() * .12, vw() * .3, vw() * .7);
+    const nA = Math.floor(list.length / 2), A = list.slice(0, nA), B = list.slice(nA), gap = 44;
+    const bX = mid - 80, posA = i => bX - s * .55 - (i + .5) * gap, posB = i => mid + 80 + i * gap;
+    const rope = messEl('bub-rope', '<i></i>');
+    let off = 0;
+    const ropeY = fy - 20;
+    const place = () => {
+      const x1 = Math.min(S.x, ...A.map(c => c.x)) - 6, x2 = Math.max(...B.map(c => c.x)) + 6;
+      rope.style.width = Math.max(0, x2 - x1) + 'px'; rope.style.transform = `translate(${x1.toFixed(0)}px,${ropeY}px)`;
+      rope.firstChild.style.left = (mid + off - x1) + 'px';
+    };
+    try{
+      think(pick(['Přetahovaná o poslední volnou sobotu v rozpisu.', 'Kdo prohraje, bere v sobotu ranní.']), 2800, true);
+      await Promise.all([travelTo(bX, fy, tk), ...A.map((c, i) => cGo(c, posA(i), fy, 190)), ...B.map((c, i) => cGo(c, posB(i), fy, 190))]);
+      S.lookOverride = { x: 1, y: 0 }; A.forEach(c => { c.look = { x: 1, y: 0 }; }); B.forEach(c => { c.look = { x: -1, y: 0 }; });
+      list.forEach(c => { c.act = 'script'; });
+      place();
+      say('Tři… dva… jedna… TÁHNĚTE!', 1800); await wait(1400, tk);
+      const bx0 = S.x, baseA = A.map(c => c.x), baseB = B.map(c => c.x), t0 = performance.now();
+      const all = () => { S.x = bx0 + off; A.forEach((c, i) => { c.x = baseA[i] + off; }); B.forEach((c, i) => { c.x = baseB[i] + off; }); place(); };
+      setMouth('flat'); sweat.setAttribute('opacity', '1');
+      await tween(4600, () => {
+        const t = (performance.now() - t0) / 1000;
+        off = Math.sin(t * 2.1) * 18 + Math.sin(t * 5.3) * 6;
+        S.tilt = -12 + Math.sin(t * 9) * 2; A.forEach(c => { c.tilt = -14; }); B.forEach(c => { c.tilt = 14; });
+        all();
+      }, tk, ease.lin);
+      const spac = list.find(c => c.role === 'spac');
+      const end = spac && Math.random() < .3 ? (A.includes(spac) ? 'B' : 'A') : pick(['A', 'B', 'snap', 'A']);
+      if(spac && end === (A.includes(spac) ? 'B' : 'A') && Math.random() < .7){ cFace(spac, 'closed', 'smile'); cSay(spac, 'Zzz…', 1600); }
+      if(end === 'snap'){
+        say('<b>PRÁSK!</b>', 1200); rope.style.opacity = '0';
+        const o0 = off;
+        await tween(450, e => { S.tilt = -12 - 70 * e; S.x = bx0 + o0 - 30 * e; A.forEach((c, i) => { c.tilt = -14 - 70 * e; c.x = baseA[i] + o0 - 30 * e; }); B.forEach((c, i) => { c.tilt = 14 + 70 * e; c.x = baseB[i] + o0 + 30 * e; }); }, tk, ease.out);
+        setEyes('dizzy'); S.stars = true; S.starT = 0; list.forEach(c => cFace(c, 'closed', 'o'));
+        await wait(1500, tk); S.stars = false; setEyes('open');
+        await tween(400, e => { S.tilt = -82 * (1 - e); A.forEach(c => { c.tilt = -84 * (1 - e); }); B.forEach(c => { c.tilt = 84 * (1 - e); }); }, tk);
+        think(pick(['Lano prasklo. V sobotu jdou všichni.', 'Remíza. Sobotu dostal Excel.']), 3000, true);
+      } else {
+        const sign = end === 'A' ? -1 : 1, o0 = off;
+        await tween(1300, e => { off = o0 + sign * 150 * e; all(); }, tk, ease.inOut);
+        const losers = end === 'A' ? B : A, winners = end === 'A' ? A : B;
+        losers.forEach(c => { c.tilt = sign * 70; cFace(c, 'closed', 'wavy'); });
+        if(end === 'B'){ S.tilt = 70; setEyes('closed'); }
+        winners.forEach(c => cSay(c, pick(['Jo!', 'Vyhráli jsme!', 'Síla!']), 1600));
+        await tween(900, (e, q) => { winners.forEach(c => { c.y = fy - Math.abs(Math.sin(q * Math.PI * 2)) * 18; }); if(end === 'A') S.hop = Math.abs(Math.sin(q * Math.PI * 2)) * 18; }, tk, ease.lin);
+        S.hop = 0; winners.forEach(c => { c.y = fy; });
+        await tween(400, e => { S.tilt = S.tilt * (1 - e); losers.forEach(c => { c.tilt = sign * 70 * (1 - e); }); }, tk);
+        setEyes('open');
+        think(end === 'A' ? pick(['Sobota je naše! Já táhl nejvíc. Ostatní se dívali.', 'Vyhráli jsme. Oni berou ranní.']) : pick(['Prohráli jsme. V sobotu jdu na ranní.', 'Nechal jsem je vyhrát. Já mám v sobotu stejně nárok na příplatek.']), 3200, true);
+      }
+      moment('přetahoval se o volnou sobotu');
+      await wait(1200, tk);
+    } finally { rope.remove(); sweat.setAttribute('opacity', '0'); S.tilt = 0; S.stars = false; S.lookOverride = null; setEyes('open'); uncast(list); }
+  }
+  // Rybaření pod obrazovkou: bota, ryba, písmeno, směna… nebo obr, co stáhne rybáře dolů
+  async function skitFishing(tk){
+    const list = cast(1);
+    if(!list.length) return lookAround(tk);
+    const c = list[0], s = size(), side = S.x > vw() / 2 ? -1 : 1;
+    const fx = clamp(S.x + side * s * 1.4, 60, vw() - 60);
+    const line = messEl('bub-line'), bob = messEl('bub-bobber');
+    let item = null, rodOn = false;
+    const tip = () => { const p = c.prop; if(!p) return { x: c.x, y: c.y }; const k = 76 * c.sc / 72, f = c.sc * 1.25 * p.sc, a = p.rot * Math.PI / 180, ox = 18 * f, oy = -18 * f; return { x: c.x + p.dx * k + ox * Math.cos(a) - oy * Math.sin(a), y: c.y + p.dy * k + ox * Math.sin(a) + oy * Math.cos(a) }; };
+    let bobY = vh() - 4, bobX = 0;
+    const drawLine = () => { const t = tip(); bobX = t.x; line.style.left = t.x.toFixed(0) + 'px'; line.style.top = t.y.toFixed(0) + 'px'; line.style.height = Math.max(0, bobY - t.y).toFixed(0) + 'px'; bob.style.transform = `translate(${bobX.toFixed(0)}px,${bobY.toFixed(0)}px)`; if(item) item.style.transform = `translate(${(t.x - item.offsetWidth / 2).toFixed(0)}px,${(bobY).toFixed(0)}px) rotate(${(Math.sin(performance.now() / 300) * 10).toFixed(0)}deg)`; };
+    line.style.display = bob.style.display = 'none';
+    try{
+      think(pick(['Jdeme na ryby. Pod obrazovkou prý berou.', 'Rybaříme! Tiše, ať je nevyplašíme.']), 2600, true);
+      await Promise.all([travelTo(S.x, floorY(), tk), cGo(c, fx, floorY(), 170)]);
+      c.look = { x: side, y: .5 }; S.lookOverride = { x: side, y: .5 };
+      cProp(c, 'rod', side * 14, -26, side > 0 ? 0 : -90); rodOn = true;
+      c.act = 'script';
+      line.style.display = bob.style.display = '';
+      const t0 = performance.now();
+      const idle = ms => tween(ms, () => { bobY = vh() - 4 + Math.sin((performance.now() - t0) / 380) * 2; drawLine(); }, tk, ease.lin);
+      await idle(2200);
+      think(pick(['Nic. Ryby mají asi poradu.', 'Ticho… slyším, jak roste tráva.']), 2400, true);
+      await idle(rand(1800, 2600));
+      // záběr!
+      cSay(c, 'Bere!', 1200); cFace(c, 'open', 'o');
+      await tween(500, () => { bobY = vh() + 2 + Math.sin(performance.now() / 60) * 3; drawLine(); }, tk, ease.lin);
+      const catches = [
+        { k: 'boot', html: '<svg width="26" height="22" viewBox="0 0 26 22"><path d="M5 1 H13 V12 Q22 12 24 17 V21 H3 Z" fill="#6b4319" stroke="#3a240c"/><path d="M3 18 H24" stroke="#3a240c"/></svg>', say: 'Bota. Zase.', m: 'chytil s Bublíčkem botu' },
+        { k: 'fish', html: '<svg width="30" height="18" viewBox="0 0 30 18"><ellipse cx="13" cy="9" rx="11" ry="7" fill="#5fcf98" stroke="#0a7a4d"/><path d="M23 9 L29 3 L29 15 Z" fill="#12a46a" stroke="#0a7a4d"/><circle cx="7" cy="7" r="1.6" fill="#102a1e"/></svg>', say: 'Ryba! Teda… bublina s ploutví.', m: 'chytil rybu (bublinu s ploutví)' },
+        { k: 'letter', text: pick(['M', 'Ř', 'Q']), say: 'Písmeno! Někomu chybí v rozpisu?', m: 'vylovil písmeno' },
+        { k: 'chip', text: pick(['R', 'O', 'M2']), say: 'Ztracená směna! Kdo ji pustil pod obrazovku?', m: 'vylovil ztracenou směnu' },
+        { k: 'big' },
+      ];
+      const got = pick(catches);
+      if(got.k === 'big'){
+        cSay(c, '…ona táhne MĚ!', 1600); cFace(c, 'open', 'o');
+        setMouth('big'); S.eyeWide = 1.3; say('Držím tě!', 1400);
+        const y0 = c.y;
+        await tween(900, (e, q) => { c.y = y0 + (vh() + 60 - y0) * e * e; c.tilt = Math.sin(q * 30) * 8; bobY = vh() + 20; drawLine(); }, tk, ease.lin);
+        line.style.display = bob.style.display = 'none'; cDrop(c); rodOn = false;
+        await wait(1300, tk);
+        for(let i = 0; i < 5; i++) spawnBubble(c.x + rand(-14, 14), vh() - 4, rand(6, 12), { vx: rand(-20, 20), vy: -rand(50, 90), life: rand(1, 2) });
+        await wait(600, tk);
+        await tween(500, e => { c.y = vh() + 60 + (y0 - vh() - 60) * e; c.tilt = 0; }, tk, ease.out);
+        c.act = 'script'; cFace(c, 'closed', 'wavy');
+        await tween(500, (e, q) => { c.sx = 1 + .9 * Math.sin(q * Math.PI); }, tk);   // „takhle velká“
+        cSay(c, 'Utekla. Byla TAKHLE velká.', 2600); S.eyeWide = 1;
+        await wait(1600, tk); cFace(c, 'open', 'smile');
+        think('Příště vezmu větší prut. A menší rybáře.', 3000, true);
+        moment('byl na rybách (velká utekla)');
+      } else {
+        item = messEl('bub-catch' + (got.k === 'chip' ? ' chip' : ''), got.html || got.text);
+        const yTop = tip().y + 6;
+        cFace(c, 'open', 'grin');
+        await tween(900, (e, q) => { bobY = vh() + 2 + (yTop - vh() - 2) * e; if(c.prop) c.prop.rot = (side > 0 ? 0 : -90) - side * 20 * Math.sin(q * Math.PI); drawLine(); }, tk, ease.out);
+        bob.style.display = 'none';
+        cSay(c, got.say, 2600);
+        if(got.k === 'boot'){ setMouth('flat'); think('Třetí bota tento týden. Ten pod obrazovkou je asi stonožka.', 3200, true); }
+        else { setEyes('happy'); setMouth('grin'); await hopSmall(tk, 10); setEyes('open'); }
+        await tween(2200, () => { drawLine(); }, tk, ease.lin);
+        moment(got.m);
+      }
+      await wait(900, tk);
+    } finally { line.remove(); bob.remove(); if(item) item.remove(); cDrop(c); S.lookOverride = null; S.eyeWide = 1; setMouth('smile'); uncast(list); }
+  }
+  // Porada (schovávaná): Bublík svolává poradu, ostatní se schovají za okraje obrazovky; posledního nenajde — je za ním
+  async function skitHide(tk){
+    const list = cast(Math.min(4, crew.length));
+    if(list.length < 2){ uncast(list); return lookAround(tk); }
+    const s = size(), wallLeft = S.x < vw() / 2, wx = wallLeft ? s / 2 + 12 : vw() - s / 2 - 12, wd = wallLeft ? -1 : 1;
+    const spots = [
+      { x: -8, y: rand(vh() * .35, vh() * .7), out: { x: 30 } },
+      { x: vw() + 8, y: rand(vh() * .35, vh() * .7), out: { x: vw() - 30 } },
+      { x: rand(vw() * .15, vw() * .85), y: vh() + 26, out: { y: floorY() } },
+      { x: rand(vw() * .2, vw() * .8), y: 24, out: { y: 70 } },
+    ].sort(() => Math.random() - .5);
+    try{
+      await travelTo(wx, floorY(), tk);
+      S.lookOverride = { x: wd, y: 0 }; setEyes('closed');
+      say('Za deset minut porada! Rozesílám pozvánky…', 2200);
+      list.forEach(c => { c.act = 'script'; });
+      const hides = list.map((c, i) => { const sp = spots[i % spots.length], x0 = c.x, y0 = c.y; c.spot = sp; return tween(rand(1800, 2600), e => { c.x = x0 + (sp.x - x0) * e; c.y = y0 + (sp.y - y0) * e; }, c.tk, ease.inOut).catch(() => {}); });
+      await wait(2000, tk); say('…odesláno. Kde jste všichni?', 1600); await wait(1500, tk);
+      await Promise.all(hides);
+      say('<b>Porada! Jdu vás najít.</b>', 1600); setEyes('open'); S.lookOverride = null;
+      await wait(1000, tk);
+      const last = list[list.length - 1];
+      for(const c of list){
+        if(c === last || c.dead) continue;
+        const sp = c.spot, tx = clamp(sp.x, s, vw() - s), ty = clamp(sp.y, s * 1.6, floorY());
+        await flyTo(tx + (sp.x < 0 ? s * .4 : sp.x > vw() ? -s * .4 : s * .9), ty, tk);
+        S.lookOverride = { x: Math.sign(sp.x - S.x) || 0, y: sp.y > vh() ? 1 : sp.y < 60 ? -1 : 0 }; S.eyeWide = 1.25;
+        await wait(500, tk);
+        say(pick(['Mám tě! Porada.', 'Tady jsi. Bereš zápis.']), 1500);
+        const x0 = c.x, y0 = c.y, x1 = sp.out.x ?? x0, y1 = sp.out.y ?? y0;
+        await tween(500, e => { c.x = x0 + (x1 - x0) * e; c.y = y0 + (y1 - y0) * e; }, tk, ease.back);
+        cFace(c, 'open', 'wavy'); cSay(c, pick(['Zrovna mám… dovolenou.', 'Já jsem tu jen na brigádě.', 'Nemůžu, mám jinou poradu.']), 1900);
+        c.act = 'idle'; c.until = performance.now() + 2500; S.eyeWide = 1;
+        await wait(900, tk);
+      }
+      // posledního nenajde
+      if(!last.dead){
+        for(let i = 0; i < 2; i++){ const sp = edgeSpot(s, s); await flyTo(sp.x, sp.y, tk); S.lookOverride = { x: pick([-1, 1]), y: .2 }; think(pick(['Tady? …Ne.', 'Za rozpisem? …Ne.', 'Pod kurzorem? …Ne.']), 1600, true); await wait(1300, tk); }
+        setMouth('flat'); say(`Vzdávám to! ${cName(last)}, vylez!`, 2200); await wait(1600, tk);
+        const behind = S.x - (S.x > vw() / 2 ? 1 : -1) * s * .7, x0 = last.x, y0 = last.y;
+        last.act = 'script';
+        await tween(900, e => { last.x = x0 + (behind - x0) * e; last.y = y0 + (S.y - y0) * e; }, tk, ease.inOut);
+        cSay(last, 'Celou dobu jsem byl za tebou. Ta porada mohla být e-mail.', 2800); await wait(1100, tk);
+        S.lookOverride = { x: Math.sign(last.x - S.x), y: 0 }; S.eyeWide = 1.4; setMouth('big');
+        await tween(320, (e, q) => { S.hop = Math.sin(q * Math.PI) * 34; }, tk, ease.lin); S.hop = 0;
+        await wobble(.3, 600, tk); S.eyeWide = 1; setMouth('wavy'); blush(2000);
+        think('…Dobře. Ruším ji. Pošlu e-mail.', 2800, true);
+      }
+      moment('sháněl lidi na poradu (nikdo nepřišel)');
+      await wait(1200, tk);
+    } finally { list.forEach(c => { c.spot = null; }); S.lookOverride = null; S.eyeWide = 1; setMouth('smile'); setEyes('open'); uncast(list); }
   }
   // úklid: všichni se vcucnou zpátky do Bublíka (po návratu člověka nebo při vypnutí)
   function crewRecall(fast){
@@ -4919,7 +5433,7 @@ const Bublik = (()=>{
     n.style.transform = `translate(${x}px,${y}px) rotate(${rot}deg) scale(.1)`;
     requestAnimationFrame(() => { n.style.transform = `translate(${x}px,${y}px) rotate(${rot}deg) scale(1)`; });
     n.dataset.x = x; n.dataset.y = y; n.dataset.r = rot;
-    mess.notes.push(n); messHit();
+    mess.notes.push(n); messHit(); moment('nalepil ti vzkaz');
     await tween(220, e => { S.tilt = -10 * (1 - e); S.sx = 1.06 - .06 * e; }, tk);
     S.lookOverride = null;
     think(pick(['Nechal jsem ti vzkaz. Kdyby ses nudil.', 'Lepicí papírky jsou moje vášeň.', 'Tohle si přečti. Je to důležité. Možná.']), 3400, true);
@@ -4953,7 +5467,7 @@ const Bublik = (()=>{
     const cx = left ? 0 : vw(), cy = S.y - s * .4;
     const c = messEl('bub-crack', crackSvg());
     c.style.transform = `translate(${cx - 80}px,${cy - 80}px)`;
-    mess.cracks.push(c); messHit();
+    mess.cracks.push(c); messHit(); moment('zkusil prorazit obrazovku hlavou');
     puf(cx, cy, 60);
     S.sx = .7; S.sy = 1.25; setEyes('dizzy'); setMouth('wavy'); blush(3000); S.stars = true; S.starT = 0;
     await tween(320, e => { S.x = wx - dir * 28 * e; S.sx = .7 + .3 * e; S.sy = 1.25 - .25 * e; }, tk);
@@ -4989,7 +5503,7 @@ const Bublik = (()=>{
     L.style.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`; L.style.color = cs.color;
     L.style.transform = `translate(${r.left}px,${r.top}px)`;
     mess.letter = { span, el: L, w: r.width, h: r.height, carried: false, x: r.left, y: r.top };
-    messHit();
+    messHit(); moment('půjčil si písmeno z nadpisu');
     await tween(140, e => { S.hop = 10 * e; }, tk);
     mess.letter.carried = true;
     await tween(160, e => { S.hop = 10 * (1 - e); }, tk);
@@ -5029,7 +5543,7 @@ const Bublik = (()=>{
     await tween(160, e => { S.tilt = -14 * e; }, tk);
     const deg = (Math.random() < .5 ? -1 : 1) * rand(.8, 1.6);
     n.style.transition = 'transform .6s cubic-bezier(.3,1.6,.5,1)'; n.style.transformOrigin = 'left center'; n.style.transform = `rotate(${deg.toFixed(2)}deg)`;
-    mess.rows.push(n); messHit();
+    mess.rows.push(n); messHit(); moment('trochu nakřivil tabulku');
     await tween(200, e => { S.tilt = -14 * (1 - e); }, tk);
     blush(2600); S.lookOverride = { x: 1, y: .2 };
     think(pick(['Nezdá se ti ta tabulka trochu nakřivo? …To nic.', 'Já jsem na to jen sáhl.', 'Říká se tomu moderní design.']), 3600, true);
@@ -5056,6 +5570,7 @@ const Bublik = (()=>{
     const s = size(), fromLeft = S.x < vw() / 2, dir = fromLeft ? 1 : -1;
     const x0 = fromLeft ? s / 2 + 8 : vw() - s / 2 - 8, x1 = fromLeft ? vw() - s / 2 - 8 : s / 2 + 8;
     await travelTo(x0, floorY(), tk);
+    moment('posekal trávník');
     think(pick(['Sekám trávník. Brrrrm.', 'Údržba zeleně, prosím nerušit.', 'Tráva roste rychleji než rozpis.']), 3000, true);
     setMouth('grin'); S.lookOverride = { x: dir, y: .3 };
     let lastP = 0;
@@ -5088,7 +5603,7 @@ const Bublik = (()=>{
   }
   // ── v0.9.63: Komunita (od 30 min) — Bublíkovo: vesnička na spodním okraji, denní režim podle hodin, kronika ──
   // Vzor: Little Computer People (život v počítači podle denního režimu), kronika jako „vypravěč“ (emergent narrative).
-  const VILLAGER_NAMES = ['Bublinka', 'Pěnička', 'Kulička', 'Šumák', 'Mydlík', 'Perlička', 'Kapka', 'Bublifuk', 'Pěnák', 'Šplouch'];
+  const VILLAGER_NAMES = ['Bublinka', 'Pěnička', 'Kulička', 'Šumák', 'Mydlík', 'Perlička', 'Kapka', 'Bublifuk', 'Pěnák', 'Šplouch', 'Kapička', 'Bublimír', 'Mydlinka', 'Perlík', 'Šumka', 'Bubloš', 'Pěnobrad', 'Bublinda'];
   // v0.9.64: rod jmen, ať kronika říká „Bublinka postavila“, ne „postavil“
   const g = (name, m, f) => bublikIsFem(name) ? f : m;
   let village = null;
@@ -5103,9 +5618,159 @@ const Bublik = (()=>{
     <path d="M -22 -2 L 20 -9 M -20 -9 L 22 -2" stroke="#6b4319" stroke-width="5" stroke-linecap="round"/></svg>`;
   const FLOWER_SVG = c => `<svg viewBox="-10 -30 20 31" aria-hidden="true"><path d="M 0 0 Q 2 -10 0 -18" stroke="#15a065" stroke-width="1.8" fill="none"/><path d="M 0 -8 Q 6 -12 8 -8 Q 4 -6 0 -8 Z" fill="#15a065"/>
     ${[0, 72, 144, 216, 288].map(a => `<ellipse cx="0" cy="-23" rx="2.6" ry="4.4" fill="${c}" transform="rotate(${a} 0 -19)"/>`).join('')}<circle cx="0" cy="-19" r="2.4" fill="#ffe48a"/></svg>`;
-  function chron(text){
+  // ── v0.9.69: opravdová vesnice — různé stavby, roste od táboráku do stran ──
+  const BLD = {
+    house: { w: 70, h: 60, enter: true, cls: 'bub-house', svg: HOUSE_SVG },
+    well: { w: 44, h: 50, svg: '<svg viewBox="-22 -50 44 51" aria-hidden="true"><path d="M-17 -22 L-17 0 L17 0 L17 -22 Z" fill="#b9b2a6" stroke="#5c5548" stroke-width="1.2"/><path d="M-17 -15 H17 M-17 -8 H17 M-6 -22 V-15 M8 -15 V-8 M-2 -8 V0" stroke="#7d7568" stroke-width=".9"/><path d="M-14 -22 V-40 M14 -22 V-40" stroke="#6b4319" stroke-width="2.4"/><path d="M-20 -38 L0 -49 L20 -38 Z" fill="#c0392b" stroke="#7a1717"/><path d="M-12 -33 H12" stroke="#6b4319" stroke-width="2"/><path d="M0 -33 V-27" stroke="#555"/><rect x="-3.5" y="-28" width="7" height="6" rx="1" fill="#8b5a2b"/><ellipse cx="0" cy="-22" rx="17" ry="3" fill="#2b6cb0" opacity=".8"/></svg>' },
+    tree: { w: 62, h: 86, svg: '<svg viewBox="-31 -86 62 87" aria-hidden="true"><path d="M-4 0 L-3 -30 L3 -30 L4 0 Z" fill="#7a4a1e"/><circle cx="0" cy="-50" r="24" fill="#2e9d5b"/><circle cx="-14" cy="-40" r="15" fill="#25874d"/><circle cx="15" cy="-42" r="15" fill="#33a866"/><circle cx="2" cy="-66" r="15" fill="#3cb371"/><circle cx="-8" cy="-58" r="4" fill="#ff6f8e"/><circle cx="10" cy="-48" r="3.6" fill="#ff6f8e"/><circle cx="-2" cy="-40" r="3.4" fill="#ff6f8e"/></svg>' },
+    mill: { w: 70, h: 104, svg: '<svg viewBox="-35 -104 70 105" aria-hidden="true"><path d="M-14 0 L-9 -64 L9 -64 L14 0 Z" fill="#f3efe2" stroke="#6b5a3a" stroke-width="1.2"/><path d="M-12 -64 L0 -76 L12 -64 Z" fill="#8b5a2b" stroke="#4a2e12"/><rect x="-4" y="-16" width="8" height="16" rx="4" fill="#6b4319"/><circle class="h-win" cx="0" cy="-40" r="3.5" fill="#ffe48a" stroke="#6b5a3a"/><g><path d="M0 -70 L-4 -100 L4 -100 Z M0 -70 L30 -74 L30 -66 Z M0 -70 L4 -40 L-4 -40 Z M0 -70 L-30 -66 L-30 -74 Z" fill="#fffdf6" stroke="#6b5a3a" stroke-width="1"/><circle cx="0" cy="-70" r="3" fill="#4a2e12"/><animateTransform attributeName="transform" type="rotate" from="0 0 -70" to="360 0 -70" dur="7s" repeatCount="indefinite"/></g></svg>' },
+    bakery: { w: 78, h: 74, enter: true, smoke: [61, 8], svg: '<svg viewBox="-39 -74 78 75" aria-hidden="true"><rect x="18" y="-66" width="9" height="20" fill="#8b5a2b" stroke="#4a2e12"/><path d="M-34 0 V-38 H34 V0 Z" fill="#f6d7a7" stroke="#8b5a2b" stroke-width="1.3"/><path d="M-38 -38 L0 -62 L38 -38 Z" fill="#c0392b" stroke="#7a1717" stroke-width="1.2"/><rect x="-26" y="-35" width="52" height="10" rx="2" fill="#fff" stroke="#8b5a2b"/><text x="0" y="-27.5" text-anchor="middle" font-size="7.5" font-weight="800" fill="#8b5a2b">PEKÁRNA</text><rect x="-8" y="-20" width="16" height="20" rx="2" fill="#6b4319"/><rect class="h-win" x="-28" y="-20" width="14" height="11" rx="1.5" fill="#ffe48a" stroke="#8b5a2b"/><rect class="h-win" x="14" y="-20" width="14" height="11" rx="1.5" fill="#ffe48a" stroke="#8b5a2b"/></svg>' },
+    tower: { w: 44, h: 112, svg: '<svg viewBox="-22 -112 44 113" aria-hidden="true"><path d="M-13 0 L-9 -80 L9 -80 L13 0 Z" fill="#d9dde3" stroke="#5a6068" stroke-width="1.2"/><path d="M-9 -60 H9 M-10 -40 H10 M-11 -20 H11" stroke="#9aa1aa" stroke-width=".8"/><rect x="-14" y="-88" width="28" height="9" fill="#c9ccd4" stroke="#5a6068"/><path d="M-14 -88 L0 -102 L14 -88 Z" fill="#12a46a" stroke="#044a30"/><path d="M0 -102 V-111" stroke="#5a3b12" stroke-width="1.4"/><path d="M0 -111 L10 -108 L0 -105 Z" fill="#f7a531"/><rect x="-4" y="-14" width="8" height="14" rx="4" fill="#5a6068"/><circle class="h-win" cx="0" cy="-50" r="3.5" fill="#ffe48a" stroke="#5a6068"/></svg>' },
+    hall: { w: 104, h: 92, enter: true, svg: '<svg viewBox="-52 -92 104 93" aria-hidden="true"><path d="M-48 0 V-44 H48 V0 Z" fill="#f3efe2" stroke="#6b5a3a" stroke-width="1.3"/><path d="M-52 -44 L0 -62 L52 -44 Z" fill="#8b5a2b" stroke="#4a2e12"/><rect x="-12" y="-80" width="24" height="22" fill="#f3efe2" stroke="#6b5a3a"/><path d="M-14 -80 L0 -92 L14 -80 Z" fill="#8b5a2b" stroke="#4a2e12"/><circle cx="0" cy="-69" r="8" fill="#fff" stroke="#4a2e12" stroke-width="1.2"/><path class="hh" d="M0 -69 V-73.5" stroke="#222" stroke-width="1.6" stroke-linecap="round"/><path class="mh" d="M0 -69 V-75.5" stroke="#222" stroke-width="1" stroke-linecap="round"/><path d="M-36 0 V-36 M-24 0 V-36 M24 0 V-36 M36 0 V-36" stroke="#d9d2c0" stroke-width="5"/><text x="0" y="-36" text-anchor="middle" font-size="7" font-weight="800" fill="#6b5a3a">RADNICE</text><rect x="-9" y="-26" width="18" height="26" rx="9" fill="#6b4319"/><rect class="h-win" x="-44" y="-30" width="12" height="12" rx="1.5" fill="#ffe48a" stroke="#6b5a3a"/><rect class="h-win" x="32" y="-30" width="12" height="12" rx="1.5" fill="#ffe48a" stroke="#6b5a3a"/></svg>' },
+    market: { w: 72, h: 60, svg: '<svg viewBox="-36 -60 72 61" aria-hidden="true"><path d="M-30 0 V-34 M30 0 V-34" stroke="#6b4319" stroke-width="3"/><rect x="-32" y="-22" width="64" height="10" fill="#c8a06a" stroke="#6b4319"/><path d="M-36 -34 H36 L32 -48 H-32 Z" fill="#fff" stroke="#b02a2a"/><path d="M-28 -48 L-30 -34 M-14 -48 L-14 -34 M0 -48 V-34 M14 -48 L14 -34 M28 -48 L30 -34" stroke="#d63b3b" stroke-width="7" opacity=".85"/><circle cx="-18" cy="-25" r="4" fill="#ff6f8e"/><circle cx="-8" cy="-25" r="4" fill="#f7a531"/><circle cx="6" cy="-25" r="4" fill="#5fcf98"/><circle cx="17" cy="-25" r="4" fill="#9b7bff"/></svg>' },
+    lamp: { w: 16, h: 60, svg: '<svg viewBox="-8 -60 16 61" aria-hidden="true"><path d="M0 0 V-46" stroke="#333" stroke-width="2.2"/><path d="M-4 0 H4" stroke="#333" stroke-width="3"/><path d="M-6 -46 H6 L4 -56 H-4 Z" fill="#2b3a4a" stroke="#111"/><rect class="l-glass" x="-3.5" y="-54" width="7" height="7" fill="#556"/></svg>' },
+  };
+  const BUILD_ORDER = ['house', 'house', 'well', 'tree', 'house', 'lamp', 'bakery', 'house', 'lamp', 'mill', 'market', 'house', 'tree', 'hall', 'lamp', 'tower', 'house', 'tree', 'lamp'];
+  const BLD_NEWS = {
+    house: (w, n) => `${w} ${g(w, 'postavil', 'postavila')} domek č. ${n}.${n === 1 ? ' Kulatý, samozřejmě.' : n === 4 ? ' Už je to ulice.' : ''}`,
+    well: w => `${w} ${g(w, 'vykopal', 'vykopala')} studnu. Voda je, jak jinak, bublinková.`,
+    tree: w => `${w} ${g(w, 'zasadil', 'zasadila')} strom. Za pět minut nesl jablka. Rychlá odrůda.`,
+    mill: () => 'Stojí větrný mlýn! Mele vzduch na jemnou pěnu.',
+    bakery: w => `${w} ${g(w, 'otevřel', 'otevřela')} pekárnu. Specialita: bublanina.`,
+    tower: () => 'Postavili jsme rozhlednu. Je z ní vidět až na konec rozpisu.',
+    hall: () => 'Nová radnice! Hodiny ukazují přesný čas. Jako jediné v Bublíkově.',
+    market: w => `${w} si ${g(w, 'otevřel', 'otevřela')} stánek na tržišti. Prodává pěnu na váhu.`,
+    lamp: () => pick(['Na návsi přibyla lampa.', 'Další lampa. Noci budou míň strašidelné.', 'Nová lampa. Můry jásají.']),
+  };
+  const villageMax = () => clamp(Math.floor(vw() / 85), 6, 15);
+  // volné místo na stavbu: od táboráku do stran (vesnice roste ze středu), mimo Bublíkův kout
+  function findLot(w){
+    const v = village, cx = v.fireX, used = v.things.map(t => [t.x - t.w / 2 - 10, t.x + t.w / 2 + 10]);
+    used.push([cx - 34, cx + 34]);
+    used.push([homeX() - 56, homeX() + 56]);
+    const lo = 14 + w / 2, hi = vw() - 14 - w / 2;
+    for(let d = 44 + w / 2; d < vw(); d += 12){
+      for(const sg of (Math.random() < .5 ? [-1, 1] : [1, -1])){
+        const x = cx + sg * d;
+        if(x < lo || x > hi) continue;
+        if(used.every(([a, b]) => x + w / 2 < a || x - w / 2 > b)) return x;
+      }
+    }
+    return null;
+  }
+  function placeThing(type, x, who, when){
+    const v = village, b = BLD[type], y = floorY() - b.h + 3;
+    const el = vEl('bub-bld bub-' + type + (b.cls ? ' ' + b.cls : '') + (when ? '' : ' new'), b.svg, x - b.w / 2, y);
+    el.style.width = b.w + 'px'; el.style.height = b.h + 'px';
+    el.style.setProperty('--x', `${x - b.w / 2}px`); el.style.setProperty('--y', `${y}px`);
+    if(when) el.style.animation = 'none';
+    if(b.smoke) el.insertAdjacentHTML('beforeend', `<div class="bub-smoke" style="left:${b.smoke[0]}px;top:${b.smoke[1]}px"><i></i><i></i><i></i></div>`);
+    const t = { type, el, x, w: b.w, h: b.h };
+    v.things.push(t); if(type === 'house') v.houses.push(t);
+    if(type === 'hall') tickClock(t);
+    if(type === 'lamp' && (v.phase === 'noc' || v.phase === 'vecer')) el.classList.add('lit');
+    if(v.phase === 'noc') el.querySelectorAll('.h-win').forEach(w => w.setAttribute('fill', '#2b3a4a'));
+    if(!when) puf(x, floorY() - b.h * .4, Math.max(60, b.w));
+    chron(BLD_NEWS[type](who, v.houses.length), when);
+    return t;
+  }
+  function tickClock(t){
+    const d = new Date(), m = d.getMinutes(), h = (d.getHours() % 12) + m / 60;
+    const hh = t.el.querySelector('.hh'), mh = t.el.querySelector('.mh');
+    if(hh) hh.setAttribute('transform', `rotate(${(h * 30).toFixed(1)} 0 -69)`);
+    if(mh) mh.setAttribute('transform', `rotate(${m * 6} 0 -69)`);
+  }
+  function villageWindows(fill){ if(village) village.things.forEach(t => t.el.querySelectorAll('.h-win').forEach(w => w.setAttribute('fill', fill))); }
+  async function buildNext(){
+    const v = village, type = BUILD_ORDER[v.bi];
+    if(!type) return;
+    v.bi++;
+    const bw = BLD[type].w, x = findLot(bw);
+    if(x == null) return;
+    const b = crew.find(c => !c.dead && c.act === 'idle' && !c.sleeping && !c.home) || crew.find(c => !c.dead && !c.home);
+    if(!b){ placeThing(type, x, 'Bublík'); return; }
+    await vScript([b], async () => {
+      if(type === 'lamp'){ await cGo(b, x + 20, floorY(), 170); if(village) placeThing(type, x, cName(b)); return; }
+      await cGo(b, x + bw / 2 + 16, floorY(), 160);
+      const pile = [], n = clamp(Math.round(bw / 18), 3, 6);
+      for(let i = 0; i < n; i++){
+        await tween(150, e => { b.sy = 1 - .14 * e; }, b.tk);
+        pile.push(addBrick(x - bw / 2 + 12 + (i % 3) * (bw - 24) / 2, floorY() - Math.floor(i / 3) * 13, 14));
+        await tween(150, e => { b.sy = .86 + .14 * e; }, b.tk);
+        await wait(260, b.tk);
+      }
+      await wait(500, b.tk);
+      pile.forEach(popBrick);
+      if(!village) return;
+      placeThing(type, x, cName(b));
+      cFace(b, 'closed', 'grin'); await wait(900, b.tk); cFace(b, 'open', 'smile');
+    });
+  }
+  function newcomer(when){
+    if(!village || crew.length >= villageMax()) return null;
+    const left = Math.random() < .5, c = spawnClone(when ? rand(vw() * .12, vw() * .88) : left ? -30 : vw() + 30, floorY(), pick(CREW_ROLES));
+    c.sc = c.scT; c.name = villagerName(); c.tx = when ? c.x : rand(vw() * .2, vw() * .8); c.ty = floorY(); c.speed = 120;
+    S.awayStats.clones = (S.awayStats.clones || 0) + 1;
+    chron(when ? `${g(c.name, 'Přistěhoval', 'Přistěhovala')} se ${c.name}. Nikdo ${g(c.name, 'ho', 'ji')} neviděl přijít.`
+      : pick([`${g(c.name, 'Přistěhoval', 'Přistěhovala')} se ${c.name}. Prý kvůli dobré atmosféře.`, `${g(c.name, 'Nový obyvatel', 'Nová obyvatelka')}: ${c.name}! ${g(c.name, 'Přišel', 'Přišla')} pěšky z jiné záložky.`, `${c.name} se ${g(c.name, 'nastěhoval', 'nastěhovala')}. Nosí s sebou vlastní pěnu.`]), when);
+    return c;
+  }
+  // život ve vesnici: Bublíčci chodí do pekárny, ke studni, pod strom, na tržiště, na rozhlednu…
+  async function villagerVisit(c){
+    const v = village;
+    const t = pick(v.things.filter(t => t.type !== 'lamp'));
+    if(!t) return;
+    c.act = 'busy'; const myTk = c.tk;
+    try{
+      await cGo(c, t.x + rand(-6, 6), floorY(), rand(90, 140));
+      if(!village) return;
+      if(BLD[t.type].enter && v.phase !== 'noc'){
+        c.el.style.display = 'none'; c.home = t;
+        await wait(rand(3000, 9000), c.tk);
+        c.el.style.display = ''; c.home = null;
+        if(t.type === 'bakery'){ cProp(c, 'bread', 18, -18, 0); cSay(c, pick(['Čerstvá bublanina!', 'Mňam.', 'Ještě teplá.']), 1800); await wait(rand(4000, 7000), c.tk); }
+        else if(t.type === 'hall' && Math.random() < .5) cSay(c, pick(['Úřad zavřený. Zase.', 'Mám razítko!', 'Podal jsem žádost o víc bublin.']), 1900);
+      } else if(t.type === 'well'){
+        cProp(c, 'bucket', 16, -8, 0); cFace(c, 'open', 'o'); await wait(1500, c.tk);
+        cSay(c, pick(['Studená!', 'Bublinky v kýblu.', 'Dneska teče perlivá.']), 1600); cFace(c, 'open', 'smile'); await wait(rand(2000, 4000), c.tk);
+      } else if(t.type === 'tree'){
+        c.act = 'script'; cFace(c, 'closed', 'smile');
+        for(let i = 0; i < 3; i++){ cZzz(c); await wait(1500, c.tk); }
+        cFace(c, 'open', 'smile');
+        if(Math.random() < .4) cSay(c, 'Spadlo mi jablko na hlavu. Mám nápad!', 2200);
+      } else if(t.type === 'market'){
+        cSay(c, pick(['Jednu pěnu, prosím.', 'Kolik stojí bublina?', 'Máte i hranaté?', 'Na dluh, jo?']), 1800); await wait(2600, c.tk);
+      } else if(t.type === 'tower'){
+        c.act = 'script'; const y0 = c.y;
+        await tween(2200, e => { c.y = y0 - 92 * e; }, c.tk);
+        c.look = { x: pick([-1, 1]), y: 0 }; cSay(c, pick(['Vidím až na konec rozpisu!', 'Odsud je Bublíkovo celé!', 'Ahoj, kurzore!']), 2200);
+        await wait(2400, c.tk);
+        await tween(1400, e => { c.y = y0 - 92 * (1 - e); }, c.tk);
+      } else if(t.type === 'mill'){
+        cSay(c, pick(['Ten mlýn mele pořád.', 'Vítr dnes fouká od Excelu.']), 1800); await wait(2200, c.tk);
+      } else await wait(rand(1500, 3000), c.tk);
+    } catch(e){ if(!(e instanceof Cancel)) console.warn('[Bublík] vesničan', e); }
+    finally { if(!c.dead){ if(c.home === t){ c.home = null; } if(!c.home) c.el.style.display = ''; cDrop(c); } }
+    if(c.dead || c.tk !== myTk) return;
+    c.act = 'idle'; c.tilt = 0; c.until = performance.now() + rand(1500, 4000);
+  }
+  async function lightLamps(on){
+    const lamps = village.things.filter(t => t.type === 'lamp');
+    if(!lamps.length) return;
+    if(!on){ lamps.forEach(t => t.el.classList.remove('lit')); return; }
+    const c = crew.find(k => !k.dead && k.act === 'idle' && !k.sleeping && !k.home);
+    if(!c){ lamps.forEach(t => t.el.classList.add('lit')); return; }
+    chron(`${cName(c)} rozsvěcí lampy. ${g(cName(c), 'Lampářem byl zvolen', 'Lampářkou byla zvolena')} jednomyslně.`);
+    await vScript([c], async () => {
+      for(const t of lamps.sort((a, b) => Math.abs(a.x - c.x) - Math.abs(b.x - c.x))){
+        await cGo(c, t.x + 14, floorY(), 150);
+        await tween(200, e => { c.sy = 1 + .12 * e; }, c.tk); t.el.classList.add('lit'); await tween(200, e => { c.sy = 1.12 - .12 * e; }, c.tk);
+      }
+    });
+  }
+  function chron(text, when){
     if(!village) return;
-    const d = new Date(), t = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+    const d = when || new Date(), t = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
     village.log.push(t + ' — ' + text);
     if(village.log.length > 60) village.log.shift();
     const box = village.chron.querySelector('.ch-lines');
@@ -5115,59 +5780,60 @@ const Bublik = (()=>{
     const used = crew.map(c => c.name).filter(Boolean);
     return VILLAGER_NAMES.find(n => !used.includes(n)) || pick(VILLAGER_NAMES);
   }
-  function startVillage(now){
+  // v0.9.66: founded = vesnice vznikla, když stránka nebyla vidět (dopočet) — přistěhovalce doplní villageCatchUp()
+  function startVillage(now, founded){
     if(village) return;
     const w = vw();
     village = {
-      t0: now, phase: null, houses: [], plan: [.14, .3, .7, .86].map(f => w * f), fire: null, fireX: w * .5, flowers: [],
+      t0: now, phase: null, houses: [], things: [], bi: 0, fire: null, fireX: w * .5, flowers: [], path: vEl('bub-path'),
       log: [], next: now + 4000, nextHouse: now + 6000, busy: false, night: null, born: 0,
       chron: vEl('bub-chron', `<div class="ch-title">Zprávy z Bublíkova</div><div class="ch-lines"></div>`),
     };
     crew.forEach(c => { if(!c.name) c.name = villagerName(); });
-    chron('Založeno Bublíkovo. Zakladatel: Bublík. Rozloha: celá obrazovka.');
-    // přistěhovalci — přijdou z krajů obrazovky (celkem nejvýš 8 Bublíčků)
-    const add = Math.min(4, 8 - crew.length);
-    for(let i = 0; i < add; i++){
-      setTimeout(() => {
-        if(!village || !started) return;
-        const left = Math.random() < .5, c = spawnClone(left ? -30 : vw() + 30, floorY(), pick(CREW_ROLES));
-        c.sc = c.scT; c.name = villagerName(); c.tx = rand(vw() * .2, vw() * .8); c.ty = floorY(); c.speed = 120;
-        S.awayStats.clones = (S.awayStats.clones || 0) + 1;
-        chron(`${g(c.name, 'Přistěhoval', 'Přistěhovala')} se ${c.name}. Prý kvůli dobré atmosféře.`);
-      }, 2500 + i * 4500);
-    }
+    chron('Založeno Bublíkovo. Zakladatel: Bublík. Rozloha: celá obrazovka.', founded);
+    if(founded) return;
+    // přistěhovalci — přijdou z krajů obrazovky; další pak postupně (villageTick), až do villageMax()
+    const add = Math.min(4, villageMax() - crew.length);
+    for(let i = 0; i < add; i++) setTimeout(() => { if(village && started) newcomer(); }, 2500 + i * 4500);
+    village.nextImm = now + 120000;
   }
-  function bublikVillageStats(){ return village ? { houses: village.houses.length, pop: crew.length + 1, fire: !!village.fire, events: village.log.length } : null; }
+  function bublikVillageStats(){ return village ? { houses: village.houses.length, buildings: village.things.length, pop: crew.length + 1, fire: !!village.fire, events: village.log.length } : null; }
   async function vScript(list, fn){
     list.forEach(c => { c.tk.cancelled = true; c.tk = { cancelled: false }; c.act = 'game'; });
     try{ await fn(); } catch(e){ if(!(e instanceof Cancel)) console.warn('[Bublík] vesnice', e); }
     finally { list.forEach(c => { if(!c.dead && (c.act === 'game' || c.act === 'script')){ c.act = 'idle'; c.sx = c.sy = 1; c.tilt = 0; c.until = performance.now() + rand(800, 2500); } }); }
   }
-  async function buildHouse(){
-    const v = village, x = v.plan[v.houses.length];
-    const b = crew.find(c => !c.dead && c.act === 'idle' && !c.sleeping) || crew.find(c => !c.dead && !c.home) || crew[0];
-    if(!b) return;
-    await vScript([b], async () => {
-      await cGo(b, x + 40, floorY(), 160);
-      const pile = [];
-      for(let i = 0; i < 4; i++){ await tween(160, e => { b.sy = 1 - .14 * e; }, b.tk); pile.push(addBrick(x + (i % 2 ? 10 : -10), floorY() - Math.floor(i / 2) * 13, 14)); await tween(160, e => { b.sy = .86 + .14 * e; }, b.tk); await wait(300, b.tk); }
-      await wait(600, b.tk);
-      pile.forEach(popBrick);
-      if(!village) return;
-      const h = vEl('bub-house', HOUSE_SVG, x - 35, floorY() - 60);
-      h.style.setProperty('--x', `${x - 35}px`); h.style.setProperty('--y', `${floorY() - 60}px`);
-      puf(x, floorY() - 25, 80);
-      v.houses.push({ el: h, x });
-      cFace(b, 'closed', 'grin');
-      chron(`${b.name} ${g(b.name, 'postavil', 'postavila')} domek č. ${v.houses.length}.${v.houses.length === 1 ? ' Kulatý, samozřejmě.' : ''}`);
-      await wait(900, b.tk); cFace(b, 'open', 'smile');
-    });
-  }
-  function lightFire(){
+  function lightFire(when){
     const v = village; if(v.fire) return;
     v.fire = vEl('bub-fire', FIRE_SVG, v.fireX - 24, floorY() - 44);
-    puf(v.fireX, floorY() - 10, 50);
-    chron('Rozdělali jsme táborák. Hasicí přístroj: bublina.');
+    if(!when) puf(v.fireX, floorY() - 10, 50);
+    chron('Rozdělali jsme táborák. Hasicí přístroj: bublina.', when);
+  }
+  // v0.9.66: co se ve vesnici stalo, zatímco stránka nebyla vidět (zhasnutá obrazovka, zamčené PC)
+  function villageCatchUp(ms){
+    const v = village; if(!v || ms < 60000) return;
+    const end = Date.now(), from = end - ms, ev = [];
+    const at = f => new Date(from + ms * clamp(f, 0, 1));
+    const add = (f, fn) => ev.push({ f: clamp(f + rand(-.03, .03), .01, .99), fn });
+    const born = Math.min(villageMax() - crew.length, 3 + Math.floor(ms / (3 * 60000)));
+    for(let i = 0; i < born; i++) add(.04 + i * (.8 / Math.max(1, born)), w => { newcomer(w); });
+    const builds = Math.min(BUILD_ORDER.length - v.bi, Math.max(1, Math.floor(ms / (2.5 * 60000))));
+    for(let i = 0; i < builds; i++) add(.1 + i * (.85 / Math.max(1, builds)), w => {
+      const type = BUILD_ORDER[v.bi]; if(!type) return; v.bi++;
+      const x = findLot(BLD[type].w); if(x == null) return;
+      const names = crew.map(c => c.name).filter(Boolean);
+      placeThing(type, x, names.length ? pick(names) : 'Bublík', w);
+    });
+    add(.5, w => { if(v.houses.length >= 2) lightFire(w); });
+    const flowers = Math.min(8 - v.flowers.length, Math.floor(ms / (15 * 60000)));
+    for(let i = 0; i < flowers; i++) add(.3 + i * .08, () => {
+      const f = vEl('bub-flower', FLOWER_SVG(pick(['#ff6f8e', '#f7a531', '#9b7bff', '#ff5d5d', '#58b6ff'])), rand(vw() * .06, vw() * .94) - 9, floorY() - 28);
+      v.flowers.push(f); requestAnimationFrame(() => f.classList.add('grow'));
+    });
+    const news = clamp(Math.floor(ms / (10 * 60000)), 1, 6);
+    for(let i = 0; i < news; i++) add(.25 + i * (.7 / news), w => { const l = villageNews(); if(l) chron(l, w); });
+    ev.sort((a, b) => a.f - b.f).forEach(e => { try{ e.fn(at(e.f)); } catch(err){ console.warn('[Bublík] dopočet', err); } });
+    chron(pick(['Zatímco obrazovka spala, Bublíkovo žilo dál.', 'Obrazovka zhasla. Bublíci si toho všimli až ráno.', 'Kdo nebyl u toho, nic nepropásl. Všechno je v kronice.']));
   }
   function plantFlower(){
     const v = village; if(v.flowers.length >= 8) return;
@@ -5229,8 +5895,8 @@ const Bublik = (()=>{
     requestAnimationFrame(() => v.night.classList.add('on'));
     chron('Noc. Všichni do domků. Kdo nemá domek, spí u ohně.');
     crew.forEach(c => { if(!c.dead && c.act === 'idle') goSleep(c); });
-    v.houses.forEach(h => h.el.querySelectorAll('.h-win').forEach(w => w.setAttribute('fill', '#ffe48a')));
-    setTimeout(() => { if(village && village.phase === 'noc') village.houses.forEach(h => h.el.querySelectorAll('.h-win').forEach(w => w.setAttribute('fill', '#2b3a4a'))); }, 60000);
+    villageWindows('#ffe48a'); v.things.forEach(t => { if(t.type === 'lamp') t.el.classList.add('lit'); });
+    setTimeout(() => { if(village && village.phase === 'noc') villageWindows('#2b3a4a'); }, 60000);
   }
   // jeden Bublíček jde spát — do domku, nebo k ohni; ráno (nebo při úklidu) vyleze
   function goSleep(c){
@@ -5247,7 +5913,7 @@ const Bublik = (()=>{
   function dayBreak(){
     const v = village; if(!v.night) return;
     const n = v.night; v.night = null; n.classList.remove('on'); setTimeout(() => n.remove(), 3200);
-    v.houses.forEach(h => h.el.querySelectorAll('.h-win').forEach(w => w.setAttribute('fill', '#ffe48a')));
+    villageWindows('#ffe48a'); lightLamps(false);
     chron('Svítá. Bublíci vylézají z domků. Kapka tvrdí, že nespala vůbec.');
   }
   function villageTick(now){
@@ -5271,9 +5937,14 @@ const Bublik = (()=>{
     if(phase === 'noc') crew.forEach(c => { if(!c.dead && c.act === 'idle' && !c.sleeping) goSleep(c); });   // i nově příchozí
     if(v.busy) return;
     // stavět se dá i v noci, dokud nemají aspoň dva domky (při lucerně)
-    if(v.houses.length < v.plan.length && now > v.nextHouse && (phase !== 'noc' || v.houses.length < 2)){
-      v.busy = true; v.nextHouse = now + rand(16000, 26000);
-      buildHouse().finally(() => { if(village) village.busy = false; });
+    // v0.9.69: hodiny na radnici, přistěhovalci, stavby (zpočátku rychle, pak každé 1,5–2,5 min)
+    if(now > (v.nextClock || 0)){ v.nextClock = now + 15000; v.things.forEach(t => { if(t.type === 'hall') tickClock(t); }); }
+    if(phase !== 'noc' && now > (v.nextImm || 0) && crew.length < villageMax()){ v.nextImm = now + rand(80000, 170000); newcomer(); }
+    if(phase === 'vecer' && !v.lampsLit){ v.lampsLit = true; v.busy = true; lightLamps(true).finally(() => { if(village) village.busy = false; }); return; }
+    if(phase !== 'vecer' && phase !== 'noc') v.lampsLit = false;
+    if(v.bi < BUILD_ORDER.length && now > v.nextHouse && (phase !== 'noc' || v.houses.length < 2)){
+      v.busy = true; v.nextHouse = now + (v.things.length < 3 ? rand(16000, 26000) : rand(80000, 150000));
+      buildNext().finally(() => { if(village) village.busy = false; });
       return;
     }
     if(!v.fire && (v.houses.length >= 2 || phase === 'noc')) lightFire();
@@ -5286,19 +5957,23 @@ const Bublik = (()=>{
     // mezi tím drobné zprávy do kroniky (bez opakování)
     if(now > (v.nextNews || 0)){
       v.nextNews = now + rand(50000, 110000);
-      const names = crew.map(c => c.name).filter(Boolean), a = names.length ? pick(names) : 'Někdo', b = names.length > 1 ? pick(names.filter(n => n !== a)) : 'Bublík';
-      const news = [
-        `${a} ${g(a, 'našel', 'našla')} v rozpisu M2. Prý vzácnost.`, 'Volby starosty odloženy. Kandidát praskl.', 'Kopáč vykopal tunel. Vede zpátky na začátek.',
-        'Padákář hlásí: na obzoru kurzor. Nehýbe se.', 'Bublík pronesl projev. Nikdo neposlouchal, všichni tleskali.', 'Spáč vyhrál soutěž ve spaní. Zase.',
-        `${a} a ${b} se pohádali, kdo je kulatější. Remíza.`, `${a} ${g(a, 'založil', 'založila')} kroužek pletení z bublin.`, `${b} tvrdí, že ${g(b, 'viděl', 'viděla')} v tabulce ducha. Byla to prázdná buňka.`,
-        'Zastupitelstvo schválilo nový svátek: Den kulatosti.', `${a} si ${g(a, 'otevřel', 'otevřela')} kavárnu. Nabízí jen pěnu.`, 'Na radnici někdo nechal klíče. Radnice nemá dveře.',
-        `${b} ${g(b, 'napsal', 'napsala')} báseň. Rýmuje se jen „bublina“ a „bublina“.`, 'Proběhlo sčítání obyvatel. Výsledek: hodně.', `${a} se ${g(a, 'naučil', 'naučila')} pískat. Ostatní se naučili zacpat si uši.`,
-        'Počasí v Bublíkově: polojasno, místy pěna.', `${b} hledá práci. Umí být ${g(b, 'kulatý', 'kulatá')} a mlčet.`, 'Bublíkovo vyhlásilo neutralitu vůči Excelu.',
-      ];
-      v.newsUsed = v.newsUsed || [];
-      const line = bublikBagNext(news, v.newsUsed, Math.random);
+      const line = villageNews();
       if(line) chron(line);
     }
+  }
+  function villageNews(){
+    const v = village;
+    const names = crew.map(c => c.name).filter(Boolean), a = names.length ? pick(names) : 'Někdo', b = names.length > 1 ? pick(names.filter(n => n !== a)) : 'Bublík';
+    const news = [
+      `${a} ${g(a, 'našel', 'našla')} v rozpisu M2. Prý vzácnost.`, 'Volby starosty odloženy. Kandidát praskl.', 'Kopáč vykopal tunel. Vede zpátky na začátek.',
+      'Padákář hlásí: na obzoru kurzor. Nehýbe se.', 'Bublík pronesl projev. Nikdo neposlouchal, všichni tleskali.', 'Spáč vyhrál soutěž ve spaní. Zase.',
+      `${a} a ${b} se pohádali, kdo je kulatější. Remíza.`, `${a} ${g(a, 'založil', 'založila')} kroužek pletení z bublin.`, `${b} tvrdí, že ${g(b, 'viděl', 'viděla')} v tabulce ducha. Byla to prázdná buňka.`,
+      'Zastupitelstvo schválilo nový svátek: Den kulatosti.', `${a} si ${g(a, 'otevřel', 'otevřela')} kavárnu. Nabízí jen pěnu.`, 'Na radnici někdo nechal klíče. Radnice nemá dveře.',
+      `${b} ${g(b, 'napsal', 'napsala')} báseň. Rýmuje se jen „bublina“ a „bublina“.`, 'Proběhlo sčítání obyvatel. Výsledek: hodně.', `${a} se ${g(a, 'naučil', 'naučila')} pískat. Ostatní se naučili zacpat si uši.`,
+      'Počasí v Bublíkově: polojasno, místy pěna.', `${b} hledá práci. Umí být ${g(b, 'kulatý', 'kulatá')} a mlčet.`, 'Bublíkovo vyhlásilo neutralitu vůči Excelu.',
+    ];
+    v.newsUsed = v.newsUsed || [];
+    return bublikBagNext(news, v.newsUsed, Math.random);
   }
   // úklid vesnice — domky prasknou v bubliny, noc zmizí
   function villageTidy(fast){
@@ -5306,7 +5981,8 @@ const Bublik = (()=>{
     const stats = bublikVillageStats();
     village = null;
     const gone = (el, ms) => { if(fast) el.remove(); else { el.classList.add('bye'); setTimeout(() => el.remove(), ms); } };
-    v.houses.forEach((h, i) => setTimeout(() => { if(!fast) puf(h.x, floorY() - 25, 70); h.el.remove(); }, fast ? 0 : i * 90));
+    v.things.forEach((h, i) => setTimeout(() => { if(!fast) puf(h.x, floorY() - 25, 70); h.el.remove(); }, fast ? 0 : i * 70));
+    if(v.path) gone(v.path, 400);
     v.flowers.forEach(f => gone(f, 400));
     if(v.fire) gone(v.fire, 400);
     (v.eraItems || []).forEach(el => gone(el, 400));   // v0.9.64: stavby epoch
@@ -5482,10 +6158,64 @@ const Bublik = (()=>{
     setTimeout(() => z.remove(), 2700);
   }
 
+  // ── v0.9.66: dopočet — co se dělo, když stránka nebyla vidět ──
+  function catchUp(gap){
+    if(!started || !playful() || isTouch || S.mode === 'drag') return;
+    const idleFor = performance.now() - S.lastInput;
+    if(idleFor < 30 * 60000) return;            // pod půl hodiny se nic nedopočítává — představení prostě běží dál
+    if(!village){
+      startVillage(performance.now(), new Date(Date.now() - (idleFor - 30 * 60000)));
+      if(!village) return;
+      village.t0 -= idleFor - 30 * 60000;          // vesnice „vznikla“ už ve 30. minutě
+    }
+    villageCatchUp(Math.min(gap, idleFor - 30 * 60000));
+  }
+  // na rozpis jen skočí něco provést; zůstává u okrajů (a dole), ať nezakrývá směny
+  function gridRect(){
+    const t = document.getElementById('sched-table');
+    if(!t || !t.offsetParent) return null;
+    const r = t.getBoundingClientRect();
+    return r.width > 200 && r.height > 60 ? r : null;
+  }
+  function overGrid(x, y, w, h){
+    const r = gridRect(); if(!r) return false;
+    w = w || size(); h = h || size();
+    const cy = y - h * .5;
+    if(x < w + 16 || x > vw() - w - 16 || y > floorY() - 10 || y < h + 30) return false;   // okraje obrazovky jsou v pořádku
+    return x > r.left - w * .3 && x < r.right + w * .3 && cy > r.top - h * .3 && cy < r.bottom + h * .2;
+  }
+  function edgeSpot(w, h, nearFloor = .35){
+    w = w || size(); h = h || size();
+    const lo = w / 2 + 10, hi = vw() - w / 2 - 10;
+    for(let i = 0; i < 14; i++){
+      const tx = rand(lo, hi), ty = Math.random() < nearFloor ? floorY() : rand(h + 40, floorY());
+      if(!overGrid(tx, ty, w, h)) return { x: tx, y: ty };
+    }
+    return Math.random() < .7 ? { x: rand(lo, hi), y: floorY() } : { x: Math.random() < .5 ? lo : hi, y: rand(h + 40, floorY()) };
+  }
+  async function leaveGrid(tk){
+    const s = size(), r = gridRect();
+    // nejbližší okraj: dolů na zem, nebo stranou k levé/pravé straně
+    const opts = [{ x: S.x, y: floorY(), d: floorY() - S.y }];
+    if(r){ opts.push({ x: s / 2 + 10, y: S.y, d: S.x }); opts.push({ x: vw() - s / 2 - 10, y: S.y, d: vw() - S.x }); }
+    const o = opts.sort((a, b) => a.d - b.d)[0];
+    await flyTo(o.x, o.y, tk);
+  }
+  // co stihl — do pointy po návratu (místo počítání kousků)
+  function moment(t){ const m = S.awayStats.moments || (S.awayStats.moments = []); if(!m.includes(t)) m.push(t); if(m.length > 12) m.shift(); }
+
   // ── snímek ────────────────────────────────────────────────
-  let lastT = 0, frameSkip = 0;
+  let lastT = 0, frameSkip = 0, lastWall = 0, lastPerf = 0;
   function frame(now){
     rafId = requestAnimationFrame(frame);
+    // v0.9.66: mezera mezi snímky (skrytá karta, zhasnutá obrazovka, uspané PC) → svět mezitím žil dál
+    const wall = Date.now();
+    if(lastWall){
+      const wGap = wall - lastWall, drift = wGap - (now - lastPerf);
+      if(drift > 5000){ S.lastInput -= drift; if(village){ village.t0 -= drift; if(village.eraAt) village.eraAt -= drift; } }   // uspané PC: performance.now() stál, hodiny ne
+      if(wGap > 60000) catchUp(wGap);
+    }
+    lastWall = wall; lastPerf = now;
     if(village && (++frameSkip & 1)) return;   // v0.9.63: přes noc stačí poloviční snímková frekvence
     const dt = Math.min(.05, (now - lastT) / 1000); lastT = now;
     stepBubbles(dt);
@@ -5578,6 +6308,9 @@ const Bublik = (()=>{
     shadow.setAttribute('opacity', (sh * clamp(1 - (floorY() - S.y) / 90, 0, 1)).toFixed(2));   // v0.9.58: ve vzduchu bez stínu
 
     el.style.transform = `translate(${(S.x - size() / 2).toFixed(1)}px, ${(S.y - el.offsetHeight + 4).toFixed(1)}px)`;
+    placeProp();   // v0.9.67
+    const og = S.mode !== 'drag' && overGrid(S.x, S.y);   // v0.9.66: nad rozpisem bílá obrysová záře
+    if(og !== S.og){ S.og = og; el.classList.toggle('bub-over', og); }
     placeSpeech();
     brain(now);
   }
@@ -5603,13 +6336,14 @@ const Bublik = (()=>{
       S.nextThought = now + (stage >= 3 ? rand(14000, 26000) : rand(18000, 34000));
     }
     if(S.mode !== 'idle') return;
+    if(stage >= 1 && awayFromHome() && overGrid(S.x, S.y) && now > (S.nextLeave || 0)){ S.nextLeave = now + 4000; run(leaveGrid); return; }   // v0.9.66
     if(idleFor > T.sleep && !village){ S.deepSleep = false; run(sleep); return; }
     if(idleFor > T.bored && now > S.nextAntic){
       // v0.9.53: víc chodí po obrazovce a okukuje; z výletu se vrací sám nebo při tvém pohybu
       const away = awayFromHome(), floor = onFloor();
       // v0.9.61: od 5 min se rozdělí (2 Bublíčci, od 10 min 3, od 15 min 4)
       if(stage >= 3 && !isTouch && crew.length < crewMax(idleFor) && now > (S.nextSplit || 0)){
-        S.nextSplit = now + 150000; S.awayStats.antics++;
+        S.nextSplit = now + 85000; S.awayStats.antics++;
         run(crewSplit); S.nextAntic = now + rand(...T.between); return;
       }
       S.awayStats.antics++;
@@ -5617,10 +6351,15 @@ const Bublik = (()=>{
         [lookAround, 2], [burp, 2.5], [bigBubble, 1.8], [crawl, isTouch || away || !floor ? 0 : 2.5], [peek, floor ? 1.3 : 0], [yawn, .8],
         [dance, 1.3], [juggle, 1.5], [stretch, 1], [roll, 1],
         [explore, isTouch ? 0 : 5],
+        // v0.9.67: vlastní kousky s rekvizitami a scénkou
+        [sneeze, 1.2], [bubbleGum, 1.3], [magicTrick, 1.2], [balloon, 1], [phoneCall, 1.2], [readBook, 1.2], [selfie, 1.1], [meditate, .9],
+        [paperPlane, isTouch ? 0 : 1.2], [workout, 1.1], [skate, isTouch ? 0 : 1.1],
         // v0.9.60: Průzkumník (od 3 min) — hraje si s appkou, jen vizuálně
         ...(S.stage >= 2 && !isTouch ? [[sitOnButton, 2], [pokeChip, 2.5], [readNames, 1.4], [railWalk, 1.4], [climbWall, 1.6], [hangTop, 1.3]] : []),
         // v0.9.61: hry s Bublíčky
-        ...(crew.length ? [[crewPyramid, 1.8], [crewTrain, 1.6], [crewTag, 1.6], [crewBall, 1.4]] : []),
+        ...(crew.length ? [[crewPyramid, 1.4], [crewTrain, 1], [crewTag, 1], [crewBall, 1], [skitFishing, isTouch ? 0 : 1.6]] : []),
+        // v0.9.68: scénky s příběhem (aspoň 2 Bublíčci)
+        ...(crew.length >= 2 && !isTouch ? [[skitStatues, 2], [skitTheatre, 2], [skitBand, 1.8], [skitTug, 1.6], [skitHide, 1.8]] : []),
         // v0.9.62: Falešný chaos (od 15 min)
         ...(S.stage >= 4 && !isTouch ? [[stickNote, 2], [headbutt, 1.5], [stealLetter, 1.6], [crookRow, 1.6], [mowGrass, mess.grass && now - mess.grass.t0 > 60000 ? 2.2 : 0]] : []),
         [goHome, away ? 2.2 : 0],
@@ -5667,9 +6406,11 @@ const Bublik = (()=>{
     const now0 = performance.now(), away = now0 - S.lastInput;
     // v0.9.59: po 5+ min nečinnosti pohyb myši představení neukončí (ať ho ten, kdo přijde, stihne vidět);
     // když myší hýbeš souvisle přes 3 s, nabídne „klikni“. Ukončí ho klik, klávesa nebo kolečko.
-    if(kind === 'move' && S.stage >= 3 && playful()){
+    // v0.9.66: od 5 min ho neukončí ani klávesa (probouzení obrazovky) ani kolečko — jen klik nebo Esc
+    if((kind === 'move' || kind === 'key' || kind === 'wheel') && S.stage >= 3 && playful()){
+      if(kind !== 'move'){ S.moveStreak = now0 - 3100; S.moveLast = now0; }
       // souvislý pohyb myši déle než 3 s = asi ses vrátil → Bublík nabídne „klikni“
-      if(now0 - (S.moveLast || 0) > 450) S.moveStreak = now0;
+      if(now0 - (S.moveLast || 0) > 900) S.moveStreak = now0;
       S.moveLast = now0;
       if(now0 - S.moveStreak > 3000 && now0 - (S.noticedAt || 0) > 20000){
         S.noticedAt = now0;
@@ -5720,7 +6461,7 @@ const Bublik = (()=>{
     anticMove = 0; interrupt();
   }
   async function interrupt(){
-    cancelBusy();
+    cancelBusy(); dropProp(S.prop); S.grow = 1; S.faceA = 1; S.cheekPuff = 1;
     minis.forEach(m => { if(m.big) m.pop(false); });
     const tk = token(); S.mode = 'react';
     try{
@@ -5744,6 +6485,370 @@ const Bublik = (()=>{
   }
 
   // ── blbnutí ───────────────────────────────────────────────
+  // ── v0.9.67: rekvizity — telefon, knížka, hůlka, činka, skejt, letadýlko (drží je u sebe) ──
+  const PROPS = {
+    phone: { w: 14, h: 24, svg: '<svg viewBox="0 0 14 24"><rect x="1" y="1" width="12" height="22" rx="2.6" fill="#1f2937" stroke="#0b1220"/><rect x="2.6" y="3.6" width="8.8" height="14.6" rx="1" fill="#7dd3fc"/><circle cx="7" cy="20.4" r="1" fill="#94a3b8"/></svg>' },
+    book: { w: 44, h: 26, svg: '<svg viewBox="0 0 44 26"><path d="M22 5 Q12 1 3 4 L3 24 Q12 21 22 25 Z" fill="#fffdf6" stroke="#8b5a2b" stroke-width="1"/><path d="M22 5 Q32 1 41 4 L41 24 Q32 21 22 25 Z" fill="#fdf6e6" stroke="#8b5a2b" stroke-width="1"/><path d="M7 9 H17 M7 12 H16 M7 15 H17 M7 18 H14 M27 9 H37 M27 12 H36 M27 15 H37" stroke="#c9b99c" stroke-width=".9"/><g class="pg"><path d="M22 5 Q32 1 41 4 L41 24 Q32 21 22 25 Z" fill="#fffdf6" stroke="#8b5a2b" stroke-width=".8"/></g></svg>' },
+    wand: { w: 30, h: 30, svg: '<svg viewBox="0 0 30 30"><path d="M4 26 L20 10" stroke="#222" stroke-width="2.6" stroke-linecap="round"/><path d="M18.6 11.4 L21.4 8.6" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/><path d="M24 1.5 l1.5 3.3 3.5.3-2.7 2.3.9 3.4-3.2-1.9-3.2 1.9.9-3.4-2.7-2.3 3.5-.3z" fill="#f7c948" stroke="#a87a12" stroke-width=".6"/></svg>' },
+    barbell: { w: 72, h: 22, svg: '<svg viewBox="0 0 72 22"><path d="M8 11 H64" stroke="#555" stroke-width="2.6" stroke-linecap="round"/><circle cx="9" cy="11" r="9" fill="#5fcf98" stroke="#0a7a4d" stroke-width="1.2"/><circle cx="63" cy="11" r="9" fill="#5fcf98" stroke="#0a7a4d" stroke-width="1.2"/><ellipse cx="6" cy="7" rx="3" ry="1.8" fill="#fff" opacity=".7"/><ellipse cx="60" cy="7" rx="3" ry="1.8" fill="#fff" opacity=".7"/></svg>' },
+    skate: { w: 62, h: 16, svg: '<svg viewBox="0 0 62 16"><path d="M3 5 Q3 2 7 3 L55 3 Q59 2 59 5 Q59 8 55 8 L7 8 Q3 8 3 5 Z" fill="#f7a531" stroke="#7a4a12" stroke-width="1"/><circle cx="15" cy="12" r="3.2" fill="#333"/><circle cx="47" cy="12" r="3.2" fill="#333"/></svg>' },
+    drum: { w: 30, h: 26, svg: '<svg viewBox="0 0 30 26"><path d="M2 7 V19 Q15 26 28 19 V7" fill="#d63b3b" stroke="#7a1717"/><path d="M2 10 L8.5 21 L15 10 L21.5 21 L28 10" stroke="#f7c948" stroke-width="1.2" fill="none"/><ellipse cx="15" cy="7" rx="13" ry="5" fill="#f3efe2" stroke="#7a4a12"/></svg>' },
+    guitar: { w: 38, h: 18, svg: '<svg viewBox="0 0 38 18"><path d="M15 9 L37 6" stroke="#5a3b12" stroke-width="2.6" stroke-linecap="round"/><ellipse cx="9" cy="9" rx="8.5" ry="7" fill="#d79a62" stroke="#6b4319"/><circle cx="10" cy="9" r="2.2" fill="#4a2e12"/></svg>' },
+    trumpet: { w: 36, h: 18, svg: '<svg viewBox="0 0 36 18"><path d="M2 9 H21" stroke="#c9a227" stroke-width="3.2" stroke-linecap="round"/><path d="M20 9 L34 2 L34 16 Z" fill="#f7c948" stroke="#a87a12"/><rect x="8" y="3" width="2.2" height="5" fill="#a87a12"/><rect x="12.5" y="3" width="2.2" height="5" fill="#a87a12"/></svg>' },
+    rod: { w: 40, h: 40, svg: '<svg viewBox="0 0 40 40"><path d="M2 38 L38 2" stroke="#6b4319" stroke-width="2.4" stroke-linecap="round"/><circle cx="9" cy="31" r="3.2" fill="#333"/></svg>' },
+    flag: { w: 24, h: 34, svg: '<svg viewBox="0 0 24 34"><path d="M3 34 V2" stroke="#5a3b12" stroke-width="2"/><path d="M4 3 L22 8 L4 14 Z" fill="#12a46a" stroke="#044a30"/></svg>' },
+    bread: { w: 22, h: 12, svg: '<svg viewBox="0 0 22 12"><path d="M2 8 Q2 2 11 2 Q20 2 20 8 Q20 11 11 11 Q2 11 2 8 Z" fill="#e0a458" stroke="#8b5a2b"/><path d="M7 4 L8 7 M11 3.5 L12 6.5 M15 4 L16 7" stroke="#8b5a2b"/></svg>' },
+    bucket: { w: 16, h: 16, svg: '<svg viewBox="0 0 16 16"><path d="M2 5 H14 L12 15 H4 Z" fill="#9aa1aa" stroke="#4a5560"/><path d="M2 5 Q8 -3 14 5" fill="none" stroke="#4a5560"/><ellipse cx="8" cy="5" rx="6" ry="1.6" fill="#58b6ff"/></svg>' },
+    plane: { w: 40, h: 20, svg: '<svg viewBox="0 0 40 20"><path d="M2 10 L38 3 L16 12 Z" fill="#fff" stroke="#6b7280" stroke-width=".8"/><path d="M16 12 L38 3 L20 18 Z" fill="#e5e7eb" stroke="#6b7280" stroke-width=".8"/></svg>' },
+  };
+  // dx, dy = kde ji drží (souřadnice těla: 0 0 = spodek uprostřed, hlava ~ -46)
+  function holdProp(name, dx, dy, rot = 0){
+    dropProp(S.prop);
+    const d = PROPS[name], e2 = document.createElement('div');
+    e2.className = 'bub-prop'; e2.innerHTML = d.svg; e2.style.width = d.w + 'px'; e2.style.height = d.h + 'px';
+    document.body.appendChild(e2);
+    const p = { el: e2, w: d.w, h: d.h, dx, dy, rot, sc: 1, flip: 1 };
+    S.prop = p; placeProp();
+    return p;
+  }
+  function placeProp(){
+    const p = S.prop; if(!p) return;
+    const k = size() / 72;
+    p.el.style.transform = `translate(${(S.x + p.dx * k - p.w / 2).toFixed(1)}px,${(S.y - S.hop + p.dy * k - p.h / 2).toFixed(1)}px) rotate(${p.rot.toFixed(1)}deg) scale(${(p.sc * p.flip).toFixed(2)},${p.sc.toFixed(2)})`;
+  }
+  function dropProp(p){ if(!p) return; if(S.prop === p) S.prop = null; p.el.remove(); }
+
+  // ── v0.9.67: víc vlastních kousků do prvních 15 minut ──
+  async function sneeze(tk){
+    const s = size(), dir = S.x > vw() / 2 ? -1 : 1;   // kýchne do obrazovky
+    S.lookOverride = { x: dir * .3, y: -.6 };
+    for(const [h, t] of [[.06, 'Ha…'], [.1, 'Haa…'], [.15, 'Haaa…']]){
+      think(t, 1000, true); setMouth('o'); S.eyeScaleY = .55;
+      await tween(420, e => { S.sy = 1 + h * e; S.sx = 1 - h * .5 * e; S.tilt = -dir * 8 * e; }, tk);
+      await wait(rand(180, 420), tk);
+    }
+    if(Math.random() < .2){
+      // planý poplach
+      await tween(500, e => { S.sy = 1.15 - .15 * e; S.sx = .925 + .075 * e; S.tilt = -dir * 8 * (1 - e); }, tk);
+      S.eyeScaleY = 1; setMouth('flat'); think('…nic. Přešlo to.', 2200, true); await wait(1300, tk);
+    }
+    setEyes('closed'); setMouth('big'); S.eyeScaleY = 1; say('<b>HAPČÍ!</b>', 1300);
+    const m = svgPoint(dir * 6, -15);
+    for(let i = 0; i < 14; i++) spawnBubble(m.x, m.y, rand(5, 13), { vx: dir * rand(140, 320), vy: rand(-90, 30), life: rand(.9, 1.8) });
+    const x0 = S.x, x1 = clamp(x0 - dir * 26, s / 2 + 6, vw() - s / 2 - 6);
+    await tween(260, (e, p) => { S.sy = 1.15 - .3 * e; S.sx = .92 + .25 * e; S.tilt = -dir * 8 + dir * 22 * e; S.x = x0 + (x1 - x0) * e; S.hop = Math.sin(p * Math.PI) * 10; }, tk, ease.out);
+    S.hop = 0;
+    await tween(340, e => { S.tilt = dir * 14 * (1 - e); }, tk);
+    await wobble(.22, 600, tk);
+    setEyes('open'); setMouth('wavy'); blush(1800); S.lookOverride = { x: -dir, y: 0 };
+    await wait(500, tk);
+    think(pick(['Na zdraví. Děkuju.', 'Pardon. Bublinová rýma.', 'Asi jsem alergický na pondělí.', 'Kdo to tady pyluje?']), 3200, true);
+    moment('kýchnul (na zdraví)');
+    await wait(900, tk); S.lookOverride = null; setMouth('smile');
+  }
+  async function bubbleGum(tk){
+    setMouth('flat'); S.lookOverride = { x: 0, y: .4 };
+    for(let i = 0; i < 5; i++) await tween(170, (e, p) => { S.cheekPuff = 1 + .25 * Math.sin(p * Math.PI); S.sy = 1 - .03 * Math.sin(p * Math.PI); }, tk);   // žvýká
+    const g = document.createElement('div'); g.className = 'bub-gum'; document.body.appendChild(g);
+    let sp = null, d = 4;
+    const place = () => { const m = svgPoint(0, -15); g.style.width = g.style.height = d + 'px'; g.style.transform = `translate(${(m.x - d / 2).toFixed(1)}px,${(m.y - d * .45).toFixed(1)}px)`; };
+    const placeSp = () => { if(!sp) return; const c = svgPoint(0, -23), w = size() * .8; sp.style.width = w + 'px'; sp.style.height = w * .66 + 'px'; sp.style.transform = `translate(${(c.x - w / 2).toFixed(1)}px,${(c.y - w * .33).toFixed(1)}px) rotate(${S.tilt.toFixed(1)}deg)`; };
+    try{
+      setMouth('o');
+      const big = rand(40, 58), lift = Math.random() < .35;
+      await tween(2400, (e, p) => { d = 4 + big * e + Math.sin(p * 24) * 1.2; S.eyeScaleY = 1 - .4 * e; S.eyeWide = 1 + .15 * e; if(lift) S.hop = 26 * e * e; place(); }, tk, ease.out);
+      if(lift) think('Ehm… já letím.', 1600, true);
+      await wait(lift ? 900 : 300, tk);
+      // praskne → růžová po celém obličeji
+      const m = svgPoint(0, -15); puf(m.x, m.y, d * 1.2); g.remove();
+      sp = document.createElement('div'); sp.className = 'bub-gum-face'; document.body.appendChild(sp); placeSp();
+      S.eyeScaleY = 1; S.eyeWide = 1; setEyes('closed'); setMouth('flat');
+      if(lift){ await tween(320, e => { S.hop = 26 * (1 - e); placeSp(); }, tk, t => t * t); S.hop = 0; await wobble(.25, 500, tk); }
+      else await tween(400, () => placeSp(), tk);
+      await tween(700, () => placeSp(), tk);
+      for(let i = 0; i < 6; i++) await tween(110, e => { S.tilt = (i % 2 ? -1 : 1) * 12 * Math.sin(e * Math.PI); placeSp(); sp.style.opacity = String(1 - (i + e) / 6); }, tk);   // otřepe se
+      sp.remove(); sp = null; S.tilt = 0; setEyes('open'); blush(1600); setMouth('wavy');
+      think(pick(['Tohle se v reklamě nestalo.', 'Růžová mi sluší. Ale ne na očích.', 'Žvýkačka 1 : Bublík 0.']), 3000, true);
+      moment('nafoukl žvýkačku (praskla mi na obličeji)');
+      await wait(900, tk); setMouth('smile');
+    } finally { g.remove(); if(sp) sp.remove(); S.cheekPuff = 1; S.eyeScaleY = 1; S.eyeWide = 1; }
+  }
+  async function magicTrick(tk){
+    const s = size(), p = holdProp('wand', 26, -32, -30);
+    try{
+      think(pick(['Dámy a pánové… kouzlo!', 'A teď zmizím. Nedívej se.', 'Abraka… bublina!']), 2600, true);
+      setMouth('grin'); S.lookOverride = { x: .6, y: -.6 };
+      for(let i = 0; i < 3; i++){
+        await tween(260, e => { p.rot = -30 + 55 * Math.sin(e * Math.PI); }, tk);
+        const k = s / 72, tx = S.x + (p.dx + 10) * k, ty = S.y - S.hop + (p.dy - 12) * k;
+        for(let j = 0; j < 3; j++) spawnBubble(tx, ty, rand(4, 8), { vx: rand(-60, 60), vy: -rand(20, 70), life: rand(.5, 1) });
+      }
+      puf(S.x, S.y - s * .4, s * 1.4);
+      await tween(260, e => { S.grow = 1 - e * .98; S.faceA = 1 - e; p.sc = 1 - e * .98; }, tk);
+      dropProp(p);
+      const r = Math.random(), y0 = S.y;
+      await wait(rand(900, 1500), tk);
+      if(r < .6){ const sp = edgeSpot(s, s); S.x = clamp(sp.x, s / 2 + 10, vw() - s / 2 - 10); S.y = sp.y; }
+      puf(S.x, S.y - s * .4, s * 1.2);
+      if(r < .6){
+        await tween(340, e => { S.grow = .02 + .98 * e; S.faceA = e; }, tk, ease.back);
+        setEyes('happy'); setMouth('grin'); think(pick(['Tadá!', 'Potlesk, prosím.', 'A to jsem se ani neučil.']), 2600, true); await hopSmall(tk, 14); setEyes('open');
+      } else if(r < .82){
+        // vyšlo jen napůl — je malinký
+        await tween(300, e => { S.grow = .02 + .36 * e; S.faceA = e; }, tk, ease.back);
+        S.eyeWide = 1.3; setMouth('o'); blush(2600); think('…to byla zkouška.', 2400, true); await wait(1300, tk);
+        await tween(420, e => { S.grow = .38 + .62 * e; }, tk, ease.back); S.eyeWide = 1;
+      } else {
+        // objeví se vzhůru nohama
+        S.tilt = 180; S.y = y0 - s * .92;
+        await tween(320, e => { S.grow = .02 + .98 * e; S.faceA = e; }, tk, ease.back);
+        think('Ehm. Skoro.', 2200, true); await wait(1000, tk);
+        await tween(520, e => { S.tilt = 180 * (1 - e); S.y = y0 - s * .92 * (1 - e); }, tk, ease.inOut);
+        await wobble(.18, 450, tk);
+      }
+      moment('předvedl kouzlo (skoro vyšlo)');
+    } finally { dropProp(p); S.grow = 1; S.faceA = 1; S.eyeWide = 1; }
+  }
+  async function balloon(tk){
+    const s = size();
+    think(pick(['Nafouknu se. Co by se mohlo pokazit?', 'Chci vidět strop zblízka.']), 2600, true);
+    setMouth('o'); S.lookOverride = { x: 0, y: -.5 };
+    try{
+      await tween(1500, e => { S.grow = 1 + .45 * e; S.cheekPuff = 1 + .5 * e; S.eyeWide = 1 + .2 * e; }, tk, ease.inOut);
+      const x0 = S.x, y0 = S.y, ty = s * 1.5 + 12;
+      setMouth('cat');
+      await tween(clamp((y0 - ty) * 6, 1600, 4200), (e, p) => { S.y = y0 + (ty - y0) * e; S.x = clamp(x0 + Math.sin(p * Math.PI * 3) * 22, s, vw() - s); S.tilt = Math.sin(p * Math.PI * 3) * 8; }, tk, ease.inOut);
+      await tween(140, e => { S.sy = 1 - .15 * e; S.y = ty - 6 * e; }, tk);
+      await tween(260, e => { S.sy = .85 + .15 * e; S.y = ty - 6 + 10 * e; }, tk);
+      think('Ťuk.', 1200, true); await wait(800, tk);
+      // pfffff — vyfukuje se a lítá sem a tam
+      setMouth('big'); S.eyeWide = 1.3; say('Pfffffff…', 2800);
+      let x = S.x, y = S.y, spin = S.tilt;
+      for(let i = 0; i < 6; i++){
+        const nx = clamp(x + rand(-1, 1) * vw() * .35, s, vw() - s), ny = clamp(y + rand(-.2, 1) * vh() * .25, s * 1.3, floorY() - s * .2);
+        const fx = x, fy = y, g0 = S.grow, g1 = 1.45 - .45 * (i + 1) / 6, sp0 = spin, sp1 = spin + rand(140, 260) * (Math.random() < .5 ? -1 : 1);
+        let tr = 0;
+        await tween(rand(320, 520), (e, p) => {
+          S.x = fx + (nx - fx) * e; S.y = fy + (ny - fy) * e; S.grow = g0 + (g1 - g0) * e; S.tilt = sp0 + (sp1 - sp0) * e;
+          if(p > tr){ tr = p + .3; const m = svgPoint(0, -2); spawnBubble(m.x, m.y, rand(4, 9), { vx: rand(-50, 50), vy: rand(-30, 30), life: rand(.5, 1) }); }
+        }, tk, ease.lin);
+        x = nx; y = ny; spin = sp1;
+      }
+      S.tilt = 0; S.cheekPuff = 1; S.grow = 1;
+      const fy = S.y;
+      await tween(clamp((floorY() - fy) * 2.2, 300, 900), e => { S.y = fy + (floorY() - fy) * e; }, tk, t => t * t);
+      S.sx = 1.3; S.sy = .7; setEyes('dizzy'); S.stars = true; S.starT = 0; await wobble(.3, 700, tk);
+      await wait(1400, tk); S.stars = false; setEyes('open'); setMouth('wavy'); S.eyeWide = 1;
+      think(pick(['Tohle už nikdy. Do zítřka.', 'Byl to krásný let. Přistání méně.']), 3000, true);
+      moment('nafoukl se jako balónek a ulétl');
+    } finally { S.grow = 1; S.cheekPuff = 1; S.eyeWide = 1; S.stars = false; }
+  }
+  async function paperPlane(tk){
+    const s = size();
+    if(!onFloor()) await travelTo(S.x, floorY(), tk);
+    const dir = S.x > vw() / 2 ? -1 : 1, p = holdProp('plane', dir * 26, -48, 0);
+    p.flip = dir;
+    let plane = null;
+    try{
+      think(pick(['Skládám letadýlko. Tohle umím.', 'Letecká pošta. Adresát neznámý.']), 2600, true);
+      p.sc = .2; await tween(500, e => { p.sc = .2 + .8 * e; }, tk, ease.back);
+      S.lookOverride = { x: dir, y: -.5 }; setMouth('cat');
+      await tween(420, e => { S.tilt = -dir * 14 * e; p.dx = dir * (26 - 16 * e); p.dy = -48 - 10 * e; p.rot = -dir * 18 * e; }, tk);
+      const k = s / 72, sx = S.x + p.dx * k, sy = S.y + p.dy * k;
+      dropProp(p);
+      plane = document.createElement('div'); plane.className = 'bub-prop'; plane.innerHTML = PROPS.plane.svg;
+      plane.style.width = '40px'; plane.style.height = '20px'; document.body.appendChild(plane);
+      tween(200, e => { S.tilt = -dir * 14 + dir * 24 * e; }, tk).then(() => tween(300, e => { S.tilt = dir * 10 * (1 - e); }, tk)).catch(() => {});
+      const crash = Math.random() < .3, loop = !crash && Math.random() < .5;
+      const ex = crash ? (dir > 0 ? vw() - 16 : 16) : clamp(sx + dir * rand(.35, .6) * vw(), 40, vw() - 40), ey = crash ? rand(vh() * .3, vh() * .6) : floorY() - 6;
+      let prev = { x: sx, y: sy }, px = sx, py = sy;
+      await tween(crash ? 1900 : 2700, (e, pr) => {
+        let x = sx + (ex - sx) * e, y = sy + (ey - sy) * e - Math.sin(pr * Math.PI) * vh() * (crash ? .12 : .22);
+        if(loop && pr > .35 && pr < .65){ const a = (pr - .35) / .3 * Math.PI * 2; x += dir * Math.sin(a) * 55; y -= (1 - Math.cos(a)) * 45; }
+        const ang = Math.atan2(y - prev.y, x - prev.x) * 180 / Math.PI;
+        if(Math.hypot(x - prev.x, y - prev.y) > .5) plane.style.transform = `translate(${(x - 20).toFixed(1)}px,${(y - 10).toFixed(1)}px) rotate(${ang.toFixed(1)}deg)`;
+        prev = { x, y }; px = x; py = y;
+        S.lookOverride = { x: clamp((x - S.x) / 300, -1, 1), y: clamp((y - S.y) / 300, -1, 1) };
+      }, tk, crash ? ease.lin : ease.inOut);
+      if(crash){
+        puf(px, py, 34); setMouth('wavy'); blush(2200);
+        think(pick(['Přistání… nouzové.', 'Letadlo našlo zeď. Zeď našla letadlo.']), 3000, true);
+        const y0 = py;
+        await tween(700, e => { py = y0 + (floorY() - 6 - y0) * e; plane.style.transform = `translate(${(px - 20).toFixed(1)}px,${(py - 10).toFixed(1)}px) rotate(${(dir * 90 * (1 - e) + dir * 160 * e).toFixed(0)}deg)`; }, tk, t => t * t);
+      } else {
+        setEyes('happy'); setMouth('grin');
+        think(pick(['Přistálo! Kapitán Bublík děkuje za let.', 'Rekord! Asi. Nikdo neměřil.']), 3000, true);
+        await hopSmall(tk, 16); setEyes('open');
+      }
+      await travelTo(clamp(px - dir * s * .5, s / 2 + 8, vw() - s / 2 - 8), floorY(), tk);
+      S.lookOverride = { x: dir, y: .6 }; await wait(300, tk);
+      plane.remove(); plane = null; await hopSmall(tk, 8);
+      moment('pouštěl papírová letadýlka');
+      S.lookOverride = null; setMouth('smile');
+    } finally { dropProp(p); if(plane) plane.remove(); }
+  }
+  async function phoneCall(tk){
+    const p = holdProp('phone', 25, -24, 15);
+    try{
+      const nm = randomFirstName();
+      const scripts = [
+        ['Haló? …', 'Ne, tady není pizzerie.', '…Ale kdybyste chtěli směnu, v úterý máme volno.', 'Haló?'],
+        ['Ahoj mami.', 'Jo, jím dobře. Bubliny.', 'Jo, pořád jsem kulatý.', 'Taky tě mám rád. Pá.'],
+        ['Dobrý den, volám ohledně prodloužené záruky na vaši bublinu.', '…Ne?', 'Rozumím. Prasknutí stejně nekryje.'],
+        ['Podpora Směn, u telefonu Bublík.', 'Zkoušeli jste to vypnout a zapnout?', '…Funguje? Rádo se stalo.'],
+        ['Haló, Excel? Tady Směny.', 'Jen jsem chtěl říct, že vás už nepotřebujeme.', '…Ne, vážně. Ahoj.'],
+        ['Pizza? Jednu velkou, prosím.', 'Adresa? Pravý dolní roh obrazovky.', '…Haló?'],
+      ];
+      if(nm) scripts.push([`Haló, ${nm}?`, 'Jen jsem ti chtěl říct, že jsi super.', 'Ne, nic nechci.', bublikIsFem(nm) ? '…Zavěsila.' : '…Zavěsil.']);
+      const sc = pick(scripts);
+      setMouth('o'); S.eyeWide = 1.2; think('Crrr crrr…', 1400, true);
+      for(let i = 0; i < 8; i++) await tween(80, e => { p.rot = 15 + (i % 2 ? -16 : 16) * e; }, tk);
+      p.rot = 10; S.eyeWide = 1;
+      await tween(260, e => { p.dx = 25 - 6 * e; p.dy = -24 - 10 * e; }, tk);   // k uchu
+      for(const line of sc){
+        say(line, clamp(line.length * 70, 1500, 3200));
+        const t0 = performance.now();
+        await tween(clamp(line.length * 55, 1100, 2400), () => { setMouth(Math.floor((performance.now() - t0) / 130) % 2 ? 'o' : 'smile'); }, tk, ease.lin);
+        setMouth('smile'); S.lookOverride = { x: rand(-1, 1), y: rand(-.6, .2) };
+        await wait(rand(800, 1400), tk);   // poslouchá
+      }
+      S.lookOverride = null;
+      moment('telefonoval (prý důležitě)');
+    } finally { dropProp(p); }
+  }
+  async function readBook(tk){
+    const p = holdProp('book', 0, -4, 0), pg = p.el.querySelector('.pg');
+    try{
+      const t = pick(['Jak být kulatý', 'Bublina a moře', 'Excel pro pokročilé', 'Zákoník práce (s obrázky)', '50 odstínů zelené', 'Pěna dní', 'Velká kniha směn']);
+      think(`Čtu „${t}“. Napínavé.`, 2800, true);
+      setMouth('cat');
+      for(let i = 0; i < 3; i++){
+        for(let k = 0; k < 3; k++){ S.lookOverride = { x: -.6, y: .85 }; await wait(260, tk); S.lookOverride = { x: .6, y: .85 }; await wait(430, tk); }
+        await tween(320, e => { pg.setAttribute('transform', `translate(22 0) scale(${(1 - 2 * e).toFixed(2)} 1) translate(-22 0)`); }, tk);
+        pg.setAttribute('transform', '');
+        if(i === 1 && Math.random() < .55){ setEyes('happy'); setMouth('grin'); await hopSmall(tk, 8); setEyes('open'); setMouth('cat'); think(pick(['Cha! Tohle je dobrý.', 'Ten konec jsem nečekal. Jsem teprve na straně 3.']), 2400, true); }
+      }
+      if(Math.random() < .35){
+        // usne nad knížkou a pak sebou cukne
+        setEyes('closed'); setMouth('sleep'); S.lookOverride = { x: 0, y: 1 };
+        await tween(600, e => { S.tilt = 8 * e; p.rot = 8 * e; }, tk);
+        for(let k = 0; k < 3; k++){ zzz(); await wait(1200, tk); }
+        S.eyeWide = 1.3; setEyes('open'); setMouth('o');
+        await tween(220, (e, q) => { S.hop = Math.sin(q * Math.PI) * 12; S.tilt = 8 * (1 - e); p.rot = 8 * (1 - e); }, tk, ease.lin);
+        S.hop = 0; S.eyeWide = 1;
+        think('Nespím! Přemýšlím se zavřenýma očima.', 3000, true);
+      } else think(pick(['Dočteno. Hlavní hrdina byl kulatý. Jako já.', 'Doporučuju. Pět bublin z pěti.']), 3000, true);
+      moment(`četl knížku „${t}“`);
+      await wait(900, tk); S.lookOverride = null; setMouth('smile');
+    } finally { dropProp(p); }
+  }
+  async function workout(tk){
+    if(!onFloor()) await travelTo(S.x, floorY(), tk);
+    think(pick(['Cvičím. Na léto. Bublinové léto.', 'Dneska kliky. Kolik dám? Všechny.']), 2600, true);
+    setMouth('flat'); S.lookOverride = { x: 0, y: .3 };
+    let p = null;
+    try{
+      for(const c of ['1', '2', '3', 'tři a půl…', 'dost.']){
+        await tween(300, e => { S.sy = 1 - .28 * e; S.sx = 1 + .14 * e; }, tk);
+        await tween(c.length > 2 ? 900 : 360, e => { S.sy = .72 + .28 * e; S.sx = 1.14 - .14 * e; }, tk);
+        say(c, 800);
+        if(c === '3') sweat.setAttribute('opacity', '1');
+        await wait(200, tk);
+      }
+      // činka nad hlavou
+      p = holdProp('barbell', 0, -56, 0); p.sc = .3;
+      await tween(300, e => { p.sc = .3 + .7 * e; }, tk, ease.back);
+      setMouth('big'); S.eyeWide = 1.2;
+      await tween(1000, (e, q) => { p.dy = -56 - 14 * e; S.sy = 1 - .16 * e + Math.sin(q * 40) * .02; p.rot = Math.sin(q * 30) * 6; }, tk, ease.lin);
+      await wait(500, tk);
+      // pustí ji — bum, a odkutálí se
+      await tween(260, e => { p.dy = -70 + 64 * e; p.rot = 0; }, tk, t => t * t);
+      S.sx = 1.2; S.sy = .8; setEyes('closed'); setMouth('wavy');
+      await wobble(.25, 500, tk);
+      const dir = S.x > vw() / 2 ? -1 : 1;
+      await tween(900, e => { p.dx = dir * 110 * e; p.rot = dir * 360 * e; p.el.style.opacity = String(1 - e * .9); }, tk, ease.out);
+      dropProp(p); p = null;
+      setEyes('open'); S.eyeWide = 1;
+      think(pick(['Rekord! Nikdo neviděl, takže se počítá.', 'Na dnešek stačí. Na zítřek taky.']), 3000, true);
+      moment('posiloval (tři a půl kliku)');
+      await wait(800, tk); setMouth('smile');
+    } finally { if(p) dropProp(p); sweat.setAttribute('opacity', '0'); S.eyeWide = 1; }
+  }
+  async function skate(tk){
+    const s = size();
+    if(!onFloor()) await travelTo(S.x, floorY(), tk);
+    const dir = S.x > vw() / 2 ? -1 : 1, p = holdProp('skate', 0, 4, 0);
+    try{
+      think(pick(['Skejt! Pozor, jedu.', 'Kickflip. Teď. Asi.']), 2200, true);
+      setMouth('grin'); S.lookOverride = { x: dir, y: 0 };
+      p.sc = .2; await tween(300, e => { p.sc = .2 + .8 * e; }, tk, ease.back);
+      await tween(200, (e, q) => { S.hop = Math.sin(q * Math.PI) * 10; }, tk, ease.lin); S.hop = 0;   // naskočí
+      const x0 = S.x, x1 = clamp(x0 + dir * vw() * rand(.35, .55), s, vw() - s), xm = x0 + (x1 - x0) * .45, xo = x0 + (x1 - x0) * .65;
+      const fail = Math.random() < .35;
+      await tween(Math.abs(xm - x0) * 3, e => { S.x = x0 + (xm - x0) * e; S.tilt = -dir * 6 * e; }, tk, t => t * t);
+      await tween(560, (e, q) => { S.x = xm + (xo - xm) * e; S.hop = Math.sin(q * Math.PI) * 46; p.rot = fail ? q * 200 : q * 360; S.sy = 1 + .1 * Math.sin(q * Math.PI); }, tk, ease.lin);
+      S.hop = 0;
+      if(!fail){
+        p.rot = 0;
+        await tween(Math.abs(x1 - xo) * 3, e => { S.x = xo + (x1 - xo) * e; S.tilt = -dir * 6 * (1 - e); }, tk, ease.out);
+        setEyes('happy'); think(pick(['Čistý kickflip! Viděl to někdo?', 'Tony Bublík.']), 2800, true); await hopSmall(tk, 10); setEyes('open');
+      } else {
+        // prkno ujede, Bublík hodí šipku
+        const xf = S.x, y0 = S.y, dx0 = p.dx;
+        setMouth('o'); S.eyeWide = 1.3;
+        await tween(700, e => { p.dx = dx0 + dir * vw() * .22 * e * 72 / s; p.rot = 200 + 160 * e; S.tilt = dir * 85 * Math.min(1, e * 2.5); S.x = xf + dir * 22 * e; S.y = y0 - s * .4 * Math.min(1, e * 2.5); }, tk, ease.out);
+        S.sx = 1.2; S.sy = .8; setEyes('dizzy'); S.stars = true; S.starT = 0; setMouth('wavy'); S.eyeWide = 1;
+        await wait(1600, tk);
+        S.stars = false; setEyes('open');
+        await tween(420, e => { S.tilt = dir * 85 * (1 - e); S.y = y0 - s * .4 * (1 - e); }, tk); S.sx = S.sy = 1;
+        think(pick(['Tak to byl skoro kickflip.', 'Za to může prkno.']), 2800, true); blush(2000);
+      }
+      moment('jezdil na skejtu');
+      await wait(600, tk);
+    } finally { dropProp(p); S.stars = false; S.eyeWide = 1; }
+  }
+  async function selfie(tk){
+    const s = size(), dir = S.x > vw() / 2 ? -1 : 1, p = holdProp('phone', dir * 32, -62, -dir * 15);
+    try{
+      think(pick(['Selfíčko! Pro sociální sítě.', 'Hashtag práce. Hashtag bublina.']), 2400, true);
+      const poses = [['happy', 'grin', -8], ['open', 'cat', 10], ['open', 'o', 0], ['closed', 'grin', -12]].sort(() => Math.random() - .5).slice(0, 3);
+      for(const [ey, mo, ti] of poses){
+        setEyes(ey); setMouth(mo); S.lookOverride = { x: dir * .8, y: -.7 };
+        await tween(260, e => { S.tilt = ti * e; }, tk);
+        await wait(380, tk);
+        const k = s / 72, f = document.createElement('div'); f.className = 'bub-flash';
+        f.style.setProperty('--t', `translate(${(S.x + p.dx * k).toFixed(0)}px,${(S.y - S.hop + p.dy * k).toFixed(0)}px)`);
+        document.body.appendChild(f); setTimeout(() => f.remove(), 400);
+        await wait(340, tk);
+      }
+      setEyes('open'); setMouth('smile'); S.tilt = 0;
+      const pol = document.createElement('div'); pol.className = 'bub-polaroid';
+      pol.innerHTML = `<div class="ph"><svg viewBox="-30 -50 60 52"><circle cx="0" cy="-23" r="23" fill="url(#bub-g-body)"/><ellipse cx="-9" cy="-35" rx="6" ry="3.4" fill="#fff" opacity=".8" transform="rotate(-32 -9 -35)"/><path d="M -11 -24 Q -7.5 -28 -4 -24 M 4 -24 Q 7.5 -28 11 -24" stroke="#102a1e" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M -6 -16 Q 0 -9 6 -16 Z" fill="#5a1626"/></svg></div>${pick(['#bublík #práce', '#nofilter', '#kulatýden', '#směny'])}`;
+      const px = clamp(S.x - dir * s * 1.1 - 45, 8, vw() - 98), py = clamp(S.y - s * 1.9, 8, vh() - 110);
+      pol.style.transform = `translate(${px}px,${py + 20}px) rotate(${-dir * 6}deg)`; pol.style.opacity = '0';
+      document.body.appendChild(pol);
+      requestAnimationFrame(() => { pol.style.transform = `translate(${px}px,${py}px) rotate(${-dir * 6}deg)`; pol.style.opacity = '1'; });
+      setTimeout(() => { pol.style.opacity = '0'; setTimeout(() => pol.remove(), 600); }, 3800);
+      think(pick(['Dvacet lajků. Všechny ode mě.', 'Nejlepší je ta třetí. Vypadám na ní kulatě.']), 3000, true);
+      moment('udělal si selfíčko');
+      await wait(1200, tk);
+    } finally { dropProp(p); }
+  }
+  async function meditate(tk){
+    think(pick(['Ómmmm…', 'Hledám vnitřní klid. Asi je někde pod rozpisem.']), 3000, true);
+    setEyes('closed'); setMouth('flat'); S.lookOverride = null;
+    const y0 = S.y, up = clamp(y0 - size() - 10, 0, 48), t0 = performance.now();
+    let ring = 0;
+    await tween(5200, (e, q) => {
+      S.y = y0 - up * Math.sin(Math.min(1, q * 2.5) * Math.PI / 2) + Math.sin((performance.now() - t0) / 400) * 3;
+      if(q > ring){ ring = q + .22; const c = svgPoint(0, -23), r0 = document.createElement('div'); r0.className = 'bub-ring'; r0.style.setProperty('--t', `translate(${c.x.toFixed(0)}px,${c.y.toFixed(0)}px)`); document.body.appendChild(r0); setTimeout(() => r0.remove(), 1700); }
+    }, tk, ease.lin);
+    if(Math.random() < .5){ S.eyeWide = 1.2; setEyes('open'); setMouth('o'); think('…zapomněl jsem, co jsem hledal.', 2600, true); await wait(900, tk); S.eyeWide = 1; }
+    else { setEyes('happy'); setMouth('smile'); think('Vnitřní klid nalezen. A zase ztracen.', 3000, true); await wait(900, tk); }
+    const y1 = S.y; await tween(600, e => { S.y = y1 + (y0 - y1) * e; }, tk, ease.inOut);
+    await wobble(.14, 400, tk); setEyes('open'); setMouth('smile');
+    moment('meditoval (vnitřní klid nenalezen)');
+  }
   async function lookAround(tk){
     setMouth('cat');
     for(const p of [{ x: -1, y: -.2 }, { x: 1, y: -.2 }, { x: 0, y: -1 }, { x: -.6, y: .4 }]){ S.lookOverride = p; await wait(rand(380, 650), tk); }
@@ -5864,6 +6969,7 @@ const Bublik = (()=>{
     await flyTo(clamp(c.r.left + c.r.width / 2, s / 2 + 8, vw() - s / 2 - 8), c.r.top + 2, tk);
     await tween(220, e => { S.sx = 1 + .08 * e; S.sy = 1 - .08 * e; }, tk);
     const id = c.n.id, txt = (c.n.textContent || '').trim().slice(0, 30);
+    moment(id === 'publish-btn' ? 'seděl na tlačítku Publikovat (nezmáčkl jsem ho)' : 'seděl na tlačítku');
     think(id === 'publish-btn' ? pick(['Publikovat? Klidně bych to zmáčkl. …Ale nezmáčknu.', 'Sedím na Publikovat. Nikdo se nebojte.'])
       : id === 'auto-schedule-btn' ? pick(['Automaticky doplnit. Kdyby to šlo i s obědem.', 'Tohle tlačítko je teplé. Asi hodně pracuje.'])
       : pick([`„${bubEsc(txt)}“. Pohodlné tlačítko, pět hvězdiček.`, 'Tady je výhled. A je to měkké.']), 4200, true);
@@ -5883,6 +6989,7 @@ const Bublik = (()=>{
     const x0 = S.x;
     await tween(140, e => { S.x = x0 - side * 9 * e; S.tilt = -side * 10 * e; }, tk);
     c.n.classList.remove('bub-poked'); void c.n.offsetWidth; c.n.classList.add('bub-poked');
+    moment('dloubal do směn');
     setTimeout(() => c.n.classList.remove('bub-poked'), 800);
     await tween(200, e => { S.x = x0 - side * 9 * (1 - e); S.tilt = -side * 10 * (1 - e); }, tk);
     const td = c.n.closest('td'), name = td ? empFirstName(td.dataset.emp) : '', day = td && td.dataset.date ? Number(td.dataset.date.slice(8)) : 0;
@@ -5902,6 +7009,7 @@ const Bublik = (()=>{
     await flyTo(clamp(first.left + 150 + s / 2, s / 2 + 8, vw() - s / 2 - 8), clamp(first.top + s * .9, s + 8, floorY()), tk);
     S.lookOverride = { x: -1, y: 0 }; setMouth('o');
     const pickN = names.sort(() => Math.random() - .5).slice(0, 3);
+    moment('přečetl jména v rozpisu');
     for(const nm of pickN){ think(`${nm}…`, 900, true); await wait(950, tk); }
     S.lookOverride = null; setMouth('smile');
     think(pick(['Samí dobří lidé. Jen nevím, kdo z nich krmí kytky.', `${pickN[0]} má hezké jméno. Já mám Bublík. Taky hezké.`, 'Kdyby tohle byla třída, byl bych třídní.']), 3800, true);
@@ -5914,31 +7022,43 @@ const Bublik = (()=>{
     const lo = clamp(r.left + s / 2, s / 2 + 8, vw() - s / 2 - 8), hi = clamp(Math.min(r.right, vw()) - s / 2, s / 2 + 8, vw() - s / 2 - 8);
     const fromLeft = Math.abs(S.x - lo) < Math.abs(S.x - hi);
     await flyTo(fromLeft ? lo : hi, r.top, tk);
+    moment('balancoval na okraji tabulky');
     think(pick(['Balancuju na tabulce. Nedívej se dolů.', 'Procházka po okraji rozpisu. Doporučuju.', 'Tohle je moje zábradlí. Moje!']), 3800, true);
     S.y = r.top;
     await walkTo(fromLeft ? hi : lo, tk);
     if(Math.random() < .4){ setEyes('happy'); await hopSmall(tk, 14); setEyes('open'); }
   }
   async function climbWall(tk){
-    const s = size(), left = S.x < vw() / 2, wx = left ? s / 2 + 2 : vw() - s / 2 - 2;
-    await flyTo(wx, floorY(), tk);
+    const s = size(), left = S.x < vw() / 2, dir = left ? -1 : 1;
+    await flyTo(left ? s / 2 + 8 : vw() - s / 2 - 8, floorY(), tk);
     // škrábe o kraj (jako kočka)
-    S.lookOverride = { x: left ? -1 : 1, y: 0 }; setMouth('flat');
-    for(let i = 0; i < 4; i++) await tween(110, e => { S.tilt = (left ? -1 : 1) * (6 + 6 * Math.sin(e * Math.PI)); }, tk);
-    // přichytí se a leze nahoru
-    const lean = left ? -78 : 78, y0 = S.y, top = Math.max(s + 20, vh() * rand(.25, .5));
-    await tween(300, e => { S.tilt = lean * e; }, tk);
-    setMouth('cat'); S.lookOverride = { x: 0, y: -1 };
-    let y = y0;
+    S.lookOverride = { x: dir, y: 0 }; setMouth('flat');
+    for(let i = 0; i < 4; i++) await tween(110, e => { S.tilt = dir * (6 + 6 * Math.sin(e * Math.PI)); }, tk);
+    // v0.9.66: přilepí se spodkem ke zdi (zeď je teď jeho podlaha), hlavou do obrazovky, a šplhá jako housenka
+    const lean = left ? 90 : -90, x0 = S.x, y0 = S.y, wx = left ? 3 : vw() - 3, lift = s * .46;
+    await tween(380, (e, p) => { S.tilt = dir * 10 * (1 - e) + lean * e; S.x = x0 + (wx - x0) * e; S.y = y0 - lift * e; S.sy = 1 - .1 * Math.sin(p * Math.PI); }, tk, ease.back);
+    await wobble(.12, 360, tk);
+    setMouth('cat'); S.lookOverride = { x: dir, y: 0 };   // v těle otočeném o 90° = kouká vzhůru po zdi
+    const top = Math.max(s + 24, vh() * rand(.22, .45));
+    let y = S.y;
     while(y - top > 6){
-      const step = Math.min(34, y - top), from = y;
-      await tween(240, (e, p) => { S.y = from - step * e; S.sx = 1 - .1 * Math.sin(p * Math.PI); S.sy = 1 + .12 * Math.sin(p * Math.PI); }, tk);
+      const step = Math.min(30, y - top), from = y;
+      await tween(170, e => { S.sx = 1 + .16 * e; S.sy = 1 - .1 * e; S.y = from - step * .7 * e; }, tk);
+      await tween(190, e => { S.sx = 1.16 - .2 * e; S.sy = .9 + .12 * e; S.y = from - step * (.7 + .3 * e); }, tk);
+      await tween(90, e => { S.sx = .96 + .04 * e; S.sy = 1.02 - .02 * e; }, tk);
       y = from - step;
-      await wait(rand(60, 180), tk);
+      if(Math.random() < .25) await wait(rand(120, 300), tk);
     }
-    think(pick(['Lezu po zdi. Ruce na to nepotřebuju.', 'Tady nahoře je to jiný svět.', 'Kdo řekl, že bubliny nelezou?']), 3600, true);
-    await wait(rand(900, 1600), tk);
-    await tween(400, e => { S.tilt = lean * (1 - e); }, tk);
+    S.sx = S.sy = 1;
+    think(pick(['Lezu po zdi. Ruce na to nepotřebuju.', 'Tady nahoře je to jiný svět.', 'Kdo řekl, že bubliny nelezou?', 'Zeď je jen podlaha, která se moc nesnaží.']), 3600, true);
+    S.lookOverride = { x: 0, y: -1 }; await wait(rand(700, 1100), tk);   // do obrazovky
+    S.lookOverride = { x: -dir, y: -.3 }; setEyes('happy'); await wait(600, tk); setEyes('open');
+    S.lookOverride = { x: dir, y: 0 }; await wait(rand(400, 800), tk);
+    moment('vylezl po zdi');
+    // odlepí se a postaví zpátky „na nohy“ (bez gravitace — zůstane ve vzduchu u zdi)
+    const x1 = S.x, y1 = S.y, tx = left ? s / 2 + 10 : vw() - s / 2 - 10;
+    await tween(420, e => { S.tilt = lean * (1 - e); S.x = x1 + (tx - x1) * e; S.y = y1 + lift * e; }, tk, ease.inOut);
+    await wobble(.14, 420, tk);
     S.lookOverride = null; setMouth('smile');
   }
   async function hangTop(tk){
@@ -5953,6 +7073,7 @@ const Bublik = (()=>{
     if(Math.random() < .5){ setEyes('happy'); await wait(600, tk); setEyes('open'); }
     await tween(520, e => { S.y = 6 + (y0 - 6) * e; S.tilt = 180 * (1 - e); }, tk, ease.inOut);
     S.tilt = 0;
+    moment('visel ze stropu hlavou dolů');
     think(pick(['Svět vzhůru nohama. Rozpis taky.', 'Krev se mi nahrnula do… nemám krev. Dobrý.']), 3200, true);
   }
   async function snoop(tk){
@@ -6007,8 +7128,10 @@ const Bublik = (()=>{
     const s = size(), lo = s / 2 + 10, hi = vw() - s / 2 - 10;
     const stops = Math.random() < .45 ? 2 : 1;
     for(let k = 0; k < stops; k++){
-      let tx = rand(lo, hi), ty = Math.random() < .35 ? floorY() : rand(s + 40, floorY());
-      if(Math.hypot(tx - S.x, ty - S.y) < Math.min(vw(), vh()) * .2){ tx = clamp(S.x + (S.x > vw() / 2 ? -1 : 1) * vw() * rand(.2, .35), lo, hi); }
+      // v0.9.66: přistává u okrajů a dole, ne uprostřed rozpisu
+      let sp = edgeSpot(s, s);
+      for(let i = 0; i < 6 && Math.hypot(sp.x - S.x, sp.y - S.y) < Math.min(vw(), vh()) * .2; i++) sp = edgeSpot(s, s);
+      const tx = clamp(sp.x, lo, hi), ty = sp.y;
       await travelTo(tx, ty, tk);
       await snoop(tk);
     }
@@ -6465,14 +7588,16 @@ const Bublik = (()=>{
     lastPM = p; S.pointer = p; S.pointerStill = 0;
     if(moveAcc > 40){ moveAcc = 0; userActive('move'); }
   }
-  function onWinKey(){ userActive('key'); }
+  function onWinKey(e){ userActive(e && e.type === 'wheel' ? 'wheel' : e && e.key === 'Escape' ? 'click' : 'key'); }
   function onWinDown(e){
     if(el.contains(e.target) || speech.contains(e.target)) return;
     userActive('click'); hush();
   }
   function onLeaveDoc(){ S.pointer = null; }
   function onResize(){ S.x = clamp(S.x, size() / 2 + 8, vw() - size() / 2 - 8); S.y = clamp(S.y, size() + 8, floorY()); if(S.mode === 'idle'){ S.x = homeX(); S.y = homeY(); } }
-  function onVisible(){ if(!document.hidden){ lastT = performance.now(); S.lastInput = performance.now(); } }
+  // v0.9.66: návrat ke kartě (zhasnutá/zamčená obrazovka) nečinnost NEPŘERUŠÍ — dřív se tu nulovala
+  // a první pohyb myši pak všechno uklidil. Co se mezitím „stalo“, dopočítá frame() → catchUp().
+  function onVisible(){ if(!document.hidden) lastT = performance.now(); }
 
   function mount(){
     if(el) return;
@@ -6569,6 +7694,7 @@ const Bublik = (()=>{
     cancelAnimationFrame(rafId);
     listen(false);
     minis.forEach(m => m.pop(false));
+    dropProp(S.prop); document.querySelectorAll('.bub-gum,.bub-gum-face,.bub-polaroid').forEach(n => n.remove());
     crewRecall(true); chaosTidy(true); villageTidy(true);
     if(el) el.style.display = 'none';
     S.mode = 'idle';
@@ -6675,7 +7801,7 @@ function bublikBagNext(items, used, rnd){
   return pick;
 }
 // v0.9.64: ženská jména Bublíčků (kvůli rodu sloves)
-function bublikIsFem(name){ return ['Bublinka', 'Pěnička', 'Kulička', 'Perlička', 'Kapka'].includes(name); }
+function bublikIsFem(name){ return ['Bublinka', 'Pěnička', 'Kulička', 'Perlička', 'Kapka', 'Kapička', 'Mydlinka', 'Šumka', 'Bublinda'].includes(name); }
 // ── v0.9.64: péče (Tamagotchi) — co se s Bublíkem dnes dělo; podle toho se větví civilizace ──
 function bublikCareKey(d){ d = d || new Date(); return 'bublik_care_' + d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
 function bublikCare(kind){
@@ -6880,26 +8006,33 @@ function bublikIdleThoughts(stage){
   if(stage >= 4) pool = pool.concat(BUB_IDLE_LINES.silly);
   return pool;
 }
-// Pointa po návratu. stats: { antics, flights, thoughts }, extras: { unread, pendingLeaves }.
-function bublikReturnMessage(ms, stats, extras){
+// Pointa po návratu — v0.9.66: místo počítání kousků vtip a „alibi“ (co stihl: stats.moments).
+// stats: { moments:[…], clones, mess, village:{houses,fire,pop} }, extras: { unread, pendingLeaves }, rnd = náhoda (testy)
+function bubJoinCz(list){ return list.length < 2 ? (list[0] || '') : list.slice(0, -1).join(', ') + ' a ' + list[list.length - 1]; }
+function bublikReturnMessage(ms, stats, extras, rnd = Math.random){
   const min = Math.floor(ms / 60000);
   if(min < 3) return null;
-  const mWord = bubWordForm(min, 'minutu', 'minuty', 'minut');
-  const a = stats.antics || 0, f = stats.flights || 0;
+  stats = stats || {};
+  const pk = arr => arr[Math.floor(rnd() * arr.length) % arr.length];
+  const mom = (stats.moments || []).slice();
+  for(let i = mom.length - 1; i > 0; i--){ const j = Math.floor(rnd() * (i + 1)) % (i + 1); [mom[i], mom[j]] = [mom[j], mom[i]]; }
+  const m1 = mom[0], m2 = bubJoinCz(mom.slice(0, 2)), m3 = bubJoinCz(mom.slice(0, 3));
   let t;
-  if(min < 5) t = `Jé, jsi zpátky! Byl jsi pryč ${min} ${mWord}. Stihl jsem ${a} ${bubWordForm(a, 'kousek', 'kousky', 'kousků')}.`;
-  else if(min < 15) t = `Vítej zpátky! ${min} ${mWord}. Mezitím jsem ${a}× zablbnul a ${f}× proletěl obrazovku. Nikdo nic neviděl.`;
-  else if(min < 30) t = `Konečně! ${min} ${mWord}. Prozkoumal jsem každý pixel a nic se nerozbilo. Asi.`;
+  if(min < 5) t = m1 ? pk([`Jé, jsi zpátky! Já nic. Jen jsem ${m1}.`, `Ahoj! Kdyby se někdo ptal, celou dobu jsem tu seděl. (Mezi námi: ${m1}.)`, `Už? Zrovna když jsem ${m1}. Načasování máš skvělé.`])
+    : pk(['Jé, jsi zpátky! Já se vůbec nenudil. Skoro.', 'Ahoj! Celou dobu jsem hlídal rozpis. Nikdo ho neukradl.', 'Konečně! Už jsem začínal počítat pixely.']);
+  else if(min < 15) t = mom.length >= 2 ? pk([`Vítej zpátky! Mezitím jsem ${m2}. Nikdo nic neviděl.`, `Ty jsi byl pryč? Já myslel, že pracuješ. Já teda jo: ${m2}.`, `Hlášení ze směny: ${m2}. Jinak klid.`])
+    : pk(['Vítej zpátky! Bylo tu ticho. Podezřelé ticho.', 'Ty jsi byl pryč? Já myslel, že přemýšlíš. Já taky. O bublinách.']);
+  else if(min < 30) t = mom.length >= 2 ? pk([`Konečně! Mám pro tebe hlášení: ${m3}. Všechno je zase na svém místě. Skoro.`, `Byl jsi pryč dost dlouho na to, abych ${m3}. Ale ne dost dlouho na to, abych to nestihl uklidit.`])
+    : pk(['Konečně! Prozkoumal jsem každý pixel. Všechny jsou čtvercové.', 'Vítej zpátky! Bez tebe tu byla nuda. Tak jsem si ji udělal zábavnou.']);
   else {
-    const h = Math.floor(min / 60), rest = min % 60;
-    const dur = h ? `${h} ${bubWordForm(h, 'hodinu', 'hodiny', 'hodin')}${rest ? ' a ' + rest + ' ' + bubWordForm(rest, 'minutu', 'minuty', 'minut') : ''}` : `${min} ${mWord}`;
     const v = stats.village;
-    t = `Dobré… ehm, kolik je hodin? Byl jsi pryč ${dur}.` + (v
-      ? ` Mezitím vzniklo Bublíkovo: ${v.houses} ${bubWordForm(v.houses, 'domek', 'domky', 'domků')}${v.fire ? ', táborák' : ''} a ${v.pop} ${bubWordForm(v.pop, 'obyvatel', 'obyvatelé', 'obyvatel')}.`
-      : ' Spal jsem jako bublina.');
+    t = v ? pk([`Dobré… ehm, kolik je hodin? Mezitím vzniklo celé Bublíkovo. Teď už je zase jen obrazovka, neboj.`,
+      `Vítej zpátky! Měli jsme vesnici, táborák a starostu. Starosta jsem byl já. Teď jsem zase jen Bublík.`,
+      `Kdybys přišel o chvíli dřív, viděl bys Bublíkovo. ${v.houses >= 3 ? 'Byly tam domky a dokonce i kytky.' : 'Zrovna se stavělo.'} Ale už je uklizeno.`])
+      : pk(['Dobré… ehm, kolik je hodin? Spal jsem jako bublina.', 'Byl jsi pryč tak dlouho, že jsem stihl zapomenout, jak vypadáš. Jo, takhle.']);
   }
-  if(stats.clones && !stats.village){ const n = Math.min(4, stats.clones) + 1; t += ` Chvíli nás bylo ${n}, už jsem zase jeden.`; }
-  if(stats.mess) t += ' A kdyby ses divil, co tu bylo za nepořádek — už je uklizeno.';
+  if(stats.mess && min >= 15 && !/uklid/.test(t)) t += pk([' Ten nepořádek? To nebyl já. To byl jiný Bublík. Vypadal úplně stejně.', ' A kdyby ses divil, co tu bylo za nepořádek — už je uklizeno.']);
+  else if(stats.clones && !stats.village && !mom.includes('rozdělil se na víc Bublíků')) t += ' Chvíli nás bylo víc, už jsem zase jeden.';
   const add = [];
   if(extras && extras.unread > 0) add.push(`${extras.unread} ${bubWordForm(extras.unread, 'nepřečtenou notifikaci', 'nepřečtené notifikace', 'nepřečtených notifikací')}`);
   if(extras && extras.pendingLeaves > 0) add.push(`${extras.pendingLeaves} ${bubWordForm(extras.pendingLeaves, 'žádost', 'žádosti', 'žádostí')} o volno`);
