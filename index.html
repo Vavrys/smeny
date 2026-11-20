@@ -1177,7 +1177,7 @@ body.dark .search-input{color:var(--ink)}
 .bub-gone{visibility:hidden}
 .bub-grass{position:fixed;left:0;right:0;bottom:0;height:22px;pointer-events:none;z-index:397;transform:scaleY(0);transform-origin:bottom;transition:transform 90s linear;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='26' height='22'%3E%3Cpath d='M2 22 Q4 10 3 4 Q6 12 6 22 Z M9 22 Q12 8 15 2 Q13 12 13 22 Z M17 22 Q18 12 22 6 Q21 14 21 22 Z' fill='%2315a065'/%3E%3Cpath d='M5 22 Q8 14 10 9 Q10 16 10 22 Z M20 22 Q23 15 25 11 Q25 17 24 22 Z' fill='%230b7d4f'/%3E%3C/svg%3E") repeat-x bottom}
 .bub-grass.grow{transform:scaleY(1)}
-.bub-house{position:fixed;left:0;top:0;width:70px;height:60px;pointer-events:none;z-index:397;animation:bubHouseIn .5s cubic-bezier(.3,1.6,.5,1)}
+.bub-house{position:fixed;left:0;top:0;pointer-events:none;z-index:397;animation:bubHouseIn .5s cubic-bezier(.3,1.6,.5,1)}
 .bub-house svg,.bub-fire svg,.bub-flower svg{width:100%;height:100%;overflow:visible;display:block}
 @keyframes bubHouseIn{from{transform:translate(var(--x),var(--y)) scale(.2)}to{transform:translate(var(--x),var(--y)) scale(1)}}
 .bub-fire{position:fixed;left:0;top:0;width:48px;height:44px;pointer-events:none;z-index:397;transition:opacity .4s}
@@ -1262,10 +1262,18 @@ body.dark .search-input{color:var(--ink)}
 .bub-sticker.plaster::before{content:'';position:absolute;left:30px;top:5px;width:14px;height:14px;background:radial-gradient(circle,#d9a679 1px,transparent 1.5px) 0 0/5px 5px}
 .bub-sticker.stamp{padding:4px 9px;border:2.5px solid #c0392b;border-radius:6px;color:#c0392b;font:800 12px/1.1 var(--font-display);letter-spacing:.04em;text-transform:uppercase;background:rgba(255,255,255,.55);white-space:nowrap}
 .bub-sticker.pin{font-size:22px;line-height:1}
+.bub-chipcopy{position:fixed;left:0;top:0;z-index:401;pointer-events:none;color:#fff;font:800 11px var(--font-mono);text-align:center;border-radius:3px;box-shadow:0 3px 8px rgba(0,0,0,.25);text-shadow:0 1px 2px rgba(0,0,0,.25)}
+.bub-garland{position:fixed;left:0;top:0;z-index:396;pointer-events:none;transition:opacity .4s}
+.bub-garland .gf{transform-box:fill-box;transform-origin:50% 0;transform:scaleY(0);transition:transform .5s cubic-bezier(.3,1.6,.5,1)}
+.bub-garland.on .gf{transform:scaleY(1);animation:bubFlag 1.8s ease-in-out infinite alternate}
+@keyframes bubFlag{from{transform:rotate(-6deg)}to{transform:rotate(6deg)}}
+.bub-doodle{position:fixed;left:0;top:0;z-index:396;pointer-events:none;font:800 15px var(--font-display);color:#9b7bff;margin:-10px 0 0 -6px;transition:opacity .3s;animation:bubDood .4s cubic-bezier(.3,1.6,.5,1)}
+.bub-doodle.bye{opacity:0}
+@keyframes bubDood{from{transform:scale(0)}}
 .bub-zzz{position:fixed;left:0;top:0;z-index:402;pointer-events:none;font:700 16px var(--font-display);color:var(--accent-ink);animation:bubZzz 2.6s ease-out forwards}
 @keyframes bubZzz{0%{opacity:0;transform:var(--t) translate(0,0) scale(.6)}20%{opacity:1}100%{opacity:0;transform:var(--t) translate(22px,-46px) scale(1.25)}}
 @media (max-width:640px){ #bublik{width:60px;height:56px} }
-@media print{ #bublik,#bublik-speech,.bub-mini,.bub-zzz,.bub-splat,.bub-clone,.bub-brick,.bub-print,.bub-note,.bub-crack,.bub-letter,.bub-grass,.bub-house,.bub-bld,.bub-path,.bub-fire,.bub-flower,.bub-chron,.bub-night,.bub-note-music,.bub-sticker,.bub-csay,.bub-stage,.bub-rope,.bub-line,.bub-bobber,.bub-catch,.bub-prop,.bub-gum,.bub-gum-face,.bub-ring,.bub-flash,.bub-polaroid,.bub-era,.bub-ship,.bub-rocket,.bub-frame,.bub-podium,.bub-paper{display:none !important} }
+@media print{ #bublik,#bublik-speech,.bub-mini,.bub-zzz,.bub-splat,.bub-clone,.bub-brick,.bub-print,.bub-note,.bub-crack,.bub-letter,.bub-grass,.bub-house,.bub-bld,.bub-path,.bub-fire,.bub-flower,.bub-chron,.bub-night,.bub-note-music,.bub-chipcopy,.bub-garland,.bub-doodle,.bub-sticker,.bub-csay,.bub-stage,.bub-rope,.bub-line,.bub-bobber,.bub-catch,.bub-prop,.bub-gum,.bub-gum-face,.bub-ring,.bub-flash,.bub-polaroid,.bub-era,.bub-ship,.bub-rocket,.bub-frame,.bub-podium,.bub-paper{display:none !important} }
 @media print{ .bub-gone{visibility:visible !important} }
 /* v0.9.48: při otevřeném modálu Bublík i „?“ zmizí — na mobilu jinak zakrývaly tlačítka Uložit */
 body:has(.modal-overlay.open) #bublik, body:has(.modal-overlay.open) #bublik-speech, body:has(.modal-overlay.open) .help-fab, body:has(.modal-overlay.open) .bub-clone, body:has(.modal-overlay.open) .bub-brick,
@@ -2810,7 +2818,7 @@ window.addEventListener('unhandledrejection', e => {
 // odsud, ručně je nepřepisuj. sw.js se od v0.9.29 nebumpuje — je z něj
 // kill-switch bez cache (viz killServiceWorkers() a komentář v sw.js).
 // ============================================================
-const APP_VERSION = '0.9.71';
+const APP_VERSION = '0.9.72';
 
 // Krátký git hash nasazeného buildu. Placeholder níž přepíše build-stamp.js
 // z CF_PAGES_COMMIT_SHA (Cloudflare Pages build command: `node build-stamp.js`).
@@ -4625,6 +4633,7 @@ const Bublik = (()=>{
   const crew = [], bricks = [], trail = [];
   let crewSeq = 0;
   const CREW_ROLES = ['stavitel', 'padakar', 'lezec', 'spac', 'kopac'];
+  const CREW_TINTS = ['hue-rotate(150deg)', 'hue-rotate(265deg)', 'hue-rotate(28deg)', 'hue-rotate(205deg) saturate(.9)', 'hue-rotate(320deg)', 'hue-rotate(-35deg) saturate(1.2)', 'hue-rotate(95deg)', '', 'hue-rotate(60deg) saturate(1.1)', 'hue-rotate(235deg) brightness(1.08)'].sort(() => Math.random() - .5);
   function crewSvg(){
     return `<svg viewBox="-36 -62 72 66" aria-hidden="true">
       <ellipse class="c-sh" cx="0" cy="1.5" rx="20" ry="3.6" fill="url(#bub-g-shadow)"/>
@@ -4648,6 +4657,11 @@ const Bublik = (()=>{
     c.el = document.createElement('div');
     c.el.className = 'bub-clone';
     c.el.innerHTML = crewSvg();
+    // v0.9.72: každý má od narození bublinové jméno a vlastní odstín
+    c.name = villagerName();
+    const usedT = crew.map(k => k.tint);
+    c.tint = CREW_TINTS.find(t => !usedT.includes(t)) ?? pick(CREW_TINTS);
+    if(c.tint) c.el.style.filter = c.tint;
     document.body.appendChild(c.el);
     c.body = c.el.querySelector('.c-body'); c.eyes = c.el.querySelector('.c-eyes'); c.open = c.el.querySelector('.c-open');
     c.closed = c.el.querySelector('.c-closed'); c.mouth = c.el.querySelector('.c-mouth'); c.umb = c.el.querySelector('.c-umb'); c.sh = c.el.querySelector('.c-sh');
@@ -4686,32 +4700,138 @@ const Bublik = (()=>{
     return o;
   }
   function popBrick(o){ if(!o.el.isConnected) return; puf(o.x, o.y, o.d * 1.4); o.el.remove(); const i = bricks.indexOf(o); if(i >= 0) bricks.splice(i, 1); }
+  // stavby Stavitele: [sloupec, řada, velikost] — řada 0 = na zemi
+  const BUILD_DESIGNS = [
+    { id: 'tower', cells: n => Array.from({ length: n + 1 }, (_, i) => [0, i]), say: ['Mrakodrap. Malý, ale můj.', 'Věž! Výtah zatím ne.'] },
+    { id: 'pyramid', cells: () => [[0, 0], [1, 0], [2, 0], [.5, 1], [1.5, 1], [1, 2]], say: ['Pyramida. Faraon se ozve.', 'Pyramida! Stavba trvala 4 vteřiny.'] },
+    { id: 'wall', cells: () => [[0, 0], [1, 0], [3, 0], [4, 0], [0, 1], [1, 1], [3, 1], [4, 1], [0, 2], [1, 2], [2, 2], [3, 2], [4, 2]], say: ['Zeď s dveřmi. Klíče nemám.', 'Hranice Bublíkova. Vstup jen s razítkem.'] },
+    { id: 'snowman', cells: () => [[0, 0, 1.6], [0, 1.45, 1.2], [0, 2.55, .85]], say: ['Pěnulák! Mrkev nemám.', 'Sněhulák. Teda pěnulák. V listopadu legální.'] },
+    { id: 'bridge', cells: () => [[0, 0], [0, 1], [3, 0], [3, 1], [0, 2], [1, 2.15], [2, 2.15], [3, 2]], say: ['Most! Vede odnikud nikam.', 'Most. Mýtné: jedna bublina.'] },
+    { id: 'bench', cells: () => [[0, 0], [2, 0], [0, 1], [1, 1], [2, 1], [0, 2]], say: ['Lavička. Na pauzu. Na dlouhou pauzu.', 'Odpočívadlo pro zaměstnance. Já tu sedím první.'] },
+  ];
+  const buildBag = [];
+  // ── v0.9.72: rozestupy — nikdo nestojí před budovou ani přes jiného Bublíčka; scénky si zaberou kus podlahy ──
+  const floorRes = [];
+  function reserveFloor(a, b){ const r = { a, b }; floorRes.push(r); return () => { const i = floorRes.indexOf(r); if(i >= 0) floorRes.splice(i, 1); }; }
+  function bldBlocks(pad = 4){
+    const out = [];
+    if(village){
+      village.things.forEach(t => out.push([t.x - t.w / 2 - pad, t.x + t.w / 2 + pad]));
+      out.push([village.fireX - 28 - pad, village.fireX + 28 + pad]);
+    }
+    return out;
+  }
+  function floorFree(x, w, opts = {}){
+    const a = x - w / 2, b = x + w / 2;
+    if(a < 6 || b > vw() - 6) return false;
+    if(bldBlocks().some(([p, q]) => b > p && a < q)) return false;
+    if(!opts.ignoreRes && floorRes.some(r => b > r.a && a < r.b)) return false;
+    if(opts.others && opts.others.some(o => Math.abs(o.x - x) < (o.w + w) / 2 + 4)) return false;
+    return true;
+  }
+  // nejbližší volné místo na podlaze kolem x (střídavě doprava a doleva)
+  function freeFloor(w, nearX, opts){
+    if(nearX == null) nearX = rand(w, vw() - w);
+    for(let d = 0; d < vw(); d += 8){
+      if(floorFree(nearX + d, w, opts)) return nearX + d;
+      if(d && floorFree(nearX - d, w, opts)) return nearX - d;
+    }
+    return null;
+  }
+  // kde stojí (nebo kam míří) ostatní na podlaze — ať se nepřekrývají
+  function floorOthers(except, withBublik = true){
+    const out = [];
+    crew.forEach(c => {
+      if(c === except || c.dead || c.home || (except && except.cast && c.cast === except.cast)) return;
+      const { w } = cWH(c), x = c.act === 'idle' ? c.tx : c.x, y = c.act === 'idle' ? c.ty : c.y;
+      if(y >= floorY() - 8) out.push({ x, w });
+    });
+    if(withBublik && onFloor()) out.push({ x: S.x, w: size() * .85 });
+    return out;
+  }
+  // n míst vedle sebe kolem x (pro rozcvičku, oběd…), bez budov a bez přesahů
+  function floorSlots(n, nearX, w, except){
+    const taken = floorOthers(null).filter(o => !(except || []).some(c => Math.abs(c.x - o.x) < 1)), out = [];
+    for(let i = 0; i < n; i++){
+      const x = freeFloor(w, nearX, { others: taken });
+      if(x == null){ out.push(clamp(nearX + (i % 2 ? -1 : 1) * (i + 1) * (w + 6), w, vw() - w)); continue; }
+      out.push(x); taken.push({ x, w });
+    }
+    return out;
+  }
   // role — každá je krátký příběh
   const ROLE_ACT = {
+    // v0.9.72: Stavitel staví pokaždé něco jiného (věž, pyramida, zeď s dveřmi, pěnulák, most, lavička) a končí různě
     async stavitel(c){
-      const fx = rand(vw() * .15, vw() * .85);
-      await cGo(c, fx, floorY(), 150);
-      cFace(c, 'open', 'flat'); c.look = { x: 1, y: 0 };
-      const mine = [], d = 15 * c.sc / .6;
+      const d = 15 * c.sc / .6, { w } = cWH(c);
+      const design = bublikBagNext(BUILD_DESIGNS.map(x => x.id), buildBag, Math.random) || 'tower';
+      const D = BUILD_DESIGNS.find(x => x.id === design), cells = D.cells(Math.floor(rand(4, 7)));
+      const span = (Math.max(...cells.map(q => q[0])) - Math.min(...cells.map(q => q[0])) + 1) * d + w + 20;
+      const fx = freeFloor(span, rand(vw() * .15, vw() * .85), { others: floorOthers(c) });
+      if(fx == null) return;
+      const unres = reserveFloor(fx - span / 2, fx + span / 2);
+      const mine = [];
       try{
-        const nb = Math.floor(rand(4, 8));
-        for(let i = 0; i < nb; i++){
+        await cGo(c, fx - span / 2 + w / 2, floorY(), 150);
+        cFace(c, 'open', 'flat'); c.look = { x: 1, y: 0 };
+        const x0 = c.x + w / 2 + d * .7;
+        for(const [cx, cy, k] of cells){
           await tween(140, e => { c.sy = 1 - .15 * e; c.sx = 1 + .1 * e; }, c.tk);
-          mine.push(addBrick(c.x + 26 * c.sc / .6, floorY() - i * d * .86, d));
+          const dd = d * (k || 1);
+          mine.push(addBrick(x0 + cx * d * .92, floorY() - cy * d * .86 - (k ? (dd - d) * .5 : 0), dd));
           await tween(160, e => { c.sy = .85 + .15 * e; c.sx = 1.1 - .1 * e; }, c.tk);
-          await wait(rand(250, 500), c.tk);
+          await wait(rand(200, 420), c.tk);
         }
-        cFace(c, 'closed', 'grin'); await wait(1500, c.tk); cFace(c, 'open', 'smile');
-        await wait(rand(3000, 6000), c.tk);
-        for(const b of mine.slice().reverse()){ popBrick(b); await wait(120, c.tk); }
-        cFace(c, 'open', 'o'); await wait(600, c.tk); cFace(c, 'open', 'smile');
+        cFace(c, 'closed', 'grin'); cSay(c, pick(D.say), 2400); await wait(2000, c.tk); cFace(c, 'open', 'smile');
+        const end = Math.random();
+        const other = crew.find(o => o !== c && !o.dead && o.act === 'idle' && !o.home);
+        if(end < .3 && other){
+          // někdo jde kolem a obdivuje — nebo do toho šťouchne
+          const kick = Math.random() < .5;
+          other.act = 'script'; other.tk.cancelled = true; other.tk = { cancelled: false };
+          const ot = other.tk, side = other.x < fx ? -1 : 1, ox = fx + side * (span / 2 + 10);
+          try{
+            await new Promise((res, rej) => { const t0 = performance.now(); (function k(){ if(ot.cancelled || c.tk.cancelled) return rej(new Cancel()); const dx = ox - other.x; other.x += Math.sign(dx) * Math.min(Math.abs(dx), 3); other.look = { x: -side, y: 0 }; if(Math.abs(dx) < 2 || performance.now() - t0 > 6000) return res(); requestAnimationFrame(k); })(); });
+            if(kick){
+              cSay(other, 'Co to je? *šťouch*', 1600); await wait(700, c.tk);
+              mine.forEach((b, i) => setTimeout(() => popBrick(b), i * 60)); await wait(400, c.tk);
+              cFace(c, 'open', 'o'); cSay(c, pick(['HEJ!', 'Tři hodiny práce!', 'Stavební úřad se o tom dozví.']), 2000); cFace(other, 'open', 'wavy');
+              await wait(1800, c.tk);
+            } else { cSay(other, pick(['Hezké! Kolik za to chceš?', 'Kolaudace kdy?', 'Já bych to dal o kousek doleva.']), 2200); await wait(2400, c.tk); cSay(c, pick(['Neprodejné.', 'Až mi to schválí úřad.', 'Doleva? Tak to zbourám.']), 2000); await wait(1800, c.tk); }
+          } catch(e){ if(!(e instanceof Cancel)) console.warn('[Bublík]', e); }
+          finally { if(!other.dead && other.tk === ot){ other.act = 'idle'; other.until = performance.now() + 800; cFace(other, 'open', 'smile'); } }
+        } else if(end < .55 && mine.length){
+          // vyleze nahoru a zamává
+          const top = mine.reduce((m, b) => b.y < m.y ? b : m, mine[0]);
+          c.act = 'script'; const x1 = c.x, y1 = c.y;
+          await tween(700, (e, p) => { c.x = x1 + (top.x - x1) * e; c.y = y1 + (top.y - top.d / 2 - y1) * e - Math.sin(p * Math.PI) * 30; }, c.tk);
+          cSay(c, pick(['Výhled z vlastní stavby!', 'Tady bude kancelář. Moje.', 'Jsem nejvýš v celé firmě.']), 2200);
+          await tween(900, (e, p) => { c.tilt = Math.sin(p * Math.PI * 4) * 10; }, c.tk); c.tilt = 0;
+          await tween(500, (e, p) => { c.x = top.x + (x1 - top.x) * e; c.y = top.y - top.d / 2 + (floorY() - top.y + top.d / 2) * e - Math.sin(p * Math.PI) * 24; }, c.tk);
+          c.y = c.ty = floorY(); c.tx = c.x; c.act = 'busy';
+          await wait(1200, c.tk);
+        } else if(end < .75){
+          // zřítí se — kuličky se rozkutálí a prasknou
+          await wait(rand(1500, 3000), c.tk);
+          cSay(c, 'Ehm…', 1000); await wait(500, c.tk);
+          const t0 = performance.now();
+          mine.forEach(b => { b.vx = rand(-90, 90); b.vy = rand(-160, -40); b.el.style.transition = 'none'; });
+          await tween(1100, () => {
+            const dt = 1 / 60;
+            mine.forEach(b => { if(!b.el.isConnected) return; b.vy += 900 * dt; b.x += b.vx * dt; b.y = Math.min(floorY() - b.d / 2, b.y + b.vy * dt); if(b.y >= floorY() - b.d / 2) b.vy *= -.45; b.el.style.transform = `translate(${b.x - b.d / 2}px,${b.y - b.d / 2}px)`; });
+          }, c.tk, ease.lin);
+          mine.forEach((b, i) => setTimeout(() => popBrick(b), i * 70));
+          cFace(c, 'open', 'wavy'); cSay(c, pick(['Statika. Zase.', 'To byl záměr. Moderní umění.', 'Pojišťovna to nebude krýt.']), 2200); await wait(2200, c.tk);
+        } else await wait(rand(3000, 6000), c.tk);
+        for(const b of mine.slice().reverse()){ popBrick(b); await wait(110, c.tk); }
+        cFace(c, 'open', 'smile');
       } finally {
-        // když ho vyruší hra, věž stejně do chvíle praskne — nic nezůstane viset
+        unres();
         if(mine.some(b => b.el.isConnected)) setTimeout(() => mine.slice().reverse().forEach((b, i) => setTimeout(() => popBrick(b), i * 120)), 2500);
       }
     },
     async padakar(c){
-      const x = rand(vw() * .1, vw() * .9);
+      const x = freeFloor(cWH(c).w + 6, rand(vw() * .1, vw() * .9), { others: floorOthers(c) }) ?? rand(vw() * .1, vw() * .9);
       await cGo(c, x, 70 * c.sc + 30, 170);
       c.umb.style.display = ''; cFace(c, 'open', 'grin');
       const y0 = c.y, dist = floorY() - y0, dur = dist / 45 * 1000, x0 = c.x;
@@ -4723,9 +4843,9 @@ const Bublik = (()=>{
     async lezec(c){
       const left = c.x < vw() / 2, { w } = cWH(c);
       await cGo(c, left ? w / 2 + 2 : vw() - w / 2 - 2, floorY(), 160);
-      const lean = left ? -78 : 78;
+      const lean = left ? 90 : -90, cx0 = c.x, cxw = left ? 2 : vw() - 2;   // v0.9.72: spodkem ke zdi (jako Bublík)
       c.act = 'script';
-      await tween(260, e => { c.tilt = lean * e; }, c.tk);
+      await tween(300, e => { c.tilt = lean * e; c.x = c.tx = cx0 + (cxw - cx0) * e; }, c.tk);
       const y0 = c.y, top = Math.max(80, vh() * rand(.2, .45));
       await tween((y0 - top) / 60 * 1000, (e, p) => { c.y = c.ty = y0 - (y0 - top) * e; c.sy = 1 + .1 * Math.abs(Math.sin(p * Math.PI * 10)); }, c.tk, ease.lin);
       cFace(c, 'open', 'grin'); await wait(rand(800, 1600), c.tk);
@@ -4735,7 +4855,7 @@ const Bublik = (()=>{
       c.tilt = 0; cFace(c, 'open', 'smile');
     },
     async spac(c){
-      await cGo(c, rand(vw() * .1, vw() * .9), floorY(), 110);
+      await cGo(c, freeFloor(cWH(c).w + 6, rand(vw() * .1, vw() * .9), { others: floorOthers(c) }) ?? rand(vw() * .1, vw() * .9), floorY(), 110);
       c.act = 'sleep'; cFace(c, 'closed', 'smile'); c.sy = .92; c.sx = 1.05;
       const until = performance.now() + rand(8000, 13000);
       let pranked = false;
@@ -4769,7 +4889,7 @@ const Bublik = (()=>{
       c.sy = 1; c.sx = 1; cFace(c, 'open', 'smile');
     },
     async kopac(c){
-      await cGo(c, rand(vw() * .1, vw() * .9), floorY(), 140);
+      await cGo(c, freeFloor(cWH(c).w + 6, rand(vw() * .1, vw() * .9), { others: floorOthers(c) }) ?? rand(vw() * .1, vw() * .9), floorY(), 140);
       c.act = 'script'; cFace(c, 'open', 'flat'); c.look = { x: 0, y: 1 };
       const y0 = floorY();
       for(let i = 0; i < 5; i++){
@@ -4792,9 +4912,14 @@ const Bublik = (()=>{
   function crewDecide(c, now){
     if(village && village.things.length && !c.sleeping && village.phase !== 'noc' && Math.random() < .45){ villagerVisit(c); return; }   // v0.9.69
     const r = Math.random(), { w, h } = cWH(c);
-    if(r < .45 && now - (c.lastRole || 0) > 9000){ c.lastRole = now; crewAct(c); return; }
-    if(r < .65 && !overGrid(S.x, S.y)){ c.tx = S.x + rand(-90, 90); c.ty = S.y + rand(-60, 10); c.speed = 120; }
-    else { const sp = edgeSpot(w, h, village ? .75 : .4); c.tx = sp.x; c.ty = sp.y; c.speed = rand(90, 160); }   // v0.9.66: mimo střed rozpisu
+    if(r < .45 && now - (c.lastRole || 0) > (c.role === 'stavitel' ? 26000 : 14000) && !(village && c.role === 'stavitel')){ c.lastRole = now; crewAct(c); return; }   // v0.9.72: Stavitel méně často, ve vesnici nestaví na zemi
+    if(r < .65 && !overGrid(S.x, S.y) && !onFloor()){ c.tx = S.x + rand(-90, 90); c.ty = Math.min(S.y + rand(-60, 10), village ? floorY() - 130 : floorY()); c.speed = 120; }
+    else {
+      const sp = edgeSpot(w, h, village ? .75 : .4); c.tx = sp.x; c.ty = sp.y; c.speed = rand(90, 160);   // v0.9.65: mimo střed rozpisu
+      // v0.9.72: na zemi jen na volné místo (ne před budovou, ne přes jiné); ve vesnici ve vzduchu nad střechami
+      if(c.ty >= floorY() - 6){ const fx = freeFloor(w + 6, r < .65 ? S.x : c.tx, { others: floorOthers(c) }); if(fx != null) c.tx = fx; else c.ty = village ? floorY() - 140 : rand(h + 40, floorY() - 60); }
+      else if(village) c.ty = Math.min(c.ty, floorY() - 130);
+    }
     cClamp(c);
     c.until = now + rand(2500, 6000);
   }
@@ -4802,6 +4927,12 @@ const Bublik = (()=>{
     for(const c of crew){
       if(c.sc !== c.scT) c.sc += (c.scT - c.sc) * Math.min(1, dt * 6);
       if(c.act === 'idle' && now > c.until) crewDecide(c, now);
+      // v0.9.72: v klidu na zemi — když stojí před budovou, přes jiného nebo ve scénce, poodejde
+      if(c.act === 'idle' && !c.home && now > (c.sepAt || 0) && Math.abs(c.tx - c.x) < 1 && c.y >= floorY() - 6){
+        c.sepAt = now + 700;
+        const { w } = cWH(c), oth = floorOthers(c);
+        if(!floorFree(c.x, w + 2, { others: oth })){ const fx = freeFloor(w + 6, c.x, { others: oth }); if(fx != null){ c.tx = fx; c.speed = 90; } }
+      }
       if(c.act === 'train'){ const i = crew.indexOf(c), p = trail[Math.max(0, trail.length - 1 - (i + 1) * 12)]; if(p){ c.tx = p.x; c.ty = p.y; c.speed = 340; } }
       if(c.act !== 'script' && c.act !== 'sleep'){
         const dx = c.tx - c.x, dy = c.ty - c.y, d = Math.hypot(dx, dy);
@@ -4892,7 +5023,10 @@ const Bublik = (()=>{
   // společné hry (jen když je s kým)
   async function crewPyramid(tk){
     if(crew.length < 1) return lookAround(tk);
-    await travelTo(S.x, floorY(), tk);
+    const px = freeFloor(size() + 30, S.x);   // v0.9.72: ne před budovou
+    if(px == null) return lookAround(tk);
+    const unres = reserveFloor(px - size() / 2 - 15, px + size() / 2 + 15);
+    try{ await travelTo(px, floorY(), tk); } catch(e){ unres(); throw e; }
     think('Pyramida! Nikdo se nehýbe…', 2600, true);
     const s = size(); let top = S.y - s * .82;
     const list = crew.filter(c => !c.dead && !c.home && !c.sleeping).slice(0, 4);
@@ -4925,10 +5059,10 @@ const Bublik = (()=>{
         setMouth('o'); S.eyeWide = 1.25; await wait(500, tk);
         list.forEach(c => { c.tx = c.x + rand(-180, 180); c.ty = floorY(); c.speed = 230; c.act = 'idle'; c.until = performance.now() + 1800; });
         await wobble(.3, 700, tk);
-        think(pick(['Skoro. Příště bez Kopáče.', 'Rekord: dvě vteřiny.', 'Statika: nedostatečná.']), 3000, true);
+        think(pick([`Skoro. Příště bez ${bubEsc(cName(pick(list)))}.`, 'Rekord: dvě vteřiny.', 'Statika: nedostatečná.']), 3000, true);
         moment('stavěl pyramidu (spadla)');
       }
-    } finally { list.forEach(c => { cDrop(c); cSayOff(c); }); crewRelease(list); S.eyeWide = 1; S.tilt = 0; S.sy = 1; S.eyeScaleY = 1; }
+    } finally { unres(); list.forEach(c => { cDrop(c); cSayOff(c); }); crewRelease(list); S.eyeWide = 1; S.tilt = 0; S.sy = 1; S.eyeScaleY = 1; }
   }
   async function crewTrain(tk){
     if(crew.length < 1) return lookAround(tk);
@@ -5003,7 +5137,7 @@ const Bublik = (()=>{
   function cDrop(c){ if(c && c.prop){ c.prop.el.remove(); c.prop = null; } }
   // obsadí Bublíčky do scénky (přeruší jim, co dělali)
   function cast(n){
-    const list = crew.filter(c => !c.dead && !c.home && !c.sleeping).slice(0, n);
+    const list = crew.filter(c => !c.dead && !c.home && !c.sleeping).sort((a, b) => (a.act === 'idle' ? 0 : 1) - (b.act === 'idle' ? 0 : 1)).slice(0, n);
     list.forEach(c => { c.tk.cancelled = true; c.tk = { cancelled: false }; c.act = 'game'; c.tilt = 0; c.sx = c.sy = 1; });
     return list;
   }
@@ -5075,7 +5209,7 @@ const Bublik = (()=>{
         await wait(1800, tk);
       } else if(spac && Math.random() < .6){
         S.lookOverride = { x: dir, y: 0 }; cFace(spac, 'closed', 'smile');
-        think('Spáč usnul ve stoje. Tomu už kafe nepomůže.', 3200, true);
+        think(`${bubEsc(cName(spac))} ${g(cName(spac), 'usnul', 'usnula')} ve stoje. Tomu už kafe nepomůže.`, 3200, true);
         for(let i = 0; i < 3; i++){ cZzz(spac); await wait(800, tk); }
       } else think('Výborně, všichni pracují. Je pátek, 16:59. Podezřelé.', 3200, true);
       moment('hlídal kávovar před Bublíčky');
@@ -5095,16 +5229,26 @@ const Bublik = (()=>{
     const list = cast(2);
     if(list.length < 2){ uncast(list); return lookAround(tk); }
     const s = size(), W = 200, H = 112, fy = floorY();
-    const cx = clamp(S.x > vw() / 2 ? S.x - W / 2 - s * 1.2 : S.x + W / 2 + s * 1.2, W / 2 + 24, vw() - W / 2 - 24);
-    const audX = clamp(cx + (S.x > cx ? 1 : -1) * (W / 2 + s * .75), s / 2 + 8, vw() - s / 2 - 8);
+    // v0.9.72: ve vesnici se hraje jen na postaveném divadle (stavba „stage“); jinde na volném kusu podlahy
+    const built = village ? village.things.find(t => t.type === 'stage') : null;
+    if(village && !built){ uncast(list); return lookAround(tk); }
+    let cx, audX, audY = fy, unres = () => {};
+    if(built){ cx = built.x; audX = cx; audY = fy - H - s * .25; built.el.style.visibility = 'hidden'; }
+    else {
+      const span = W + s * 1.6 + 30, c0 = freeFloor(span, S.x);
+      if(c0 == null){ uncast(list); return lookAround(tk); }
+      unres = reserveFloor(c0 - span / 2, c0 + span / 2); const right = Math.random() < .5;
+      cx = right ? c0 - span / 2 + W / 2 + 10 : c0 + span / 2 - W / 2 - 10;
+      audX = right ? cx + W / 2 + s * .75 : cx - W / 2 - s * .75;
+    }
     const st = messEl('bub-stage', '<div class="cur l"></div><div class="cur r"></div><div class="val"></div><div class="flr"></div>');
     st.style.width = W + 'px'; st.style.height = H + 'px'; st.style.transform = `translate(${cx - W / 2}px,${fy - H + 2}px)`;
     try{
       const play = pick(PLAYS);
       think('Divadlo! Sedám si do první řady.', 2400, true);
-      await Promise.all([travelTo(audX, fy, tk), cGo(list[0], cx - 42, fy, 170), cGo(list[1], cx + 42, fy, 170)]);
+      await Promise.all([travelTo(audX, audY, tk), cGo(list[0], cx - 42, fy, 170), cGo(list[1], cx + 42, fy, 170)]);
       list[0].look = { x: 1, y: 0 }; list[1].look = { x: -1, y: 0 };
-      S.lookOverride = { x: Math.sign(cx - S.x), y: 0 };
+      S.lookOverride = built ? { x: 0, y: .8 } : { x: Math.sign(cx - S.x), y: 0 };
       say(`Dnes hrajeme: <b>${bubEsc(play.title)}</b>`, 2400);
       await wait(1800, tk);
       st.classList.add('open');
@@ -5145,22 +5289,31 @@ const Bublik = (()=>{
       setMouth('smile');
       st.classList.remove('open'); await wait(1100, tk);
       moment(`byl v divadle (hráli „${play.title}“)`);
-    } finally { st.remove(); document.querySelectorAll('.bub-stage').forEach(n => n.remove()); S.lookOverride = null; uncast(list); }
+    } finally { unres(); if(built && built.el) built.el.style.visibility = ''; st.remove(); document.querySelectorAll('.bub-stage').forEach(n => n.remove()); S.lookOverride = null; uncast(list); }
   }
   // Kapela: Bublík diriguje; někdo zahraje falešně → od začátku; finále (někdy praskne buben)
   async function skitBand(tk){
     const list = cast(Math.min(3, crew.length));
     if(list.length < 2){ uncast(list); return lookAround(tk); }
     const s = size(), inst = ['drum', 'guitar', 'trumpet'], pos = { drum: [14, -14, 0], guitar: [6, -16, -18], trumpet: [26, -26, -10] };
-    const side = S.x > vw() / 2 ? -1 : 1, x0 = clamp(S.x + side * s * 1.3, 40, vw() - 40);
-    const xs = list.map((c, i) => clamp(x0 + side * i * 52, 30, vw() - 30));
+    const built = village ? village.things.find(t => t.type === 'stage') : null;   // v0.9.72: ve vesnici hraje kapela na jevišti
+    let side = S.x > vw() / 2 ? -1 : 1, bX, xs, bY = floorY(), unres = () => {};
+    if(built){ side = 1; bX = built.x; bY = floorY() - 112 - s * .25; xs = list.map((c, i) => built.x + (i - (list.length - 1) / 2) * 52); }
+    else {
+      if(village){ uncast(list); return lookAround(tk); }
+      const span = s * 1.3 + 52 * (list.length - 1) + 60, c0 = freeFloor(span, S.x + side * span / 2);
+      if(c0 == null){ uncast(list); return lookAround(tk); }
+      unres = reserveFloor(c0 - span / 2, c0 + span / 2);
+      bX = c0 - side * (span / 2 - s / 2); const x0 = bX + side * s * 1.3;
+      xs = list.map((c, i) => x0 + side * i * 52);
+    }
     let p = null;
     try{
       think(pick(['Kapela! Já diriguju.', 'Zkouška kapely. Raz, dva…']), 2400, true);
-      await Promise.all([travelTo(S.x, floorY(), tk), ...list.map((c, i) => cGo(c, xs[i], floorY(), 180))]);
-      list.forEach((c, i) => { const k = inst[i]; cProp(c, k, ...pos[k]); c.look = { x: -side, y: -.2 }; });
+      await Promise.all([travelTo(bX, bY, tk), ...list.map((c, i) => cGo(c, xs[i], floorY(), 180))]);
+      list.forEach((c, i) => { const k = inst[i]; cProp(c, k, ...pos[k]); c.look = built ? { x: 0, y: -.6 } : { x: -side, y: -.2 }; });
       p = holdProp('wand', side * 26, -34, side * -30);
-      S.lookOverride = { x: side, y: 0 };
+      S.lookOverride = built ? { x: 0, y: .8 } : { x: side, y: 0 };
       say('Raz, dva, raz dva tři čtyři!', 1800); await wait(1600, tk);
       const play = async (dur, speed = 6) => {
         const t0 = performance.now();
@@ -5204,14 +5357,18 @@ const Bublik = (()=>{
       setEyes('open');
       moment('dirigoval kapelu');
       await wait(1000, tk);
-    } finally { if(p) dropProp(p); S.lookOverride = null; S.hop = 0; S.eyeWide = 1; uncast(list); }
+    } finally { unres(); if(p) dropProp(p); S.lookOverride = null; S.hop = 0; S.eyeWide = 1; uncast(list); }
   }
   // Přetahovaná: dva týmy a lano; vyhraje jeden, nebo lano praskne
   async function skitTug(tk){
     const list = cast(Math.min(5, crew.length));
     if(list.length < 2){ uncast(list); return lookAround(tk); }
-    const s = size(), fy = floorY(), mid = clamp(vw() / 2 + rand(-1, 1) * vw() * .12, vw() * .3, vw() * .7);
+    const s = size(), fy = floorY();
     const nA = Math.floor(list.length / 2), A = list.slice(0, nA), B = list.slice(nA), gap = 44;
+    // v0.9.72: celé lano na volném kusu podlahy
+    const L = 80 + s * .55 + nA * gap + 30, R = 80 + (B.length - 1) * gap + 60, cc = freeFloor(L + R + 150, vw() / 2 + rand(-1, 1) * vw() * .12);
+    if(cc == null){ uncast(list); return lookAround(tk); }
+    const mid = cc - (R - L) / 2, unres = reserveFloor(mid - L - 75, mid + R + 75);
     const bX = mid - 80, posA = i => bX - s * .55 - (i + .5) * gap, posB = i => mid + 80 + i * gap;
     const rope = messEl('bub-rope', '<i></i>');
     let off = 0;
@@ -5263,14 +5420,16 @@ const Bublik = (()=>{
       }
       moment('přetahoval se o volnou sobotu');
       await wait(1200, tk);
-    } finally { rope.remove(); sweat.setAttribute('opacity', '0'); S.tilt = 0; S.stars = false; S.lookOverride = null; setEyes('open'); uncast(list); }
+    } finally { unres(); rope.remove(); sweat.setAttribute('opacity', '0'); S.tilt = 0; S.stars = false; S.lookOverride = null; setEyes('open'); uncast(list); }
   }
   // Rybaření pod obrazovkou: bota, ryba, písmeno, směna… nebo obr, co stáhne rybáře dolů
   async function skitFishing(tk){
     const list = cast(1);
     if(!list.length) return lookAround(tk);
     const c = list[0], s = size(), side = S.x > vw() / 2 ? -1 : 1;
-    const fx = clamp(S.x + side * s * 1.4, 60, vw() - 60);
+    const span = s * 1.4 + cWH(c).w + 50, c0 = freeFloor(span, S.x + side * span / 2);
+    if(c0 == null){ uncast(list); return lookAround(tk); }
+    const unres = reserveFloor(c0 - span / 2, c0 + span / 2), bX = c0 - side * (span / 2 - s / 2), fx = bX + side * s * 1.4;   // v0.9.72
     const line = messEl('bub-line'), bob = messEl('bub-bobber');
     let item = null, rodOn = false;
     const tip = () => { const p = c.prop; if(!p) return { x: c.x, y: c.y }; const k = 76 * c.sc / 72, f = c.sc * 1.25 * p.sc, a = p.rot * Math.PI / 180, ox = 18 * f, oy = -18 * f; return { x: c.x + p.dx * k + ox * Math.cos(a) - oy * Math.sin(a), y: c.y + p.dy * k + ox * Math.sin(a) + oy * Math.cos(a) }; };
@@ -5279,7 +5438,7 @@ const Bublik = (()=>{
     line.style.display = bob.style.display = 'none';
     try{
       think(pick(['Jdeme na ryby. Pod obrazovkou prý berou.', 'Rybaříme! Tiše, ať je nevyplašíme.']), 2600, true);
-      await Promise.all([travelTo(S.x, floorY(), tk), cGo(c, fx, floorY(), 170)]);
+      await Promise.all([travelTo(bX, floorY(), tk), cGo(c, fx, floorY(), 170)]);
       c.look = { x: side, y: .5 }; S.lookOverride = { x: side, y: .5 };
       cProp(c, 'rod', side * 14, -26, side > 0 ? 0 : -90); rodOn = true;
       c.act = 'script';
@@ -5329,25 +5488,20 @@ const Bublik = (()=>{
         moment(got.m);
       }
       await wait(900, tk);
-    } finally { line.remove(); bob.remove(); if(item) item.remove(); cDrop(c); S.lookOverride = null; S.eyeWide = 1; setMouth('smile'); uncast(list); }
+    } finally { unres(); line.remove(); bob.remove(); if(item) item.remove(); cDrop(c); S.lookOverride = null; S.eyeWide = 1; setMouth('smile'); uncast(list); }
   }
   // Porada (schovávaná): Bublík svolává poradu, ostatní se schovají za okraje obrazovky; posledního nenajde — je za ním
   async function skitHide(tk){
-    const list = cast(Math.min(4, crew.length));
+    const list = cast(Math.min(6, crew.length));
     if(list.length < 2){ uncast(list); return lookAround(tk); }
     const s = size(), wallLeft = S.x < vw() / 2, wx = wallLeft ? s / 2 + 12 : vw() - s / 2 - 12, wd = wallLeft ? -1 : 1;
-    const spots = [
-      { x: -8, y: rand(vh() * .35, vh() * .7), out: { x: 30 } },
-      { x: vw() + 8, y: rand(vh() * .35, vh() * .7), out: { x: vw() - 30 } },
-      { x: rand(vw() * .15, vw() * .85), y: vh() + 26, out: { y: floorY() } },
-      { x: rand(vw() * .2, vw() * .8), y: 24, out: { y: 70 } },
-    ].sort(() => Math.random() - .5);
+    const spots = hideSpots(list.length);
     try{
       await travelTo(wx, floorY(), tk);
       S.lookOverride = { x: wd, y: 0 }; setEyes('closed');
       say('Za deset minut porada! Rozesílám pozvánky…', 2200);
       list.forEach(c => { c.act = 'script'; });
-      const hides = list.map((c, i) => { const sp = spots[i % spots.length], x0 = c.x, y0 = c.y; c.spot = sp; return tween(rand(1800, 2600), e => { c.x = x0 + (sp.x - x0) * e; c.y = y0 + (sp.y - y0) * e; }, c.tk, ease.inOut).catch(() => {}); });
+      const hides = list.map((c, i) => { const sp = spots[i % spots.length], x0 = c.x, y0 = c.y; c.spot = sp; if(sp.z) c.el.style.zIndex = sp.z; return tween(rand(1800, 2600), e => { c.x = x0 + (sp.x - x0) * e; c.y = y0 + (sp.y - y0) * e; }, c.tk, ease.inOut).then(() => { if(sp.inside){ c.el.style.display = 'none'; c.home = sp.inside; } }).catch(() => {}); });
       await wait(2000, tk); say('…odesláno. Kde jste všichni?', 1600); await wait(1500, tk);
       await Promise.all(hides);
       say('<b>Porada! Jdu vás najít.</b>', 1600); setEyes('open'); S.lookOverride = null;
@@ -5360,8 +5514,10 @@ const Bublik = (()=>{
         S.lookOverride = { x: Math.sign(sp.x - S.x) || 0, y: sp.y > vh() ? 1 : sp.y < 60 ? -1 : 0 }; S.eyeWide = 1.25;
         await wait(500, tk);
         say(pick(['Mám tě! Porada.', 'Tady jsi. Bereš zápis.']), 1500);
+        if(sp.inside){ c.el.style.display = ''; c.home = null; puf(c.x, c.y - 20, 40); }
         const x0 = c.x, y0 = c.y, x1 = sp.out.x ?? x0, y1 = sp.out.y ?? y0;
         await tween(500, e => { c.x = x0 + (x1 - x0) * e; c.y = y0 + (y1 - y0) * e; }, tk, ease.back);
+        c.el.style.zIndex = '';
         cFace(c, 'open', 'wavy'); cSay(c, pick(['Zrovna mám… dovolenou.', 'Já jsem tu jen na brigádě.', 'Nemůžu, mám jinou poradu.']), 1900);
         c.act = 'idle'; c.until = performance.now() + 2500; S.eyeWide = 1;
         await wait(900, tk);
@@ -5371,6 +5527,8 @@ const Bublik = (()=>{
         for(let i = 0; i < 2; i++){ const sp = edgeSpot(s, s); await flyTo(sp.x, sp.y, tk); S.lookOverride = { x: pick([-1, 1]), y: .2 }; think(pick(['Tady? …Ne.', 'Za rozpisem? …Ne.', 'Pod kurzorem? …Ne.']), 1600, true); await wait(1300, tk); }
         setMouth('flat'); say(`Vzdávám to! ${cName(last)}, vylez!`, 2200); await wait(1600, tk);
         const behind = S.x - (S.x > vw() / 2 ? 1 : -1) * s * .7, x0 = last.x, y0 = last.y;
+        if(last.spot && last.spot.inside){ last.el.style.display = ''; last.home = null; }
+        last.el.style.zIndex = '';
         last.act = 'script';
         await tween(900, e => { last.x = x0 + (behind - x0) * e; last.y = y0 + (S.y - y0) * e; }, tk, ease.inOut);
         cSay(last, 'Celou dobu jsem byl za tebou. Ta porada mohla být e-mail.', 2800); await wait(1100, tk);
@@ -5381,7 +5539,290 @@ const Bublik = (()=>{
       }
       moment('sháněl lidi na poradu (nikdo nepřišel)');
       await wait(1200, tk);
-    } finally { list.forEach(c => { c.spot = null; }); S.lookOverride = null; S.eyeWide = 1; setMouth('smile'); setEyes('open'); uncast(list); }
+    } finally { list.forEach(c => { if(c.spot && c.spot.inside && c.home === c.spot.inside){ c.home = null; c.el.style.display = ''; } c.spot = null; c.el.style.zIndex = ''; }); S.lookOverride = null; S.eyeWide = 1; setMouth('smile'); setEyes('open'); uncast(list); }
+  }
+  // v0.9.72: kam se schovat — za domky a stavby (vykukují zpoza nich), do domku, za kroniku, za okraje obrazovky
+  function hideSpots(n){
+    const out = [], cw = 42;
+    if(village){
+      village.things.forEach(t => {
+        if(t.type === 'lamp') return;
+        const side = Math.random() < .5 ? -1 : 1;
+        if(BLD[t.type].enter && Math.random() < .5) out.push({ x: t.x, y: floorY(), inside: t, out: { x: t.x + side * (t.w / 2 + cw / 2 + 8) }, prio: 2 });
+        else out.push({ x: t.x + side * Math.max(0, t.w / 2 - cw * .35), y: floorY(), z: '396', out: { x: t.x + side * (t.w / 2 + cw / 2 + 8) }, prio: 2 });
+      });
+      if(village.chron){ const r = village.chron.getBoundingClientRect(); if(r.width) out.push({ x: r.left + r.width * rand(.3, .7), y: r.bottom - 6, z: '396', out: { y: r.bottom + 50 }, prio: 1 }); }
+    }
+    const edges = [];
+    for(let i = 0; i < Math.max(4, n); i++){
+      const k = i % 4;
+      if(k === 0) edges.push({ x: -8, y: rand(vh() * .3, vh() * .75), out: { x: 30 } });
+      if(k === 1) edges.push({ x: vw() + 8, y: rand(vh() * .3, vh() * .75), out: { x: vw() - 30 } });
+      if(k === 2) edges.push({ x: rand(vw() * .12, vw() * .88), y: vh() + 26, out: { y: floorY() } });
+      if(k === 3) edges.push({ x: rand(vw() * .15, vw() * .85), y: 24, out: { y: 70 } });
+    }
+    return out.sort(() => Math.random() - .5).concat(edges);
+  }
+  // ── v0.9.72: Bublíčci si předělávají appku po svém — jen naoko, klik vše vrátí ──
+  // kde je volno mimo obsah i mimo vesnici (okraje vedle panelu, nad vesnicí)
+  function sideSpot(w, h){
+    const zs = contentZones(), top = 80, bottom = floorY() - (village ? 140 : 70) - h;
+    const free = (x, y) => !zs.some(r => x + w > r.left && x < r.right && y + h > r.top && y < r.bottom);
+    for(let i = 0; i < 30; i++){ const x = rand(8, vw() - w - 8), y = rand(top, Math.max(top, bottom)); if(free(x, y)) return { x, y }; }
+    return null;
+  }
+  // Loupež kostiček: každý si vezme jednu směnu z rozpisu a odnese ji na hromádku stranou
+  async function gHeist(list, gtk){
+    const chips = gShuffle(visibleEls('.sched-table .sched-chip:not(.x-chip)', 6).filter(o => o.n.style.visibility !== 'hidden')).slice(0, Math.min(8, list.length * 2));
+    const pile = sideSpot(150, 70);
+    if(!chips.length || !pile) return gGarland(list, gtk);
+    cSay(list[0], pick(['Tyhle směny si půjčíme.', 'Přestavba! Potřebujeme materiál.', 'Kdo dřív přijde, ten má směnu.']), 2200);
+    let k = 0;
+    const runner = async (c, i) => {
+      for(let j = i; j < chips.length; j += list.length){
+        const { n, r } = chips[j];
+        if(!n.isConnected) continue;
+        c.act = 'game'; await cGo(c, r.left + r.width / 2, Math.max(r.top + cWH(c).h * .6, 40), 190);
+        const cs = getComputedStyle(n), cp = messEl('bub-chipcopy', bubEsc((n.textContent || '').trim()));
+        cp.style.background = cs.backgroundColor; cp.style.width = r.width + 'px'; cp.style.height = r.height + 'px'; cp.style.lineHeight = r.height + 'px';
+        n.style.visibility = 'hidden';
+        const slot = k++, tx = pile.x + (slot % 4) * 36, ty = pile.y + 50 - Math.floor(slot / 4) * 24;
+        mess.heist.push({ n, cp, x: r.left, y: r.top, tx, ty });
+        const place = () => { cp.style.transform = `translate(${(c.x - r.width / 2).toFixed(0)}px,${(c.y - cWH(c).h - r.height - 2).toFixed(0)}px)`; };
+        place(); messHit();
+        c.tx = tx + 16; c.ty = ty + cWH(c).h + 10; c.speed = 150;
+        await new Promise((res, rej) => { (function f(){ if(gtk.cancelled || !cp.isConnected) return rej(new Cancel()); place(); if(Math.hypot(c.tx - c.x, c.ty - c.y) < 3) return res(); requestAnimationFrame(f); })(); });
+        cp.style.transition = 'transform .25s'; cp.style.transform = `translate(${tx}px,${ty}px) rotate(${rand(-6, 6).toFixed(0)}deg)`;
+        await wait(300, gtk);
+      }
+    };
+    await Promise.all(list.map((c, i) => runner(c, i)));
+    const last = list[list.length - 1];
+    cSay(last, pick(['Tyhle směny teď patří nám. Vrátíme je. Asi.', 'Nová pobočka: Bublíkov. Směny máme.', 'Kdo je hledá, ať klikne.']), 2800);
+    moment('ukradli jsme pár kostiček z rozpisu (vrátíme)');
+    await wait(2600, gtk);
+  }
+  // Girlanda: ověsí horní hranu panelu vlaječkami a pověsí ceduli
+  async function gGarland(list, gtk){
+    const ap = activePanel(); if(!ap || ap.r.top < 50) return;
+    const y = ap.r.top - 26, x1 = Math.max(10, ap.r.left + 20), x2 = Math.min(vw() - 10, ap.r.right - 20);
+    const flags = Math.max(6, Math.floor((x2 - x1) / 34));
+    const g = messEl('bub-garland', `<svg width="${x2 - x1}" height="26" viewBox="0 0 ${x2 - x1} 26"><path d="M0 2 Q ${(x2 - x1) / 2} 14 ${x2 - x1} 2" stroke="#6b4319" fill="none" stroke-width="1.2"/>${Array.from({ length: flags }, (_, i) => { const fx = (i + .5) * (x2 - x1) / flags, sag = 2 + 12 * Math.sin(Math.PI * (i + .5) / flags); return `<path class="gf" style="animation-delay:${(i * .12).toFixed(2)}s" d="M${(fx - 7).toFixed(1)} ${sag.toFixed(1)} L${(fx + 7).toFixed(1)} ${sag.toFixed(1)} L${fx.toFixed(1)} ${(sag + 13).toFixed(1)} Z" fill="${['#d63b3b', '#f7c948', '#12a46a', '#58b6ff', '#9b7bff'][i % 5]}"/>`; }).join('')}</svg>`);
+    g.style.transform = `translate(${x1}px,${y}px)`;
+    g.dataset.x = x1; g.dataset.y = y; g.dataset.r = 0; mess.notes.push(g); messHit();
+    cSay(list[0], pick(['Tady to chce trochu vyzdobit.', 'Firemní večírek! Kdy? Teď.']), 2000);
+    await Promise.all(list.map((c, i) => (async () => { c.act = 'game'; await cGo(c, x1 + (i + .5) * (x2 - x1) / list.length, Math.max(y - 6, cWH(c).h + 10), 170); c.act = 'script'; await tween(400, (e, q) => { c.tilt = Math.sin(q * Math.PI * 2) * 10; }, gtk); c.tilt = 0; })()));
+    g.classList.add('on');
+    const sp = sideSpot(140, 30);
+    if(sp && mess.notes.length < 8) addSticker('stamp', pick(['Pod správou Bublíčků', 'Bublíkov s.r.o.', 'Zavřeno — večírek']), sp.x, sp.y, rand(-6, 6).toFixed(0));
+    cSay(pick(list), pick(['Hned je to tu veselejší.', 'Teď už to vypadá jako firma, kde se pracuje. Skoro.']), 2400);
+    moment('vyzdobili jsme rozpis vlaječkami');
+    await wait(2400, gtk);
+  }
+  // Čmáranice do prázdných buněk rozpisu (jen do prázdných — nic nezakryjí)
+  async function gDoodle(list, gtk){
+    const cells = gShuffle(visibleEls('.sched-table td.sched-cell', 10).filter(o => !o.n.querySelector('.sched-chip') && !o.n.dataset.bubDoodle)).slice(0, Math.min(8, list.length * 2));
+    if(!cells.length) return gGarland(list, gtk);
+    cSay(list[0], pick(['Prázdné buňky? To je škoda místa.', 'Vyzdobíme prázdná místa. Umělecky.']), 2200);
+    await Promise.all(list.map((c, i) => (async () => {
+      for(let j = i; j < cells.length; j += list.length){
+        const { n, r } = cells[j];
+        c.act = 'game'; await cGo(c, r.left + r.width / 2 + 14, Math.max(r.top + cWH(c).h * .7, 40), 190);
+        c.act = 'script'; await tween(300, (e, q) => { c.tilt = Math.sin(q * Math.PI * 4) * 12; }, gtk); c.tilt = 0;
+        const d = messEl('bub-doodle', pick(['☺', '★', '✿', 'B', '♪', '☕', '?!', '∞']));
+        d.style.left = (r.left + r.width / 2).toFixed(0) + 'px'; d.style.top = (r.top + r.height / 2).toFixed(0) + 'px';
+        n.dataset.bubDoodle = '1'; mess.doodles.push({ d, n }); messHit();
+      }
+    })()));
+    cSay(pick(list), pick(['Moderní umění. Nesahat.', 'Teď je rozpis hezčí. Prázdný, ale hezčí.']), 2400);
+    moment('pomalovali jsme prázdná místa v rozpisu');
+    await wait(2200, gtk);
+  }
+  // ── v0.9.72: společné úkoly Bublíčků — zabaví všechny najednou; velká parta se rozdělí na dvě skupiny ──
+  let groupOn = false, nextGroup = 0;
+  function groupTick(now){
+    if(groupOn || now < nextGroup || !started || !playful() || isTouch || uiBusy()) return;
+    const idle = crew.filter(c => !c.dead && !c.home && !c.sleeping && c.act === 'idle');
+    if(idle.length < 2 || (village && village.phase === 'noc')){ nextGroup = now + 5000; return; }
+    const pool = n => {
+      // ve vesnici se nic nedělá na zemi — Bublíčci si jdou „předělat“ appku nad ní
+      const remodel = [[gHeist, activeTab() === 'schedule' ? 3 : 0], [gGarland, 1.6], [gDoodle, activeTab() === 'schedule' ? 2 : 0], [gSweep, 1]];
+      if(village) return remodel.filter(([, w]) => w > 0);
+      const p = [[gStandup, 2], [gPhoto, 1.8]];
+      if(n >= 3) p.push([gWhisper, 2.2], [gWave, 1.4], [gSweep, 1.5]);
+      if(n >= 4 && S.stage >= 4) p.push([gChain, 2], [gTower, 2]);
+      if(S.stage >= 4) remodel.forEach(r => { if(r[1] > 0 && r[0] !== gSweep) p.push(r); });
+      return p;
+    };
+    const n = Math.min(idle.length, 14), groups = n >= 7 ? [idle.slice(0, Math.ceil(n / 2)), idle.slice(Math.ceil(n / 2), n)] : [idle.slice(0, n)];
+    groupOn = true;
+    const used = [];
+    Promise.all(groups.map(g => { const p = pool(g.length).filter(([f]) => !used.includes(f)); const fn = weighted(p.length ? p : pool(g.length)); used.push(fn); return runGroup(fn, g); }))
+      .finally(() => { groupOn = false; nextGroup = performance.now() + rand(10000, 22000); });
+  }
+  async function runGroup(fn, list){
+    const gtk = { cancelled: false };
+    list.forEach(c => { c.tk.cancelled = true; c.tk = gtk; c.act = 'game'; c.tilt = 0; c.sx = c.sy = 1; });
+    let unres = () => {};
+    try{ await fn(list, gtk, r => { unres = r; }); }
+    catch(e){ if(!(e instanceof Cancel)) console.warn('[Bublík] společný úkol', e); }
+    finally { unres(); const mine = list.filter(c => c.tk === gtk); mine.forEach(c => { c.tk = { cancelled: false }; c.el.style.zIndex = ''; }); uncast(mine); }
+  }
+  // volný úsek podlahy pro skupinu; vrátí x pozic (nebo null)
+  async function gArea(list, gtk, gap, setU){
+    const span = (list.length - 1) * gap + 70, oth = floorOthers(null).filter(o => !list.some(c => Math.abs(c.x - o.x) < 1 || Math.abs(c.tx - o.x) < 1));
+    const c0 = freeFloor(span, rand(vw() * .2, vw() * .8), { others: oth });
+    if(c0 == null) return null;
+    setU(reserveFloor(c0 - span / 2, c0 + span / 2));
+    const xs = list.map((c, i) => c0 - span / 2 + 35 + i * gap);
+    await Promise.all(list.map((c, i) => cGo(c, xs[i], floorY(), 160)));
+    list.forEach(c => { c.act = 'script'; c.x = c.tx; c.y = floorY(); });
+    return xs;
+  }
+  const gShuffle = a => a.slice().sort(() => Math.random() - .5);
+  // Stand-up porada: každý řekne, co dělá; trvá 15 minut místo pěti
+  async function gStandup(list, gtk, setU){
+    const xs = await gArea(list, gtk, 52, setU); if(!xs) return;
+    const mid = (xs[0] + xs[xs.length - 1]) / 2;
+    list.forEach(c => { c.look = { x: Math.sign(mid - c.x) || 0, y: 0 }; });
+    cSay(list[0], 'Stand-up! Krátce, prosím.', 2000); await wait(2200, gtk);
+    const lines = gShuffle(['Včera jsem kulatil. Dnes budu kulatit.', 'Blokery: gravitace.', 'Pracuju na tom.', 'Čekám na schválení od Bublíka.', 'Hotovo na 90 %. Zbytek je dalších 90 %.', 'Nic nového. Pořád jsem kulatý.', 'Řeším sobotní směnu. Nechci ji.', 'Potřebuju víc kafe.', 'Hotovo. Teda skoro. Teda ne.', 'Mám dotaz… ne, nic.', 'Jsem v homeoffice. Tady.']);
+    for(let i = 1; i < list.length; i++){ if(list[i].dead) continue; cSay(list[i], lines[i % lines.length], 2300); list[i].sy = 1.06; await wait(2500, gtk); list[i].sy = 1; }
+    cSay(list[0], pick(['Díky, končíme. Bylo to 15 minut, plán byl 5.', 'Super. Příští stand-up za hodinu.', 'Shrnu to v e-mailu. Dlouhém.']), 2600);
+    await wait(1600, gtk);
+    await tween(500, (e, q) => { list.forEach(c => { if(!c.dead) c.y = floorY() - Math.sin(q * Math.PI) * 14; }); }, gtk, ease.lin);
+  }
+  // Tichá pošta: zpráva šeptem z ruky do ruky — na konci je z ní něco úplně jiného
+  async function gWhisper(list, gtk, setU){
+    const xs = await gArea(list, gtk, 46, setU); if(!xs) return;
+    const [msg, out] = pick([['Porada v deset.', 'Párty v pět!'], ['Šéf má dneska dobrou náladu.', 'Šéf má dneska dvě náhrady?'], ['Ve čtvrtek je výplata.', 'Ve čtvrtek je výprava!'], ['Kdo vezme sobotu?', 'Kdo sní sobolí?'], ['Nový rozpis je venku.', 'Nový ořech je v lesku.'], ['Kafe došlo.', 'Kafe doslova došlo… do kanceláře!']]);
+    cSay(list[0], 'Psst… ' + msg, 2200); await wait(2000, gtk);
+    for(let i = 0; i < list.length - 1; i++){
+      const a = list[i], b = list[i + 1]; if(a.dead || b.dead) continue;
+      a.look = { x: 1, y: 0 }; b.look = { x: -1, y: 0 };
+      await tween(240, e => { a.tilt = 14 * e; a.x = xs[i] + 10 * e; }, gtk);
+      cSay(a, '(šušká)', 900); await wait(700, gtk);
+      await tween(240, e => { a.tilt = 14 * (1 - e); a.x = xs[i] + 10 * (1 - e); }, gtk);
+    }
+    const last = list[list.length - 1]; cFace(last, 'open', 'grin');
+    cSay(last, out, 2600); await wait(1400, gtk);
+    cFace(list[0], 'open', 'wavy'); cSay(list[0], pick(['Cože?!', 'To jsem neřekl!', 'Ne. Prostě ne.']), 2000);
+    await wait(2200, gtk);
+  }
+  // Týmová fotka: fotograf, „sýr“, někdo mrkne → znovu
+  async function gPhoto(list, gtk, setU){
+    const xs = await gArea(list, gtk, 44, setU); if(!xs) return;
+    const ph = list[list.length - 1], team = list.slice(0, -1);
+    ph.x = ph.tx = xs[xs.length - 1] + 40; ph.look = { x: -1, y: 0 }; cProp(ph, 'phone', -16, -26, 0);
+    team.forEach(c => { c.look = { x: 1, y: -.1 }; });
+    cSay(ph, pick(['Týmová fotka! Řekněte sýr.', 'Fotka na web. Tvařte se pracovitě.']), 2200); await wait(2000, gtk);
+    for(let round = 0; round < 2; round++){
+      team.forEach(c => cFace(c, 'open', 'grin'));
+      if(team[0]) cSay(team[0], 'Sýýýr!', 1200);
+      await wait(900, gtk);
+      const blink = round === 0 && team.length > 1 && Math.random() < .7 ? pick(team) : null;
+      if(blink) cFace(blink, 'closed', 'grin');
+      const f = document.createElement('div'); f.className = 'bub-flash'; f.style.setProperty('--t', `translate(${ph.x.toFixed(0)}px,${(ph.y - 30).toFixed(0)}px)`); document.body.appendChild(f); setTimeout(() => f.remove(), 400);
+      await wait(700, gtk);
+      team.forEach(c => cFace(c, 'open', 'smile'));
+      if(!blink) break;
+      cSay(ph, `Znovu. ${cName(blink)} ${g(cName(blink), 'mrkal', 'mrkala')}.`, 2000); cSay(blink, 'Já jen mrkl. Umělecky.', 1800); await wait(2000, gtk);
+    }
+    cSay(ph, pick(['Hotovo. Na webu budeme vypadat jako firma.', 'Super. Tahle půjde do výroční zprávy.']), 2200); await wait(1600, gtk);
+  }
+  // Mexická vlna: třikrát, pokaždé rychleji
+  async function gWave(list, gtk, setU){
+    const xs = await gArea(list, gtk, 44, setU); if(!xs) return;
+    cSay(list[0], 'Mexická vlna! Na tři!', 1800); await wait(1600, gtk);
+    for(let r = 0; r < 3; r++){
+      const step = [220, 150, 90][r];
+      for(let i = 0; i < list.length; i++){
+        const c = list[i]; if(c.dead) continue;
+        tween(step * 3, (e, q) => { c.y = floorY() - Math.sin(q * Math.PI) * 26; c.sy = 1 + .12 * Math.sin(q * Math.PI); }, gtk, ease.lin).catch(() => {});
+        await wait(step, gtk);
+      }
+      await wait(600, gtk);
+    }
+    list.forEach(c => cFace(c, 'open', 'grin'));
+    cSay(pick(list), pick(['Stadion šílí!', 'Rekord v rychlosti. Teda ve vlnách.']), 2000); await wait(2000, gtk);
+  }
+  // Úklid kanceláře: rozlétané bublinky — kdo jich praskne víc
+  async function gSweep(list, gtk, setU){
+    cSay(list[0], pick(['Kdo tu nechal ty bubliny? Úklid!', 'Úklidová brigáda! Každý pět bublin.']), 2200);
+    const bubs = [];
+    for(let i = 0; i < list.length * 2 + 2; i++){ const x = rand(vw() * .08, vw() * .92), y = floorY() - rand(10, 120); bubs.push(spawnBubble(x, y, rand(10, 18), { vx: rand(-14, 14), vy: -rand(2, 8), life: 60 })); }
+    const score = new Map();
+    try{
+      const t0 = performance.now();
+      while(bubs.some(b => !b.dead) && performance.now() - t0 < 16000){
+        list.forEach(c => {
+          if(c.dead) return;
+          const tgt = bubs.filter(b => !b.dead).sort((a, b) => Math.hypot(a.x - c.x, a.y - c.y) - Math.hypot(b.x - c.x, b.y - c.y))[0];
+          if(!tgt) return;
+          c.act = 'game'; c.tx = tgt.x; c.ty = Math.min(floorY(), tgt.y + 20); c.speed = 170;
+          if(Math.hypot(tgt.x - c.x, tgt.y + 20 - c.y) < 22){ tgt.pop(false); score.set(c, (score.get(c) || 0) + 1); }
+        });
+        await wait(80, gtk);
+      }
+      const best = [...score.entries()].sort((a, b) => b[1] - a[1])[0];
+      if(best){ cFace(best[0], 'open', 'grin'); cSay(best[0], `${best[1]}! Jsem zaměstnanec měsíce.`, 2400); }
+      const other = list.find(c => c !== (best && best[0]) && !c.dead); if(other) cSay(other, 'Uklizeno. Kdo to zaplatí?', 2000);
+      await wait(2200, gtk);
+    } finally { bubs.forEach(b => b.pop(false)); }
+  }
+  // Řetěz: podávají si kuličky z ruky do ruky — kam? Nikdo neví.
+  async function gChain(list, gtk, setU){
+    const xs = await gArea(list, gtk, 42, setU); if(!xs) return;
+    const d = 14, pile = [], dest = [];
+    for(let i = 0; i < 5; i++) pile.push(addBrick(xs[0] - 26 - (i % 2) * 14, floorY() - Math.floor(i / 2) * 12, d));
+    cSay(list[0], 'Řetěz! Podávejte!', 1800); await wait(1200, gtk);
+    try{
+      for(let k = 0; k < pile.length; k++){
+        const b = pile[k];
+        for(let i = 0; i < list.length; i++){
+          const c = list[i]; if(c.dead) continue;
+          const x0 = b.x, y0 = b.y, x1 = (i === list.length - 1 ? xs[i] + 28 + (k % 2) * 14 : xs[i + 1]), y1 = i === list.length - 1 ? floorY() - Math.floor(k / 2) * 12 - d / 2 : floorY() - 46 * c.sc;
+          c.sy = .9;
+          await tween(i === list.length - 1 ? 260 : 200, (e, q) => { b.x = x0 + (x1 - x0) * e; b.y = y0 + (y1 - y0) * e - Math.sin(q * Math.PI) * 26; b.el.style.transform = `translate(${b.x - d / 2}px,${b.y - d / 2}px)`; }, gtk, ease.lin);
+          c.sy = 1;
+        }
+        dest.push(b);
+      }
+      const last = list[list.length - 1];
+      cSay(last, 'Kam to vlastně neseme?', 2000); await wait(2000, gtk);
+      cSay(list[0], pick(['Nevím. Ale makáme.', 'Zpátky. Šéf to chce tam.']), 2200); await wait(2200, gtk);
+    } finally { pile.forEach((b, i) => setTimeout(() => popBrick(b), i * 90)); }
+  }
+  // Společná věž: každý přinese kuličku; pak se zřítí, nebo nahoře zavlaje vlajka
+  async function gTower(list, gtk, setU){
+    const span = 120, oth = floorOthers(null).filter(o => !list.some(c => Math.abs(c.x - o.x) < 1));
+    const tx = freeFloor(span + (list.length - 1) * 10, rand(vw() * .25, vw() * .75), { others: oth }); if(tx == null) return;
+    setU(reserveFloor(tx - span / 2 - 60, tx + span / 2 + 60));
+    const d = 16, tower = [];
+    cSay(list[0], 'Postavíme nejvyšší věž ve firmě!', 2000);
+    try{
+      for(let r = 0; r < 2; r++) for(const c of list){
+        if(c.dead) continue;
+        c.act = 'game'; await cGo(c, tx + (tower.length % 2 ? 26 : -26), floorY(), 220);
+        c.sy = .86; tower.push(addBrick(tx, floorY() - tower.length * d * .86, d)); await wait(160, gtk); c.sy = 1;
+        c.tx = tx + (tower.length % 2 ? 1 : -1) * rand(50, 90);
+      }
+      await wait(800, gtk);
+      if(Math.random() < .5){
+        const top = list[0]; top.act = 'script'; const y0 = top.y, topY = floorY() - tower.length * d * .86 - 4;
+        await tween(800, (e, q) => { top.x = top.x + (tx - top.x) * e; top.y = y0 + (topY - y0) * e - Math.sin(q * Math.PI) * 20; }, gtk);
+        cProp(top, 'flag', 14, -40, 0); cSay(top, 'Vrchol! Signál tu je!', 2200);
+        list.slice(1).forEach(c => cFace(c, 'open', 'grin'));
+        await wait(2400, gtk); cDrop(top);
+        await tween(500, (e, q) => { top.y = topY + (floorY() - topY) * e; top.x = tx + 50 * e; }, gtk); top.y = floorY();
+      } else {
+        cSay(pick(list), 'Nehýbejte se…', 1400); await wait(900, gtk);
+        tower.forEach(b => { b.vx = rand(-110, 110); b.vy = rand(-140, -20); b.el.style.transition = 'none'; });
+        await tween(1100, () => { const dt = 1 / 60; tower.forEach(b => { if(!b.el.isConnected) return; b.vy += 900 * dt; b.x += b.vx * dt; b.y = Math.min(floorY() - d / 2, b.y + b.vy * dt); if(b.y >= floorY() - d / 2) b.vy *= -.4; b.el.style.transform = `translate(${b.x - d / 2}px,${b.y - d / 2}px)`; }); }, gtk, ease.lin);
+        list.forEach(c => cFace(c, 'open', 'o'));
+        cSay(pick(list), pick(['To byla statika.', 'Kdo zapomněl na základy?', 'Nahlásíme to jako vyšší moc.']), 2200); await wait(2200, gtk);
+      }
+    } finally { tower.slice().reverse().forEach((b, i) => setTimeout(() => popBrick(b), i * 80)); }
   }
   // úklid: všichni se vcucnou zpátky do Bublíka (po návratu člověka nebo při vypnutí)
   function crewRecall(fast){
@@ -5405,7 +5846,7 @@ const Bublik = (()=>{
   // ── v0.9.62: Falešný chaos (od 15 min) — vypadá to, že něco rozbil; doopravdy se nic nerozbije ──
   // Stopy (Desktop Goose), lepicí vzkazy, prasklina, ukradené písmeno, nakřivený řádek, tráva a sekání.
   // Všechno se po kliknutí uklidí (chaosTidy) a vrátí do původního stavu.
-  const mess = { prints: [], notes: [], cracks: [], letter: null, rows: [], grass: null };
+  const mess = { prints: [], notes: [], cracks: [], letter: null, rows: [], grass: null, heist: [], doodles: [] };
   const lastPrint = {};
   function messEl(cls, html){ const d = document.createElement('div'); d.className = cls; if(html) d.innerHTML = html; document.body.appendChild(d); return d; }
   function messHit(){ S.awayStats.mess = (S.awayStats.mess || 0) + 1; }
@@ -5594,7 +6035,7 @@ const Bublik = (()=>{
   }
   // úklid po návratu — do vteřiny je všechno jako dřív
   function chaosTidy(fast){
-    const any = mess.prints.length || mess.notes.length || mess.cracks.length || mess.letter || mess.rows.length || mess.grass;
+    const any = mess.prints.length || mess.notes.length || mess.cracks.length || mess.letter || mess.rows.length || mess.grass || mess.heist.length || mess.doodles.length;
     if(!any) return false;
     const gone = (el, cls, ms) => { if(fast){ el.remove(); return; } if(cls) el.classList.add(cls); setTimeout(() => el.remove(), ms); };
     mess.prints.forEach(p => gone(p, 'bye', 500));
@@ -5607,7 +6048,10 @@ const Bublik = (()=>{
     mess.rows.forEach(r => { if(r.isConnected){ r.style.transform = ''; setTimeout(() => { r.style.transition = ''; r.style.transformOrigin = ''; }, 700); } });
     if(mess.grass){ const g = mess.grass.el; g.style.transition = 'transform .5s'; g.classList.remove('grow'); setTimeout(() => g.remove(), fast ? 0 : 520); }
     returnLetter(fast);
-    mess.prints = []; mess.notes = []; mess.cracks = []; mess.rows = []; mess.grass = null;
+    // v0.9.72: ukradené kostičky letí zpátky, čmáranice zmizí
+    mess.heist.forEach(h => { if(fast || !h.n.isConnected){ h.cp.remove(); h.n.style.visibility = ''; return; } const r = h.n.getBoundingClientRect(); h.cp.style.transition = 'transform .5s cubic-bezier(.3,1.3,.5,1)'; h.cp.style.transform = `translate(${r.left}px,${r.top}px)`; setTimeout(() => { h.cp.remove(); h.n.style.visibility = ''; }, 520); });
+    mess.doodles.forEach(o => { delete o.n.dataset.bubDoodle; gone(o.d, 'bye', 300); });
+    mess.prints = []; mess.notes = []; mess.cracks = []; mess.rows = []; mess.grass = null; mess.heist = []; mess.doodles = [];
     return true;
   }
   // ── v0.9.63: Komunita (od 30 min) — Bublíkovo: vesnička na spodním okraji, denní režim podle hodin, kronika ──
@@ -5630,6 +6074,7 @@ const Bublik = (()=>{
   // ── v0.9.69: opravdová vesnice — různé stavby, roste od táboráku do stran ──
   const BLD = {
     house: { w: 70, h: 60, enter: true, cls: 'bub-house', svg: HOUSE_SVG },
+    stage: { w: 200, h: 112, svg: '<svg viewBox="-100 -112 200 113" aria-hidden="true"><rect x="-96" y="-8" width="192" height="8" rx="2" fill="#8b5a2b"/><rect x="-92" y="-104" width="10" height="96" fill="#7a4a1e"/><rect x="82" y="-104" width="10" height="96" fill="#7a4a1e"/><path d="M-82 -96 H82 V-8 H-82 Z" fill="#9e2020"/><path d="M-82 -96 Q-44 -56 -4 -96 M4 -96 Q44 -56 82 -96" stroke="#c93a3a" stroke-width="7" fill="none"/><path d="M0 -96 V-8" stroke="#7a1717" stroke-width="2"/><rect x="-100" y="-112" width="200" height="17" rx="4" fill="#b02a2a"/><text x="0" y="-100" text-anchor="middle" font-size="9" font-weight="800" fill="#ffe48a">DIVADLO</text></svg>' },
     well: { w: 44, h: 50, svg: '<svg viewBox="-22 -50 44 51" aria-hidden="true"><path d="M-17 -22 L-17 0 L17 0 L17 -22 Z" fill="#b9b2a6" stroke="#5c5548" stroke-width="1.2"/><path d="M-17 -15 H17 M-17 -8 H17 M-6 -22 V-15 M8 -15 V-8 M-2 -8 V0" stroke="#7d7568" stroke-width=".9"/><path d="M-14 -22 V-40 M14 -22 V-40" stroke="#6b4319" stroke-width="2.4"/><path d="M-20 -38 L0 -49 L20 -38 Z" fill="#c0392b" stroke="#7a1717"/><path d="M-12 -33 H12" stroke="#6b4319" stroke-width="2"/><path d="M0 -33 V-27" stroke="#555"/><rect x="-3.5" y="-28" width="7" height="6" rx="1" fill="#8b5a2b"/><ellipse cx="0" cy="-22" rx="17" ry="3" fill="#2b6cb0" opacity=".8"/></svg>' },
     tree: { w: 62, h: 86, svg: '<svg viewBox="-31 -86 62 87" aria-hidden="true"><path d="M-4 0 L-3 -30 L3 -30 L4 0 Z" fill="#7a4a1e"/><circle cx="0" cy="-50" r="24" fill="#2e9d5b"/><circle cx="-14" cy="-40" r="15" fill="#25874d"/><circle cx="15" cy="-42" r="15" fill="#33a866"/><circle cx="2" cy="-66" r="15" fill="#3cb371"/><circle cx="-8" cy="-58" r="4" fill="#ff6f8e"/><circle cx="10" cy="-48" r="3.6" fill="#ff6f8e"/><circle cx="-2" cy="-40" r="3.4" fill="#ff6f8e"/></svg>' },
     mill: { w: 70, h: 104, svg: '<svg viewBox="-35 -104 70 105" aria-hidden="true"><path d="M-14 0 L-9 -64 L9 -64 L14 0 Z" fill="#f3efe2" stroke="#6b5a3a" stroke-width="1.2"/><path d="M-12 -64 L0 -76 L12 -64 Z" fill="#8b5a2b" stroke="#4a2e12"/><rect x="-4" y="-16" width="8" height="16" rx="4" fill="#6b4319"/><circle class="h-win" cx="0" cy="-40" r="3.5" fill="#ffe48a" stroke="#6b5a3a"/><g><path d="M0 -70 L-4 -100 L4 -100 Z M0 -70 L30 -74 L30 -66 Z M0 -70 L4 -40 L-4 -40 Z M0 -70 L-30 -66 L-30 -74 Z" fill="#fffdf6" stroke="#6b5a3a" stroke-width="1"/><circle cx="0" cy="-70" r="3" fill="#4a2e12"/><animateTransform attributeName="transform" type="rotate" from="0 0 -70" to="360 0 -70" dur="7s" repeatCount="indefinite"/></g></svg>' },
@@ -5639,9 +6084,22 @@ const Bublik = (()=>{
     market: { w: 72, h: 60, svg: '<svg viewBox="-36 -60 72 61" aria-hidden="true"><path d="M-30 0 V-34 M30 0 V-34" stroke="#6b4319" stroke-width="3"/><rect x="-32" y="-22" width="64" height="10" fill="#c8a06a" stroke="#6b4319"/><path d="M-36 -34 H36 L32 -48 H-32 Z" fill="#fff" stroke="#b02a2a"/><path d="M-28 -48 L-30 -34 M-14 -48 L-14 -34 M0 -48 V-34 M14 -48 L14 -34 M28 -48 L30 -34" stroke="#d63b3b" stroke-width="7" opacity=".85"/><circle cx="-18" cy="-25" r="4" fill="#ff6f8e"/><circle cx="-8" cy="-25" r="4" fill="#f7a531"/><circle cx="6" cy="-25" r="4" fill="#5fcf98"/><circle cx="17" cy="-25" r="4" fill="#9b7bff"/></svg>' },
     lamp: { w: 16, h: 60, svg: '<svg viewBox="-8 -60 16 61" aria-hidden="true"><path d="M0 0 V-46" stroke="#333" stroke-width="2.2"/><path d="M-4 0 H4" stroke="#333" stroke-width="3"/><path d="M-6 -46 H6 L4 -56 H-4 Z" fill="#2b3a4a" stroke="#111"/><rect class="l-glass" x="-3.5" y="-54" width="7" height="7" fill="#556"/></svg>' },
   };
-  const BUILD_ORDER = ['house', 'house', 'well', 'tree', 'house', 'lamp', 'bakery', 'house', 'lamp', 'mill', 'market', 'house', 'tree', 'hall', 'lamp', 'tower', 'house', 'tree', 'lamp'];
+  // v0.9.72: domky v různých podobách — kopule, chaloupka s komínem, úzký domek, hříbek, dvojdomek, srub
+  const HOUSE_VARIANTS = [
+    { id: 'dome', w: 70, h: 60, svg: HOUSE_SVG, say: ' Kulatý, samozřejmě.' },
+    { id: 'cottage', w: 72, h: 64, smoke: [56, 6], say: ' S komínem. Kouří, i když se netopí.', svg: '<svg viewBox="-36 -64 72 65" aria-hidden="true"><rect x="16" y="-58" width="8" height="16" fill="#8b5a2b" stroke="#4a2e12"/><path d="M-30 0 V-30 H30 V0 Z" fill="#f6e3c0" stroke="#8b5a2b" stroke-width="1.3"/><path d="M-35 -29 L0 -54 L35 -29 Z" fill="#d35400" stroke="#7a2e00" stroke-width="1.2"/><rect x="-7" y="-20" width="14" height="20" rx="2" fill="#6b4319"/><circle cx="4" cy="-10" r="1.2" fill="#f7c948"/><rect class="h-win" x="-25" y="-24" width="11" height="10" rx="1" fill="#ffe48a" stroke="#8b5a2b"/><rect class="h-win" x="14" y="-24" width="11" height="10" rx="1" fill="#ffe48a" stroke="#8b5a2b"/></svg>' },
+    { id: 'tall', w: 46, h: 84, say: ' Úzký a vysoký. Výtah nemá.', svg: '<svg viewBox="-23 -84 46 85" aria-hidden="true"><path d="M-17 0 V-52 H17 V0 Z" fill="#cfe8f7" stroke="#2c5d7c" stroke-width="1.2"/><path d="M-21 -51 L0 -83 L21 -51 Z" fill="#2980b9" stroke="#1b4f72" stroke-width="1.2"/><circle class="h-win" cx="0" cy="-60" r="4.5" fill="#ffe48a" stroke="#1b4f72"/><rect class="h-win" x="-9" y="-44" width="18" height="10" rx="1.5" fill="#ffe48a" stroke="#2c5d7c"/><rect x="-6" y="-18" width="12" height="18" rx="6" fill="#1b4f72"/></svg>' },
+    { id: 'mushroom', w: 66, h: 62, say: ' Ve tvaru houby. Nejíst.', svg: '<svg viewBox="-33 -62 66 63" aria-hidden="true"><path d="M-16 0 V-26 Q0 -30 16 -26 V0 Z" fill="#fff4dc" stroke="#a88a5a" stroke-width="1.2"/><path d="M-32 -26 Q-30 -60 0 -61 Q30 -60 32 -26 Q0 -20 -32 -26 Z" fill="#e74c3c" stroke="#922b21" stroke-width="1.3"/><circle cx="-14" cy="-44" r="5" fill="#fff"/><circle cx="8" cy="-50" r="4" fill="#fff"/><circle cx="20" cy="-36" r="3.4" fill="#fff"/><circle cx="-2" cy="-34" r="3" fill="#fff"/><rect x="-6" y="-17" width="12" height="17" rx="6" fill="#8b5a2b"/><circle class="h-win" cx="10" cy="-12" r="3.5" fill="#ffe48a" stroke="#a88a5a"/></svg>' },
+    { id: 'duplex', w: 100, h: 56, say: ' Dvojdomek. Sousedi si půjčují pěnu.', svg: '<svg viewBox="-50 -56 100 57" aria-hidden="true"><path d="M-48 0 V-18 A24 26 0 0 1 0 -18 V0 Z" fill="url(#bub-g-body)" stroke="#044a30" stroke-opacity=".6" stroke-width="1.2"/><path d="M0 0 V-22 A24 30 0 0 1 48 -22 V0 Z" fill="url(#bub-g-body)" stroke="#044a30" stroke-opacity=".6" stroke-width="1.2"/><rect x="-30" y="-16" width="11" height="16" rx="5.5" fill="#5a3b12"/><rect x="18" y="-16" width="11" height="16" rx="5.5" fill="#5a3b12"/><circle class="h-win" cx="-12" cy="-24" r="4" fill="#ffe48a" stroke="#044a30"/><circle class="h-win" cx="37" cy="-30" r="4" fill="#ffe48a" stroke="#044a30"/><ellipse cx="-34" cy="-34" rx="5" ry="2.6" fill="#fff" opacity=".6" transform="rotate(-28 -34 -34)"/><ellipse cx="12" cy="-42" rx="5" ry="2.6" fill="#fff" opacity=".6" transform="rotate(-28 12 -42)"/></svg>' },
+    { id: 'cabin', w: 70, h: 60, say: ' Srub. Prý ekologický.', svg: '<svg viewBox="-35 -60 70 61" aria-hidden="true"><path d="M-28 0 V-28 H28 V0 Z" fill="#a0652e" stroke="#5a3410" stroke-width="1.2"/><path d="M-28 -7 H28 M-28 -14 H28 M-28 -21 H28" stroke="#6b3f17" stroke-width="1"/><path d="M-34 -26 L0 -58 L34 -26 Z" fill="#5d6d3a" stroke="#3a4423" stroke-width="1.2"/><rect x="-6" y="-18" width="12" height="18" fill="#4a2e12"/><rect class="h-win" x="12" y="-22" width="10" height="9" fill="#ffe48a" stroke="#5a3410"/><rect x="-24" y="-12" width="12" height="5" fill="#8b5a2b" rx="1"/><circle cx="-21" cy="-14" r="2" fill="#f7a531"/><circle cx="-15" cy="-14" r="2" fill="#ff6f8e"/></svg>' },
+  ];
+  function nextHouseVariant(v){ if(!v.hv) v.hv = HOUSE_VARIANTS.slice(1).sort(() => Math.random() - .5); return v.houses.length === 0 ? HOUSE_VARIANTS[0] : v.hv[(v.houses.length - 1) % v.hv.length]; }
+  // v0.9.72: větší rozestupy (mezi stavbami se vejde Bublíček), takže se nevejde všechno — důležité stavby dřív
+  const BUILD_ORDER = ['house', 'house', 'well', 'house', 'stage', 'bakery', 'tree', 'lamp', 'house', 'mill', 'market', 'hall', 'lamp', 'tree', 'tower', 'house', 'house', 'lamp', 'tree'];
+  const BLD_GAP = 54;
   const BLD_NEWS = {
-    house: (w, n) => `${w} ${g(w, 'postavil', 'postavila')} domek č. ${n}.${n === 1 ? ' Kulatý, samozřejmě.' : n === 4 ? ' Už je to ulice.' : ''}`,
+    house: (w, n, hv) => `${w} ${g(w, 'postavil', 'postavila')} domek č. ${n}.${hv ? hv.say : ''}${n === 4 ? ' Už je to ulice.' : ''}`,
+    stage: () => 'Postavili jsme divadlo. Program zatím žádný, vstupenky vyprodané.',
     well: w => `${w} ${g(w, 'vykopal', 'vykopala')} studnu. Voda je, jak jinak, bublinková.`,
     tree: w => `${w} ${g(w, 'zasadil', 'zasadila')} strom. Za pět minut nesl jablka. Rychlá odrůda.`,
     mill: () => 'Stojí větrný mlýn! Mele vzduch na jemnou pěnu.',
@@ -5654,9 +6112,10 @@ const Bublik = (()=>{
   const villageMax = () => clamp(Math.floor(vw() / 85), 6, 15);
   // volné místo na stavbu: od táboráku do stran (vesnice roste ze středu), mimo Bublíkův kout
   function findLot(w){
-    const v = village, cx = v.fireX, used = v.things.map(t => [t.x - t.w / 2 - 10, t.x + t.w / 2 + 10]);
-    used.push([cx - 34, cx + 34]);
-    used.push([homeX() - 56, homeX() + 56]);
+    const v = village, cx = v.fireX, gap = w < 20 ? 30 : BLD_GAP, used = v.things.map(t => [t.x - t.w / 2 - (t.w < 20 ? 30 : gap), t.x + t.w / 2 + (t.w < 20 ? 30 : gap)]);
+    used.push([cx - 28 - gap, cx + 28 + gap]);
+    used.push([homeX() - 70, homeX() + 70]);
+    const lab = versionLabelBox(); if(lab) used.push([lab[0] - 20, lab[1] + 20]);   // patička s verzí
     const lo = 14 + w / 2, hi = vw() - 14 - w / 2;
     for(let d = 44 + w / 2; d < vw(); d += 12){
       for(const sg of (Math.random() < .5 ? [-1, 1] : [1, -1])){
@@ -5667,8 +6126,13 @@ const Bublik = (()=>{
     }
     return null;
   }
+  // patička s číslem verze dole uprostřed — vesnice ji nepřekrývá
+  function versionLabelBox(){
+    try{ const n = document.getElementById('app-version-label'); if(!n || !n.offsetParent) return null; const r = n.getBoundingClientRect(); return r.bottom > floorY() - 90 && r.width ? [r.left, r.right] : null; } catch(_){ return null; }
+  }
   function placeThing(type, x, who, when){
-    const v = village, b = BLD[type], y = floorY() - b.h + 3;
+    const v = village, hv = type === 'house' ? (v.pendingHV || nextHouseVariant(v)) : null, b = hv ? Object.assign({}, BLD.house, hv) : BLD[type], y = floorY() - b.h + 3;
+    v.pendingHV = null;
     const el = vEl('bub-bld bub-' + type + (b.cls ? ' ' + b.cls : '') + (when ? '' : ' new'), b.svg, x - b.w / 2, y);
     el.style.width = b.w + 'px'; el.style.height = b.h + 'px';
     el.style.setProperty('--x', `${x - b.w / 2}px`); el.style.setProperty('--y', `${y}px`);
@@ -5680,7 +6144,7 @@ const Bublik = (()=>{
     if(type === 'lamp' && (v.phase === 'noc' || v.phase === 'vecer')) el.classList.add('lit');
     if(v.phase === 'noc') el.querySelectorAll('.h-win').forEach(w => w.setAttribute('fill', '#2b3a4a'));
     if(!when) puf(x, floorY() - b.h * .4, Math.max(60, b.w));
-    chron(BLD_NEWS[type](who, v.houses.length), when);
+    chron(BLD_NEWS[type](who, v.houses.length, hv), when);
     return t;
   }
   function tickClock(t){
@@ -5694,8 +6158,9 @@ const Bublik = (()=>{
     const v = village, type = BUILD_ORDER[v.bi];
     if(!type) return;
     v.bi++;
-    const bw = BLD[type].w, x = findLot(bw);
-    if(x == null) return;
+    if(type === 'house') v.pendingHV = nextHouseVariant(v);
+    const bw = type === 'house' ? v.pendingHV.w : BLD[type].w, x = findLot(bw);
+    if(x == null){ v.pendingHV = null; return; }
     const b = crew.find(c => !c.dead && c.act === 'idle' && !c.sleeping && !c.home) || crew.find(c => !c.dead && !c.home);
     if(!b){ placeThing(type, x, 'Bublík'); return; }
     await vScript([b], async () => {
@@ -5729,18 +6194,28 @@ const Bublik = (()=>{
     const v = village;
     const t = pick(v.things.filter(t => t.type !== 'lamp'));
     if(!t) return;
+    const { w } = cWH(c), enter = BLD[t.type].enter && v.phase !== 'noc';
+    // v0.9.72: do domu vejde dveřmi (venku nestojí); k ostatnímu stavení jde z boku, ať ho nezakryje — a jen když je tam volno
+    let tx = t.x;
+    if(!enter){
+      const sides = [t.x - t.w / 2 - w / 2 - 6, t.x + t.w / 2 + w / 2 + 6].sort(() => Math.random() - .5);
+      tx = sides.find(x => floorFree(x, w, { others: floorOthers(c) }));
+      if(tx == null){ c.until = performance.now() + rand(800, 2000); return; }
+    }
     c.act = 'busy'; const myTk = c.tk;
+    const goFree = async (near, speed = 110) => { const fx = freeFloor(w + 6, near, { others: floorOthers(c) }); if(fx != null) await cGo(c, fx, floorY(), speed); };
     try{
-      await cGo(c, t.x + rand(-6, 6), floorY(), rand(90, 140));
+      await cGo(c, tx, floorY(), rand(90, 140));
       if(!village) return;
-      if(BLD[t.type].enter && v.phase !== 'noc'){
+      if(enter){
         c.el.style.display = 'none'; c.home = t;
         await wait(rand(3000, 9000), c.tk);
         c.el.style.display = ''; c.home = null;
-        if(t.type === 'bakery'){ cProp(c, 'bread', 18, -18, 0); cSay(c, pick(['Čerstvá bublanina!', 'Mňam.', 'Ještě teplá.']), 1800); await wait(rand(4000, 7000), c.tk); }
-        else if(t.type === 'hall' && Math.random() < .5) cSay(c, pick(['Úřad zavřený. Zase.', 'Mám razítko!', 'Podal jsem žádost o víc bublin.']), 1900);
+        if(t.type === 'bakery'){ cProp(c, 'bread', 18, -18, 0); await goFree(t.x); cSay(c, pick(['Čerstvá bublanina!', 'Mňam.', 'Ještě teplá.']), 1800); await wait(rand(4000, 7000), c.tk); }
+        else { await goFree(t.x); if(t.type === 'hall' && Math.random() < .5) cSay(c, pick(['Úřad zavřený. Zase.', 'Mám razítko!', 'Podal jsem žádost o víc bublin.']), 1900); }
       } else if(t.type === 'well'){
-        cProp(c, 'bucket', 16, -8, 0); cFace(c, 'open', 'o'); await wait(1500, c.tk);
+        c.look = { x: Math.sign(t.x - c.x), y: .2 };
+        cProp(c, 'bucket', Math.sign(t.x - c.x) * 16, -8, 0); cFace(c, 'open', 'o'); await wait(1500, c.tk);
         cSay(c, pick(['Studená!', 'Bublinky v kýblu.', 'Dneska teče perlivá.']), 1600); cFace(c, 'open', 'smile'); await wait(rand(2000, 4000), c.tk);
       } else if(t.type === 'tree'){
         c.act = 'script'; cFace(c, 'closed', 'smile');
@@ -5748,11 +6223,12 @@ const Bublik = (()=>{
         cFace(c, 'open', 'smile');
         if(Math.random() < .4) cSay(c, 'Spadlo mi jablko na hlavu. Mám nápad!', 2200);
       } else if(t.type === 'market'){
+        c.look = { x: Math.sign(t.x - c.x), y: 0 };
         cSay(c, pick(['Jednu pěnu, prosím.', 'Kolik stojí bublina?', 'Máte i hranaté?', 'Na dluh, jo?']), 1800); await wait(2600, c.tk);
       } else if(t.type === 'tower'){
         c.act = 'script'; const y0 = c.y;
         await tween(2200, e => { c.y = y0 - 92 * e; }, c.tk);
-        c.look = { x: pick([-1, 1]), y: 0 }; cSay(c, pick(['Vidím až na konec rozpisu!', 'Odsud je Bublíkovo celé!', 'Ahoj, kurzore!']), 2200);
+        c.look = { x: Math.sign(c.x - t.x), y: 0 }; cSay(c, pick(['Vidím až na konec rozpisu!', 'Odsud je Bublíkovo celé!', 'Ahoj, kurzore!']), 2200);
         await wait(2400, c.tk);
         await tween(1400, e => { c.y = y0 - 92 * (1 - e); }, c.tk);
       } else if(t.type === 'mill'){
@@ -5790,11 +6266,16 @@ const Bublik = (()=>{
     return VILLAGER_NAMES.find(n => !used.includes(n)) || pick(VILLAGER_NAMES);
   }
   // v0.9.66: founded = vesnice vznikla, když stránka nebyla vidět (dopočet) — přistěhovalce doplní villageCatchUp()
+  function fireSpot(w){
+    const lab = versionLabelBox(); let x = w * .5;
+    if(lab && x + 40 > lab[0] - 20 && x - 40 < lab[1] + 20) x = lab[0] - 20 - 60 > w * .25 ? lab[0] - 80 : lab[1] + 80;
+    return x;
+  }
   function startVillage(now, founded){
     if(village) return;
     const w = vw();
     village = {
-      t0: now, phase: null, houses: [], things: [], bi: 0, fire: null, fireX: w * .5, flowers: [], path: vEl('bub-path'),
+      t0: now, phase: null, houses: [], things: [], bi: 0, fire: null, fireX: fireSpot(w), flowers: [], path: vEl('bub-path'),
       log: [], next: now + 4000, nextHouse: now + 6000, busy: false, night: null, born: 0,
       chron: vEl('bub-chron', `<div class="ch-title">Zprávy z Bublíkova</div><div class="ch-lines"></div>`),
     };
@@ -5829,7 +6310,8 @@ const Bublik = (()=>{
     const builds = Math.min(BUILD_ORDER.length - v.bi, Math.max(1, Math.floor(ms / (2.5 * 60000))));
     for(let i = 0; i < builds; i++) add(.1 + i * (.85 / Math.max(1, builds)), w => {
       const type = BUILD_ORDER[v.bi]; if(!type) return; v.bi++;
-      const x = findLot(BLD[type].w); if(x == null) return;
+      if(type === 'house') v.pendingHV = nextHouseVariant(v);
+      const x = findLot(type === 'house' ? v.pendingHV.w : BLD[type].w); if(x == null){ v.pendingHV = null; return; }
       const names = crew.map(c => c.name).filter(Boolean);
       placeThing(type, x, names.length ? pick(names) : 'Bublík', w);
     });
@@ -5862,7 +6344,8 @@ const Bublik = (()=>{
     chron('Ranní rozcvička. Účast: ' + (list.length + 1) + ' Bublíků.');
     await vScript(list, async () => {
       const fx = village.fireX;
-      list.forEach((c, i) => { c.tx = fx + (i - list.length / 2 + .5) * 50; c.ty = floorY(); c.speed = 170; c.act = 'game'; });
+      const xs = floorSlots(list.length, fx, 46, list);   // v0.9.72: bez budov a bez přesahů
+      list.forEach((c, i) => { c.tx = xs[i]; c.ty = floorY(); c.speed = 170; c.act = 'game'; });
       await wait(2600, list[0].tk);
       list.forEach(c => { c.act = 'script'; });
       for(let k = 0; k < 8; k++){
@@ -5875,7 +6358,8 @@ const Bublik = (()=>{
     chron('Oběd u táboráku. Menu: pečené bubliny.');
     await vScript(list, async () => {
       const fx = village.fireX;
-      list.forEach((c, i) => { const a = Math.PI + (i / Math.max(1, list.length - 1)) * Math.PI; c.tx = fx + Math.cos(a) * 90; c.ty = floorY(); c.speed = 150; c.act = 'game'; });
+      const xs = floorSlots(list.length, fx, 46, list);
+      list.forEach((c, i) => { c.tx = xs[i]; c.ty = floorY(); c.speed = 150; c.act = 'game'; });
       await wait(3000, list[0].tk);
       list.forEach(c => { c.act = 'script'; c.sy = .9; c.sx = 1.06; cFace(c, 'closed', 'grin'); c.look = { x: Math.sign(fx - c.x), y: .2 }; });
       await wait(rand(9000, 14000), list[0].tk);
@@ -5913,7 +6397,7 @@ const Bublik = (()=>{
     c.sleeping = true;
     const i = crew.indexOf(c), h = v.houses.length ? v.houses[i % v.houses.length] : null;
     vScript([c], async () => {
-      await cGo(c, h ? h.x : v.fireX + rand(-70, 70), floorY(), 140);
+      await cGo(c, h ? h.x : (freeFloor(cWH(c).w + 6, v.fireX, { others: floorOthers(c) }) ?? v.fireX + rand(-70, 70)), floorY(), 140);
       if(h){ c.el.style.display = 'none'; c.home = h; } else { c.act = 'script'; cFace(c, 'closed', 'smile'); c.sy = .92; }
       await new Promise(res => { const k = () => { if(c.tk.cancelled || !village || village.phase !== 'noc') return res(); if(!h && Math.random() < .3) cZzz(c); setTimeout(k, 1000); }; k(); });
       c.el.style.display = ''; c.home = null; cFace(c, 'open', 'smile'); c.sy = 1;
@@ -5938,7 +6422,7 @@ const Bublik = (()=>{
     // Bublík v noci spí u ohně, ráno se probudí
     if(phase === 'noc' && !v.bubSleeping && S.mode === 'idle'){
       v.bubSleeping = true;
-      run(tk => travelTo(v.fireX + 70, floorY(), tk)).then(() => { if(village && village.phase === 'noc' && S.mode === 'idle') run(sleep); });
+      run(tk => travelTo(freeFloor(size(), v.fireX + 70, { others: floorOthers(null, false) }) ?? v.fireX + 70, floorY(), tk)).then(() => { if(village && village.phase === 'noc' && S.mode === 'idle') run(sleep); });
     } else if(phase !== 'noc' && v.bubSleeping){
       v.bubSleeping = false;
       if(S.mode === 'sleep') run(() => Promise.resolve());
@@ -5974,8 +6458,8 @@ const Bublik = (()=>{
     const v = village;
     const names = crew.map(c => c.name).filter(Boolean), a = names.length ? pick(names) : 'Někdo', b = names.length > 1 ? pick(names.filter(n => n !== a)) : 'Bublík';
     const news = [
-      `${a} ${g(a, 'našel', 'našla')} v rozpisu M2. Prý vzácnost.`, 'Volby starosty odloženy. Kandidát praskl.', 'Kopáč vykopal tunel. Vede zpátky na začátek.',
-      'Padákář hlásí: na obzoru kurzor. Nehýbe se.', 'Bublík pronesl projev. Nikdo neposlouchal, všichni tleskali.', 'Spáč vyhrál soutěž ve spaní. Zase.',
+      `${a} ${g(a, 'našel', 'našla')} v rozpisu M2. Prý vzácnost.`, 'Volby starosty odloženy. Kandidát praskl.', `${b} ${g(b, 'vykopal', 'vykopala')} tunel. Vede zpátky na začátek.`,
+      `${a} hlásí z padáku: na obzoru kurzor. Nehýbe se.`, 'Bublík pronesl projev. Nikdo neposlouchal, všichni tleskali.', `${b} ${g(b, 'vyhrál', 'vyhrála')} soutěž ve spaní. Zase.`,
       `${a} a ${b} se pohádali, kdo je kulatější. Remíza.`, `${a} ${g(a, 'založil', 'založila')} kroužek pletení z bublin.`, `${b} tvrdí, že ${g(b, 'viděl', 'viděla')} v tabulce ducha. Byla to prázdná buňka.`,
       'Zastupitelstvo schválilo nový svátek: Den kulatosti.', `${a} si ${g(a, 'otevřel', 'otevřela')} kavárnu. Nabízí jen pěnu.`, 'Na radnici někdo nechal klíče. Radnice nemá dveře.',
       `${b} ${g(b, 'napsal', 'napsala')} báseň. Rýmuje se jen „bublina“ a „bublina“.`, 'Proběhlo sčítání obyvatel. Výsledek: hodně.', `${a} se ${g(a, 'naučil', 'naučila')} pískat. Ostatní se naučili zacpat si uši.`,
@@ -6023,7 +6507,7 @@ const Bublik = (()=>{
   }
   const ERA_RUN = {
     async republika(info){
-      const v = village, bx = v.fireX + 100;
+      const v = village, bx = freeFloor(60, v.fireX + 100) ?? v.fireX + 100;
       eraItem('bub-era', BALLOT_SVG, bx - 20, floorY() - 40);
       const voters = crewFree(7);
       if(voters.length < 2){ info.mayor = 'Bublík'; chron('Volby: jediný kandidát Bublík zvolen jednomyslně. Sám sebou.'); return; }
@@ -6053,7 +6537,7 @@ const Bublik = (()=>{
       chron(pick(['Piráti našli poklad: tři bubliny a jednu M2.', 'Kapitán prohlásil spodní okraj za pirátské vody.', 'Piráti zakotvili u táboráku. Prý kvůli buřtům.']));
     },
     async veda(info){
-      const v = village, rx = v.fireX - 170;
+      const v = village, rx = freeFloor(70, v.fireX - 170) ?? v.fireX - 170;
       const r = eraItem('bub-rocket', ROCKET_SVG, rx - 24, floorY() - 100);
       chron('Začala stavba rakety Bublík-1. Cíl: strop.');
       await wait(25000, { cancelled: false });
@@ -6226,6 +6710,10 @@ const Bublik = (()=>{
     }
     return Math.random() < .7 ? { x: rand(lo, hi), y: floorY() } : { x: Math.random() < .5 ? lo : hi, y: rand(h + 40, floorY()) };
   }
+  async function leaveVillageSpot(tk){
+    const fx = freeFloor(size() * .9, S.x, { others: floorOthers(null, false) });
+    if(fx != null) await travelTo(fx, floorY(), tk);
+  }
   async function leaveGrid(tk){
     const s = size(), r = gridRect();
     // nejbližší okraj: dolů na zem, nebo stranou k levé/pravé straně
@@ -6252,7 +6740,7 @@ const Bublik = (()=>{
     if(village && (++frameSkip & 1)) return;   // v0.9.63: přes noc stačí poloviční snímková frekvence
     const dt = Math.min(.05, (now - lastT) / 1000); lastT = now;
     stepBubbles(dt);
-    if(crew.length){ trail.push({ x: S.x, y: S.y }); if(trail.length > 240) trail.shift(); stepCrew(dt, now); }
+    if(crew.length){ trail.push({ x: S.x, y: S.y }); if(trail.length > 240) trail.shift(); stepCrew(dt, now); if(crew.length >= 2) groupTick(now); }
     if(S.stage >= 4) maybePrint(lastPrint, S.x, S.y);   // v0.9.62: zelené stopy
     if(mess.letter) placeLetter(now);
     if(village){ villageTick(now); civTick(now); }
@@ -6370,6 +6858,7 @@ const Bublik = (()=>{
     }
     if(S.mode !== 'idle') return;
     if(uiBusy()){ S.nextAntic = Math.max(S.nextAntic, now + 3000); return; }   // v0.9.70
+    if(village && stage >= 1 && awayFromHome() && onFloor() && !floorFree(S.x, size() * .8) && now > (S.nextLeave || 0)){ S.nextLeave = now + 4000; run(leaveVillageSpot); return; }   // v0.9.72
     if(stage >= 1 && awayFromHome() && overGrid(S.x, S.y) && now > (S.nextLeave || 0)){ S.nextLeave = now + 4000; run(leaveGrid); return; }   // v0.9.66
     if(idleFor > T.sleep && !village){ S.deepSleep = false; run(sleep); return; }
     if(idleFor > T.bored && now > S.nextAntic){
@@ -6393,9 +6882,9 @@ const Bublik = (()=>{
         // v0.9.70: kousky podle záložky (Mezery, Pravidla, Zaměstnanci, Pobočky, Statistiky, Žádosti, Můj rozpis)
         ...(S.stage >= 2 && !isTouch && activeTab() !== 'schedule' ? [[tabAntic, 3.2]] : []),
         // v0.9.61: hry s Bublíčky
-        ...(crew.length ? [[crewPyramid, 1.4], [crewTrain, 1], [crewTag, 1], [crewBall, 1], [skitFishing, isTouch ? 0 : 1.6]] : []),
+        ...(crew.length ? [[crewPyramid, village ? 0 : 1.4], [crewTrain, 1], [crewTag, 1], [crewBall, village ? 0 : 1], [skitFishing, isTouch || village ? 0 : 1.6]] : []),
         // v0.9.68: scénky s příběhem (aspoň 2 Bublíčci)
-        ...(crew.length >= 2 && !isTouch ? [[skitStatues, 2], [skitTheatre, 2], [skitBand, 1.8], [skitTug, 1.6], [skitHide, 1.8]] : []),
+        ...(crew.length >= 2 && !isTouch ? [[skitStatues, village ? 0 : 2], [skitTheatre, 2], [skitBand, 1.8], [skitTug, village ? 0 : 1.6], [skitHide, 1.8]] : []),
         // v0.9.62: Falešný chaos (od 15 min)
         ...(S.stage >= 4 && !isTouch ? [[stickNote, 2], [headbutt, 1.5], [stealLetter, 1.6], [crookRow, activeTab() === 'schedule' ? 1.6 : 0], [mowGrass, mess.grass && now - mess.grass.t0 > 60000 ? 2.2 : 0]] : []),
         [goHome, away ? 2.2 : 0],
@@ -7353,7 +7842,8 @@ const Bublik = (()=>{
       // v0.9.66: přistává u okrajů a dole, ne uprostřed rozpisu
       let sp = edgeSpot(s, s);
       for(let i = 0; i < 6 && Math.hypot(sp.x - S.x, sp.y - S.y) < Math.min(vw(), vh()) * .2; i++) sp = edgeSpot(s, s);
-      const tx = clamp(sp.x, lo, hi), ty = sp.y;
+      let tx = clamp(sp.x, lo, hi), ty = sp.y;
+      if(ty >= floorY() - 6 && !floorFree(tx, s * .9, { others: floorOthers(null, false) })){ const fx = freeFloor(s * .9, tx, { others: floorOthers(null, false) }); if(fx != null) tx = fx; else ty = village ? floorY() - 150 : ty; }   // v0.9.72
       await travelTo(tx, ty, tk);
       await snoop(tk);
     }
@@ -8172,18 +8662,18 @@ const BUB_VILLAGE_LINES = [
   'Daně se platí v bublinách. Zatím nikdo nezaplatil.',
   'Zavedli jsme poštu. Dopis putuje přes celou obrazovku a zpátky.',
   'Turisté zatím nejezdí. Asi kvůli parkování.',
-  'Plánujeme metro. Kopáč už kope.',
+  'Plánujeme metro. Jeden z nás už kope.',
   'Bublíkovo je partnerské město Prahy. Praha o tom neví.',
   'Na radnici je jedna židle. Já na ní nesedím, nemám na čem.',
   'Večer bude disko. Hudba: bublání. Vstup volný.',
 ];
 // v0.9.61: myšlenky, když je Bublíků víc
 const BUB_CREW_LINES = [
-  'Kopáč zase něco kope. Nevím co. Asi tunel do Excelu.',
-  'Stavitel staví věž. Ptal jsem se proč. Řekl: „Protože tu je.“',
-  'Padákář tvrdí, že deštník je padák. Nechám ho.',
-  'Spáč spí. Má na to talent. Po mně.',
-  'Lezec se zase drží zdi. Říká, že je to meditace.',
+  'Někdo zase něco kope. Nevím co. Asi tunel do Excelu.',
+  'Jeden z nás staví věž. Ptal jsem se proč. Řekl: „Protože tu je.“',
+  'Jeden tvrdí, že deštník je padák. Nechám ho.',
+  'Jeden z nás zase spí. Má na to talent. Po mně.',
+  'Jeden se zase drží zdi. Říká, že je to meditace.',
   'Uspořádali jsme poradu. Shodli jsme se, že porady jsou zbytečné.',
   'Hlasovali jsme o obědě. Všichni chtějí bubliny.',
   'Je nás víc, ale pořád jen jeden kurzor. To je nefér.',
