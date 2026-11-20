@@ -1219,10 +1219,21 @@ body.dark .search-input{color:var(--ink)}
 .bub-paper .bp-arts{margin:0 0 12px 18px;padding:0;font-size:14px;line-height:1.5}
 .bub-paper .bp-useful{font:500 13px/1.45 var(--font-display);background:#fff3c4;border:1px solid #c9a227;border-radius:6px;padding:8px 10px;margin-bottom:12px}
 .bub-paper .bp-close{display:block;margin:0 auto;font:600 13px var(--font-display);padding:8px 16px;border-radius:8px;border:1.5px solid #231d12;background:#fff;color:#231d12;cursor:pointer}
+.bub-prop{position:fixed;left:0;top:0;pointer-events:none;z-index:401;transform-origin:50% 50%}
+.bub-prop svg{width:100%;height:100%;display:block;overflow:visible}
+.bub-gum{position:fixed;left:0;top:0;border-radius:50%;pointer-events:none;z-index:402;background:radial-gradient(circle at 34% 30%,#ffe3ee,#ff9cc0 55%,#f0679a);box-shadow:inset 0 0 0 1px rgba(160,30,80,.35)}
+.bub-gum-face{position:fixed;left:0;top:0;pointer-events:none;z-index:402;background:#ff9cc0;border-radius:46% 54% 40% 60%/55% 45% 55% 45%;box-shadow:inset 0 0 0 1px rgba(160,30,80,.3)}
+.bub-ring{position:fixed;left:0;top:0;width:70px;height:70px;margin:-35px 0 0 -35px;border:2px solid rgba(18,164,106,.55);border-radius:50%;pointer-events:none;z-index:399;animation:bubRing 1.6s ease-out forwards}
+@keyframes bubRing{from{transform:var(--t) scale(.5);opacity:.9}to{transform:var(--t) scale(2.3);opacity:0}}
+.bub-flash{position:fixed;left:0;top:0;width:90px;height:90px;margin:-45px 0 0 -45px;border-radius:50%;pointer-events:none;z-index:403;background:radial-gradient(circle,#fff 0,rgba(255,255,255,.85) 30%,rgba(255,255,255,0) 70%);animation:bubFlash .35s ease-out forwards}
+@keyframes bubFlash{from{transform:var(--t) scale(.4);opacity:1}to{transform:var(--t) scale(1.6);opacity:0}}
+.bub-polaroid{position:fixed;left:0;top:0;width:78px;padding:6px 6px 4px;background:#fff;border-radius:3px;box-shadow:0 6px 16px rgba(0,0,0,.22);pointer-events:none;z-index:399;font:600 9px var(--font-display);color:#334;text-align:center;transition:opacity .5s,transform .5s}
+.bub-polaroid .ph{height:60px;background:linear-gradient(#cfeee0,#e9f7ef);display:flex;align-items:flex-end;justify-content:center;margin-bottom:4px}
+.bub-polaroid svg{width:52px;height:46px}
 .bub-zzz{position:fixed;left:0;top:0;z-index:402;pointer-events:none;font:700 16px var(--font-display);color:var(--accent-ink);animation:bubZzz 2.6s ease-out forwards}
 @keyframes bubZzz{0%{opacity:0;transform:var(--t) translate(0,0) scale(.6)}20%{opacity:1}100%{opacity:0;transform:var(--t) translate(22px,-46px) scale(1.25)}}
 @media (max-width:640px){ #bublik{width:60px;height:56px} }
-@media print{ #bublik,#bublik-speech,.bub-mini,.bub-zzz,.bub-splat,.bub-clone,.bub-brick,.bub-print,.bub-note,.bub-crack,.bub-letter,.bub-grass,.bub-house,.bub-fire,.bub-flower,.bub-chron,.bub-night,.bub-note-music,.bub-era,.bub-ship,.bub-rocket,.bub-frame,.bub-podium,.bub-paper{display:none !important} }
+@media print{ #bublik,#bublik-speech,.bub-mini,.bub-zzz,.bub-splat,.bub-clone,.bub-brick,.bub-print,.bub-note,.bub-crack,.bub-letter,.bub-grass,.bub-house,.bub-fire,.bub-flower,.bub-chron,.bub-night,.bub-note-music,.bub-prop,.bub-gum,.bub-gum-face,.bub-ring,.bub-flash,.bub-polaroid,.bub-era,.bub-ship,.bub-rocket,.bub-frame,.bub-podium,.bub-paper{display:none !important} }
 @media print{ .bub-gone{visibility:visible !important} }
 /* v0.9.48: při otevřeném modálu Bublík i „?“ zmizí — na mobilu jinak zakrývaly tlačítka Uložit */
 body:has(.modal-overlay.open) #bublik, body:has(.modal-overlay.open) #bublik-speech, body:has(.modal-overlay.open) .help-fab, body:has(.modal-overlay.open) .bub-clone, body:has(.modal-overlay.open) .bub-brick,
@@ -2767,7 +2778,7 @@ window.addEventListener('unhandledrejection', e => {
 // odsud, ručně je nepřepisuj. sw.js se od v0.9.29 nebumpuje — je z něj
 // kill-switch bez cache (viz killServiceWorkers() a komentář v sw.js).
 // ============================================================
-const APP_VERSION = '0.9.66';
+const APP_VERSION = '0.9.67';
 
 // Krátký git hash nasazeného buildu. Placeholder níž přepíše build-stamp.js
 // z CF_PAGES_COMMIT_SHA (Cloudflare Pages build command: `node build-stamp.js`).
@@ -4772,21 +4783,67 @@ const Bublik = (()=>{
     }
   }
   function crewRelease(list){ list.forEach(c => { if(!c.dead && (c.act === 'game' || c.act === 'train')){ c.act = 'idle'; c.tilt = 0; c.until = performance.now() + rand(600, 2000); } }); }
-  function crewMax(idleFor){ return idleFor >= 900000 ? 4 : idleFor >= 600000 ? 3 : 2; }
+  // v0.9.67: od 5 min postupně — 2, pak každou minutu a půl další (nejvýš 6 Bublíčků před vesnicí)
+  function crewMax(idleFor){ return idleFor < 300000 ? 0 : Math.min(6, 2 + Math.floor((idleFor - 300000) / 90000)); }
   // rozdělení: natáhne se, zaškrtí, prásk — a jsou dva (tři…)
   async function crewSplit(tk){
     const n = crew.length ? 1 : 2;
     await travelTo(S.x, S.y, tk);
     moment('rozdělil se na víc Bublíků');
+    const used = crew.map(c => c.role);
+    const nextRole = () => { const r = CREW_ROLES.filter(x => !used.includes(x))[0] || pick(CREW_ROLES); used.push(r); return r; };
+    // v0.9.67: další Bublíčci vznikají pokaždé jinak
+    const style = n === 2 ? 'split' : pick(['split', 'copy', 'bud', 'sneeze']);
+    if(style === 'copy'){
+      const side = S.x > vw() / 2 ? -1 : 1;
+      think('Ctrl+C…', 1300, true); setMouth('cat'); S.lookOverride = { x: side, y: 0 };
+      await tween(260, e => { S.sy = 1 - .1 * e; }, tk); await tween(260, e => { S.sy = .9 + .1 * e; }, tk);
+      await wait(700, tk);
+      think('…Ctrl+V.', 1600, true);
+      const c = spawnClone(S.x + side * size() * .95, S.y, nextRole());
+      c.tx = c.x; c.ty = S.y; puf(c.x, S.y - 22, 56);
+      S.awayStats.clones = (S.awayStats.clones || 0) + 1;
+      setEyes('happy'); setMouth('grin'); await wait(900, tk); setEyes('open');
+      think(pick(['Funguje to i na bubliny!', 'Kopie je skoro tak dobrá jako originál. Skoro.']), 3000, true);
+      return;
+    }
+    if(style === 'bud'){
+      // na hlavě mu vyroste bublinka, odpadne a dorostě v Bublíčka
+      think(pick(['Něco mi roste na hlavě…', 'Au. Ne, počkej, to je mimino.']), 2600, true);
+      S.lookOverride = { x: 0, y: -1 }; setMouth('o');
+      const b = spawnBubble(0, 0, 4, { vx: 0, vy: 0, life: 999, big: true });
+      try{
+        await tween(1600, (e, p) => { const m = svgPoint(0, -46); b.d = 4 + 26 * e; b.x = m.x; b.y = m.y - b.d * .4; b.el.style.width = b.el.style.height = b.d + 'px'; b.el.style.transform = `translate(${b.x - b.d / 2}px,${b.y - b.d / 2}px)`; S.sy = 1 + .05 * Math.sin(p * 20); }, tk, ease.out);
+        const side = S.x > vw() / 2 ? -1 : 1, x0 = b.x, y0 = b.y, x1 = S.x + side * size() * .9, y1 = S.y - 12;
+        await tween(520, (e, p) => { b.x = x0 + (x1 - x0) * e; b.y = y0 + (y1 - y0) * e - Math.sin(p * Math.PI) * 30; b.el.style.transform = `translate(${b.x - b.d / 2}px,${b.y - b.d / 2}px)`; }, tk, ease.lin);
+        b.pop(false);
+        const c = spawnClone(x1, S.y, nextRole()); c.tx = x1; c.ty = S.y;
+        S.awayStats.clones = (S.awayStats.clones || 0) + 1;
+      } catch(e){ b.pop(false); throw e; }
+      S.lookOverride = null; setEyes('happy'); setMouth('grin'); await wait(800, tk); setEyes('open');
+      think(pick(['Je to kluk! Nebo holka. Je to bublina.', 'Vypadá úplně jako já. Chudák.']), 3000, true);
+      return;
+    }
+    if(style === 'sneeze'){
+      const side = S.x > vw() / 2 ? -1 : 1;
+      think('Ha… haa…', 1200, true); setMouth('o'); S.eyeScaleY = .55;
+      await tween(700, e => { S.sy = 1 + .14 * e; S.tilt = -side * 8 * e; }, tk);
+      setEyes('closed'); setMouth('big'); S.eyeScaleY = 1; say('<b>HAPČÍ!</b>', 1200);
+      const c = spawnClone(S.x + side * 20, S.y - 20, nextRole()); c.tx = clamp(S.x + side * size() * 1.6, 40, vw() - 40); c.ty = S.y; c.speed = 320;
+      S.awayStats.clones = (S.awayStats.clones || 0) + 1;
+      await tween(300, e => { S.sy = 1.14 - .14 * e; S.tilt = -side * 8 + side * 16 * e; }, tk);
+      await tween(300, e => { S.tilt = side * 8 * (1 - e); }, tk);
+      setEyes('open'); setMouth('wavy'); blush(1800);
+      think(pick(['Na zdraví… nás obou.', 'Tak to je nová. Vykýchl jsem kamaráda.']), 3000, true);
+      return;
+    }
     think(pick(['Rozdělím se. Je to vůbec legální?', 'Je mě málo. Spravím to.', 'Pozor, teď to bude lechtat.']), 2600, true);
     setMouth('o'); S.eyeWide = 1.2;
     await tween(700, e => { S.sx = 1 + .55 * e; S.sy = 1 - .25 * e; }, tk, ease.inOut);
     await tween(260, e => { S.sx = 1.55 - .75 * e; S.sy = .75 + .45 * e; }, tk);
     puf(S.x, S.y - size() * .35, size() * 1.3);
-    const used = crew.map(c => c.role);
     for(let i = 0; i < n; i++){
-      const role = CREW_ROLES.filter(r => !used.includes(r))[0] || pick(CREW_ROLES); used.push(role);
-      const side = i === 0 ? -1 : 1, c = spawnClone(S.x + side * size() * .3, S.y, role);
+      const side = n === 1 ? (S.x > vw() / 2 ? -1 : 1) : i === 0 ? -1 : 1, c = spawnClone(S.x + side * size() * .3, S.y, nextRole());
       c.tx = S.x + side * size() * .95; c.ty = S.y; c.speed = 160;
     }
     S.awayStats.clones = (S.awayStats.clones || 0) + n;
@@ -5678,6 +5735,7 @@ const Bublik = (()=>{
     shadow.setAttribute('opacity', (sh * clamp(1 - (floorY() - S.y) / 90, 0, 1)).toFixed(2));   // v0.9.58: ve vzduchu bez stínu
 
     el.style.transform = `translate(${(S.x - size() / 2).toFixed(1)}px, ${(S.y - el.offsetHeight + 4).toFixed(1)}px)`;
+    placeProp();   // v0.9.67
     const og = S.mode !== 'drag' && overGrid(S.x, S.y);   // v0.9.66: nad rozpisem bílá obrysová záře
     if(og !== S.og){ S.og = og; el.classList.toggle('bub-over', og); }
     placeSpeech();
@@ -5712,7 +5770,7 @@ const Bublik = (()=>{
       const away = awayFromHome(), floor = onFloor();
       // v0.9.61: od 5 min se rozdělí (2 Bublíčci, od 10 min 3, od 15 min 4)
       if(stage >= 3 && !isTouch && crew.length < crewMax(idleFor) && now > (S.nextSplit || 0)){
-        S.nextSplit = now + 150000; S.awayStats.antics++;
+        S.nextSplit = now + 85000; S.awayStats.antics++;
         run(crewSplit); S.nextAntic = now + rand(...T.between); return;
       }
       S.awayStats.antics++;
@@ -5720,6 +5778,9 @@ const Bublik = (()=>{
         [lookAround, 2], [burp, 2.5], [bigBubble, 1.8], [crawl, isTouch || away || !floor ? 0 : 2.5], [peek, floor ? 1.3 : 0], [yawn, .8],
         [dance, 1.3], [juggle, 1.5], [stretch, 1], [roll, 1],
         [explore, isTouch ? 0 : 5],
+        // v0.9.67: vlastní kousky s rekvizitami a scénkou
+        [sneeze, 1.2], [bubbleGum, 1.3], [magicTrick, 1.2], [balloon, 1], [phoneCall, 1.2], [readBook, 1.2], [selfie, 1.1], [meditate, .9],
+        [paperPlane, isTouch ? 0 : 1.2], [workout, 1.1], [skate, isTouch ? 0 : 1.1],
         // v0.9.60: Průzkumník (od 3 min) — hraje si s appkou, jen vizuálně
         ...(S.stage >= 2 && !isTouch ? [[sitOnButton, 2], [pokeChip, 2.5], [readNames, 1.4], [railWalk, 1.4], [climbWall, 1.6], [hangTop, 1.3]] : []),
         // v0.9.61: hry s Bublíčky
@@ -5825,7 +5886,7 @@ const Bublik = (()=>{
     anticMove = 0; interrupt();
   }
   async function interrupt(){
-    cancelBusy();
+    cancelBusy(); dropProp(S.prop); S.grow = 1; S.faceA = 1; S.cheekPuff = 1;
     minis.forEach(m => { if(m.big) m.pop(false); });
     const tk = token(); S.mode = 'react';
     try{
@@ -5849,6 +5910,363 @@ const Bublik = (()=>{
   }
 
   // ── blbnutí ───────────────────────────────────────────────
+  // ── v0.9.67: rekvizity — telefon, knížka, hůlka, činka, skejt, letadýlko (drží je u sebe) ──
+  const PROPS = {
+    phone: { w: 14, h: 24, svg: '<svg viewBox="0 0 14 24"><rect x="1" y="1" width="12" height="22" rx="2.6" fill="#1f2937" stroke="#0b1220"/><rect x="2.6" y="3.6" width="8.8" height="14.6" rx="1" fill="#7dd3fc"/><circle cx="7" cy="20.4" r="1" fill="#94a3b8"/></svg>' },
+    book: { w: 44, h: 26, svg: '<svg viewBox="0 0 44 26"><path d="M22 5 Q12 1 3 4 L3 24 Q12 21 22 25 Z" fill="#fffdf6" stroke="#8b5a2b" stroke-width="1"/><path d="M22 5 Q32 1 41 4 L41 24 Q32 21 22 25 Z" fill="#fdf6e6" stroke="#8b5a2b" stroke-width="1"/><path d="M7 9 H17 M7 12 H16 M7 15 H17 M7 18 H14 M27 9 H37 M27 12 H36 M27 15 H37" stroke="#c9b99c" stroke-width=".9"/><g class="pg"><path d="M22 5 Q32 1 41 4 L41 24 Q32 21 22 25 Z" fill="#fffdf6" stroke="#8b5a2b" stroke-width=".8"/></g></svg>' },
+    wand: { w: 30, h: 30, svg: '<svg viewBox="0 0 30 30"><path d="M4 26 L20 10" stroke="#222" stroke-width="2.6" stroke-linecap="round"/><path d="M18.6 11.4 L21.4 8.6" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/><path d="M24 1.5 l1.5 3.3 3.5.3-2.7 2.3.9 3.4-3.2-1.9-3.2 1.9.9-3.4-2.7-2.3 3.5-.3z" fill="#f7c948" stroke="#a87a12" stroke-width=".6"/></svg>' },
+    barbell: { w: 72, h: 22, svg: '<svg viewBox="0 0 72 22"><path d="M8 11 H64" stroke="#555" stroke-width="2.6" stroke-linecap="round"/><circle cx="9" cy="11" r="9" fill="#5fcf98" stroke="#0a7a4d" stroke-width="1.2"/><circle cx="63" cy="11" r="9" fill="#5fcf98" stroke="#0a7a4d" stroke-width="1.2"/><ellipse cx="6" cy="7" rx="3" ry="1.8" fill="#fff" opacity=".7"/><ellipse cx="60" cy="7" rx="3" ry="1.8" fill="#fff" opacity=".7"/></svg>' },
+    skate: { w: 62, h: 16, svg: '<svg viewBox="0 0 62 16"><path d="M3 5 Q3 2 7 3 L55 3 Q59 2 59 5 Q59 8 55 8 L7 8 Q3 8 3 5 Z" fill="#f7a531" stroke="#7a4a12" stroke-width="1"/><circle cx="15" cy="12" r="3.2" fill="#333"/><circle cx="47" cy="12" r="3.2" fill="#333"/></svg>' },
+    plane: { w: 40, h: 20, svg: '<svg viewBox="0 0 40 20"><path d="M2 10 L38 3 L16 12 Z" fill="#fff" stroke="#6b7280" stroke-width=".8"/><path d="M16 12 L38 3 L20 18 Z" fill="#e5e7eb" stroke="#6b7280" stroke-width=".8"/></svg>' },
+  };
+  // dx, dy = kde ji drží (souřadnice těla: 0 0 = spodek uprostřed, hlava ~ -46)
+  function holdProp(name, dx, dy, rot = 0){
+    dropProp(S.prop);
+    const d = PROPS[name], e2 = document.createElement('div');
+    e2.className = 'bub-prop'; e2.innerHTML = d.svg; e2.style.width = d.w + 'px'; e2.style.height = d.h + 'px';
+    document.body.appendChild(e2);
+    const p = { el: e2, w: d.w, h: d.h, dx, dy, rot, sc: 1, flip: 1 };
+    S.prop = p; placeProp();
+    return p;
+  }
+  function placeProp(){
+    const p = S.prop; if(!p) return;
+    const k = size() / 72;
+    p.el.style.transform = `translate(${(S.x + p.dx * k - p.w / 2).toFixed(1)}px,${(S.y - S.hop + p.dy * k - p.h / 2).toFixed(1)}px) rotate(${p.rot.toFixed(1)}deg) scale(${(p.sc * p.flip).toFixed(2)},${p.sc.toFixed(2)})`;
+  }
+  function dropProp(p){ if(!p) return; if(S.prop === p) S.prop = null; p.el.remove(); }
+
+  // ── v0.9.67: víc vlastních kousků do prvních 15 minut ──
+  async function sneeze(tk){
+    const s = size(), dir = S.x > vw() / 2 ? -1 : 1;   // kýchne do obrazovky
+    S.lookOverride = { x: dir * .3, y: -.6 };
+    for(const [h, t] of [[.06, 'Ha…'], [.1, 'Haa…'], [.15, 'Haaa…']]){
+      think(t, 1000, true); setMouth('o'); S.eyeScaleY = .55;
+      await tween(420, e => { S.sy = 1 + h * e; S.sx = 1 - h * .5 * e; S.tilt = -dir * 8 * e; }, tk);
+      await wait(rand(180, 420), tk);
+    }
+    if(Math.random() < .2){
+      // planý poplach
+      await tween(500, e => { S.sy = 1.15 - .15 * e; S.sx = .925 + .075 * e; S.tilt = -dir * 8 * (1 - e); }, tk);
+      S.eyeScaleY = 1; setMouth('flat'); think('…nic. Přešlo to.', 2200, true); await wait(1300, tk);
+    }
+    setEyes('closed'); setMouth('big'); S.eyeScaleY = 1; say('<b>HAPČÍ!</b>', 1300);
+    const m = svgPoint(dir * 6, -15);
+    for(let i = 0; i < 14; i++) spawnBubble(m.x, m.y, rand(5, 13), { vx: dir * rand(140, 320), vy: rand(-90, 30), life: rand(.9, 1.8) });
+    const x0 = S.x, x1 = clamp(x0 - dir * 26, s / 2 + 6, vw() - s / 2 - 6);
+    await tween(260, (e, p) => { S.sy = 1.15 - .3 * e; S.sx = .92 + .25 * e; S.tilt = -dir * 8 + dir * 22 * e; S.x = x0 + (x1 - x0) * e; S.hop = Math.sin(p * Math.PI) * 10; }, tk, ease.out);
+    S.hop = 0;
+    await tween(340, e => { S.tilt = dir * 14 * (1 - e); }, tk);
+    await wobble(.22, 600, tk);
+    setEyes('open'); setMouth('wavy'); blush(1800); S.lookOverride = { x: -dir, y: 0 };
+    await wait(500, tk);
+    think(pick(['Na zdraví. Děkuju.', 'Pardon. Bublinová rýma.', 'Asi jsem alergický na pondělí.', 'Kdo to tady pyluje?']), 3200, true);
+    moment('kýchnul (na zdraví)');
+    await wait(900, tk); S.lookOverride = null; setMouth('smile');
+  }
+  async function bubbleGum(tk){
+    setMouth('flat'); S.lookOverride = { x: 0, y: .4 };
+    for(let i = 0; i < 5; i++) await tween(170, (e, p) => { S.cheekPuff = 1 + .25 * Math.sin(p * Math.PI); S.sy = 1 - .03 * Math.sin(p * Math.PI); }, tk);   // žvýká
+    const g = document.createElement('div'); g.className = 'bub-gum'; document.body.appendChild(g);
+    let sp = null, d = 4;
+    const place = () => { const m = svgPoint(0, -15); g.style.width = g.style.height = d + 'px'; g.style.transform = `translate(${(m.x - d / 2).toFixed(1)}px,${(m.y - d * .45).toFixed(1)}px)`; };
+    const placeSp = () => { if(!sp) return; const c = svgPoint(0, -23), w = size() * .8; sp.style.width = w + 'px'; sp.style.height = w * .66 + 'px'; sp.style.transform = `translate(${(c.x - w / 2).toFixed(1)}px,${(c.y - w * .33).toFixed(1)}px) rotate(${S.tilt.toFixed(1)}deg)`; };
+    try{
+      setMouth('o');
+      const big = rand(40, 58), lift = Math.random() < .35;
+      await tween(2400, (e, p) => { d = 4 + big * e + Math.sin(p * 24) * 1.2; S.eyeScaleY = 1 - .4 * e; S.eyeWide = 1 + .15 * e; if(lift) S.hop = 26 * e * e; place(); }, tk, ease.out);
+      if(lift) think('Ehm… já letím.', 1600, true);
+      await wait(lift ? 900 : 300, tk);
+      // praskne → růžová po celém obličeji
+      const m = svgPoint(0, -15); puf(m.x, m.y, d * 1.2); g.remove();
+      sp = document.createElement('div'); sp.className = 'bub-gum-face'; document.body.appendChild(sp); placeSp();
+      S.eyeScaleY = 1; S.eyeWide = 1; setEyes('closed'); setMouth('flat');
+      if(lift){ await tween(320, e => { S.hop = 26 * (1 - e); placeSp(); }, tk, t => t * t); S.hop = 0; await wobble(.25, 500, tk); }
+      else await tween(400, () => placeSp(), tk);
+      await tween(700, () => placeSp(), tk);
+      for(let i = 0; i < 6; i++) await tween(110, e => { S.tilt = (i % 2 ? -1 : 1) * 12 * Math.sin(e * Math.PI); placeSp(); sp.style.opacity = String(1 - (i + e) / 6); }, tk);   // otřepe se
+      sp.remove(); sp = null; S.tilt = 0; setEyes('open'); blush(1600); setMouth('wavy');
+      think(pick(['Tohle se v reklamě nestalo.', 'Růžová mi sluší. Ale ne na očích.', 'Žvýkačka 1 : Bublík 0.']), 3000, true);
+      moment('nafoukl žvýkačku (praskla mi na obličeji)');
+      await wait(900, tk); setMouth('smile');
+    } finally { g.remove(); if(sp) sp.remove(); S.cheekPuff = 1; S.eyeScaleY = 1; S.eyeWide = 1; }
+  }
+  async function magicTrick(tk){
+    const s = size(), p = holdProp('wand', 26, -32, -30);
+    try{
+      think(pick(['Dámy a pánové… kouzlo!', 'A teď zmizím. Nedívej se.', 'Abraka… bublina!']), 2600, true);
+      setMouth('grin'); S.lookOverride = { x: .6, y: -.6 };
+      for(let i = 0; i < 3; i++){
+        await tween(260, e => { p.rot = -30 + 55 * Math.sin(e * Math.PI); }, tk);
+        const k = s / 72, tx = S.x + (p.dx + 10) * k, ty = S.y - S.hop + (p.dy - 12) * k;
+        for(let j = 0; j < 3; j++) spawnBubble(tx, ty, rand(4, 8), { vx: rand(-60, 60), vy: -rand(20, 70), life: rand(.5, 1) });
+      }
+      puf(S.x, S.y - s * .4, s * 1.4);
+      await tween(260, e => { S.grow = 1 - e * .98; S.faceA = 1 - e; p.sc = 1 - e * .98; }, tk);
+      dropProp(p);
+      const r = Math.random(), y0 = S.y;
+      await wait(rand(900, 1500), tk);
+      if(r < .6){ const sp = edgeSpot(s, s); S.x = clamp(sp.x, s / 2 + 10, vw() - s / 2 - 10); S.y = sp.y; }
+      puf(S.x, S.y - s * .4, s * 1.2);
+      if(r < .6){
+        await tween(340, e => { S.grow = .02 + .98 * e; S.faceA = e; }, tk, ease.back);
+        setEyes('happy'); setMouth('grin'); think(pick(['Tadá!', 'Potlesk, prosím.', 'A to jsem se ani neučil.']), 2600, true); await hopSmall(tk, 14); setEyes('open');
+      } else if(r < .82){
+        // vyšlo jen napůl — je malinký
+        await tween(300, e => { S.grow = .02 + .36 * e; S.faceA = e; }, tk, ease.back);
+        S.eyeWide = 1.3; setMouth('o'); blush(2600); think('…to byla zkouška.', 2400, true); await wait(1300, tk);
+        await tween(420, e => { S.grow = .38 + .62 * e; }, tk, ease.back); S.eyeWide = 1;
+      } else {
+        // objeví se vzhůru nohama
+        S.tilt = 180; S.y = y0 - s * .92;
+        await tween(320, e => { S.grow = .02 + .98 * e; S.faceA = e; }, tk, ease.back);
+        think('Ehm. Skoro.', 2200, true); await wait(1000, tk);
+        await tween(520, e => { S.tilt = 180 * (1 - e); S.y = y0 - s * .92 * (1 - e); }, tk, ease.inOut);
+        await wobble(.18, 450, tk);
+      }
+      moment('předvedl kouzlo (skoro vyšlo)');
+    } finally { dropProp(p); S.grow = 1; S.faceA = 1; S.eyeWide = 1; }
+  }
+  async function balloon(tk){
+    const s = size();
+    think(pick(['Nafouknu se. Co by se mohlo pokazit?', 'Chci vidět strop zblízka.']), 2600, true);
+    setMouth('o'); S.lookOverride = { x: 0, y: -.5 };
+    try{
+      await tween(1500, e => { S.grow = 1 + .45 * e; S.cheekPuff = 1 + .5 * e; S.eyeWide = 1 + .2 * e; }, tk, ease.inOut);
+      const x0 = S.x, y0 = S.y, ty = s * 1.5 + 12;
+      setMouth('cat');
+      await tween(clamp((y0 - ty) * 6, 1600, 4200), (e, p) => { S.y = y0 + (ty - y0) * e; S.x = clamp(x0 + Math.sin(p * Math.PI * 3) * 22, s, vw() - s); S.tilt = Math.sin(p * Math.PI * 3) * 8; }, tk, ease.inOut);
+      await tween(140, e => { S.sy = 1 - .15 * e; S.y = ty - 6 * e; }, tk);
+      await tween(260, e => { S.sy = .85 + .15 * e; S.y = ty - 6 + 10 * e; }, tk);
+      think('Ťuk.', 1200, true); await wait(800, tk);
+      // pfffff — vyfukuje se a lítá sem a tam
+      setMouth('big'); S.eyeWide = 1.3; say('Pfffffff…', 2800);
+      let x = S.x, y = S.y, spin = S.tilt;
+      for(let i = 0; i < 6; i++){
+        const nx = clamp(x + rand(-1, 1) * vw() * .35, s, vw() - s), ny = clamp(y + rand(-.2, 1) * vh() * .25, s * 1.3, floorY() - s * .2);
+        const fx = x, fy = y, g0 = S.grow, g1 = 1.45 - .45 * (i + 1) / 6, sp0 = spin, sp1 = spin + rand(140, 260) * (Math.random() < .5 ? -1 : 1);
+        let tr = 0;
+        await tween(rand(320, 520), (e, p) => {
+          S.x = fx + (nx - fx) * e; S.y = fy + (ny - fy) * e; S.grow = g0 + (g1 - g0) * e; S.tilt = sp0 + (sp1 - sp0) * e;
+          if(p > tr){ tr = p + .3; const m = svgPoint(0, -2); spawnBubble(m.x, m.y, rand(4, 9), { vx: rand(-50, 50), vy: rand(-30, 30), life: rand(.5, 1) }); }
+        }, tk, ease.lin);
+        x = nx; y = ny; spin = sp1;
+      }
+      S.tilt = 0; S.cheekPuff = 1; S.grow = 1;
+      const fy = S.y;
+      await tween(clamp((floorY() - fy) * 2.2, 300, 900), e => { S.y = fy + (floorY() - fy) * e; }, tk, t => t * t);
+      S.sx = 1.3; S.sy = .7; setEyes('dizzy'); S.stars = true; S.starT = 0; await wobble(.3, 700, tk);
+      await wait(1400, tk); S.stars = false; setEyes('open'); setMouth('wavy'); S.eyeWide = 1;
+      think(pick(['Tohle už nikdy. Do zítřka.', 'Byl to krásný let. Přistání méně.']), 3000, true);
+      moment('nafoukl se jako balónek a ulétl');
+    } finally { S.grow = 1; S.cheekPuff = 1; S.eyeWide = 1; S.stars = false; }
+  }
+  async function paperPlane(tk){
+    const s = size();
+    if(!onFloor()) await travelTo(S.x, floorY(), tk);
+    const dir = S.x > vw() / 2 ? -1 : 1, p = holdProp('plane', dir * 26, -48, 0);
+    p.flip = dir;
+    let plane = null;
+    try{
+      think(pick(['Skládám letadýlko. Tohle umím.', 'Letecká pošta. Adresát neznámý.']), 2600, true);
+      p.sc = .2; await tween(500, e => { p.sc = .2 + .8 * e; }, tk, ease.back);
+      S.lookOverride = { x: dir, y: -.5 }; setMouth('cat');
+      await tween(420, e => { S.tilt = -dir * 14 * e; p.dx = dir * (26 - 16 * e); p.dy = -48 - 10 * e; p.rot = -dir * 18 * e; }, tk);
+      const k = s / 72, sx = S.x + p.dx * k, sy = S.y + p.dy * k;
+      dropProp(p);
+      plane = document.createElement('div'); plane.className = 'bub-prop'; plane.innerHTML = PROPS.plane.svg;
+      plane.style.width = '40px'; plane.style.height = '20px'; document.body.appendChild(plane);
+      tween(200, e => { S.tilt = -dir * 14 + dir * 24 * e; }, tk).then(() => tween(300, e => { S.tilt = dir * 10 * (1 - e); }, tk)).catch(() => {});
+      const crash = Math.random() < .3, loop = !crash && Math.random() < .5;
+      const ex = crash ? (dir > 0 ? vw() - 16 : 16) : clamp(sx + dir * rand(.35, .6) * vw(), 40, vw() - 40), ey = crash ? rand(vh() * .3, vh() * .6) : floorY() - 6;
+      let prev = { x: sx, y: sy }, px = sx, py = sy;
+      await tween(crash ? 1900 : 2700, (e, pr) => {
+        let x = sx + (ex - sx) * e, y = sy + (ey - sy) * e - Math.sin(pr * Math.PI) * vh() * (crash ? .12 : .22);
+        if(loop && pr > .35 && pr < .65){ const a = (pr - .35) / .3 * Math.PI * 2; x += dir * Math.sin(a) * 55; y -= (1 - Math.cos(a)) * 45; }
+        const ang = Math.atan2(y - prev.y, x - prev.x) * 180 / Math.PI;
+        if(Math.hypot(x - prev.x, y - prev.y) > .5) plane.style.transform = `translate(${(x - 20).toFixed(1)}px,${(y - 10).toFixed(1)}px) rotate(${ang.toFixed(1)}deg)`;
+        prev = { x, y }; px = x; py = y;
+        S.lookOverride = { x: clamp((x - S.x) / 300, -1, 1), y: clamp((y - S.y) / 300, -1, 1) };
+      }, tk, crash ? ease.lin : ease.inOut);
+      if(crash){
+        puf(px, py, 34); setMouth('wavy'); blush(2200);
+        think(pick(['Přistání… nouzové.', 'Letadlo našlo zeď. Zeď našla letadlo.']), 3000, true);
+        const y0 = py;
+        await tween(700, e => { py = y0 + (floorY() - 6 - y0) * e; plane.style.transform = `translate(${(px - 20).toFixed(1)}px,${(py - 10).toFixed(1)}px) rotate(${(dir * 90 * (1 - e) + dir * 160 * e).toFixed(0)}deg)`; }, tk, t => t * t);
+      } else {
+        setEyes('happy'); setMouth('grin');
+        think(pick(['Přistálo! Kapitán Bublík děkuje za let.', 'Rekord! Asi. Nikdo neměřil.']), 3000, true);
+        await hopSmall(tk, 16); setEyes('open');
+      }
+      await travelTo(clamp(px - dir * s * .5, s / 2 + 8, vw() - s / 2 - 8), floorY(), tk);
+      S.lookOverride = { x: dir, y: .6 }; await wait(300, tk);
+      plane.remove(); plane = null; await hopSmall(tk, 8);
+      moment('pouštěl papírová letadýlka');
+      S.lookOverride = null; setMouth('smile');
+    } finally { dropProp(p); if(plane) plane.remove(); }
+  }
+  async function phoneCall(tk){
+    const p = holdProp('phone', 25, -24, 15);
+    try{
+      const nm = randomFirstName();
+      const scripts = [
+        ['Haló? …', 'Ne, tady není pizzerie.', '…Ale kdybyste chtěli směnu, v úterý máme volno.', 'Haló?'],
+        ['Ahoj mami.', 'Jo, jím dobře. Bubliny.', 'Jo, pořád jsem kulatý.', 'Taky tě mám rád. Pá.'],
+        ['Dobrý den, volám ohledně prodloužené záruky na vaši bublinu.', '…Ne?', 'Rozumím. Prasknutí stejně nekryje.'],
+        ['Podpora Směn, u telefonu Bublík.', 'Zkoušeli jste to vypnout a zapnout?', '…Funguje? Rádo se stalo.'],
+        ['Haló, Excel? Tady Směny.', 'Jen jsem chtěl říct, že vás už nepotřebujeme.', '…Ne, vážně. Ahoj.'],
+        ['Pizza? Jednu velkou, prosím.', 'Adresa? Pravý dolní roh obrazovky.', '…Haló?'],
+      ];
+      if(nm) scripts.push([`Haló, ${nm}?`, 'Jen jsem ti chtěl říct, že jsi super.', 'Ne, nic nechci.', bublikIsFem(nm) ? '…Zavěsila.' : '…Zavěsil.']);
+      const sc = pick(scripts);
+      setMouth('o'); S.eyeWide = 1.2; think('Crrr crrr…', 1400, true);
+      for(let i = 0; i < 8; i++) await tween(80, e => { p.rot = 15 + (i % 2 ? -16 : 16) * e; }, tk);
+      p.rot = 10; S.eyeWide = 1;
+      await tween(260, e => { p.dx = 25 - 6 * e; p.dy = -24 - 10 * e; }, tk);   // k uchu
+      for(const line of sc){
+        say(line, clamp(line.length * 70, 1500, 3200));
+        const t0 = performance.now();
+        await tween(clamp(line.length * 55, 1100, 2400), () => { setMouth(Math.floor((performance.now() - t0) / 130) % 2 ? 'o' : 'smile'); }, tk, ease.lin);
+        setMouth('smile'); S.lookOverride = { x: rand(-1, 1), y: rand(-.6, .2) };
+        await wait(rand(800, 1400), tk);   // poslouchá
+      }
+      S.lookOverride = null;
+      moment('telefonoval (prý důležitě)');
+    } finally { dropProp(p); }
+  }
+  async function readBook(tk){
+    const p = holdProp('book', 0, -4, 0), pg = p.el.querySelector('.pg');
+    try{
+      const t = pick(['Jak být kulatý', 'Bublina a moře', 'Excel pro pokročilé', 'Zákoník práce (s obrázky)', '50 odstínů zelené', 'Pěna dní', 'Velká kniha směn']);
+      think(`Čtu „${t}“. Napínavé.`, 2800, true);
+      setMouth('cat');
+      for(let i = 0; i < 3; i++){
+        for(let k = 0; k < 3; k++){ S.lookOverride = { x: -.6, y: .85 }; await wait(260, tk); S.lookOverride = { x: .6, y: .85 }; await wait(430, tk); }
+        await tween(320, e => { pg.setAttribute('transform', `translate(22 0) scale(${(1 - 2 * e).toFixed(2)} 1) translate(-22 0)`); }, tk);
+        pg.setAttribute('transform', '');
+        if(i === 1 && Math.random() < .55){ setEyes('happy'); setMouth('grin'); await hopSmall(tk, 8); setEyes('open'); setMouth('cat'); think(pick(['Cha! Tohle je dobrý.', 'Ten konec jsem nečekal. Jsem teprve na straně 3.']), 2400, true); }
+      }
+      if(Math.random() < .35){
+        // usne nad knížkou a pak sebou cukne
+        setEyes('closed'); setMouth('sleep'); S.lookOverride = { x: 0, y: 1 };
+        await tween(600, e => { S.tilt = 8 * e; p.rot = 8 * e; }, tk);
+        for(let k = 0; k < 3; k++){ zzz(); await wait(1200, tk); }
+        S.eyeWide = 1.3; setEyes('open'); setMouth('o');
+        await tween(220, (e, q) => { S.hop = Math.sin(q * Math.PI) * 12; S.tilt = 8 * (1 - e); p.rot = 8 * (1 - e); }, tk, ease.lin);
+        S.hop = 0; S.eyeWide = 1;
+        think('Nespím! Přemýšlím se zavřenýma očima.', 3000, true);
+      } else think(pick(['Dočteno. Hlavní hrdina byl kulatý. Jako já.', 'Doporučuju. Pět bublin z pěti.']), 3000, true);
+      moment(`četl knížku „${t}“`);
+      await wait(900, tk); S.lookOverride = null; setMouth('smile');
+    } finally { dropProp(p); }
+  }
+  async function workout(tk){
+    if(!onFloor()) await travelTo(S.x, floorY(), tk);
+    think(pick(['Cvičím. Na léto. Bublinové léto.', 'Dneska kliky. Kolik dám? Všechny.']), 2600, true);
+    setMouth('flat'); S.lookOverride = { x: 0, y: .3 };
+    let p = null;
+    try{
+      for(const c of ['1', '2', '3', 'tři a půl…', 'dost.']){
+        await tween(300, e => { S.sy = 1 - .28 * e; S.sx = 1 + .14 * e; }, tk);
+        await tween(c.length > 2 ? 900 : 360, e => { S.sy = .72 + .28 * e; S.sx = 1.14 - .14 * e; }, tk);
+        say(c, 800);
+        if(c === '3') sweat.setAttribute('opacity', '1');
+        await wait(200, tk);
+      }
+      // činka nad hlavou
+      p = holdProp('barbell', 0, -56, 0); p.sc = .3;
+      await tween(300, e => { p.sc = .3 + .7 * e; }, tk, ease.back);
+      setMouth('big'); S.eyeWide = 1.2;
+      await tween(1000, (e, q) => { p.dy = -56 - 14 * e; S.sy = 1 - .16 * e + Math.sin(q * 40) * .02; p.rot = Math.sin(q * 30) * 6; }, tk, ease.lin);
+      await wait(500, tk);
+      // pustí ji — bum, a odkutálí se
+      await tween(260, e => { p.dy = -70 + 64 * e; p.rot = 0; }, tk, t => t * t);
+      S.sx = 1.2; S.sy = .8; setEyes('closed'); setMouth('wavy');
+      await wobble(.25, 500, tk);
+      const dir = S.x > vw() / 2 ? -1 : 1;
+      await tween(900, e => { p.dx = dir * 110 * e; p.rot = dir * 360 * e; p.el.style.opacity = String(1 - e * .9); }, tk, ease.out);
+      dropProp(p); p = null;
+      setEyes('open'); S.eyeWide = 1;
+      think(pick(['Rekord! Nikdo neviděl, takže se počítá.', 'Na dnešek stačí. Na zítřek taky.']), 3000, true);
+      moment('posiloval (tři a půl kliku)');
+      await wait(800, tk); setMouth('smile');
+    } finally { if(p) dropProp(p); sweat.setAttribute('opacity', '0'); S.eyeWide = 1; }
+  }
+  async function skate(tk){
+    const s = size();
+    if(!onFloor()) await travelTo(S.x, floorY(), tk);
+    const dir = S.x > vw() / 2 ? -1 : 1, p = holdProp('skate', 0, 4, 0);
+    try{
+      think(pick(['Skejt! Pozor, jedu.', 'Kickflip. Teď. Asi.']), 2200, true);
+      setMouth('grin'); S.lookOverride = { x: dir, y: 0 };
+      p.sc = .2; await tween(300, e => { p.sc = .2 + .8 * e; }, tk, ease.back);
+      await tween(200, (e, q) => { S.hop = Math.sin(q * Math.PI) * 10; }, tk, ease.lin); S.hop = 0;   // naskočí
+      const x0 = S.x, x1 = clamp(x0 + dir * vw() * rand(.35, .55), s, vw() - s), xm = x0 + (x1 - x0) * .45, xo = x0 + (x1 - x0) * .65;
+      const fail = Math.random() < .35;
+      await tween(Math.abs(xm - x0) * 3, e => { S.x = x0 + (xm - x0) * e; S.tilt = -dir * 6 * e; }, tk, t => t * t);
+      await tween(560, (e, q) => { S.x = xm + (xo - xm) * e; S.hop = Math.sin(q * Math.PI) * 46; p.rot = fail ? q * 200 : q * 360; S.sy = 1 + .1 * Math.sin(q * Math.PI); }, tk, ease.lin);
+      S.hop = 0;
+      if(!fail){
+        p.rot = 0;
+        await tween(Math.abs(x1 - xo) * 3, e => { S.x = xo + (x1 - xo) * e; S.tilt = -dir * 6 * (1 - e); }, tk, ease.out);
+        setEyes('happy'); think(pick(['Čistý kickflip! Viděl to někdo?', 'Tony Bublík.']), 2800, true); await hopSmall(tk, 10); setEyes('open');
+      } else {
+        // prkno ujede, Bublík hodí šipku
+        const xf = S.x, y0 = S.y, dx0 = p.dx;
+        setMouth('o'); S.eyeWide = 1.3;
+        await tween(700, e => { p.dx = dx0 + dir * vw() * .22 * e * 72 / s; p.rot = 200 + 160 * e; S.tilt = dir * 85 * Math.min(1, e * 2.5); S.x = xf + dir * 22 * e; S.y = y0 - s * .4 * Math.min(1, e * 2.5); }, tk, ease.out);
+        S.sx = 1.2; S.sy = .8; setEyes('dizzy'); S.stars = true; S.starT = 0; setMouth('wavy'); S.eyeWide = 1;
+        await wait(1600, tk);
+        S.stars = false; setEyes('open');
+        await tween(420, e => { S.tilt = dir * 85 * (1 - e); S.y = y0 - s * .4 * (1 - e); }, tk); S.sx = S.sy = 1;
+        think(pick(['Tak to byl skoro kickflip.', 'Za to může prkno.']), 2800, true); blush(2000);
+      }
+      moment('jezdil na skejtu');
+      await wait(600, tk);
+    } finally { dropProp(p); S.stars = false; S.eyeWide = 1; }
+  }
+  async function selfie(tk){
+    const s = size(), dir = S.x > vw() / 2 ? -1 : 1, p = holdProp('phone', dir * 32, -62, -dir * 15);
+    try{
+      think(pick(['Selfíčko! Pro sociální sítě.', 'Hashtag práce. Hashtag bublina.']), 2400, true);
+      const poses = [['happy', 'grin', -8], ['open', 'cat', 10], ['open', 'o', 0], ['closed', 'grin', -12]].sort(() => Math.random() - .5).slice(0, 3);
+      for(const [ey, mo, ti] of poses){
+        setEyes(ey); setMouth(mo); S.lookOverride = { x: dir * .8, y: -.7 };
+        await tween(260, e => { S.tilt = ti * e; }, tk);
+        await wait(380, tk);
+        const k = s / 72, f = document.createElement('div'); f.className = 'bub-flash';
+        f.style.setProperty('--t', `translate(${(S.x + p.dx * k).toFixed(0)}px,${(S.y - S.hop + p.dy * k).toFixed(0)}px)`);
+        document.body.appendChild(f); setTimeout(() => f.remove(), 400);
+        await wait(340, tk);
+      }
+      setEyes('open'); setMouth('smile'); S.tilt = 0;
+      const pol = document.createElement('div'); pol.className = 'bub-polaroid';
+      pol.innerHTML = `<div class="ph"><svg viewBox="-30 -50 60 52"><circle cx="0" cy="-23" r="23" fill="url(#bub-g-body)"/><ellipse cx="-9" cy="-35" rx="6" ry="3.4" fill="#fff" opacity=".8" transform="rotate(-32 -9 -35)"/><path d="M -11 -24 Q -7.5 -28 -4 -24 M 4 -24 Q 7.5 -28 11 -24" stroke="#102a1e" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M -6 -16 Q 0 -9 6 -16 Z" fill="#5a1626"/></svg></div>${pick(['#bublík #práce', '#nofilter', '#kulatýden', '#směny'])}`;
+      const px = clamp(S.x - dir * s * 1.1 - 45, 8, vw() - 98), py = clamp(S.y - s * 1.9, 8, vh() - 110);
+      pol.style.transform = `translate(${px}px,${py + 20}px) rotate(${-dir * 6}deg)`; pol.style.opacity = '0';
+      document.body.appendChild(pol);
+      requestAnimationFrame(() => { pol.style.transform = `translate(${px}px,${py}px) rotate(${-dir * 6}deg)`; pol.style.opacity = '1'; });
+      setTimeout(() => { pol.style.opacity = '0'; setTimeout(() => pol.remove(), 600); }, 3800);
+      think(pick(['Dvacet lajků. Všechny ode mě.', 'Nejlepší je ta třetí. Vypadám na ní kulatě.']), 3000, true);
+      moment('udělal si selfíčko');
+      await wait(1200, tk);
+    } finally { dropProp(p); }
+  }
+  async function meditate(tk){
+    think(pick(['Ómmmm…', 'Hledám vnitřní klid. Asi je někde pod rozpisem.']), 3000, true);
+    setEyes('closed'); setMouth('flat'); S.lookOverride = null;
+    const y0 = S.y, up = clamp(y0 - size() - 10, 0, 48), t0 = performance.now();
+    let ring = 0;
+    await tween(5200, (e, q) => {
+      S.y = y0 - up * Math.sin(Math.min(1, q * 2.5) * Math.PI / 2) + Math.sin((performance.now() - t0) / 400) * 3;
+      if(q > ring){ ring = q + .22; const c = svgPoint(0, -23), r0 = document.createElement('div'); r0.className = 'bub-ring'; r0.style.setProperty('--t', `translate(${c.x.toFixed(0)}px,${c.y.toFixed(0)}px)`); document.body.appendChild(r0); setTimeout(() => r0.remove(), 1700); }
+    }, tk, ease.lin);
+    if(Math.random() < .5){ S.eyeWide = 1.2; setEyes('open'); setMouth('o'); think('…zapomněl jsem, co jsem hledal.', 2600, true); await wait(900, tk); S.eyeWide = 1; }
+    else { setEyes('happy'); setMouth('smile'); think('Vnitřní klid nalezen. A zase ztracen.', 3000, true); await wait(900, tk); }
+    const y1 = S.y; await tween(600, e => { S.y = y1 + (y0 - y1) * e; }, tk, ease.inOut);
+    await wobble(.14, 400, tk); setEyes('open'); setMouth('smile');
+    moment('meditoval (vnitřní klid nenalezen)');
+  }
   async function lookAround(tk){
     setMouth('cat');
     for(const p of [{ x: -1, y: -.2 }, { x: 1, y: -.2 }, { x: 0, y: -1 }, { x: -.6, y: .4 }]){ S.lookOverride = p; await wait(rand(380, 650), tk); }
@@ -6694,6 +7112,7 @@ const Bublik = (()=>{
     cancelAnimationFrame(rafId);
     listen(false);
     minis.forEach(m => m.pop(false));
+    dropProp(S.prop); document.querySelectorAll('.bub-gum,.bub-gum-face,.bub-polaroid').forEach(n => n.remove());
     crewRecall(true); chaosTidy(true); villageTidy(true);
     if(el) el.style.display = 'none';
     S.mode = 'idle';
