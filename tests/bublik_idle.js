@@ -39,8 +39,8 @@ vm.runInContext([
   extractBlock('BUB_MONTHS_GEN'), extractBlock('BUB_MONTHS_LOC'),
   extractBlock('BUB_IDLE_MILESTONES'), extractBlock('BUB_IDLE_LINES'), extractBlock('BUB_CREW_LINES'),
   extract('bublikIdleStage'), extract('bublikBagNext'), extract('bublikIdleFacts'),
-  extract('bublikIdleThoughts'), extract('bubJoinCz'), extract('bublikReturnMessage'), extract('bublikVillagePhase'), extractBlock('BUB_VILLAGE_LINES'), extractBlock('BUB_ERAS'), extract('bublikPickEra'), extract('bublikNewspaper'), extract('bublikCareKey'), extract('bublikIsFem'),
-  'this.ST = bublikIdleStage; this.BAG = bublikBagNext; this.F = bublikIdleFacts; this.TH = bublikIdleThoughts; this.R = bublikReturnMessage; this.M = BUB_IDLE_MILESTONES; this.L = BUB_IDLE_LINES; this.CL = BUB_CREW_LINES; this.VP = bublikVillagePhase; this.VL = BUB_VILLAGE_LINES; this.PE = bublikPickEra; this.NP = bublikNewspaper; this.CK = bublikCareKey;',
+  extract('bublikIdleThoughts'), extract('bubJoinCz'), extract('bublikReturnMessage'), extract('bublikVillagePhase'), extractBlock('BUB_VILLAGE_LINES'), extractBlock('BUB_ERAS'), extract('bublikPickEra'), extract('bublikNewspaper'), extract('bublikCareKey'), extract('bublikIsFem'), extract('bubDayList'), extract('bublikTabThoughts'),
+  'this.ST = bublikIdleStage; this.BAG = bublikBagNext; this.F = bublikIdleFacts; this.TH = bublikIdleThoughts; this.R = bublikReturnMessage; this.M = BUB_IDLE_MILESTONES; this.L = BUB_IDLE_LINES; this.CL = BUB_CREW_LINES; this.VP = bublikVillagePhase; this.VL = BUB_VILLAGE_LINES; this.PE = bublikPickEra; this.NP = bublikNewspaper; this.CK = bublikCareKey; this.TT = bublikTabThoughts;',
 ].join('\n'), ctx);
 
 let fail = 0;
@@ -131,6 +131,21 @@ check('pointa s vesnicí', ctx.R(7200000, {}, {}, r0).includes('Spal jsem') && /
 check('klíč péče podle dne', ctx.CK(new Date(2026, 10, 5)) === 'bublik_care_2026-11-05');
 }
 check('notifikace a žádosti', ctx.R(600000, {}, { unread: 2, pendingLeaves: 1 }).endsWith('Mimochodem: máš 2 nepřečtené notifikace a 1 žádost o volno.'));
+
+// myšlenky podle záložky (v0.9.70)
+{
+  const base = { team: ['Lucie', 'Martin', '<b>X'], branches: ['Plaza', 'Ungelt'], holes: [3, 14, 22, 27], rules: { min_rest: 11, max_week: 48, max_shift: 12, weekly_rest: 35 }, pending: 2, m0: 10 };
+  const tabs = ['gaps', 'rules', 'employees', 'branches', 'stats', 'leaves', 'myschedule'];
+  check('každá záložka má aspoň 1 myšlenku', tabs.every(t => ctx.TT({ ...base, tab: t }).length >= 1));
+  check('rozpis a neznámá záložka nic', ctx.TT({ ...base, tab: 'schedule' }).length === 0 && ctx.TT({ ...base, tab: 'xyz' }).length === 0);
+  check('mezery: počet a dny', ctx.TT({ ...base, tab: 'gaps' })[0].includes('V listopadu chybí lidi 4 dny (3., 14., 22. a další)'), ctx.TT({ ...base, tab: 'gaps' })[0]);
+  check('mezery: bez mezer', ctx.TT({ ...base, tab: 'gaps', holes: [] }).some(t => t.includes('Žádné mezery')));
+  check('pravidla z nastavení firmy', ['11 h', '48 h', '12 h', '35 h'].every(v => ctx.TT({ ...base, tab: 'rules' }).join(' ').includes(v)));
+  check('žádosti: skloňování', ctx.TT({ ...base, tab: 'leaves' })[0].startsWith('2 žádosti o volno') && ctx.TT({ ...base, tab: 'leaves', pending: 5 })[0].startsWith('5 žádostí'));
+  check('zaměstnanci: počet', ctx.TT({ ...base, tab: 'employees' })[0].includes('Je vás tu 3. Se mnou 4.'));
+  check('jména escapovaná', !ctx.TT({ ...base, tab: 'employees', team: ['<b>X'] }).join(' ').includes('<b>'));
+  check('pobočky: jedna', ctx.TT({ ...base, tab: 'branches', branches: ['Karolína'] })[0].includes('Jedna pobočka, Karolína'));
+}
 
 if(fail){ console.error(`\n${fail} kontrol selhalo`); process.exit(1); }
 console.log('\nVše v pořádku.');

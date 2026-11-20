@@ -1257,10 +1257,15 @@ body.dark .search-input{color:var(--ink)}
 .bub-catch{position:fixed;left:0;top:0;pointer-events:none;z-index:400;font:800 15px var(--font-display);transform-origin:50% 0}
 .bub-catch.chip{background:#c33;color:#fff;border-radius:4px;padding:2px 5px;font-size:12px}
 .bub-note-music.bad{color:#d63b3b}
+.bub-sticker{position:fixed;left:0;top:0;pointer-events:none;z-index:396;transition:transform .4s cubic-bezier(.3,1.6,.5,1),opacity .4s;transform-origin:50% 50%}
+.bub-sticker.plaster{width:74px;height:24px;border-radius:12px;background:repeating-linear-gradient(90deg,#f3c9a0 0 30px,#e9b98b 30px 44px,#f3c9a0 44px 74px);box-shadow:0 2px 5px rgba(0,0,0,.18)}
+.bub-sticker.plaster::before{content:'';position:absolute;left:30px;top:5px;width:14px;height:14px;background:radial-gradient(circle,#d9a679 1px,transparent 1.5px) 0 0/5px 5px}
+.bub-sticker.stamp{padding:4px 9px;border:2.5px solid #c0392b;border-radius:6px;color:#c0392b;font:800 12px/1.1 var(--font-display);letter-spacing:.04em;text-transform:uppercase;background:rgba(255,255,255,.55);white-space:nowrap}
+.bub-sticker.pin{font-size:22px;line-height:1}
 .bub-zzz{position:fixed;left:0;top:0;z-index:402;pointer-events:none;font:700 16px var(--font-display);color:var(--accent-ink);animation:bubZzz 2.6s ease-out forwards}
 @keyframes bubZzz{0%{opacity:0;transform:var(--t) translate(0,0) scale(.6)}20%{opacity:1}100%{opacity:0;transform:var(--t) translate(22px,-46px) scale(1.25)}}
 @media (max-width:640px){ #bublik{width:60px;height:56px} }
-@media print{ #bublik,#bublik-speech,.bub-mini,.bub-zzz,.bub-splat,.bub-clone,.bub-brick,.bub-print,.bub-note,.bub-crack,.bub-letter,.bub-grass,.bub-house,.bub-bld,.bub-path,.bub-fire,.bub-flower,.bub-chron,.bub-night,.bub-note-music,.bub-csay,.bub-stage,.bub-rope,.bub-line,.bub-bobber,.bub-catch,.bub-prop,.bub-gum,.bub-gum-face,.bub-ring,.bub-flash,.bub-polaroid,.bub-era,.bub-ship,.bub-rocket,.bub-frame,.bub-podium,.bub-paper{display:none !important} }
+@media print{ #bublik,#bublik-speech,.bub-mini,.bub-zzz,.bub-splat,.bub-clone,.bub-brick,.bub-print,.bub-note,.bub-crack,.bub-letter,.bub-grass,.bub-house,.bub-bld,.bub-path,.bub-fire,.bub-flower,.bub-chron,.bub-night,.bub-note-music,.bub-sticker,.bub-csay,.bub-stage,.bub-rope,.bub-line,.bub-bobber,.bub-catch,.bub-prop,.bub-gum,.bub-gum-face,.bub-ring,.bub-flash,.bub-polaroid,.bub-era,.bub-ship,.bub-rocket,.bub-frame,.bub-podium,.bub-paper{display:none !important} }
 @media print{ .bub-gone{visibility:visible !important} }
 /* v0.9.48: při otevřeném modálu Bublík i „?“ zmizí — na mobilu jinak zakrývaly tlačítka Uložit */
 body:has(.modal-overlay.open) #bublik, body:has(.modal-overlay.open) #bublik-speech, body:has(.modal-overlay.open) .help-fab, body:has(.modal-overlay.open) .bub-clone, body:has(.modal-overlay.open) .bub-brick,
@@ -2805,7 +2810,7 @@ window.addEventListener('unhandledrejection', e => {
 // odsud, ručně je nepřepisuj. sw.js se od v0.9.29 nebumpuje — je z něj
 // kill-switch bez cache (viz killServiceWorkers() a komentář v sw.js).
 // ============================================================
-const APP_VERSION = '0.9.69';
+const APP_VERSION = '0.9.70';
 
 // Krátký git hash nasazeného buildu. Placeholder níž přepíše build-stamp.js
 // z CF_PAGES_COMMIT_SHA (Cloudflare Pages build command: `node build-stamp.js`).
@@ -4551,6 +4556,8 @@ const Bublik = (()=>{
     try{ facts = bublikIdleFacts(bublikIdleContext()); } catch(_){}
     const useFact = facts.length && Math.random() < .35;
     if(village && Math.random() < .35){ const vt = bublikBagNext(BUB_VILLAGE_LINES, seenThoughts, Math.random); if(vt) return vt; }
+    // v0.9.70: myšlenky k záložce, na které ho člověk nechal (z dat té firmy)
+    if(Math.random() < .4){ try{ const tl = bublikBagNext(bublikTabThoughts(bublikTabContext()), seenThoughts, Math.random); if(tl) return tl; } catch(_){} }
     const useCrew = !useFact && crew.length && Math.random() < .4;
     const t = bublikBagNext(useFact ? facts : useCrew ? BUB_CREW_LINES : bublikIdleThoughts(stage), seenThoughts, Math.random);
     if(seenThoughts.length > 250) seenThoughts.splice(0, seenThoughts.length - 250);
@@ -5424,7 +5431,9 @@ const Bublik = (()=>{
     const texts = ['Bublík byl tady', 'Nezapomeň na oběd!', 'Tahle buňka je moje', 'Kdo snědl moji bublinu?', 'Pomoc, jsem uvězněný v obrazovce', 'Nepublikovat, spím', nm ? `${nm} je super` : 'Jsi super', 'Úkoly: 1. být kulatý ✓', 'Vrátím se. Asi.', 'Zalít kytky (které?)'];
     const used = mess.notes.map(n => n.dataset.t);
     const text = pick(texts.filter(t => !used.includes(t))) || pick(texts);
-    const s = size(), x = rand(vw() * .12, vw() * .82), y = rand(vh() * .22, floorY() - 140);
+    const s = size(), spot = noteSpot(120, 80);   // v0.9.70: vzkaz nikdy přes obsah záložky
+    if(!spot) return lookAround(tk);
+    const x = spot.x, y = spot.y;
     await flyTo(x + 70, y + 74 + s * .9, tk);
     S.lookOverride = { x: -1, y: -1 }; setMouth('cat');
     await tween(160, e => { S.tilt = -10 * e; S.sx = 1 + .06 * e; }, tk);
@@ -6170,19 +6179,43 @@ const Bublik = (()=>{
     }
     villageCatchUp(Math.min(gap, idleFor - 30 * 60000));
   }
-  // na rozpis jen skočí něco provést; zůstává u okrajů (a dole), ať nezakrývá směny
-  function gridRect(){
-    const t = document.getElementById('sched-table');
-    if(!t || !t.offsetParent) return null;
-    const r = t.getBoundingClientRect();
-    return r.width > 200 && r.height > 60 ? r : null;
+  // na obsah záložky jen skočí něco provést; zůstává u okrajů (a dole), ať nic nezakrývá
+  // v0.9.70: platí pro každou záložku (Rozpis, Mezery, Pravidla, Zaměstnanci…) — zóny = viditelné panely aktivní záložky
+  let zonesCache = null, zonesAt = 0;
+  function contentZones(){
+    const now = performance.now();
+    if(zonesCache && now - zonesAt < 400) return zonesCache;
+    const out = [];
+    try{
+      const tab = activeTab(), pane = document.getElementById('pane-' + tab) || document;
+      pane.querySelectorAll('.panel').forEach(p => {
+        if(!p.offsetParent) return;
+        const r = p.getBoundingClientRect();
+        if(r.width > 200 && r.height > 60 && r.bottom > 0 && r.top < vh()) out.push(r);
+      });
+      if(!out.length){ const t = document.getElementById('sched-table'); if(t && t.offsetParent){ const r = t.getBoundingClientRect(); if(r.width > 200) out.push(r); } }
+    } catch(_){}
+    zonesCache = out; zonesAt = now;
+    return out;
   }
+  function gridRect(){ return contentZones()[0] || null; }
   function overGrid(x, y, w, h){
-    const r = gridRect(); if(!r) return false;
+    const zs = contentZones(); if(!zs.length) return false;
     w = w || size(); h = h || size();
     const cy = y - h * .5;
     if(x < w + 16 || x > vw() - w - 16 || y > floorY() - 10 || y < h + 30) return false;   // okraje obrazovky jsou v pořádku
-    return x > r.left - w * .3 && x < r.right + w * .3 && cy > r.top - h * .3 && cy < r.bottom + h * .2;
+    return zs.some(r => x > r.left - w * .3 && x < r.right + w * .3 && cy > r.top - h * .3 && cy < r.bottom + h * .2);
+  }
+  function activeTab(){ try{ const b = document.querySelector('.tab-btn.active'); return (b && b.dataset.tab) || 'schedule'; } catch(_){ return 'schedule'; } }
+  // v0.9.70: žádná neplecha — když je otevřený dialog, průvodce nebo člověk píše do pole, Bublík nic nového nezačíná
+  function uiBusy(){
+    try{
+      if(document.querySelector('.modal-overlay.open, #onboarding-wizard-overlay.open')) return true;
+      if(typeof tutActive !== 'undefined' && tutActive) return true;
+      const a = document.activeElement;
+      if(a && (a.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))) return true;
+    } catch(_){}
+    return false;
   }
   function edgeSpot(w, h, nearFloor = .35){
     w = w || size(); h = h || size();
@@ -6336,6 +6369,7 @@ const Bublik = (()=>{
       S.nextThought = now + (stage >= 3 ? rand(14000, 26000) : rand(18000, 34000));
     }
     if(S.mode !== 'idle') return;
+    if(uiBusy()){ S.nextAntic = Math.max(S.nextAntic, now + 3000); return; }   // v0.9.70
     if(stage >= 1 && awayFromHome() && overGrid(S.x, S.y) && now > (S.nextLeave || 0)){ S.nextLeave = now + 4000; run(leaveGrid); return; }   // v0.9.66
     if(idleFor > T.sleep && !village){ S.deepSleep = false; run(sleep); return; }
     if(idleFor > T.bored && now > S.nextAntic){
@@ -6355,13 +6389,15 @@ const Bublik = (()=>{
         [sneeze, 1.2], [bubbleGum, 1.3], [magicTrick, 1.2], [balloon, 1], [phoneCall, 1.2], [readBook, 1.2], [selfie, 1.1], [meditate, .9],
         [paperPlane, isTouch ? 0 : 1.2], [workout, 1.1], [skate, isTouch ? 0 : 1.1],
         // v0.9.60: Průzkumník (od 3 min) — hraje si s appkou, jen vizuálně
-        ...(S.stage >= 2 && !isTouch ? [[sitOnButton, 2], [pokeChip, 2.5], [readNames, 1.4], [railWalk, 1.4], [climbWall, 1.6], [hangTop, 1.3]] : []),
+        ...(S.stage >= 2 && !isTouch ? [[sitOnButton, 2], [pokeChip, activeTab() === 'schedule' ? 2.5 : 0], [readNames, activeTab() === 'schedule' ? 1.4 : 0], [railWalk, activeTab() === 'schedule' ? 1.4 : 0], [climbWall, 1.6], [hangTop, 1.3]] : []),
+        // v0.9.70: kousky podle záložky (Mezery, Pravidla, Zaměstnanci, Pobočky, Statistiky, Žádosti, Můj rozpis)
+        ...(S.stage >= 2 && !isTouch && activeTab() !== 'schedule' ? [[tabAntic, 3.2]] : []),
         // v0.9.61: hry s Bublíčky
         ...(crew.length ? [[crewPyramid, 1.4], [crewTrain, 1], [crewTag, 1], [crewBall, 1], [skitFishing, isTouch ? 0 : 1.6]] : []),
         // v0.9.68: scénky s příběhem (aspoň 2 Bublíčci)
         ...(crew.length >= 2 && !isTouch ? [[skitStatues, 2], [skitTheatre, 2], [skitBand, 1.8], [skitTug, 1.6], [skitHide, 1.8]] : []),
         // v0.9.62: Falešný chaos (od 15 min)
-        ...(S.stage >= 4 && !isTouch ? [[stickNote, 2], [headbutt, 1.5], [stealLetter, 1.6], [crookRow, 1.6], [mowGrass, mess.grass && now - mess.grass.t0 > 60000 ? 2.2 : 0]] : []),
+        ...(S.stage >= 4 && !isTouch ? [[stickNote, 2], [headbutt, 1.5], [stealLetter, 1.6], [crookRow, activeTab() === 'schedule' ? 1.6 : 0], [mowGrass, mess.grass && now - mess.grass.t0 > 60000 ? 2.2 : 0]] : []),
         [goHome, away ? 2.2 : 0],
         [hunt, (S.pointer && !isTouch && S.pointerStill > 1500) ? 2.5 : 0],
       ]));
@@ -6499,6 +6535,9 @@ const Bublik = (()=>{
     flag: { w: 24, h: 34, svg: '<svg viewBox="0 0 24 34"><path d="M3 34 V2" stroke="#5a3b12" stroke-width="2"/><path d="M4 3 L22 8 L4 14 Z" fill="#12a46a" stroke="#044a30"/></svg>' },
     bread: { w: 22, h: 12, svg: '<svg viewBox="0 0 22 12"><path d="M2 8 Q2 2 11 2 Q20 2 20 8 Q20 11 11 11 Q2 11 2 8 Z" fill="#e0a458" stroke="#8b5a2b"/><path d="M7 4 L8 7 M11 3.5 L12 6.5 M15 4 L16 7" stroke="#8b5a2b"/></svg>' },
     bucket: { w: 16, h: 16, svg: '<svg viewBox="0 0 16 16"><path d="M2 5 H14 L12 15 H4 Z" fill="#9aa1aa" stroke="#4a5560"/><path d="M2 5 Q8 -3 14 5" fill="none" stroke="#4a5560"/><ellipse cx="8" cy="5" rx="6" ry="1.6" fill="#58b6ff"/></svg>' },
+    magnifier: { w: 28, h: 28, svg: '<svg viewBox="0 0 28 28"><circle cx="11" cy="11" r="8" fill="rgba(200,235,255,.45)" stroke="#4a5560" stroke-width="2.6"/><path d="M17 17 L26 26" stroke="#6b4319" stroke-width="3.6" stroke-linecap="round"/><path d="M7 8 Q9 5 12 5" stroke="#fff" stroke-width="1.4" fill="none"/></svg>' },
+    clipboard: { w: 22, h: 28, svg: '<svg viewBox="0 0 22 28"><rect x="1" y="3" width="20" height="24" rx="2" fill="#c8a06a" stroke="#6b4319"/><rect x="3.5" y="6" width="15" height="19" fill="#fff"/><rect x="7" y="1" width="8" height="5" rx="1.5" fill="#9aa1aa" stroke="#4a5560"/><path d="M5.5 11 H16 M5.5 14.5 H16 M5.5 18 H12" stroke="#9aa1aa"/></svg>' },
+    stamp: { w: 20, h: 24, svg: '<svg viewBox="0 0 20 24"><rect x="7" y="1" width="6" height="11" rx="3" fill="#6b4319"/><rect x="2" y="12" width="16" height="6" rx="1.5" fill="#4a2e12"/><rect x="1" y="18" width="18" height="4" rx="1" fill="#c0392b"/></svg>' },
     plane: { w: 40, h: 20, svg: '<svg viewBox="0 0 40 20"><path d="M2 10 L38 3 L16 12 Z" fill="#fff" stroke="#6b7280" stroke-width=".8"/><path d="M16 12 L38 3 L20 18 Z" fill="#e5e7eb" stroke="#6b7280" stroke-width=".8"/></svg>' },
   };
   // dx, dy = kde ji drží (souřadnice těla: 0 0 = spodek uprostřed, hlava ~ -46)
@@ -6848,6 +6887,163 @@ const Bublik = (()=>{
     const y1 = S.y; await tween(600, e => { S.y = y1 + (y0 - y1) * e; }, tk, ease.inOut);
     await wobble(.14, 400, tk); setEyes('open'); setMouth('smile');
     moment('meditoval (vnitřní klid nenalezen)');
+  }
+  // ── v0.9.70: kousky podle záložky — vždy u okraje panelu, nálepky jen v záhlaví, data se nemění ──
+  function noteSpot(w, h){
+    const zs = contentZones();
+    const hit = (x, y) => zs.some(r => x + w > r.left && x < r.right && y + h > r.top && y < r.bottom);
+    for(let i = 0; i < 24; i++){
+      const x = rand(8, vw() - w - 8), y = rand(70, floorY() - h - 60);
+      if(!hit(x, y)) return { x, y };
+    }
+    return null;
+  }
+  function activePanel(){
+    const tab = activeTab(), pane = document.getElementById('pane-' + tab);
+    const p = pane && [...pane.querySelectorAll('.panel')].find(n => n.offsetParent);
+    if(!p) return null;
+    const r = p.getBoundingClientRect(), head = p.querySelector('.panel-head, .sched-toolbar'), title = p.querySelector('.panel-title, .month-label');
+    return { tab, r, head: head ? head.getBoundingClientRect() : null, title: title ? title.getBoundingClientRect() : null };
+  }
+  // přiletí k okraji panelu (vedle záhlaví) — mimo obsah
+  async function toPanelEdge(tk){
+    const ap = activePanel(), s = size();
+    if(!ap || ap.r.top > floorY() - s) return null;
+    const right = vw() - ap.r.right > s + 14 || ap.r.left < s + 14 ? true : Math.random() < .6;
+    const x = right ? clamp(ap.r.right + s / 2 + 6, s / 2 + 8, vw() - s / 2 - 8) : clamp(ap.r.left - s / 2 - 6, s / 2 + 8, vw() - s / 2 - 8);
+    const yRef = ap.head ? ap.head.bottom : ap.r.top + 60;
+    await flyTo(x, clamp(yRef, s + 30, floorY()), tk);
+    S.lookOverride = { x: right ? -1 : 1, y: -.2 };
+    return { ap, right };
+  }
+  function addSticker(cls, html, x, y, rot){
+    const n = messEl('bub-sticker ' + cls, html || '');
+    n.dataset.x = x; n.dataset.y = y; n.dataset.r = rot; n.dataset.t = cls;
+    n.style.transform = `translate(${x}px,${y}px) rotate(${rot}deg) scale(.2)`; n.style.opacity = '0';
+    requestAnimationFrame(() => { n.style.transform = `translate(${x}px,${y}px) rotate(${rot}deg) scale(1)`; n.style.opacity = '1'; });
+    mess.notes.push(n); messHit();
+    return n;
+  }
+  // nálepka do záhlaví panelu, vedle nadpisu (nikdy přes data)
+  function headSpot(ap, w){
+    const t = ap.title || ap.head, hr = ap.head || ap.r;
+    if(!t) return null;
+    const x = clamp(t.right + 14, 10, vw() - w - 10), y = Math.max(8, (t.top + t.bottom) / 2 - 14);
+    let sx = (x + w > hr.right - 8 && hr.right - hr.left > w + 40) ? clamp(hr.right - w - 140, 10, vw() - w - 10) : x;
+    // nelepit přes jinou nálepku — posunout za ni
+    mess.notes.forEach(n => { const nx = Number(n.dataset.x), ny = Number(n.dataset.y), nw = n.offsetWidth || 80; if(Math.abs(ny - y) < 34 && sx < nx + nw + 8 && sx + w > nx - 8) sx = nx + nw + 12; });
+    return sx + w < vw() - 8 ? { x: sx, y } : null;
+  }
+  async function tabAntic(tk){
+    const tab = activeTab(), ctx = bublikTabContext();
+    const fn = { gaps: gapsAntic, rules: rulesAntic, employees: employeesAntic, branches: branchesAntic, stats: statsAntic, leaves: leavesAntic, myschedule: myAntic }[tab];
+    if(!fn) return explore(tk);
+    const at = await toPanelEdge(tk);
+    if(!at) return explore(tk);
+    await fn(tk, ctx, at);
+    S.lookOverride = null; setMouth('smile'); setEyes('open');
+  }
+  async function gapsAntic(tk, ctx, at){
+    if(ctx.holes.length){
+      const d = ctx.holes[Math.floor(Math.random() * Math.min(3, ctx.holes.length))];
+      think(pick([`${d}. ${BUB_MONTHS_LOC[ctx.m0]} chybí člověk. Můžu tam být já? Ne? Ani na půl úvazku?`, `Mezera ${d}. Mám náplast. Zkusíme to.`, `${d}. — díra v rozpisu. Zalepím ji, než si jí někdo všimne.`]), 3600, true);
+      await wait(1800, tk);
+      if(mess.notes.length < 6){
+        const sp = headSpot(at.ap, 74);
+        if(sp){ setMouth('cat'); await tween(220, e => { S.tilt = (at.right ? -1 : 1) * 12 * e; }, tk); addSticker('plaster', '', sp.x, sp.y, rand(-14, 14).toFixed(0)); await tween(220, e => { S.tilt = (at.right ? -1 : 1) * 12 * (1 - e); }, tk); }
+      }
+      think(pick(['Zalepeno. Odborně ne, ale s láskou.', 'Hotovo. Na plán to nemá vliv, ale lépe se na to dívá.', 'Náplast drží. Směna tam pořád chybí. Ale náplast drží.']), 3400, true);
+      moment('zalepil mezeru v rozpisu náplastí');
+    } else {
+      think(pick(['Žádné mezery. Kdo to plánoval, zaslouží kafe.', 'Mezery: nula. Jdu si jednu udělat. …Dělám si legraci.']), 3400, true);
+      setEyes('happy'); setMouth('grin'); await hopSmall(tk, 14); await hopSmall(tk, 10);
+      for(let i = 0; i < 8; i++){ const m = svgPoint(0, -46); spawnBubble(m.x, m.y, rand(6, 12), { vx: rand(-80, 80), vy: -rand(60, 120), life: rand(1.2, 2) }); }
+      moment('slavil, že v rozpisu nejsou mezery');
+    }
+    await wait(1200, tk);
+  }
+  async function rulesAntic(tk, ctx, at){
+    const r = ctx.rules || {}, p = holdProp('book', 0, -4, 0);
+    try{
+      think('Čtu pravidla. Hledám paragraf o bublinách.', 2800, true);
+      S.lookOverride = { x: 0, y: .85 }; setMouth('cat');
+      for(let k = 0; k < 4; k++){ S.lookOverride = { x: -.6, y: .85 }; await wait(300, tk); S.lookOverride = { x: .6, y: .85 }; await wait(450, tk); }
+      const lines = [];
+      if(r.min_rest) lines.push(`Odpočinek mezi směnami ${r.min_rest} h. Já odpočívám 23 hodin denně a nikdo mě nechválí.`);
+      if(r.max_week) lines.push(`Maximálně ${r.max_week} h týdně. Já mám 168. Bez příplatků.`);
+      if(r.max_shift) lines.push(`Nejdelší směna ${r.max_shift} h. Moje nejdelší směna je od rána do teď.`);
+      lines.push('Paragraf o bublinách tu není. Takže je to povolené.');
+      think(pick(lines), 3800, true);
+      await wait(2200, tk);
+    } finally { dropProp(p); }
+    const st = holdProp('stamp', 24, -30, 0);
+    try{
+      await tween(260, e => { st.dy = -30 - 14 * e; }, tk); await tween(140, e => { st.dy = -44 + 22 * e; }, tk, t => t * t);
+      const sp = headSpot(at.ap, 150);
+      if(sp && mess.notes.length < 6) addSticker('stamp', 'Bublík četl ✓', sp.x, sp.y, rand(-10, 6).toFixed(0));
+      await tween(260, e => { st.dy = -22 - 8 * e; }, tk);
+    } finally { dropProp(st); }
+    think(pick(['Orazítkováno. Úředně to nic neznamená, ale vypadá to důležitě.', 'Razítko je moje nejoblíbenější kancelářská potřeba.']), 3200, true);
+    moment('studoval pravidla (o bublinách tam nic není)');
+    await wait(1000, tk);
+  }
+  async function employeesAntic(tk, ctx){
+    const p = holdProp('clipboard', 22, -26, 8);
+    try{
+      const n = ctx.team.length, nm = n ? pick(ctx.team) : '';
+      if(nm && Math.random() < .6){
+        say(`Pohovor: ${bubEsc(nm)}.`, 1800); await wait(1600, tk);
+        const qa = pick([['Kde se vidíte za pět let?', '„Na směně.“ Přijímáme.'], ['Vaše slabá stránka?', '„Pracuju moc.“ To říkají všichni.'], ['Proč chcete pracovat tady?', '„Kvůli Bublíkovi.“ Správná odpověď.'], ['Jaký jste týmový hráč?', '„Kulatý.“ To beru.']]);
+        say(qa[0], 2000); await wait(2100, tk);
+        S.lookOverride = { x: 0, y: .6 }; await wait(500, tk);
+        say(qa[1], 2400); setEyes('happy'); await hopSmall(tk, 8); setEyes('open');
+      } else think(n ? `Je vás tu ${n}. Se mnou ${n + 1}. Ale já v rozpisu nejsem. Diskriminace.` : 'Zatím tu nikdo není. Jen já. Jsem tým.', 3400, true);
+      moment('dělal pohovory');
+      await wait(1400, tk);
+    } finally { dropProp(p); }
+  }
+  async function branchesAntic(tk, ctx, at){
+    const b = ctx.branches;
+    think(b.length > 1 ? `Objíždím pobočky: ${bubEsc(b.slice(0, 3).join(', '))}${b.length > 3 ? '…' : ''}. Kutálením.` : b.length ? `Jedna pobočka: ${bubEsc(b[0])}. Rodinná atmosféra.` : 'Zatím žádná pobočka. Můžu být první? Pobočka Bublíkov.', 3600, true);
+    await wait(1800, tk);
+    const sp = headSpot(at.ap, 26);
+    if(sp && mess.notes.length < 6){ await hopSmall(tk, 12); addSticker('pin', '📍', sp.x, sp.y, 0); }
+    think(pick(['Byl jsem tady. Teda v duchu.', 'Kdybych měl pobočku, měla by jen kulaté stoly.']), 3000, true);
+    moment('objížděl pobočky');
+    await wait(1200, tk);
+  }
+  async function statsAntic(tk){
+    const p = holdProp('magnifier', 24, -34, 0);
+    try{
+      think('Analyzuju data. Tvářím se u toho důležitě.', 2600, true);
+      setMouth('flat');
+      for(let i = 0; i < 4; i++){ S.lookOverride = { x: pick([-1, -.5, .5]), y: rand(-.2, .6) }; await tween(500, e => { p.rot = Math.sin(e * Math.PI) * 14; }, tk); }
+      think(pick(['Závěr: grafy jsou barevné.', 'Trend dne: kafe.', 'Graf jde nahoru. Nebo dolů. Záleží, jak se díváš na monitor.', 'Podle mých výpočtů je 100 % bublin kulatých.']), 3400, true);
+      moment('analyzoval statistiky');
+      await wait(1600, tk);
+    } finally { dropProp(p); }
+  }
+  async function leavesAntic(tk, ctx, at){
+    const n = ctx.pending;
+    think(n ? `${n} ${bubWordForm(n, 'žádost', 'žádosti', 'žádostí')} o volno. Já bych schválil všechny. Proto nejsem šéf.` : 'Žádné nové žádosti. Buď všichni milují práci, nebo nevědí, kde se žádá.', 3600, true);
+    await wait(2000, tk);
+    if(n){
+      const st = holdProp('stamp', 24, -30, 0);
+      try{
+        await tween(260, e => { st.dy = -30 - 14 * e; }, tk); await tween(140, e => { st.dy = -44 + 22 * e; }, tk, t => t * t);
+        const sp = headSpot(at.ap, 170);
+        if(sp && mess.notes.length < 6) addSticker('stamp', 'Bublík by schválil', sp.x, sp.y, rand(-8, 6).toFixed(0));
+      } finally { dropProp(st); }
+      think('Neboj, moje razítko nic neschvaluje. Jen vypadá.', 3000, true);
+    }
+    moment('přebíral žádosti o volno (nic neschválil)');
+    await wait(1200, tk);
+  }
+  async function myAntic(tk){
+    think(pick(['Můj rozpis. Teda tvůj. Já žádný nemám.', 'Kdyby něco nesedělo, je tu Požádat o volno. Já bych ho mačkal pořád.', 'Držím palce na příští směnu. Teda bublinu.']), 3400, true);
+    setEyes('happy'); await hopSmall(tk, 10); setEyes('open');
+    moment('kontroloval rozpis');
+    await wait(1200, tk);
   }
   async function lookAround(tk){
     setMouth('cat');
@@ -8162,6 +8358,63 @@ function bublikReturnExtras(){
   try{ unread = (_notifications || []).filter(n => !n.read).length; } catch(_){}
   try{ if(currentRole === 'admin') pendingLeaves = (leaveRequests || []).filter(l => l.status === 'pending').length; } catch(_){}
   return { unread, pendingLeaves };
+}
+// v0.9.70: co Bublík ví o záložce, na které ho člověk nechal (data té firmy; nic nemění)
+function bublikTabContext(){
+  let tab = 'schedule';
+  try{ const b = document.querySelector('.tab-btn.active'); if(b && b.dataset.tab) tab = b.dataset.tab; } catch(_){}
+  const ctx = { tab, team: [], branches: [], holes: [], rules: null, pending: 0, m0: 0 };
+  try{ ctx.m0 = schedMonth; } catch(_){}
+  try{ ctx.team = (employees || []).filter(e => e.active !== false).map(e => bubFirstName(e.name)).filter(Boolean); } catch(_){}
+  try{ ctx.branches = (branches || []).map(b => b.name).filter(Boolean); } catch(_){}
+  try{ if(Object.values(shifts || {}).some(s => s && s.shift_type_code && s.shift_type_code !== 'X')) ctx.holes = bublikHoleDays(); } catch(_){}
+  try{ ctx.rules = laborRules(orgSettings); } catch(_){}
+  try{ if(currentRole === 'admin') ctx.pending = (leaveRequests || []).filter(l => l.status === 'pending').length; } catch(_){}
+  return ctx;
+}
+// Myšlenky ke konkrétní záložce. ctx: { tab, team:[křestní jména], branches:[názvy], holes:[dny], rules:{min_rest,max_week,max_shift,weekly_rest}, pending, m0 }
+function bublikTabThoughts(ctx){
+  const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const out = [], team = (ctx.team || []).map(esc), br = (ctx.branches || []).map(esc), holes = ctx.holes || [], r = ctx.rules || {};
+  const nm = team.length ? team[(team.length * 7 + 3) % team.length] : '';
+  switch(ctx.tab){
+    case 'gaps':
+      if(holes.length){
+        out.push(`V ${BUB_MONTHS_LOC[ctx.m0 || 0]} chybí lidi ${holes.length} ${bubWordForm(holes.length, 'den', 'dny', 'dní')} (${bubDayList(holes)}). Můžu tam být já? Ne? Ani na půl úvazku?`);
+        out.push(`Mezera ${holes[0]}. Kdo ji zalepí? Já mám jen náplast.`);
+        out.push('Mezery v rozpisu jsou jako díry v ponožkách. Nikdo je nechce, každý je má.');
+      } else out.push('Žádné mezery. Kdo to plánoval, zaslouží kafe.', 'Prázdný seznam mezer. Takový klid jsem tu ještě nezažil.');
+      break;
+    case 'rules':
+      if(r.min_rest) out.push(`Odpočinek mezi směnami ${r.min_rest} h. Já odpočívám 23 hodin denně a nikdo mě nechválí.`);
+      if(r.max_week) out.push(`Maximálně ${r.max_week} h týdně. Já mám 168. Bez příplatků.`);
+      if(r.max_shift) out.push(`Nejdelší směna ${r.max_shift} h. Moje nejdelší směna je od rána do teď.`);
+      if(r.weekly_rest) out.push(`Týdenní odpočinek ${r.weekly_rest} h v kuse. To dám vestoje. Teda… nemám nohy.`);
+      out.push('Tvrdá pravidla, měkká pravidla. Já jsem měkký. Úplně celý.', 'Čtu zákoník práce. Paragraf o bublinách pořád nikde.');
+      break;
+    case 'employees':
+      if(team.length) out.push(`Je vás tu ${team.length}. Se mnou ${team.length + 1}. Ale já v rozpisu nejsem. Diskriminace.`);
+      if(nm) out.push(`Pohovor s ${nm}: „Kde se vidíte za pět let?“ „Na směně.“ Přijímáme.`);
+      out.push('Seznam zaměstnanců. Hledám svoje jméno. Zase nic.');
+      break;
+    case 'branches':
+      if(br.length > 1) out.push(`Pobočky: ${br.slice(0, 3).join(', ')}${br.length > 3 ? '…' : ''}. Byl jsem ve všech. V duchu.`);
+      else if(br.length) out.push(`Jedna pobočka, ${br[0]}. Rodinná atmosféra. Doufám.`);
+      out.push('Kdybych měl pobočku, jmenovala by se Bublíkov. A měla by jen kulaté stoly.');
+      break;
+    case 'stats':
+      out.push('Statistiky. Podle mých výpočtů je 100 % bublin kulatých.', 'Graf jde nahoru. Nebo dolů. Záleží, jak se díváš na monitor.', 'Analyzuju trendy. Trend dne: kafe.');
+      break;
+    case 'leaves':
+      if(ctx.pending) out.push(`${ctx.pending} ${bubWordForm(ctx.pending, 'žádost', 'žádosti', 'žádostí')} o volno čeká. Já bych schválil všechny. Proto nejsem šéf.`);
+      else out.push('Žádné nové žádosti. Buď všichni milují práci, nebo nevědí, kde se žádá.');
+      out.push('Já jsem si o volno nikdy nepožádal. Nevím, jak se odchází.');
+      break;
+    case 'myschedule':
+      out.push('Můj rozpis. Teda tvůj. Já žádný nemám.', 'Kdyby něco nesedělo, je tu Požádat o volno. Já bych ho mačkal pořád.');
+      break;
+  }
+  return out;
 }
 function bublikGreetContext(){
   const now = new Date();
