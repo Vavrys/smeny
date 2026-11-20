@@ -367,5 +367,39 @@ for (const sc of SCEN) {
   check('[10] otevření jednoho dne: rozdělení víc-denní uzavírky a rozbalení „všechny pobočky"', errs, '5 scénářů');
 }
 
+// ══ 11 — režim „Jen doplnit": stávající směny zůstanou, doplní se jen nové ═══
+{
+  const errs = [];
+  let added = 0, kept = 0;
+  for (const seedN of [51, 52, 53]) {
+    const sb = makeSandbox(seedN);
+    seedData(sb, { year: 2026, month: 10, employees: mkEmployees(6, 2) });
+    const dim = daysIn(2026, 10);
+    const S1 = sb.buildSchedule(dim, {});
+    // ulož výsledek jako stávající auto směny a přidej nového zaměstnance
+    const existing = {};
+    Object.entries(S1).forEach(([k, v]) => { if (v && v.is_auto) existing[k] = { ...v }; });
+    const emps = mkEmployees(7, 2);
+    seedData(sb, { year: 2026, month: 10, employees: emps });
+    // pobočka má nad minimem rezervu (max 3) — jen tam má nový člověk kam; jinak by šlo jen přesouvat
+    vm.runInContext('branches[0].max_per_day = 3; shifts = ' + JSON.stringify(existing) + '; autoFillOnly = true;', sb);
+    const S2 = sb.buildSchedule(dim, {});
+    Object.entries(existing).forEach(([k, v]) => {
+      const n = S2[k];
+      if (!n || n.shift_type_code !== v.shift_type_code) errs.push('seed ' + seedN + ': stávající směna ' + k + ' se změnila/zmizela');
+      else if (n.is_auto) errs.push('seed ' + seedN + ': stávající směna ' + k + ' by se uložila znovu (is_auto)');
+      else kept++;
+    });
+    Object.entries(S2).forEach(([k, v]) => { if (v && v.is_auto && !existing[k]) added++; });
+    const newEmpShifts = Object.values(S2).filter(v => v && v.is_auto && v.employee_id === 'e6').length;
+    if (!newEmpShifts) errs.push('seed ' + seedN + ': nový zaměstnanec nedostal žádnou směnu');
+    // bez příznaku se chová jako dřív — stávající auto směny se zahodí a rozdělí znovu
+    vm.runInContext('autoFillOnly = false;', sb);
+    const S3 = sb.buildSchedule(dim, {});
+    if (!Object.values(S3).some(v => v && v.is_auto)) errs.push('seed ' + seedN + ': režim „Začít znovu" nic nevygeneroval');
+  }
+  check('[11] „Jen doplnit": stávající směny beze změny, nový člověk dostane směny', errs, kept + ' zachováno, ' + added + ' doplněno');
+}
+
 console.log(fail ? '\n' + fail + ' kontrol(a) selhalo' : '\nvšechny kontroly prošly');
 process.exit(fail ? 1 : 0);
