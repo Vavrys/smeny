@@ -39,8 +39,8 @@ vm.runInContext([
   extractBlock('BUB_MONTHS_GEN'), extractBlock('BUB_MONTHS_LOC'),
   extractBlock('BUB_IDLE_MILESTONES'), extractBlock('BUB_IDLE_LINES'), extractBlock('BUB_CREW_LINES'),
   extract('bublikIdleStage'), extract('bublikBagNext'), extract('bublikIdleFacts'),
-  extract('bublikIdleThoughts'), extract('bublikReturnMessage'), extract('bublikVillagePhase'), extractBlock('BUB_VILLAGE_LINES'),
-  'this.ST = bublikIdleStage; this.BAG = bublikBagNext; this.F = bublikIdleFacts; this.TH = bublikIdleThoughts; this.R = bublikReturnMessage; this.M = BUB_IDLE_MILESTONES; this.L = BUB_IDLE_LINES; this.CL = BUB_CREW_LINES; this.VP = bublikVillagePhase; this.VL = BUB_VILLAGE_LINES;',
+  extract('bublikIdleThoughts'), extract('bublikReturnMessage'), extract('bublikVillagePhase'), extractBlock('BUB_VILLAGE_LINES'), extractBlock('BUB_ERAS'), extract('bublikPickEra'), extract('bublikNewspaper'), extract('bublikCareKey'), extract('bublikIsFem'),
+  'this.ST = bublikIdleStage; this.BAG = bublikBagNext; this.F = bublikIdleFacts; this.TH = bublikIdleThoughts; this.R = bublikReturnMessage; this.M = BUB_IDLE_MILESTONES; this.L = BUB_IDLE_LINES; this.CL = BUB_CREW_LINES; this.VP = bublikVillagePhase; this.VL = BUB_VILLAGE_LINES; this.PE = bublikPickEra; this.NP = bublikNewspaper; this.CK = bublikCareKey;',
 ].join('\n'), ctx);
 
 let fail = 0;
@@ -106,6 +106,28 @@ check('fáze dne', ['noc','noc','rano','rano','prace','prace','obed','prace','ve
 check('hlášky Bublíkova bez duplicit', ctx.VL.length >= 8 && new Set(ctx.VL).size === ctx.VL.length && ctx.VL.every(t => !all.includes(t) && !ctx.CL.includes(t)));
 check('pointa s vesnicí', ctx.R(7200000, {}, {}).includes('Spal jsem') && ctx.R(7200000, { village: { houses: 4, fire: true, pop: 9 } }, {}).includes('Mezitím vzniklo Bublíkovo: 4 domky, táborák a 9 obyvatel.'), ctx.R(7200000, { village: { houses: 4, fire: true, pop: 9 } }, {}));
 check('pointa s vesnicí (1 domek, 3 obyvatelé)', ctx.R(3600000, { village: { houses: 1, fire: false, pop: 3 } }, {}).includes('1 domek a 3 obyvatelé.'));
+// civilizace (v0.9.64)
+{
+  let sd = 3; const r = () => { sd = (sd * 16807) % 2147483647; return sd / 2147483647; };
+  const cnt = care => { const c = {}; for(let i = 0; i < 2000; i++){ const e = ctx.PE(care, [], r); c[e] = (c[e] || 0) + 1; } return c; };
+  const base = cnt({}), thr = cnt({ throws: 20 }), work = cnt({ autofill: 10, publish: 5 }), pets = cnt({ clicks: 60 }), sl = cnt({ sleeps: 15 });
+  check('epochy: bez péče vede republika', Object.entries(base).sort((a, b) => b[1] - a[1])[0][0] === 'republika', JSON.stringify(base));
+  check('epochy: hody → piráti', Object.entries(thr).sort((a, b) => b[1] - a[1])[0][0] === 'pirati', JSON.stringify(thr));
+  check('epochy: práce → věda', Object.entries(work).sort((a, b) => b[1] - a[1])[0][0] === 'veda', JSON.stringify(work));
+  check('epochy: kliky → umění', Object.entries(pets).sort((a, b) => b[1] - a[1])[0][0] === 'umeni', JSON.stringify(pets));
+  check('epochy: uspávání → olympiáda', Object.entries(sl).sort((a, b) => b[1] - a[1])[0][0] === 'olympiada', JSON.stringify(sl));
+  check('epochy: proběhlé se neopakují', [...Array(200)].every(() => !['republika', 'veda'].includes(ctx.PE({}, ['republika', 'veda'], r))));
+  check('epochy: všechny proběhly = null', ctx.PE({}, ['republika', 'pirati', 'veda', 'umeni', 'olympiada'], r) === null);
+  const np = ctx.NP({ date: 'pátek 20. listopadu 2026', eras: [{ id: 'veda', info: {} }, { id: 'republika', info: { mayor: '<i>Šumák</i>' } }], houses: 4, pop: 9, articles: ['22:10 — Šumák postavil domek č. 2.', 'a', 'b', 'c'], useful: ['2 nepřečtené notifikace'] });
+  check('noviny: titulek podle poslední epochy, escapovaný', np.includes('&lt;i&gt;Šumák&lt;/i&gt; novým starostou Bublíkova!'), np);
+  check('noviny: podtitulek s epochami', np.includes('Mezitím: věk vědy → republika'));
+  check('noviny: max 3 články', (np.match(/<li>/g) || []).length === 3);
+  check('noviny: užitečné', np.includes('Mezitím ve Směnách:</b> 2 nepřečtené notifikace'));
+  const np0 = ctx.NP({ date: 'x', eras: [], houses: 1, pop: 3, articles: [], useful: [] });
+  check('noviny: bez epochy', np0.includes('Bublíkovo slaví: 1 domek a 3 obyvatelé') && !np0.includes('bp-useful') && !np0.includes('<ul'));
+  check('noviny: rod (starostka, vyhrála)', ctx.NP({ date: 'x', eras: [{ id: 'republika', info: { mayor: 'Bublinka' } }], houses: 4, pop: 5, articles: [], useful: [] }).includes('Bublinka novou starostkou') && ctx.NP({ date: 'x', eras: [{ id: 'olympiada', info: { champion: 'Kapka' } }], houses: 4, pop: 5, articles: [], useful: [] }).includes('Kapka vyhrála první'));
+check('klíč péče podle dne', ctx.CK(new Date(2026, 10, 5)) === 'bublik_care_2026-11-05');
+}
 check('notifikace a žádosti', ctx.R(600000, {}, { unread: 2, pendingLeaves: 1 }).endsWith('Mimochodem: máš 2 nepřečtené notifikace a 1 žádost o volno.'));
 
 if(fail){ console.error(`\n${fail} kontrol selhalo`); process.exit(1); }
