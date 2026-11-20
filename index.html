@@ -1191,7 +1191,17 @@ body.dark .search-input{color:var(--ink)}
 .bub-chron{position:fixed;right:12px;top:64px;width:270px;padding:8px 10px;background:rgba(255,253,240,.92);border:1.5px solid var(--ink);border-radius:10px;box-shadow:0 6px 16px rgba(0,0,0,.12);font-size:11.5px;line-height:1.4;color:var(--ink);pointer-events:none;z-index:399;transition:opacity .4s}
 .bub-chron .ch-title{font:700 12px var(--font-display);margin-bottom:3px;letter-spacing:.02em}
 .bub-chron .ch-lines div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.bub-house.bye,.bub-fire.bye,.bub-flower.bye,.bub-chron.bye{opacity:0}
+.bub-house.bye,.bub-fire.bye,.bub-flower.bye,.bub-chron.bye,.bub-bld.bye,.bub-path.bye{opacity:0}
+.bub-bld{position:fixed;left:0;top:0;pointer-events:none;z-index:397;transition:opacity .4s}
+.bub-bld svg{width:100%;height:100%;overflow:visible;display:block}
+.bub-bld.new{animation:bubHouseIn .5s cubic-bezier(.3,1.6,.5,1)}
+.bub-path{position:fixed;left:0;right:0;bottom:6px;height:7px;background:repeating-linear-gradient(90deg,rgba(139,90,43,.3) 0 18px,rgba(139,90,43,.18) 18px 26px);border-radius:4px;pointer-events:none;z-index:396;transition:opacity .4s}
+.bub-smoke{position:absolute;width:0;height:0}
+.bub-smoke i{position:absolute;left:-6px;top:-6px;width:12px;height:12px;border-radius:50%;background:rgba(200,205,210,.75);animation:bubSmoke 3.6s ease-out infinite}
+.bub-smoke i:nth-child(2){animation-delay:1.2s}.bub-smoke i:nth-child(3){animation-delay:2.4s}
+@keyframes bubSmoke{0%{transform:translate(0,0) scale(.5);opacity:0}15%{opacity:.85}100%{transform:translate(14px,-46px) scale(1.9);opacity:0}}
+.bub-lamp.lit .l-glass{fill:#ffe48a}
+.bub-lamp.lit::before{content:'';position:absolute;left:50%;top:0;width:64px;height:64px;margin:-26px 0 0 -32px;border-radius:50%;background:radial-gradient(circle,rgba(255,228,138,.6),rgba(255,228,138,0) 68%)}
 .bub-night{position:fixed;inset:0;background:rgba(8,16,40,.24);pointer-events:none;z-index:395;opacity:0;transition:opacity 3s}
 .bub-night.on{opacity:1}
 .bub-night i{position:absolute;width:3px;height:3px;border-radius:50%;background:#fff;box-shadow:0 0 6px #fff;animation:bubTwinkle 2.4s ease-in-out infinite alternate}
@@ -1250,7 +1260,7 @@ body.dark .search-input{color:var(--ink)}
 .bub-zzz{position:fixed;left:0;top:0;z-index:402;pointer-events:none;font:700 16px var(--font-display);color:var(--accent-ink);animation:bubZzz 2.6s ease-out forwards}
 @keyframes bubZzz{0%{opacity:0;transform:var(--t) translate(0,0) scale(.6)}20%{opacity:1}100%{opacity:0;transform:var(--t) translate(22px,-46px) scale(1.25)}}
 @media (max-width:640px){ #bublik{width:60px;height:56px} }
-@media print{ #bublik,#bublik-speech,.bub-mini,.bub-zzz,.bub-splat,.bub-clone,.bub-brick,.bub-print,.bub-note,.bub-crack,.bub-letter,.bub-grass,.bub-house,.bub-fire,.bub-flower,.bub-chron,.bub-night,.bub-note-music,.bub-csay,.bub-stage,.bub-rope,.bub-line,.bub-bobber,.bub-catch,.bub-prop,.bub-gum,.bub-gum-face,.bub-ring,.bub-flash,.bub-polaroid,.bub-era,.bub-ship,.bub-rocket,.bub-frame,.bub-podium,.bub-paper{display:none !important} }
+@media print{ #bublik,#bublik-speech,.bub-mini,.bub-zzz,.bub-splat,.bub-clone,.bub-brick,.bub-print,.bub-note,.bub-crack,.bub-letter,.bub-grass,.bub-house,.bub-bld,.bub-path,.bub-fire,.bub-flower,.bub-chron,.bub-night,.bub-note-music,.bub-csay,.bub-stage,.bub-rope,.bub-line,.bub-bobber,.bub-catch,.bub-prop,.bub-gum,.bub-gum-face,.bub-ring,.bub-flash,.bub-polaroid,.bub-era,.bub-ship,.bub-rocket,.bub-frame,.bub-podium,.bub-paper{display:none !important} }
 @media print{ .bub-gone{visibility:visible !important} }
 /* v0.9.48: při otevřeném modálu Bublík i „?“ zmizí — na mobilu jinak zakrývaly tlačítka Uložit */
 body:has(.modal-overlay.open) #bublik, body:has(.modal-overlay.open) #bublik-speech, body:has(.modal-overlay.open) .help-fab, body:has(.modal-overlay.open) .bub-clone, body:has(.modal-overlay.open) .bub-brick,
@@ -2795,7 +2805,7 @@ window.addEventListener('unhandledrejection', e => {
 // odsud, ručně je nepřepisuj. sw.js se od v0.9.29 nebumpuje — je z něj
 // kill-switch bez cache (viz killServiceWorkers() a komentář v sw.js).
 // ============================================================
-const APP_VERSION = '0.9.68';
+const APP_VERSION = '0.9.69';
 
 // Krátký git hash nasazeného buildu. Placeholder níž přepíše build-stamp.js
 // z CF_PAGES_COMMIT_SHA (Cloudflare Pages build command: `node build-stamp.js`).
@@ -4773,6 +4783,7 @@ const Bublik = (()=>{
     if(c.tk === myTk){ c.act = 'idle'; c.tilt = 0; c.until = performance.now() + rand(1500, 4000); cFace(c, 'open', 'smile'); }
   }
   function crewDecide(c, now){
+    if(village && village.things.length && !c.sleeping && village.phase !== 'noc' && Math.random() < .45){ villagerVisit(c); return; }   // v0.9.69
     const r = Math.random(), { w, h } = cWH(c);
     if(r < .45 && now - (c.lastRole || 0) > 9000){ c.lastRole = now; crewAct(c); return; }
     if(r < .65 && !overGrid(S.x, S.y)){ c.tx = S.x + rand(-90, 90); c.ty = S.y + rand(-60, 10); c.speed = 120; }
@@ -5003,64 +5014,72 @@ const Bublik = (()=>{
     n.style.setProperty('--t', `translate(${x.toFixed(0)}px,${y.toFixed(0)}px)`);
     setTimeout(() => n.remove(), 2600);
   }
-  // Na sochy (Baba Jaga): Bublík počítá u zdi, ostatní se plíží; kdo se pohne, jde zpátky
+  // v0.9.69: Kávovar — Bublík je šéf a píše e-maily čelem ke zdi; ostatní se plíží ke kávovaru.
+  // Když se otočí, všichni ztuhnou a dělají, že pracují. Koho přistihne, jde zpátky.
+  const COFFEE_SVG = '<svg viewBox="0 0 34 50" aria-hidden="true"><rect x="2" y="2" width="30" height="46" rx="3" fill="#3b4250" stroke="#1d2129" stroke-width="1.2"/><rect x="6" y="6" width="22" height="9" rx="1.5" fill="#9be7c4"/><text x="17" y="13" text-anchor="middle" font-size="5.5" font-weight="800" fill="#1d2129">KAFE</text><circle cx="10" cy="20" r="2" fill="#f7a531"/><circle cx="17" cy="20" r="2" fill="#e5e7eb"/><circle cx="24" cy="20" r="2" fill="#e5e7eb"/><rect x="8" y="26" width="18" height="16" rx="1.5" fill="#1d2129"/><path d="M14 31 h7 v7 q-3.5 2 -7 0 z" fill="#fff"/><path d="M21 33 q3 0 2 3 q-1 1 -2 0" fill="none" stroke="#fff" stroke-width="1"/></svg>';
   async function skitStatues(tk){
     const list = cast(Math.min(4, crew.length));
     if(list.length < 2){ uncast(list); return lookAround(tk); }
     const s = size(), wallLeft = S.x < vw() / 2, wx = wallLeft ? s / 2 + 12 : vw() - s / 2 - 12, dir = wallLeft ? 1 : -1;
-    const startX = wallLeft ? vw() * .78 : vw() * .22;
+    const startX = wallLeft ? vw() * .78 : vw() * .22, mx = wx + dir * s * .95;
+    const mach = messEl('bub-prop', COFFEE_SVG);
+    mach.style.width = '34px'; mach.style.height = '50px'; mach.style.transform = `translate(${(mx - 17).toFixed(0)}px,${(floorY() - 48).toFixed(0)}px)`;
     try{
       await Promise.all([travelTo(wx, floorY(), tk), ...list.map((c, i) => cGo(c, startX + dir * i * 36, floorY(), 200))]);
-      think('Na sochy! Kdo se pohne, jde zpátky na start.', 2600, true);
+      think('Jdu psát e-maily. A ke kávovaru se chodí až o pauze.', 2800, true);
       list.forEach(c => { c.look = { x: -dir, y: 0 }; });
-      await wait(1800, tk);
+      await wait(1200, tk);
+      cSay(pick(list), pick(['Kafe…', 'Psst. Kafe.', 'Bez kafe to nedám.']), 1800);
+      await wait(1400, tk);
       let winner = null;
       for(let round = 0; round < 7 && !winner; round++){
-        S.lookOverride = { x: -dir, y: 0 }; setEyes('closed'); setMouth('o');
-        say(pick(['Raz, dva, tři…', 'Jedna, dvě, tři…', 'Ra-az, dva-a, tři-i…']), 1900);
+        S.lookOverride = { x: -dir, y: -.2 }; setEyes('open'); setMouth('flat');
+        say(pick(['<i>ťuk ťuk ťuk…</i>', 'Vážený pane, v návaznosti na…', 'Dobrý den, posílám v příloze…', 'Re: Re: Fwd: Re: směny']), 1900);
         list.forEach(c => { c.speed = rand(80, 150); c.tx = clamp(c.x - dir * rand(110, 240), 20, vw() - 20); c.ty = floorY(); });
         await wait(rand(1500, 2300), tk);
-        say('<b>…BABA JAGA!</b>', 1500);
-        setEyes('open'); S.eyeWide = 1.25; S.lookOverride = { x: dir, y: 0 };
+        say(pick(['Copak?', 'Hm?', 'Že by někdo…?']), 1300);
+        S.eyeWide = 1.2; S.lookOverride = { x: dir, y: 0 };
         await tween(160, e => { S.tilt = dir * 6 * e; }, tk);
-        list.forEach(c => { c.tx = c.x; });   // ztuhnou
+        list.forEach(c => { c.tx = c.x; });   // ztuhnou a dělají, že pracují
+        if(Math.random() < .5){ const c = pick(list); cSay(c, pick(['Jen tu… stojím.', 'Pracuju na tom.', 'Mám poradu. Se sebou.', 'Hledám tady jednu směnu.']), 1700); }
         const wob = Math.random() < .45 ? pick(list) : null;
         if(wob && !wob.dead){
           wob.act = 'script';
           await tween(700, (e, p) => { wob.tilt = Math.sin(p * Math.PI * 6) * 11; }, tk, ease.lin);
           wob.tilt = 0; wob.act = 'game';
-          setMouth('grin'); say(`${cName(wob)} se ${g(cName(wob), 'hýbal', 'hýbala')}! Zpátky na start!`, 2200);
-          cFace(wob, 'open', 'wavy'); cSay(wob, pick(['To byl vítr!', 'Nehýbal jsem se, dýchal jsem.', 'Neee…']), 1800);
+          setMouth('flat'); say(`${cName(wob)}, ty nemáš práci?`, 2200);
+          cFace(wob, 'open', 'wavy'); cSay(wob, pick(['Mám. Už jdu.', 'Jdu jen… pro šanon.', 'To je protahovací cvik. Pro záda.']), 1900);
           wob.speed = 220; wob.tx = startX; await wait(1700, tk); cFace(wob, 'open', 'smile');
         } else {
           setMouth('cat'); await wait(1100, tk);
         }
         S.eyeWide = 1; S.tilt = 0;
-        winner = list.find(c => !c.dead && Math.abs(c.x - S.x) < s * 1.15);
+        winner = list.find(c => !c.dead && Math.abs(c.x - mx) < s * .8);
       }
       const spac = list.find(c => c.role === 'spac' && !c.dead);
       if(winner){
-        winner.tx = S.x + dir * s * .55; await wait(500, tk);
-        cSay(winner, 'Mám tě!', 2000); S.eyeWide = 1.35; setMouth('big');
-        await tween(300, (e, p) => { S.hop = Math.sin(p * Math.PI) * 26; }, tk, ease.lin); S.hop = 0; S.eyeWide = 1;
-        list.filter(c => c !== winner).forEach(c => cSay(c, pick(['Neee!', 'Příště já!', 'Podvod!']), 1600));
-        winner.act = 'script'; const y0 = winner.y;
-        await tween(900, (e, p) => { winner.y = y0 - Math.abs(Math.sin(p * Math.PI * 3)) * 20; }, tk, ease.lin); winner.act = 'game';
-        setMouth('smile'); think(`${cName(winner)} ${g(cName(winner), 'vyhrál', 'vyhrála')}! Příště počítám rychleji.`, 3000, true);
+        winner.tx = mx + dir * 22; await wait(500, tk);
+        for(let i = 0; i < 4; i++){ const m = svgPoint(0, 0); spawnBubble(mx + rand(-4, 4), floorY() - 30, rand(4, 7), { vx: rand(-10, 10), vy: -rand(30, 50), life: rand(.8, 1.4) }); }
+        cSay(winner, pick(['Kafe!!!', 'Mám ho. Je teplé.']), 2000);
+        S.lookOverride = { x: dir, y: 0 }; S.eyeWide = 1.3; setMouth('o'); await wait(900, tk);
+        list.filter(c => c !== winner).forEach(c => { c.tx = mx + dir * rand(30, 90); c.speed = 220; });
+        S.eyeWide = 1; setMouth('smile');
+        think(pick(['No dobře. Pětiminutovka. Ale jen pět.', 'Tak mi taky jedno udělej. Bez cukru.']), 3000, true);
+        await wait(1800, tk);
       } else if(spac && Math.random() < .6){
         S.lookOverride = { x: dir, y: 0 }; cFace(spac, 'closed', 'smile');
-        think('…Spáči? On fakt usnul. Vítěz v disciplíně socha.', 3200, true);
+        think('Spáč usnul ve stoje. Tomu už kafe nepomůže.', 3200, true);
         for(let i = 0; i < 3; i++){ cZzz(spac); await wait(800, tk); }
-      } else think('Jste tak dobré sochy, že jsem vás přestal poznávat. Vyhráli jste všichni.', 3200, true);
-      moment('hrál s Bublíčky na sochy');
+      } else think('Výborně, všichni pracují. Je pátek, 16:59. Podezřelé.', 3200, true);
+      moment('hlídal kávovar před Bublíčky');
       await wait(1500, tk);
-    } finally { S.lookOverride = null; S.eyeWide = 1; setEyes('open'); S.tilt = 0; S.hop = 0; uncast(list); }
+    } finally { mach.remove(); S.lookOverride = null; S.eyeWide = 1; setEyes('open'); S.tilt = 0; S.hop = 0; uncast(list); }
   }
   const PLAYS = [
-    { title: 'Romeo a Bublinka', lines: ['Ó Bublinko, proč jsi bublina?', 'Protože jsem kulatá.', 'To je tak romantické.', 'Nepřibližuj se. Praskneme.'] },
+    { title: 'Romeo a Bublinka', lines: ['Ó Bublinko, proč jsi bublina?', 'Protože jsem kulatá.', 'Vezmeš si mě?', 'Nejdřív se podívám do rozpisu.'] },
     { title: 'Hamlet (zkrácený)', lines: ['Prasknout, či neprasknout?', 'Neprasknout.', 'Díky. To bylo rychlé.', 'Konec. Můžete jít domů.'] },
     { title: 'Pracovní pohovor', lines: ['Proč chcete pracovat ve Směnách?', 'Jsem kulatý a mám rád rozpisy.', 'Kdy můžete nastoupit?', 'Včera.', 'Berem vás!'] },
-    { title: 'Karkulka', lines: ['Babičko, proč máš tak velké oči?', 'Abych tě lépe viděla.', 'A proč jsi zelená?', '…Jsem bublina, Karkulko.'] },
+    { title: 'Hodnoticí pohovor', lines: ['Jak hodnotíte svůj výkon?', 'Kulatě.', 'A vaše slabé stránky?', 'Praskám pod tlakem.', 'Přidáme vám. Pěnu.'] },
     { title: 'Porada', lines: ['Kdo vezme sobotní směnu?', '…', '…', 'Tak já. Zase.'] },
     { title: 'Čekání na Bublíka', lines: ['Kdy přijde Bublík?', 'Nevím.', 'Počkáme.', 'Počkáme.'] },
   ];
@@ -5196,7 +5215,7 @@ const Bublik = (()=>{
       rope.firstChild.style.left = (mid + off - x1) + 'px';
     };
     try{
-      think(pick(['Přetahovaná! Můj tým vyhraje.', 'Kdo prohraje, myje nádobí. Bubliny.']), 2600, true);
+      think(pick(['Přetahovaná o poslední volnou sobotu v rozpisu.', 'Kdo prohraje, bere v sobotu ranní.']), 2800, true);
       await Promise.all([travelTo(bX, fy, tk), ...A.map((c, i) => cGo(c, posA(i), fy, 190)), ...B.map((c, i) => cGo(c, posB(i), fy, 190))]);
       S.lookOverride = { x: 1, y: 0 }; A.forEach(c => { c.look = { x: 1, y: 0 }; }); B.forEach(c => { c.look = { x: -1, y: 0 }; });
       list.forEach(c => { c.act = 'script'; });
@@ -5221,7 +5240,7 @@ const Bublik = (()=>{
         setEyes('dizzy'); S.stars = true; S.starT = 0; list.forEach(c => cFace(c, 'closed', 'o'));
         await wait(1500, tk); S.stars = false; setEyes('open');
         await tween(400, e => { S.tilt = -82 * (1 - e); A.forEach(c => { c.tilt = -84 * (1 - e); }); B.forEach(c => { c.tilt = 84 * (1 - e); }); }, tk);
-        think(pick(['Lano nevydrželo. My taky ne.', 'Remíza! Vyhrála gravitace.']), 3000, true);
+        think(pick(['Lano prasklo. V sobotu jdou všichni.', 'Remíza. Sobotu dostal Excel.']), 3000, true);
       } else {
         const sign = end === 'A' ? -1 : 1, o0 = off;
         await tween(1300, e => { off = o0 + sign * 150 * e; all(); }, tk, ease.inOut);
@@ -5233,9 +5252,9 @@ const Bublik = (()=>{
         S.hop = 0; winners.forEach(c => { c.y = fy; });
         await tween(400, e => { S.tilt = S.tilt * (1 - e); losers.forEach(c => { c.tilt = sign * 70 * (1 - e); }); }, tk);
         setEyes('open');
-        think(end === 'A' ? pick(['Vyhráli jsme! Já táhl nejvíc. Ostatní se dívali.', 'Můj tým vítězí! Nádobí myjou oni.']) : pick(['Prohráli jsme. Lano bylo kluzké.', 'Nechal jsem je vyhrát. Ze soucitu.']), 3200, true);
+        think(end === 'A' ? pick(['Sobota je naše! Já táhl nejvíc. Ostatní se dívali.', 'Vyhráli jsme. Oni berou ranní.']) : pick(['Prohráli jsme. V sobotu jdu na ranní.', 'Nechal jsem je vyhrát. Já mám v sobotu stejně nárok na příplatek.']), 3200, true);
       }
-      moment('hrál přetahovanou');
+      moment('přetahoval se o volnou sobotu');
       await wait(1200, tk);
     } finally { rope.remove(); sweat.setAttribute('opacity', '0'); S.tilt = 0; S.stars = false; S.lookOverride = null; setEyes('open'); uncast(list); }
   }
@@ -5305,7 +5324,7 @@ const Bublik = (()=>{
       await wait(900, tk);
     } finally { line.remove(); bob.remove(); if(item) item.remove(); cDrop(c); S.lookOverride = null; S.eyeWide = 1; setMouth('smile'); uncast(list); }
   }
-  // Schovávaná: Bublík počítá, ostatní se schovají za okraje obrazovky; posledního nenajde — je za ním
+  // Porada (schovávaná): Bublík svolává poradu, ostatní se schovají za okraje obrazovky; posledního nenajde — je za ním
   async function skitHide(tk){
     const list = cast(Math.min(4, crew.length));
     if(list.length < 2){ uncast(list); return lookAround(tk); }
@@ -5319,12 +5338,12 @@ const Bublik = (()=>{
     try{
       await travelTo(wx, floorY(), tk);
       S.lookOverride = { x: wd, y: 0 }; setEyes('closed');
-      say('Schovávaná! Počítám do deseti…', 2000);
+      say('Za deset minut porada! Rozesílám pozvánky…', 2200);
       list.forEach(c => { c.act = 'script'; });
       const hides = list.map((c, i) => { const sp = spots[i % spots.length], x0 = c.x, y0 = c.y; c.spot = sp; return tween(rand(1800, 2600), e => { c.x = x0 + (sp.x - x0) * e; c.y = y0 + (sp.y - y0) * e; }, c.tk, ease.inOut).catch(() => {}); });
-      await wait(2000, tk); say('…sedm, osm, devět…', 1500); await wait(1500, tk);
+      await wait(2000, tk); say('…odesláno. Kde jste všichni?', 1600); await wait(1500, tk);
       await Promise.all(hides);
-      say('<b>Deset! Jdu hledat!</b>', 1600); setEyes('open'); S.lookOverride = null;
+      say('<b>Porada! Jdu vás najít.</b>', 1600); setEyes('open'); S.lookOverride = null;
       await wait(1000, tk);
       const last = list[list.length - 1];
       for(const c of list){
@@ -5333,10 +5352,10 @@ const Bublik = (()=>{
         await flyTo(tx + (sp.x < 0 ? s * .4 : sp.x > vw() ? -s * .4 : s * .9), ty, tk);
         S.lookOverride = { x: Math.sign(sp.x - S.x) || 0, y: sp.y > vh() ? 1 : sp.y < 60 ? -1 : 0 }; S.eyeWide = 1.25;
         await wait(500, tk);
-        say('Mám tě!', 1400);
+        say(pick(['Mám tě! Porada.', 'Tady jsi. Bereš zápis.']), 1500);
         const x0 = c.x, y0 = c.y, x1 = sp.out.x ?? x0, y1 = sp.out.y ?? y0;
         await tween(500, e => { c.x = x0 + (x1 - x0) * e; c.y = y0 + (y1 - y0) * e; }, tk, ease.back);
-        cFace(c, 'open', 'wavy'); cSay(c, pick(['Sakra!', 'Jak jsi mě našel?', 'To nebylo fér, koukal jsi!']), 1800);
+        cFace(c, 'open', 'wavy'); cSay(c, pick(['Zrovna mám… dovolenou.', 'Já jsem tu jen na brigádě.', 'Nemůžu, mám jinou poradu.']), 1900);
         c.act = 'idle'; c.until = performance.now() + 2500; S.eyeWide = 1;
         await wait(900, tk);
       }
@@ -5347,13 +5366,13 @@ const Bublik = (()=>{
         const behind = S.x - (S.x > vw() / 2 ? 1 : -1) * s * .7, x0 = last.x, y0 = last.y;
         last.act = 'script';
         await tween(900, e => { last.x = x0 + (behind - x0) * e; last.y = y0 + (S.y - y0) * e; }, tk, ease.inOut);
-        cSay(last, 'Celou dobu jsem byl za tebou.', 2400); await wait(900, tk);
+        cSay(last, 'Celou dobu jsem byl za tebou. Ta porada mohla být e-mail.', 2800); await wait(1100, tk);
         S.lookOverride = { x: Math.sign(last.x - S.x), y: 0 }; S.eyeWide = 1.4; setMouth('big');
         await tween(320, (e, q) => { S.hop = Math.sin(q * Math.PI) * 34; }, tk, ease.lin); S.hop = 0;
         await wobble(.3, 600, tk); S.eyeWide = 1; setMouth('wavy'); blush(2000);
-        think('…Příště hledáš ty.', 2800, true);
+        think('…Dobře. Ruším ji. Pošlu e-mail.', 2800, true);
       }
-      moment('hrál schovávanou (jednoho jsem nenašel)');
+      moment('sháněl lidi na poradu (nikdo nepřišel)');
       await wait(1200, tk);
     } finally { list.forEach(c => { c.spot = null; }); S.lookOverride = null; S.eyeWide = 1; setMouth('smile'); setEyes('open'); uncast(list); }
   }
@@ -5584,7 +5603,7 @@ const Bublik = (()=>{
   }
   // ── v0.9.63: Komunita (od 30 min) — Bublíkovo: vesnička na spodním okraji, denní režim podle hodin, kronika ──
   // Vzor: Little Computer People (život v počítači podle denního režimu), kronika jako „vypravěč“ (emergent narrative).
-  const VILLAGER_NAMES = ['Bublinka', 'Pěnička', 'Kulička', 'Šumák', 'Mydlík', 'Perlička', 'Kapka', 'Bublifuk', 'Pěnák', 'Šplouch'];
+  const VILLAGER_NAMES = ['Bublinka', 'Pěnička', 'Kulička', 'Šumák', 'Mydlík', 'Perlička', 'Kapka', 'Bublifuk', 'Pěnák', 'Šplouch', 'Kapička', 'Bublimír', 'Mydlinka', 'Perlík', 'Šumka', 'Bubloš', 'Pěnobrad', 'Bublinda'];
   // v0.9.64: rod jmen, ať kronika říká „Bublinka postavila“, ne „postavil“
   const g = (name, m, f) => bublikIsFem(name) ? f : m;
   let village = null;
@@ -5599,6 +5618,156 @@ const Bublik = (()=>{
     <path d="M -22 -2 L 20 -9 M -20 -9 L 22 -2" stroke="#6b4319" stroke-width="5" stroke-linecap="round"/></svg>`;
   const FLOWER_SVG = c => `<svg viewBox="-10 -30 20 31" aria-hidden="true"><path d="M 0 0 Q 2 -10 0 -18" stroke="#15a065" stroke-width="1.8" fill="none"/><path d="M 0 -8 Q 6 -12 8 -8 Q 4 -6 0 -8 Z" fill="#15a065"/>
     ${[0, 72, 144, 216, 288].map(a => `<ellipse cx="0" cy="-23" rx="2.6" ry="4.4" fill="${c}" transform="rotate(${a} 0 -19)"/>`).join('')}<circle cx="0" cy="-19" r="2.4" fill="#ffe48a"/></svg>`;
+  // ── v0.9.69: opravdová vesnice — různé stavby, roste od táboráku do stran ──
+  const BLD = {
+    house: { w: 70, h: 60, enter: true, cls: 'bub-house', svg: HOUSE_SVG },
+    well: { w: 44, h: 50, svg: '<svg viewBox="-22 -50 44 51" aria-hidden="true"><path d="M-17 -22 L-17 0 L17 0 L17 -22 Z" fill="#b9b2a6" stroke="#5c5548" stroke-width="1.2"/><path d="M-17 -15 H17 M-17 -8 H17 M-6 -22 V-15 M8 -15 V-8 M-2 -8 V0" stroke="#7d7568" stroke-width=".9"/><path d="M-14 -22 V-40 M14 -22 V-40" stroke="#6b4319" stroke-width="2.4"/><path d="M-20 -38 L0 -49 L20 -38 Z" fill="#c0392b" stroke="#7a1717"/><path d="M-12 -33 H12" stroke="#6b4319" stroke-width="2"/><path d="M0 -33 V-27" stroke="#555"/><rect x="-3.5" y="-28" width="7" height="6" rx="1" fill="#8b5a2b"/><ellipse cx="0" cy="-22" rx="17" ry="3" fill="#2b6cb0" opacity=".8"/></svg>' },
+    tree: { w: 62, h: 86, svg: '<svg viewBox="-31 -86 62 87" aria-hidden="true"><path d="M-4 0 L-3 -30 L3 -30 L4 0 Z" fill="#7a4a1e"/><circle cx="0" cy="-50" r="24" fill="#2e9d5b"/><circle cx="-14" cy="-40" r="15" fill="#25874d"/><circle cx="15" cy="-42" r="15" fill="#33a866"/><circle cx="2" cy="-66" r="15" fill="#3cb371"/><circle cx="-8" cy="-58" r="4" fill="#ff6f8e"/><circle cx="10" cy="-48" r="3.6" fill="#ff6f8e"/><circle cx="-2" cy="-40" r="3.4" fill="#ff6f8e"/></svg>' },
+    mill: { w: 70, h: 104, svg: '<svg viewBox="-35 -104 70 105" aria-hidden="true"><path d="M-14 0 L-9 -64 L9 -64 L14 0 Z" fill="#f3efe2" stroke="#6b5a3a" stroke-width="1.2"/><path d="M-12 -64 L0 -76 L12 -64 Z" fill="#8b5a2b" stroke="#4a2e12"/><rect x="-4" y="-16" width="8" height="16" rx="4" fill="#6b4319"/><circle class="h-win" cx="0" cy="-40" r="3.5" fill="#ffe48a" stroke="#6b5a3a"/><g><path d="M0 -70 L-4 -100 L4 -100 Z M0 -70 L30 -74 L30 -66 Z M0 -70 L4 -40 L-4 -40 Z M0 -70 L-30 -66 L-30 -74 Z" fill="#fffdf6" stroke="#6b5a3a" stroke-width="1"/><circle cx="0" cy="-70" r="3" fill="#4a2e12"/><animateTransform attributeName="transform" type="rotate" from="0 0 -70" to="360 0 -70" dur="7s" repeatCount="indefinite"/></g></svg>' },
+    bakery: { w: 78, h: 74, enter: true, smoke: [61, 8], svg: '<svg viewBox="-39 -74 78 75" aria-hidden="true"><rect x="18" y="-66" width="9" height="20" fill="#8b5a2b" stroke="#4a2e12"/><path d="M-34 0 V-38 H34 V0 Z" fill="#f6d7a7" stroke="#8b5a2b" stroke-width="1.3"/><path d="M-38 -38 L0 -62 L38 -38 Z" fill="#c0392b" stroke="#7a1717" stroke-width="1.2"/><rect x="-26" y="-35" width="52" height="10" rx="2" fill="#fff" stroke="#8b5a2b"/><text x="0" y="-27.5" text-anchor="middle" font-size="7.5" font-weight="800" fill="#8b5a2b">PEKÁRNA</text><rect x="-8" y="-20" width="16" height="20" rx="2" fill="#6b4319"/><rect class="h-win" x="-28" y="-20" width="14" height="11" rx="1.5" fill="#ffe48a" stroke="#8b5a2b"/><rect class="h-win" x="14" y="-20" width="14" height="11" rx="1.5" fill="#ffe48a" stroke="#8b5a2b"/></svg>' },
+    tower: { w: 44, h: 112, svg: '<svg viewBox="-22 -112 44 113" aria-hidden="true"><path d="M-13 0 L-9 -80 L9 -80 L13 0 Z" fill="#d9dde3" stroke="#5a6068" stroke-width="1.2"/><path d="M-9 -60 H9 M-10 -40 H10 M-11 -20 H11" stroke="#9aa1aa" stroke-width=".8"/><rect x="-14" y="-88" width="28" height="9" fill="#c9ccd4" stroke="#5a6068"/><path d="M-14 -88 L0 -102 L14 -88 Z" fill="#12a46a" stroke="#044a30"/><path d="M0 -102 V-111" stroke="#5a3b12" stroke-width="1.4"/><path d="M0 -111 L10 -108 L0 -105 Z" fill="#f7a531"/><rect x="-4" y="-14" width="8" height="14" rx="4" fill="#5a6068"/><circle class="h-win" cx="0" cy="-50" r="3.5" fill="#ffe48a" stroke="#5a6068"/></svg>' },
+    hall: { w: 104, h: 92, enter: true, svg: '<svg viewBox="-52 -92 104 93" aria-hidden="true"><path d="M-48 0 V-44 H48 V0 Z" fill="#f3efe2" stroke="#6b5a3a" stroke-width="1.3"/><path d="M-52 -44 L0 -62 L52 -44 Z" fill="#8b5a2b" stroke="#4a2e12"/><rect x="-12" y="-80" width="24" height="22" fill="#f3efe2" stroke="#6b5a3a"/><path d="M-14 -80 L0 -92 L14 -80 Z" fill="#8b5a2b" stroke="#4a2e12"/><circle cx="0" cy="-69" r="8" fill="#fff" stroke="#4a2e12" stroke-width="1.2"/><path class="hh" d="M0 -69 V-73.5" stroke="#222" stroke-width="1.6" stroke-linecap="round"/><path class="mh" d="M0 -69 V-75.5" stroke="#222" stroke-width="1" stroke-linecap="round"/><path d="M-36 0 V-36 M-24 0 V-36 M24 0 V-36 M36 0 V-36" stroke="#d9d2c0" stroke-width="5"/><text x="0" y="-36" text-anchor="middle" font-size="7" font-weight="800" fill="#6b5a3a">RADNICE</text><rect x="-9" y="-26" width="18" height="26" rx="9" fill="#6b4319"/><rect class="h-win" x="-44" y="-30" width="12" height="12" rx="1.5" fill="#ffe48a" stroke="#6b5a3a"/><rect class="h-win" x="32" y="-30" width="12" height="12" rx="1.5" fill="#ffe48a" stroke="#6b5a3a"/></svg>' },
+    market: { w: 72, h: 60, svg: '<svg viewBox="-36 -60 72 61" aria-hidden="true"><path d="M-30 0 V-34 M30 0 V-34" stroke="#6b4319" stroke-width="3"/><rect x="-32" y="-22" width="64" height="10" fill="#c8a06a" stroke="#6b4319"/><path d="M-36 -34 H36 L32 -48 H-32 Z" fill="#fff" stroke="#b02a2a"/><path d="M-28 -48 L-30 -34 M-14 -48 L-14 -34 M0 -48 V-34 M14 -48 L14 -34 M28 -48 L30 -34" stroke="#d63b3b" stroke-width="7" opacity=".85"/><circle cx="-18" cy="-25" r="4" fill="#ff6f8e"/><circle cx="-8" cy="-25" r="4" fill="#f7a531"/><circle cx="6" cy="-25" r="4" fill="#5fcf98"/><circle cx="17" cy="-25" r="4" fill="#9b7bff"/></svg>' },
+    lamp: { w: 16, h: 60, svg: '<svg viewBox="-8 -60 16 61" aria-hidden="true"><path d="M0 0 V-46" stroke="#333" stroke-width="2.2"/><path d="M-4 0 H4" stroke="#333" stroke-width="3"/><path d="M-6 -46 H6 L4 -56 H-4 Z" fill="#2b3a4a" stroke="#111"/><rect class="l-glass" x="-3.5" y="-54" width="7" height="7" fill="#556"/></svg>' },
+  };
+  const BUILD_ORDER = ['house', 'house', 'well', 'tree', 'house', 'lamp', 'bakery', 'house', 'lamp', 'mill', 'market', 'house', 'tree', 'hall', 'lamp', 'tower', 'house', 'tree', 'lamp'];
+  const BLD_NEWS = {
+    house: (w, n) => `${w} ${g(w, 'postavil', 'postavila')} domek č. ${n}.${n === 1 ? ' Kulatý, samozřejmě.' : n === 4 ? ' Už je to ulice.' : ''}`,
+    well: w => `${w} ${g(w, 'vykopal', 'vykopala')} studnu. Voda je, jak jinak, bublinková.`,
+    tree: w => `${w} ${g(w, 'zasadil', 'zasadila')} strom. Za pět minut nesl jablka. Rychlá odrůda.`,
+    mill: () => 'Stojí větrný mlýn! Mele vzduch na jemnou pěnu.',
+    bakery: w => `${w} ${g(w, 'otevřel', 'otevřela')} pekárnu. Specialita: bublanina.`,
+    tower: () => 'Postavili jsme rozhlednu. Je z ní vidět až na konec rozpisu.',
+    hall: () => 'Nová radnice! Hodiny ukazují přesný čas. Jako jediné v Bublíkově.',
+    market: w => `${w} si ${g(w, 'otevřel', 'otevřela')} stánek na tržišti. Prodává pěnu na váhu.`,
+    lamp: () => pick(['Na návsi přibyla lampa.', 'Další lampa. Noci budou míň strašidelné.', 'Nová lampa. Můry jásají.']),
+  };
+  const villageMax = () => clamp(Math.floor(vw() / 85), 6, 15);
+  // volné místo na stavbu: od táboráku do stran (vesnice roste ze středu), mimo Bublíkův kout
+  function findLot(w){
+    const v = village, cx = v.fireX, used = v.things.map(t => [t.x - t.w / 2 - 10, t.x + t.w / 2 + 10]);
+    used.push([cx - 34, cx + 34]);
+    used.push([homeX() - 56, homeX() + 56]);
+    const lo = 14 + w / 2, hi = vw() - 14 - w / 2;
+    for(let d = 44 + w / 2; d < vw(); d += 12){
+      for(const sg of (Math.random() < .5 ? [-1, 1] : [1, -1])){
+        const x = cx + sg * d;
+        if(x < lo || x > hi) continue;
+        if(used.every(([a, b]) => x + w / 2 < a || x - w / 2 > b)) return x;
+      }
+    }
+    return null;
+  }
+  function placeThing(type, x, who, when){
+    const v = village, b = BLD[type], y = floorY() - b.h + 3;
+    const el = vEl('bub-bld bub-' + type + (b.cls ? ' ' + b.cls : '') + (when ? '' : ' new'), b.svg, x - b.w / 2, y);
+    el.style.width = b.w + 'px'; el.style.height = b.h + 'px';
+    el.style.setProperty('--x', `${x - b.w / 2}px`); el.style.setProperty('--y', `${y}px`);
+    if(when) el.style.animation = 'none';
+    if(b.smoke) el.insertAdjacentHTML('beforeend', `<div class="bub-smoke" style="left:${b.smoke[0]}px;top:${b.smoke[1]}px"><i></i><i></i><i></i></div>`);
+    const t = { type, el, x, w: b.w, h: b.h };
+    v.things.push(t); if(type === 'house') v.houses.push(t);
+    if(type === 'hall') tickClock(t);
+    if(type === 'lamp' && (v.phase === 'noc' || v.phase === 'vecer')) el.classList.add('lit');
+    if(v.phase === 'noc') el.querySelectorAll('.h-win').forEach(w => w.setAttribute('fill', '#2b3a4a'));
+    if(!when) puf(x, floorY() - b.h * .4, Math.max(60, b.w));
+    chron(BLD_NEWS[type](who, v.houses.length), when);
+    return t;
+  }
+  function tickClock(t){
+    const d = new Date(), m = d.getMinutes(), h = (d.getHours() % 12) + m / 60;
+    const hh = t.el.querySelector('.hh'), mh = t.el.querySelector('.mh');
+    if(hh) hh.setAttribute('transform', `rotate(${(h * 30).toFixed(1)} 0 -69)`);
+    if(mh) mh.setAttribute('transform', `rotate(${m * 6} 0 -69)`);
+  }
+  function villageWindows(fill){ if(village) village.things.forEach(t => t.el.querySelectorAll('.h-win').forEach(w => w.setAttribute('fill', fill))); }
+  async function buildNext(){
+    const v = village, type = BUILD_ORDER[v.bi];
+    if(!type) return;
+    v.bi++;
+    const bw = BLD[type].w, x = findLot(bw);
+    if(x == null) return;
+    const b = crew.find(c => !c.dead && c.act === 'idle' && !c.sleeping && !c.home) || crew.find(c => !c.dead && !c.home);
+    if(!b){ placeThing(type, x, 'Bublík'); return; }
+    await vScript([b], async () => {
+      if(type === 'lamp'){ await cGo(b, x + 20, floorY(), 170); if(village) placeThing(type, x, cName(b)); return; }
+      await cGo(b, x + bw / 2 + 16, floorY(), 160);
+      const pile = [], n = clamp(Math.round(bw / 18), 3, 6);
+      for(let i = 0; i < n; i++){
+        await tween(150, e => { b.sy = 1 - .14 * e; }, b.tk);
+        pile.push(addBrick(x - bw / 2 + 12 + (i % 3) * (bw - 24) / 2, floorY() - Math.floor(i / 3) * 13, 14));
+        await tween(150, e => { b.sy = .86 + .14 * e; }, b.tk);
+        await wait(260, b.tk);
+      }
+      await wait(500, b.tk);
+      pile.forEach(popBrick);
+      if(!village) return;
+      placeThing(type, x, cName(b));
+      cFace(b, 'closed', 'grin'); await wait(900, b.tk); cFace(b, 'open', 'smile');
+    });
+  }
+  function newcomer(when){
+    if(!village || crew.length >= villageMax()) return null;
+    const left = Math.random() < .5, c = spawnClone(when ? rand(vw() * .12, vw() * .88) : left ? -30 : vw() + 30, floorY(), pick(CREW_ROLES));
+    c.sc = c.scT; c.name = villagerName(); c.tx = when ? c.x : rand(vw() * .2, vw() * .8); c.ty = floorY(); c.speed = 120;
+    S.awayStats.clones = (S.awayStats.clones || 0) + 1;
+    chron(when ? `${g(c.name, 'Přistěhoval', 'Přistěhovala')} se ${c.name}. Nikdo ${g(c.name, 'ho', 'ji')} neviděl přijít.`
+      : pick([`${g(c.name, 'Přistěhoval', 'Přistěhovala')} se ${c.name}. Prý kvůli dobré atmosféře.`, `${g(c.name, 'Nový obyvatel', 'Nová obyvatelka')}: ${c.name}! ${g(c.name, 'Přišel', 'Přišla')} pěšky z jiné záložky.`, `${c.name} se ${g(c.name, 'nastěhoval', 'nastěhovala')}. Nosí s sebou vlastní pěnu.`]), when);
+    return c;
+  }
+  // život ve vesnici: Bublíčci chodí do pekárny, ke studni, pod strom, na tržiště, na rozhlednu…
+  async function villagerVisit(c){
+    const v = village;
+    const t = pick(v.things.filter(t => t.type !== 'lamp'));
+    if(!t) return;
+    c.act = 'busy'; const myTk = c.tk;
+    try{
+      await cGo(c, t.x + rand(-6, 6), floorY(), rand(90, 140));
+      if(!village) return;
+      if(BLD[t.type].enter && v.phase !== 'noc'){
+        c.el.style.display = 'none'; c.home = t;
+        await wait(rand(3000, 9000), c.tk);
+        c.el.style.display = ''; c.home = null;
+        if(t.type === 'bakery'){ cProp(c, 'bread', 18, -18, 0); cSay(c, pick(['Čerstvá bublanina!', 'Mňam.', 'Ještě teplá.']), 1800); await wait(rand(4000, 7000), c.tk); }
+        else if(t.type === 'hall' && Math.random() < .5) cSay(c, pick(['Úřad zavřený. Zase.', 'Mám razítko!', 'Podal jsem žádost o víc bublin.']), 1900);
+      } else if(t.type === 'well'){
+        cProp(c, 'bucket', 16, -8, 0); cFace(c, 'open', 'o'); await wait(1500, c.tk);
+        cSay(c, pick(['Studená!', 'Bublinky v kýblu.', 'Dneska teče perlivá.']), 1600); cFace(c, 'open', 'smile'); await wait(rand(2000, 4000), c.tk);
+      } else if(t.type === 'tree'){
+        c.act = 'script'; cFace(c, 'closed', 'smile');
+        for(let i = 0; i < 3; i++){ cZzz(c); await wait(1500, c.tk); }
+        cFace(c, 'open', 'smile');
+        if(Math.random() < .4) cSay(c, 'Spadlo mi jablko na hlavu. Mám nápad!', 2200);
+      } else if(t.type === 'market'){
+        cSay(c, pick(['Jednu pěnu, prosím.', 'Kolik stojí bublina?', 'Máte i hranaté?', 'Na dluh, jo?']), 1800); await wait(2600, c.tk);
+      } else if(t.type === 'tower'){
+        c.act = 'script'; const y0 = c.y;
+        await tween(2200, e => { c.y = y0 - 92 * e; }, c.tk);
+        c.look = { x: pick([-1, 1]), y: 0 }; cSay(c, pick(['Vidím až na konec rozpisu!', 'Odsud je Bublíkovo celé!', 'Ahoj, kurzore!']), 2200);
+        await wait(2400, c.tk);
+        await tween(1400, e => { c.y = y0 - 92 * (1 - e); }, c.tk);
+      } else if(t.type === 'mill'){
+        cSay(c, pick(['Ten mlýn mele pořád.', 'Vítr dnes fouká od Excelu.']), 1800); await wait(2200, c.tk);
+      } else await wait(rand(1500, 3000), c.tk);
+    } catch(e){ if(!(e instanceof Cancel)) console.warn('[Bublík] vesničan', e); }
+    finally { if(!c.dead){ if(c.home === t){ c.home = null; } if(!c.home) c.el.style.display = ''; cDrop(c); } }
+    if(c.dead || c.tk !== myTk) return;
+    c.act = 'idle'; c.tilt = 0; c.until = performance.now() + rand(1500, 4000);
+  }
+  async function lightLamps(on){
+    const lamps = village.things.filter(t => t.type === 'lamp');
+    if(!lamps.length) return;
+    if(!on){ lamps.forEach(t => t.el.classList.remove('lit')); return; }
+    const c = crew.find(k => !k.dead && k.act === 'idle' && !k.sleeping && !k.home);
+    if(!c){ lamps.forEach(t => t.el.classList.add('lit')); return; }
+    chron(`${cName(c)} rozsvěcí lampy. ${g(cName(c), 'Lampářem byl zvolen', 'Lampářkou byla zvolena')} jednomyslně.`);
+    await vScript([c], async () => {
+      for(const t of lamps.sort((a, b) => Math.abs(a.x - c.x) - Math.abs(b.x - c.x))){
+        await cGo(c, t.x + 14, floorY(), 150);
+        await tween(200, e => { c.sy = 1 + .12 * e; }, c.tk); t.el.classList.add('lit'); await tween(200, e => { c.sy = 1.12 - .12 * e; }, c.tk);
+      }
+    });
+  }
   function chron(text, when){
     if(!village) return;
     const d = when || new Date(), t = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
@@ -5616,54 +5785,23 @@ const Bublik = (()=>{
     if(village) return;
     const w = vw();
     village = {
-      t0: now, phase: null, houses: [], plan: [.14, .3, .7, .86].map(f => w * f), fire: null, fireX: w * .5, flowers: [],
+      t0: now, phase: null, houses: [], things: [], bi: 0, fire: null, fireX: w * .5, flowers: [], path: vEl('bub-path'),
       log: [], next: now + 4000, nextHouse: now + 6000, busy: false, night: null, born: 0,
       chron: vEl('bub-chron', `<div class="ch-title">Zprávy z Bublíkova</div><div class="ch-lines"></div>`),
     };
     crew.forEach(c => { if(!c.name) c.name = villagerName(); });
     chron('Založeno Bublíkovo. Zakladatel: Bublík. Rozloha: celá obrazovka.', founded);
     if(founded) return;
-    // přistěhovalci — přijdou z krajů obrazovky (celkem nejvýš 8 Bublíčků)
-    const add = Math.min(4, 8 - crew.length);
-    for(let i = 0; i < add; i++){
-      setTimeout(() => {
-        if(!village || !started) return;
-        const left = Math.random() < .5, c = spawnClone(left ? -30 : vw() + 30, floorY(), pick(CREW_ROLES));
-        c.sc = c.scT; c.name = villagerName(); c.tx = rand(vw() * .2, vw() * .8); c.ty = floorY(); c.speed = 120;
-        S.awayStats.clones = (S.awayStats.clones || 0) + 1;
-        chron(`${g(c.name, 'Přistěhoval', 'Přistěhovala')} se ${c.name}. Prý kvůli dobré atmosféře.`);
-      }, 2500 + i * 4500);
-    }
+    // přistěhovalci — přijdou z krajů obrazovky; další pak postupně (villageTick), až do villageMax()
+    const add = Math.min(4, villageMax() - crew.length);
+    for(let i = 0; i < add; i++) setTimeout(() => { if(village && started) newcomer(); }, 2500 + i * 4500);
+    village.nextImm = now + 120000;
   }
-  function bublikVillageStats(){ return village ? { houses: village.houses.length, pop: crew.length + 1, fire: !!village.fire, events: village.log.length } : null; }
+  function bublikVillageStats(){ return village ? { houses: village.houses.length, buildings: village.things.length, pop: crew.length + 1, fire: !!village.fire, events: village.log.length } : null; }
   async function vScript(list, fn){
     list.forEach(c => { c.tk.cancelled = true; c.tk = { cancelled: false }; c.act = 'game'; });
     try{ await fn(); } catch(e){ if(!(e instanceof Cancel)) console.warn('[Bublík] vesnice', e); }
     finally { list.forEach(c => { if(!c.dead && (c.act === 'game' || c.act === 'script')){ c.act = 'idle'; c.sx = c.sy = 1; c.tilt = 0; c.until = performance.now() + rand(800, 2500); } }); }
-  }
-  async function buildHouse(){
-    const v = village, x = v.plan[v.houses.length];
-    const b = crew.find(c => !c.dead && c.act === 'idle' && !c.sleeping) || crew.find(c => !c.dead && !c.home) || crew[0];
-    if(!b) return;
-    await vScript([b], async () => {
-      await cGo(b, x + 40, floorY(), 160);
-      const pile = [];
-      for(let i = 0; i < 4; i++){ await tween(160, e => { b.sy = 1 - .14 * e; }, b.tk); pile.push(addBrick(x + (i % 2 ? 10 : -10), floorY() - Math.floor(i / 2) * 13, 14)); await tween(160, e => { b.sy = .86 + .14 * e; }, b.tk); await wait(300, b.tk); }
-      await wait(600, b.tk);
-      pile.forEach(popBrick);
-      if(!village) return;
-      placeHouse(x, b.name);
-      cFace(b, 'closed', 'grin');
-      await wait(900, b.tk); cFace(b, 'open', 'smile');
-    });
-  }
-  function placeHouse(x, who, when){
-    const v = village;
-    const h = vEl('bub-house', HOUSE_SVG, x - 35, floorY() - 60);
-    h.style.setProperty('--x', `${x - 35}px`); h.style.setProperty('--y', `${floorY() - 60}px`);
-    if(!when) puf(x, floorY() - 25, 80);
-    v.houses.push({ el: h, x });
-    chron(`${who} ${g(who, 'postavil', 'postavila')} domek č. ${v.houses.length}.${v.houses.length === 1 ? ' Kulatý, samozřejmě.' : ''}`, when);
   }
   function lightFire(when){
     const v = village; if(v.fire) return;
@@ -5677,21 +5815,14 @@ const Bublik = (()=>{
     const end = Date.now(), from = end - ms, ev = [];
     const at = f => new Date(from + ms * clamp(f, 0, 1));
     const add = (f, fn) => ev.push({ f: clamp(f + rand(-.03, .03), .01, .99), fn });
-    let born = 0;
-    for(let i = crew.length; i < 8 && born < 6; i++, born++){
-      const f = .04 + born * .07;
-      add(f, w => {
-        const c = spawnClone(rand(vw() * .12, vw() * .88), floorY(), pick(CREW_ROLES));
-        c.sc = c.scT; c.name = villagerName(); c.tx = c.x; c.ty = floorY(); c.until = performance.now() + rand(500, 3000);
-        S.awayStats.clones = (S.awayStats.clones || 0) + 1;
-        chron(`${g(c.name, 'Přistěhoval', 'Přistěhovala')} se ${c.name}. Nikdo ${g(c.name, 'ho', 'ji')} neviděl přijít.`, w);
-      });
-    }
-    const housesTodo = Math.min(v.plan.length - v.houses.length, Math.max(1, Math.floor(ms / (4 * 60000))));
-    for(let i = 0; i < housesTodo; i++) add(.18 + i * .12, w => {
-      if(v.houses.length >= v.plan.length) return;
+    const born = Math.min(villageMax() - crew.length, 3 + Math.floor(ms / (3 * 60000)));
+    for(let i = 0; i < born; i++) add(.04 + i * (.8 / Math.max(1, born)), w => { newcomer(w); });
+    const builds = Math.min(BUILD_ORDER.length - v.bi, Math.max(1, Math.floor(ms / (2.5 * 60000))));
+    for(let i = 0; i < builds; i++) add(.1 + i * (.85 / Math.max(1, builds)), w => {
+      const type = BUILD_ORDER[v.bi]; if(!type) return; v.bi++;
+      const x = findLot(BLD[type].w); if(x == null) return;
       const names = crew.map(c => c.name).filter(Boolean);
-      placeHouse(v.plan[v.houses.length], names.length ? pick(names) : 'Bublík', w);
+      placeThing(type, x, names.length ? pick(names) : 'Bublík', w);
     });
     add(.5, w => { if(v.houses.length >= 2) lightFire(w); });
     const flowers = Math.min(8 - v.flowers.length, Math.floor(ms / (15 * 60000)));
@@ -5764,8 +5895,8 @@ const Bublik = (()=>{
     requestAnimationFrame(() => v.night.classList.add('on'));
     chron('Noc. Všichni do domků. Kdo nemá domek, spí u ohně.');
     crew.forEach(c => { if(!c.dead && c.act === 'idle') goSleep(c); });
-    v.houses.forEach(h => h.el.querySelectorAll('.h-win').forEach(w => w.setAttribute('fill', '#ffe48a')));
-    setTimeout(() => { if(village && village.phase === 'noc') village.houses.forEach(h => h.el.querySelectorAll('.h-win').forEach(w => w.setAttribute('fill', '#2b3a4a'))); }, 60000);
+    villageWindows('#ffe48a'); v.things.forEach(t => { if(t.type === 'lamp') t.el.classList.add('lit'); });
+    setTimeout(() => { if(village && village.phase === 'noc') villageWindows('#2b3a4a'); }, 60000);
   }
   // jeden Bublíček jde spát — do domku, nebo k ohni; ráno (nebo při úklidu) vyleze
   function goSleep(c){
@@ -5782,7 +5913,7 @@ const Bublik = (()=>{
   function dayBreak(){
     const v = village; if(!v.night) return;
     const n = v.night; v.night = null; n.classList.remove('on'); setTimeout(() => n.remove(), 3200);
-    v.houses.forEach(h => h.el.querySelectorAll('.h-win').forEach(w => w.setAttribute('fill', '#ffe48a')));
+    villageWindows('#ffe48a'); lightLamps(false);
     chron('Svítá. Bublíci vylézají z domků. Kapka tvrdí, že nespala vůbec.');
   }
   function villageTick(now){
@@ -5806,9 +5937,14 @@ const Bublik = (()=>{
     if(phase === 'noc') crew.forEach(c => { if(!c.dead && c.act === 'idle' && !c.sleeping) goSleep(c); });   // i nově příchozí
     if(v.busy) return;
     // stavět se dá i v noci, dokud nemají aspoň dva domky (při lucerně)
-    if(v.houses.length < v.plan.length && now > v.nextHouse && (phase !== 'noc' || v.houses.length < 2)){
-      v.busy = true; v.nextHouse = now + rand(16000, 26000);
-      buildHouse().finally(() => { if(village) village.busy = false; });
+    // v0.9.69: hodiny na radnici, přistěhovalci, stavby (zpočátku rychle, pak každé 1,5–2,5 min)
+    if(now > (v.nextClock || 0)){ v.nextClock = now + 15000; v.things.forEach(t => { if(t.type === 'hall') tickClock(t); }); }
+    if(phase !== 'noc' && now > (v.nextImm || 0) && crew.length < villageMax()){ v.nextImm = now + rand(80000, 170000); newcomer(); }
+    if(phase === 'vecer' && !v.lampsLit){ v.lampsLit = true; v.busy = true; lightLamps(true).finally(() => { if(village) village.busy = false; }); return; }
+    if(phase !== 'vecer' && phase !== 'noc') v.lampsLit = false;
+    if(v.bi < BUILD_ORDER.length && now > v.nextHouse && (phase !== 'noc' || v.houses.length < 2)){
+      v.busy = true; v.nextHouse = now + (v.things.length < 3 ? rand(16000, 26000) : rand(80000, 150000));
+      buildNext().finally(() => { if(village) village.busy = false; });
       return;
     }
     if(!v.fire && (v.houses.length >= 2 || phase === 'noc')) lightFire();
@@ -5845,7 +5981,8 @@ const Bublik = (()=>{
     const stats = bublikVillageStats();
     village = null;
     const gone = (el, ms) => { if(fast) el.remove(); else { el.classList.add('bye'); setTimeout(() => el.remove(), ms); } };
-    v.houses.forEach((h, i) => setTimeout(() => { if(!fast) puf(h.x, floorY() - 25, 70); h.el.remove(); }, fast ? 0 : i * 90));
+    v.things.forEach((h, i) => setTimeout(() => { if(!fast) puf(h.x, floorY() - 25, 70); h.el.remove(); }, fast ? 0 : i * 70));
+    if(v.path) gone(v.path, 400);
     v.flowers.forEach(f => gone(f, 400));
     if(v.fire) gone(v.fire, 400);
     (v.eraItems || []).forEach(el => gone(el, 400));   // v0.9.64: stavby epoch
@@ -6360,6 +6497,8 @@ const Bublik = (()=>{
     trumpet: { w: 36, h: 18, svg: '<svg viewBox="0 0 36 18"><path d="M2 9 H21" stroke="#c9a227" stroke-width="3.2" stroke-linecap="round"/><path d="M20 9 L34 2 L34 16 Z" fill="#f7c948" stroke="#a87a12"/><rect x="8" y="3" width="2.2" height="5" fill="#a87a12"/><rect x="12.5" y="3" width="2.2" height="5" fill="#a87a12"/></svg>' },
     rod: { w: 40, h: 40, svg: '<svg viewBox="0 0 40 40"><path d="M2 38 L38 2" stroke="#6b4319" stroke-width="2.4" stroke-linecap="round"/><circle cx="9" cy="31" r="3.2" fill="#333"/></svg>' },
     flag: { w: 24, h: 34, svg: '<svg viewBox="0 0 24 34"><path d="M3 34 V2" stroke="#5a3b12" stroke-width="2"/><path d="M4 3 L22 8 L4 14 Z" fill="#12a46a" stroke="#044a30"/></svg>' },
+    bread: { w: 22, h: 12, svg: '<svg viewBox="0 0 22 12"><path d="M2 8 Q2 2 11 2 Q20 2 20 8 Q20 11 11 11 Q2 11 2 8 Z" fill="#e0a458" stroke="#8b5a2b"/><path d="M7 4 L8 7 M11 3.5 L12 6.5 M15 4 L16 7" stroke="#8b5a2b"/></svg>' },
+    bucket: { w: 16, h: 16, svg: '<svg viewBox="0 0 16 16"><path d="M2 5 H14 L12 15 H4 Z" fill="#9aa1aa" stroke="#4a5560"/><path d="M2 5 Q8 -3 14 5" fill="none" stroke="#4a5560"/><ellipse cx="8" cy="5" rx="6" ry="1.6" fill="#58b6ff"/></svg>' },
     plane: { w: 40, h: 20, svg: '<svg viewBox="0 0 40 20"><path d="M2 10 L38 3 L16 12 Z" fill="#fff" stroke="#6b7280" stroke-width=".8"/><path d="M16 12 L38 3 L20 18 Z" fill="#e5e7eb" stroke="#6b7280" stroke-width=".8"/></svg>' },
   };
   // dx, dy = kde ji drží (souřadnice těla: 0 0 = spodek uprostřed, hlava ~ -46)
@@ -7662,7 +7801,7 @@ function bublikBagNext(items, used, rnd){
   return pick;
 }
 // v0.9.64: ženská jména Bublíčků (kvůli rodu sloves)
-function bublikIsFem(name){ return ['Bublinka', 'Pěnička', 'Kulička', 'Perlička', 'Kapka'].includes(name); }
+function bublikIsFem(name){ return ['Bublinka', 'Pěnička', 'Kulička', 'Perlička', 'Kapka', 'Kapička', 'Mydlinka', 'Šumka', 'Bublinda'].includes(name); }
 // ── v0.9.64: péče (Tamagotchi) — co se s Bublíkem dnes dělo; podle toho se větví civilizace ──
 function bublikCareKey(d){ d = d || new Date(); return 'bublik_care_' + d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
 function bublikCare(kind){
