@@ -1490,7 +1490,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
         <div id="signup-join-section" class="field" style="margin-top:8px">
           <label for="signup-orgcode">Kód firmy od vedoucího</label>
           <input type="text" id="signup-orgcode" name="orgcode" autocomplete="off"
-            placeholder="např. A3F7K2" maxlength="6"
+            placeholder="např. A3F7K2" maxlength="8"
             style="text-transform:uppercase;letter-spacing:3px;font-family:var(--font-mono);font-size:16px;text-align:center"
             oninput="this.value=this.value.toUpperCase()">
         </div>
@@ -1575,9 +1575,9 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
       <!-- Secondary: enter org code yourself (jen dokud uživatel v žádné firmě není) -->
       <div id="waiting-joincode-card" style="background:var(--paper);border:1.5px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px">
         <div style="font-size:13px;font-weight:600;margin-bottom:6px">Nebo zadej kód firmy</div>
-        <div style="font-size:12px;color:var(--ink-soft);margin-bottom:8px">Pokud máš 6-místný kód od vedoucího:</div>
+        <div style="font-size:12px;color:var(--ink-soft);margin-bottom:8px">Pokud máš kód firmy od vedoucího:</div>
         <div style="display:flex;gap:6px">
-          <input type="text" id="waiting-org-code" placeholder="KÓDFIRMY" maxlength="6"
+          <input type="text" id="waiting-org-code" placeholder="KÓDFIRMY" maxlength="8"
             style="flex:1;padding:8px 10px;border:1.5px solid var(--line);border-radius:6px;font-family:var(--font-mono);font-size:16px;letter-spacing:3px;text-transform:uppercase;text-align:center"
             oninput="this.value=this.value.toUpperCase()">
           <button onclick="joinByOrgCodeFromWaiting()"
@@ -2820,7 +2820,7 @@ window.addEventListener('unhandledrejection', e => {
 // odsud, ručně je nepřepisuj. sw.js se od v0.9.29 nebumpuje — je z něj
 // kill-switch bez cache (viz killServiceWorkers() a komentář v sw.js).
 // ============================================================
-const APP_VERSION = '0.9.77';
+const APP_VERSION = '0.9.78';
 
 // Krátký git hash nasazeného buildu. Placeholder níž přepíše build-stamp.js
 // z CF_PAGES_COMMIT_SHA (Cloudflare Pages build command: `node build-stamp.js`).
@@ -3350,7 +3350,7 @@ async function doSignup(){
   if(!email || !password){ showAuthError('signup','Vyplň e-mail i heslo.'); return; }
   if(password.length < 6){ showAuthError('signup','Heslo musí mít alespoň 6 znaků.'); return; }
   if(!pendingInvite){
-    if(signupMode === 'join' && orgCode.length !== 6){ showAuthError('signup','Zadej 6-místný kód firmy od vedoucího.'); return; }
+    if(signupMode === 'join' && (orgCode.length < 6 || orgCode.length > 8)){ showAuthError('signup','Zadej kód firmy od vedoucího (6 až 8 znaků).'); return; }
     if(signupMode === 'create' && !orgName){ showAuthError('signup','Zadej název firmy.'); return; }
   }
 
@@ -3595,8 +3595,8 @@ async function processInviteToken(token, empId){
 async function joinByOrgCodeFromWaiting(){
   const code = (document.getElementById('waiting-org-code')?.value||'').trim().toUpperCase();
   const result = document.getElementById('waiting-join-result');
-  if(code.length !== 6){
-    result.textContent='Kód musí mít 6 znaků.'; result.style.color='var(--red)'; result.style.display='block'; return;
+  if(code.length < 6 || code.length > 8){
+    result.textContent='Kód firmy má 6 až 8 znaků.'; result.style.color='var(--red)'; result.style.display='block'; return;
   }
   const joined = await joinOrgByCode(code);
   if(joined){
