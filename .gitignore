@@ -18,6 +18,8 @@
 !migration_v0977_rls_hardening.sql
 !migration_v0979_gdpr.sql
 !privacy.html
+!fonts/
+!fonts/**
 !manifest.json
 !sw.js
 !CLAUDE.md

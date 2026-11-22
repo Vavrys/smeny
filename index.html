@@ -10,9 +10,8 @@
 <meta name="apple-mobile-web-app-title" content="Směny">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 36 36'%3E%3Crect x='2' y='6' width='32' height='26' rx='5' fill='%232b6e4f' opacity='.9'/%3E%3Crect x='2' y='6' width='32' height='26' rx='5' stroke='%232b6e4f' stroke-width='2'/%3E%3Cline x1='2' y1='14' x2='34' y2='14' stroke='%23fff' stroke-width='2'/%3E%3Cline x1='10' y1='2' x2='10' y2='10' stroke='%232b6e4f' stroke-width='2.5' stroke-linecap='round'/%3E%3Cline x1='26' y1='2' x2='26' y2='10' stroke='%232b6e4f' stroke-width='2.5' stroke-linecap='round'/%3E%3Crect x='7' y='18' width='6' height='5' rx='1.5' fill='%23fff'/%3E%3Crect x='15' y='18' width='6' height='5' rx='1.5' fill='%23fff' opacity='.7'/%3E%3Crect x='23' y='18' width='6' height='5' rx='1.5' fill='%23fff' opacity='.4'/%3E%3Crect x='7' y='25' width='6' height='4' rx='1.5' fill='%23fff' opacity='.5'/%3E%3Crect x='15' y='25' width='6' height='4' rx='1.5' fill='%23fff'/%3E%3C/svg%3E">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="preload" href="fonts/inter-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="fonts/fonts.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <!-- v0.9.24: Floating UI — pozicování plovoucích prvků (viz positionFloating()).
@@ -2827,7 +2826,7 @@ window.addEventListener('unhandledrejection', e => {
 // odsud, ručně je nepřepisuj. sw.js se od v0.9.29 nebumpuje — je z něj
 // kill-switch bez cache (viz killServiceWorkers() a komentář v sw.js).
 // ============================================================
-const APP_VERSION = '0.9.79';
+const APP_VERSION = '0.9.80';
 
 // Krátký git hash nasazeného buildu. Placeholder níž přepíše build-stamp.js
 // z CF_PAGES_COMMIT_SHA (Cloudflare Pages build command: `node build-stamp.js`).
