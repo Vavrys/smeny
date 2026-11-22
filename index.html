@@ -2812,11 +2812,16 @@ function _globalErrorToast(){
 }
 window.onerror = (msg, src, line, col, err) => {
   console.error('Global error:', msg, err);
+  try { reportClientError('js', String(msg) + (line ? ` (${(src||'').split('/').pop()}:${line}:${col})` : ''), err && err.stack); } catch(e){}
   _globalErrorToast();
   return false;
 };
 window.addEventListener('unhandledrejection', e => {
   console.error('Unhandled promise rejection:', e.reason);
+  try {
+    const r = e.reason;
+    reportClientError('promise', (r && r.message) || String(r), r && r.stack);
+  } catch(err){}
   _globalErrorToast();
 });
 
@@ -2826,7 +2831,7 @@ window.addEventListener('unhandledrejection', e => {
 // odsud, ručně je nepřepisuj. sw.js se od v0.9.29 nebumpuje — je z něj
 // kill-switch bez cache (viz killServiceWorkers() a komentář v sw.js).
 // ============================================================
-const APP_VERSION = '0.9.80';
+const APP_VERSION = '0.9.81';
 
 // Krátký git hash nasazeného buildu. Placeholder níž přepíše build-stamp.js
 // z CF_PAGES_COMMIT_SHA (Cloudflare Pages build command: `node build-stamp.js`).
@@ -3160,6 +3165,33 @@ function toastOk(msg){ toast('✓ ' + msg, 'ok'); }
 // Vrací vždy { data, error } — nikdy nevyhazuje (i síťová výjimka se převede
 // na error objekt), volající tedy stačí zkontrolovat `error`.
 // ============================================================
+// ── R-09 (v0.9.81): hlášení chyb provozovateli ──────────────────────────
+// Posílá jen přihlášený uživatel (RPC log_client_error, tabulka client_errors
+// čitelná jen v Supabase Dashboardu). Dedup + strop na relaci, ať chyba ve
+// smyčce nezaplaví databázi; offline se nehlásí. Chyba hlášení nikdy nesmí
+// vyvolat další chybu — proto try/catch a žádné toasty.
+const _reportedErrors = new Set();
+let _reportedErrorCount = 0;
+function reportClientError(kind, message, stack, context){
+  try {
+    if(typeof sb === 'undefined' || !sb || navigator.onLine === false) return;
+    const msg = String(message || '').slice(0, 1000);
+    if(!msg || /ResizeObserver loop|Script error\.?$/i.test(msg)) return;
+    const key = kind + '|' + msg;
+    if(_reportedErrors.has(key) || _reportedErrorCount >= 15) return;
+    _reportedErrors.add(key); _reportedErrorCount++;
+    Promise.resolve(sb.rpc('log_client_error', {
+      p_kind: kind,
+      p_message: msg,
+      p_stack: stack ? String(stack).slice(0, 4000) : null,
+      p_app_version: (typeof APP_VERSION !== 'undefined') ? APP_VERSION : null,
+      p_page: location.pathname + (location.hash || ''),
+      p_user_agent: navigator.userAgent,
+      p_context: context || null,
+    })).catch(()=>{});   // záměrně tiché: hlášení chyb samo nesmí hlásit chyby
+  } catch(e){ /* nic */ }
+}
+
 async function dbRun(query, ctx, opts = {}){
   let res;
   try { res = await query; }
@@ -3167,6 +3199,10 @@ async function dbRun(query, ctx, opts = {}){
   if(!res) res = { data: null, error: null };
   if(res.error){
     console.error(`[DB] ${ctx} selhalo (${res.error.code || '?'}): ${res.error.message}`, res.error);
+    // R-09: hlásit tiché selhání (RLS, chybějící sloupec…), ne očekávané stavy
+    if(ctx !== 'rpc log_client_error' && res.error.code !== 'EXCEPTION' && !/^(PGRST116)$/.test(res.error.code||'')){
+      reportClientError('db', `${ctx}: ${res.error.code || '?'} ${res.error.message}`, null, { ctx });
+    }
     if(opts.action && typeof toast === 'function') toast(`${opts.action} se nepodařilo: ${res.error.message}`, 'error');
   }
   return res;

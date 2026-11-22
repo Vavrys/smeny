@@ -75,6 +75,7 @@ Seznam migračních souborů v repu (pořadí = doporučené pořadí spuštěn�
 14. `migration_v0935_pending_mode.sql` — omezený režim čekajících: is_org_member jen pro aktivní členy (admin/manažer/propojený zaměstnanec), vlastní členství + firma čitelné, RPC pending_org_snapshot (anonymní rozpis)
 15. `migration_v0977_rls_hardening.sql` — audit R-07: policies shift_swaps/schedule_templates/audit_log, RPC apply_shift_swap (zápis výměny do rozpisu), regenerate_invite_code (8 znaků, expirace), update_own_profile, limit pokusů v join_org_by_code, `employees` bez vlastního UPDATE, funkce bez anon
 16. `migration_v0979_gdpr.sql` — R-08 GDPR: RPC export_my_data, delete_my_account, delete_organization (mazání firmy včetně řádku organizations)
+17. `migration_v0981_monitoring.sql` — R-09: tabulka client_errors + RPC log_client_error (hlášení chyb z appky, čtení jen v Supabase Dashboardu)
 
 Nová migrace = nový soubor `migration_*.sql` + výjimka v `.gitignore` (je to whitelist!)
 + řádek do tohoto seznamu + případně do `EXPECTED_DB_SCHEMA` v index.html (diagnostika).
