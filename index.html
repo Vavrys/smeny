@@ -1501,11 +1501,17 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
           <input type="text" id="signup-orgname" name="orgname" autocomplete="off" placeholder="Název vaší firmy">
         </div>
 
+        <label style="display:flex;gap:8px;align-items:flex-start;margin:12px 0 4px;font-size:12.5px;line-height:1.45;color:var(--ink-soft);cursor:pointer">
+          <input type="checkbox" id="signup-consent" style="margin-top:2px;flex:none">
+          <span>Přečetl/a jsem si <a href="/privacy.html" target="_blank" rel="noopener" style="color:var(--accent)">zásady ochrany osobních údajů</a>.</span>
+        </label>
         <button type="submit" class="btn-primary" id="signup-btn">Vytvořit účet</button>
       </form>
     </div>
 
-    <div class="auth-foot">Plánování směn pro týmy s více pobočkami — <strong>rychle, přehledně, odkudkoli</strong></div>
+    <div class="auth-foot">Plánování směn pro týmy s více pobočkami — <strong>rychle, přehledně, odkudkoli</strong>
+      <div style="margin-top:6px"><a href="/privacy.html" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">Zásady ochrany osobních údajů</a></div>
+    </div>
   </div>
 </div>
 
@@ -2115,6 +2121,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
        v hlavičce nevejde. Slouží k ověření, co je opravdu nasazené. -->
   <div class="app-footer">
     <span id="app-build-label" class="app-build-label"></span>
+    <a href="/privacy.html" target="_blank" rel="noopener" class="app-build-label" style="margin-left:10px;text-decoration:underline;user-select:none;cursor:pointer">Soukromí</a>
   </div>
 </div>
 
@@ -2820,7 +2827,7 @@ window.addEventListener('unhandledrejection', e => {
 // odsud, ručně je nepřepisuj. sw.js se od v0.9.29 nebumpuje — je z něj
 // kill-switch bez cache (viz killServiceWorkers() a komentář v sw.js).
 // ============================================================
-const APP_VERSION = '0.9.78';
+const APP_VERSION = '0.9.79';
 
 // Krátký git hash nasazeného buildu. Placeholder níž přepíše build-stamp.js
 // z CF_PAGES_COMMIT_SHA (Cloudflare Pages build command: `node build-stamp.js`).
@@ -3348,6 +3355,7 @@ async function doSignup(){
   const pendingInvite = (() => { try { return JSON.parse(sessionStorage.getItem('pending_invite')||'null'); } catch(e){ return null; } })();
 
   if(!email || !password){ showAuthError('signup','Vyplň e-mail i heslo.'); return; }
+  if(!document.getElementById('signup-consent')?.checked){ showAuthError('signup','Potvrď, že ses seznámil/a se zásadami ochrany osobních údajů.'); return; }
   if(password.length < 6){ showAuthError('signup','Heslo musí mít alespoň 6 znaků.'); return; }
   if(!pendingInvite){
     if(signupMode === 'join' && (orgCode.length < 6 || orgCode.length > 8)){ showAuthError('signup','Zadej kód firmy od vedoucího (6 až 8 znaků).'); return; }
@@ -15528,6 +15536,15 @@ async function openEmployeeSettings(){
         <div id="prof-pass-result" style="font-size:12px;margin-top:6px;display:none"></div>
       </div>
       <div style="border-top:1px solid var(--line);padding-top:16px">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--ink-soft);margin-bottom:8px">Moje data a soukromí</div>
+        <div style="font-size:12px;color:var(--ink-soft);margin-bottom:8px">Stáhneš si všechna svá data, nebo smažeš svůj účet. <a href="/privacy.html" target="_blank" rel="noopener" style="color:var(--accent)">Zásady ochrany osobních údajů</a></div>
+        <button onclick="exportMyData()" class="btn-outline" style="width:100%;padding:8px">Stáhnout moje data (JSON)</button>
+        ${currentRole === 'admin'
+          ? '<div style="font-size:12px;color:var(--ink-soft);margin-top:8px">Účet admina jde smazat až po zrušení firmy (Nastavení → Organizace).</div>'
+          : '<button onclick="deleteMyAccount()" class="btn-outline" style="width:100%;padding:8px;margin-top:6px;color:var(--red);border-color:var(--red)">Smazat můj účet</button>'}
+        <div id="prof-gdpr-result" style="font-size:12px;margin-top:6px;display:none"></div>
+      </div>
+      <div style="border-top:1px solid var(--line);padding-top:16px">
         <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--ink-soft);margin-bottom:10px">${ICONS.notif_bell} Upozornění</div>
         <div id="notif-prefs-body">${renderNotifPrefsSection()}</div>
         <button onclick="saveNotifPrefs()" class="btn-outline" style="width:100%;margin-top:10px;padding:7px">${ICONS.btn_ulozit} Uložit nastavení upozornění</button>
@@ -16316,6 +16333,36 @@ function renderNotifTestLog(){
       <div style="margin-top:6px"><strong>Email adminovi (${escapeHtml(log.admin_email||'—')}):</strong> ${emailStatus}</div>
       ${log.email_result ? `<div style="margin-top:6px"><strong>Odpověď funkce:</strong> <code style="font-size:11px">${escapeHtml(JSON.stringify(log.email_result))}</code></div>` : ''}
     </div>`;
+}
+
+async function exportMyData(){
+  const res = document.getElementById('prof-gdpr-result');
+  const { data, error } = await dbRpc('export_my_data', {}, { action: 'Export mých dat' });
+  if(error) return;
+  if(!data || !data.ok){ toast('Export se nepovedl', 'error'); return; }
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'moje-data-smeny-' + new Date().toISOString().slice(0,10) + '.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 1000);
+  if(res){ res.style.display='block'; res.style.color='var(--accent)'; res.textContent='✓ Soubor se stáhl.'; }
+}
+
+async function deleteMyAccount(){
+  if(!confirm('Opravdu smazat tvůj účet? Přihlášení a upozornění se smažou nenávratně. Záznamy o směnách zůstávají u zaměstnavatele, o jejich smazání požádej vedoucího.')) return;
+  const typed = prompt('Pro potvrzení napiš SMAZAT');
+  if((typed||'').trim().toUpperCase() !== 'SMAZAT'){ toast('Účet nebyl smazán'); return; }
+  const { data, error } = await dbRpc('delete_my_account', {}, { action: 'Smazání účtu' });
+  if(error) return;
+  if(!data || !data.ok){
+    toast(data && data.error === 'admin_has_org'
+      ? 'Účet admina jde smazat až po zrušení firmy.' : 'Účet se nepodařilo smazat', 'error');
+    return;
+  }
+  try { localStorage.clear(); sessionStorage.clear(); } catch(e){}
+  try { await sb.auth.signOut(); } catch(e){}
+  location.reload();
 }
 
 async function saveProfile(){
@@ -20705,15 +20752,14 @@ async function deleteOrgForReal(){
   if(btn){ btn.disabled = true; btn.textContent = 'Mažu…'; }
   const orgId = currentOrg.id;
   try{
-    // Závislé tabulky napřed (best-effort — některé mají ON DELETE CASCADE, jiné ne)
-    for(const t of ['notifications','audit_log','help_feedback','shifts','unavailability','leave_requests','open_shifts','shift_swaps','schedule_templates','support_requests']){
-      try{ await sb.from(t).delete().eq('org_id', orgId); }catch(e){}
+    // v0.9.79: celé smazání dělá DB funkce delete_organization (dřív klient mazal po
+    // tabulkách a řádek `organizations` zůstal, protože tabulka nemá DELETE policy)
+    const { data: del, error } = await dbRpc('delete_organization', { p_org_id: orgId }, { action: 'Smazání organizace' });
+    if(error || !del || !del.ok){
+      if(!error) toast('Firmu může smazat jen admin', 'error');
+      if(btn){btn.disabled=false; btn.textContent='Smazat navždy';}
+      return;
     }
-    for(const t of ['org_settings','employees','branches','org_members']){
-      try{ await sb.from(t).delete().eq('org_id', orgId); }catch(e){}
-    }
-    const { error } = await sb.from('organizations').delete().eq('id', orgId);
-    if(error){ toast('Smazání se nepodařilo dokončit: ' + error.message, 'error'); if(btn){btn.disabled=false; btn.textContent='Smazat navždy';} return; }
     // Lokální data organizace
     ['activity_log_','leave_requests_','recurring_','notif_log_','sched_quality_'].forEach(p=>localStorage.removeItem(p+orgId));
     toast('Organizace smazána');
