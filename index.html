@@ -2820,7 +2820,7 @@ window.addEventListener('unhandledrejection', e => {
 // odsud, ručně je nepřepisuj. sw.js se od v0.9.29 nebumpuje — je z něj
 // kill-switch bez cache (viz killServiceWorkers() a komentář v sw.js).
 // ============================================================
-const APP_VERSION = '0.9.75';
+const APP_VERSION = '0.9.76';
 
 // Krátký git hash nasazeného buildu. Placeholder níž přepíše build-stamp.js
 // z CF_PAGES_COMMIT_SHA (Cloudflare Pages build command: `node build-stamp.js`).
@@ -3436,7 +3436,7 @@ async function joinOrgByCode(orgCode){
   return true; // ok (nový člen nebo už byl členem)
 }
 
-async function doLogout(){
+async function doLogout(reason){
   clearTimeout(_sessionWarnTimer);
   clearTimeout(_sessionLogoutTimer);
   stopWaitingRoomPoll(); // B3 v0.9.5: odhlášení z čekárny nesmí nechat běžet pozadí polling
@@ -3449,9 +3449,14 @@ async function doLogout(){
   const helpFab = document.getElementById('help-fab'); if(helpFab) helpFab.style.display = 'none'; // v0.9.51: na přihlašovací obrazovce nápověda nemá co dělat
   await sb.auth.signOut();
   currentUser = null; currentOrg = null; currentRole = null;
-  document.getElementById('app-shell').style.display = 'none';
-  document.getElementById('onboarding-shell').style.display = 'none';
-  document.getElementById('auth-shell').style.display = 'flex';
+  // v0.9.73: čistý start. Dřív se jen přepnula obrazovka, takže po odhlášení zůstalo
+  // v paměti všechno z minulého účtu (váhy a tvrdé podmínky, nastavení firmy, rozpis)
+  // a v přihlašovacím formuláři i zapsaný e-mail, heslo a název firmy. Plné
+  // načtení stránky vyčistí stav i formuláře; navigace (ne reload), aby prohlížeč
+  // nevrátil zpět rozepsané hodnoty.
+  try{ sessionStorage.removeItem('pending_invite'); }catch(e){}
+  if(reason){ try{ sessionStorage.setItem('smeny_logout_msg', reason); }catch(e){} }
+  location.replace(location.pathname);
 }
 
 // ============================================================
@@ -3842,6 +3847,10 @@ async function bootstrapAfterAuth(){
     if(!user){
       document.getElementById('loading-screen').style.display = 'none';
       document.getElementById('auth-shell').style.display = 'flex';
+      try{ // zpráva po odhlášení (neaktivita apod.), viz doLogout()
+        const msg = sessionStorage.getItem('smeny_logout_msg');
+        if(msg){ sessionStorage.removeItem('smeny_logout_msg'); toast(msg, 'error'); }
+      }catch(e){}
       return;
     }
     currentUser = user;
@@ -4129,14 +4138,34 @@ function buildQuickSetupPlan(inp){
   const monthHours = Math.round(weeklyHours * 52 / 12);
   let lim;
   if(mode === 'flex'){
-    lim = { min: 12, target: 15, max: 17, consec: 4, minRest: 1, idealRest: 2 };  // výchozí z formuláře zaměstnance
+    lim = { min: 12, target: 15, max: 17, consec: 4, minRest: 1, idealRest: 1 };  // limity z formuláře zaměstnance; ideální volno 1 den, ať první rozpis nic neztrácí (v0.9.73)
   } else {
     const target = Math.max(1, Math.round(Math.min(weeklyHours * 52 / 12 / length, 21.7)));
     lim = {
       min: Math.round(target * 0.8), target, max: target + 2,
       consec: length >= 24 ? 1 : length >= 12 ? 3 : 5,
       minRest: length >= 24 ? 2 : 1,
-      idealRest: 2,
+      idealRest: length >= 24 ? 2 : 1,   // v0.9.73: v nepřetržitém provozu se 2 dny volna po každé sérii nevejdou, první rozpis by ztrácel body
+    };
+  }
+
+  // v0.9.73: limity musí jít splnit. Pobočka chce přesně perDay lidí denně, takže se
+  // za měsíc rozdá celkem perDay × dnů směn a víc nikdo nedostane. Když je lidí víc,
+  // než plný úvazek potřebuje, spadne na každého míň než 12 (flex) / ~17 (pevné) směn
+  // a „minimum“ z výchozího formuláře se nedá splnit nikdy. První rozpis tak vycházel
+  // s červenou tvrdou podmínkou. Proto se při dostatku lidí limity odvodí z toho, kolik
+  // směn na člověka reálně vychází (nejkratší měsíc 28 dní pro minimum, 31 pro maximum).
+  const fullTarget = lim.target;                    // plný úvazek, podle něj se počítá potřeba lidí
+  const demandMin28 = perDay * 28, demandMax31 = perDay * 31;
+  const share = perDay * 30.4 / nEmp;               // směn na člověka při rovném dělení
+  const overstaffed = share < lim.target;
+  if(overstaffed){
+    const target = Math.max(1, Math.round(share));
+    lim = {
+      ...lim,
+      min: Math.max(0, Math.floor(demandMin28 / nEmp) - 1),
+      target,
+      max: Math.min(lim.max, Math.max(target + 2, Math.ceil(demandMax31 / nEmp) + 1)),
     };
   }
 
@@ -4150,10 +4179,10 @@ function buildQuickSetupPlan(inp){
   }));
 
   const demandMonth = Math.round(perDay * 30.4);
-  const needPeople  = Math.ceil(demandMonth / lim.target);
+  const needPeople  = Math.ceil(demandMonth / fullTarget);
   return {
     mode, length, night, branch, types, employees,
-    stats: { perDay, weeklyHours, monthHours, perPerson: lim.target, demandMonth, needPeople, enough: nEmp >= needPeople },
+    stats: { perDay, weeklyHours, monthHours, perPerson: fullTarget, actualPerPerson: lim.target, overstaffed, demandMonth, needPeople, enough: nEmp >= needPeople },
     branchMode: { mode, length: mode === 'fixed' ? length : null, night },
     shiftMeta: Object.fromEntries(types.map(t => [t.code, { from: t.from, to: t.to, hours: t.hours, night: t.night }])),
   };
@@ -4256,6 +4285,7 @@ function renderQuickSetup(){
 
       <div class="qs-summary ${st.enough ? 'ok' : 'warn'}">
         <div>Plný úvazek: <b>${String(st.weeklyHours).replace('.', ',')} h týdně</b> ≈ ${st.monthHours} h měsíčně → cca <b>${st.perPerson} směn</b>${s.mode === 'fixed' ? ` po ${plan.length} h` : ''} na člověka.</div>
+        ${st.overstaffed ? `<div>S ${s.employees} lidmi vychází na každého jen cca <b>${st.actualPerPerson} ${st.actualPerPerson === 1 ? 'směna' : st.actualPerPerson < 5 ? 'směny' : 'směn'}</b> měsíčně, limity zaměstnanců se tomu přizpůsobí.</div>` : ''}
         <div>${s.mode === 'fixed' ? `Na ${st.perDay} ${st.perDay === 1 ? 'směnu' : st.perDay < 5 ? 'směny' : 'směn'} denně` : `Aby bylo denně v práci ${st.perDay}`} potřebuješ zhruba <b>${st.needPeople} lidí</b> na plný úvazek. ${st.enough ? `Máš ${s.employees}, to stačí.` : `Máš ${s.employees}, rozpis bude mít díry.`}</div>
       </div>
       ${plan.night ? `<div class="qs-note">Automatické doplnění hlídá odpočinek 11 h mezi směnami (třeba po noční) i 35 h volna v týdnu.</div>` : ''}
@@ -10349,8 +10379,10 @@ function checkWeightsSum(){
 function loadScoringUI(){
   const sw = orgSettings['scoring_weights'];
   const hc = orgSettings['hard_constraints'];
-  if(sw) scoringWeights = { ...DEFAULT_WEIGHTS, ...sw };
-  if(hc) hardConstraints = { ...DEFAULT_HARD, ...hc };
+  // v0.9.73: bez uložené hodnoty se vrací výchozí. Dřív zůstaly globály z dříve
+  // načtené firmy a nová firma dostala cizí váhy a tvrdé podmínky.
+  scoringWeights  = sw ? { ...DEFAULT_WEIGHTS, ...sw } : { ...DEFAULT_WEIGHTS };
+  hardConstraints = hc ? { ...DEFAULT_HARD, ...hc }    : { ...DEFAULT_HARD };
 
   renderConditionsUI(); // renders both hard toggles and weight sliders
   renderBalancePairsList();
@@ -12223,7 +12255,6 @@ function computeQuality(shiftsMap, unavailMap){
 
   // ── Apply weights — clamp each metric to max ────────────────
   const w = scoringWeights;
-  const totalWeight = Object.values(w).reduce((a,b)=>a+b,0) || 100;
 
   const scored = [
     { id:'coverage',    label:'Pokrytí poboček',
@@ -12233,11 +12264,11 @@ function computeQuality(shiftsMap, unavailMap){
     { id:'counts',      label:'Počty směn',
       desc:`${cntMinScore}/${nonFixed.length} lidí má min. počet směn`,
       details: { type:'employees', rows: cntDetails },
-      score:Math.min(cntScore, cntMax), max:cntMax||1, weight:w.counts||0 },
+      score:Math.min(cntScore, cntMax), max:cntMax||1, weight:w.counts||0, na:false },
     { id:'weekends',    label:'Volné víkendy',
       desc:`${weMetMin}/${weMetMinMax} lidí má min. volných víkendů`,
       details: { type:'employees', rows: weDetails },
-      score:weScore, max:weMax||1, weight:w.weekends||0 },
+      score:weScore, max:weMax||1, weight:w.weekends||0, na:weMax===0 },
     { id:'idealrest',   label:'Ideální volno po sérii',
       desc:`${restScore}/${restMax} lidí má vždy dostatek volna po sérii`,
       details: null,
@@ -12245,15 +12276,20 @@ function computeQuality(shiftsMap, unavailMap){
     { id:'typebalance', label:'Vyváženost směn',
       desc: balancePairs.length ? `${balScore}/${balMax} lidí má vyvážené typy` : 'Nenastaveny páry — viz Pravidla',
       details: { type:'employees', rows: balDetails },
-      score:balScore, max:balMax||1, weight:w.typebalance||0 },
+      score:balScore, max:balMax||1, weight:w.typebalance||0, na:balMax===0 },
     { id:'shifttypemin', label:'Limity poboček a typů',
       desc: stMinMax ? `${stMinScore}/${stMinMax} limitů poboček a typů splněno` : 'Nenastaveny žádné min. limity poboček ani typů',
       details: { type:'employees', rows: stMinDetails },
-      score:stMinScore, max:stMinMax||1, weight:w.shifttypemin||0 },
+      score:stMinScore, max:stMinMax||1, weight:w.shifttypemin||0, na:stMinMax===0 },
   ].filter(m=>m.weight>0);
 
-  const pct = scored.length
-    ? Math.round(scored.reduce((sum,m)=> sum + (m.score/m.max) * m.weight, 0) / totalWeight * 100)
+  // v0.9.73: metrika, pro kterou není nic nastaveno (0 lidí s min. víkendy, žádné páry
+  // typů, žádné limity poboček), se do procent nepočítá. Dřív se bralo 0/0 jako 0 %
+  // a nová firma měla strop 75 % i s dokonalým rozpisem. Váhy ostatních se přepočtou.
+  const activeScored = scored.filter(m=>!m.na);
+  const activeWeight = activeScored.reduce((a,m)=>a+m.weight,0);
+  const pct = activeWeight
+    ? Math.round(activeScored.reduce((sum,m)=> sum + (m.score/m.max) * m.weight, 0) / activeWeight * 100)
     : 0;
 
   // ── Hard constraints check ────────────────────────────────
@@ -12348,14 +12384,14 @@ function renderScoreBar(){
     </div>
     <div class="score-metrics">
       ${metrics.map((m,i)=>{
-        const mp=Math.round(m.score/m.max*100);
-        const mc=mp>=85?'var(--status-ok)':mp>=65?'var(--status-warn)':'var(--status-bad)';
+        const mp=m.na?100:Math.round(m.score/m.max*100);
+        const mc=m.na?'var(--line)':mp>=85?'var(--status-ok)':mp>=65?'var(--status-warn)':'var(--status-bad)';
         const hasDetail = m.details && (m.details.rows?.length || Object.keys(m.details.branches||{}).length);
         const clickable = hasDetail ? `style="cursor:pointer" onclick="showMetricDetail(${i})" title="Klikni pro detail"` : '';
         const hoverStyle = hasDetail ? 'border-radius:6px;padding:4px;margin:-4px;transition:background .15s' : '';
         return `<div ${clickable} style="${hoverStyle}${hasDetail?';':''}">
           <div style="font-size:11px;color:var(--ink-soft);margin-bottom:2px;display:flex;align-items:center;gap:4px">
-            ${m.label} <span style="color:var(--ink-faint)">(${m.weight}%)</span>
+            ${m.label} <span style="color:var(--ink-faint)">(${m.na?'nepoužito':m.weight+'%'})</span>
             ${hasDetail ? '<span style="font-size:9px;color:var(--ink-faint);background:var(--paper);padding:1px 4px;border-radius:3px;border:1px solid var(--line)">detail ▾</span>' : ''}
           </div>
           <div class="score-metric-track"><div class="score-metric-fill" style="width:${mp}%;background:${mc}"></div></div>
@@ -22160,8 +22196,7 @@ function resetSessionTimer(){
     if(b) b.style.display = 'block';
   }, SESSION_WARN_MS);
   _sessionLogoutTimer = setTimeout(async ()=>{
-    await doLogout();
-    toast('Byl jsi odhlášen kvůli neaktivitě (8 hodin).', 'error');
+    await doLogout('Byl jsi odhlášen kvůli neaktivitě (8 hodin).');
   }, SESSION_TIMEOUT_MS);
 }
 ['click','keydown','touchstart'].forEach(ev=>document.addEventListener(ev, resetSessionTimer, {passive:true}));
