@@ -26,8 +26,8 @@
 <h1>Zásady ochrany osobních údajů</h1>
 <p class="soft">Aplikace Směny (plánování směn) · platné od <span class="todo">DOPLNIT datum</span></p>
 
-<div class="draft"><strong>Koncept k doplnění.</strong> Žlutě označená místa vyplň před vydáním a text nech projít
-odborníkem na ochranu osobních údajů. Tento dokument není právní poradenství.</div>
+<div class="draft"><strong>Koncept k doplnění.</strong> Obsah odpovídá požadavkům čl. 13 GDPR; žlutě označená místa
+zná jen provozovatel a musí je vyplnit před vydáním. Dokument není právní poradenství.</div>
 
 <h2>1. Kdo je kdo</h2>
 <p><strong>Provozovatel aplikace</strong> (zpracovatel): <span class="todo">DOPLNIT jméno / firma, IČO, adresa, e-mail</span>.</p>
@@ -43,29 +43,41 @@ administrátora firmy a o provozu aplikace (bezpečnostní logy) jedná provozov
 <tr><td>Rozpis směn, nedostupnost („X"), žádosti o volno, výměny směn</td><td>plánování a evidence práce</td><td>plnění právních povinností zaměstnavatele, oprávněný zájem</td></tr>
 <tr><td>Notifikace a historie změn (kdo a kdy co změnil)</td><td>informování uživatelů, bezpečnost a dohledatelnost změn</td><td>oprávněný zájem</td></tr>
 <tr><td>Neúspěšná přihlášení (e-mail, čas)</td><td>ochrana účtů před zneužitím</td><td>oprávněný zájem provozovatele</td></tr>
-<tr><td>Zprávy z podpory a zpětná vazba k nápovědě</td><td>vyřízení dotazu, zlepšení aplikace</td><td>oprávněný zájem / souhlas</td></tr>
+<tr><td>Technické chyby aplikace (zpráva chyby, verze aplikace, typ prohlížeče, identifikátor účtu a firmy)</td><td>odhalení a oprava závad</td><td>oprávněný zájem provozovatele</td></tr>
+<tr><td>Zprávy z podpory a zpětná vazba k nápovědě</td><td>vyřízení dotazu, zlepšení aplikace</td><td>oprávněný zájem</td></tr>
 </table>
+<p><strong>Oprávněné zájmy</strong> (čl. 6 odst. 1 písm. f) GDPR): zaměstnavatel potřebuje organizovat práci a doložit odpracovanou
+dobu; provozovatel potřebuje chránit účty před zneužitím a opravovat chyby. Proti zpracování můžeš vznést námitku (viz bod 5).</p>
+<p><strong>Povinnost údaje poskytnout:</strong> bez e-mailu a hesla se nelze přihlásit, bez jména nejde zaměstnance zařadit do rozpisu.
+Ostatní údaje (např. telefon) jsou nepovinné. Souhlas, o který jsme tě požádali při registraci, potvrzuje, že ses s těmito zásadami seznámil/a;
+zpracování se opírá o výše uvedené právní základy, ne o souhlas, takže ho není co odvolávat.</p>
 <p>Neprovádíme profilování ani automatizované rozhodování s právními účinky. Automatický rozpis je návrh,
 který schvaluje a publikuje vedoucí.</p>
 
 <h2>3. Komu údaje předáváme</h2>
 <ul>
-<li><strong>Supabase</strong> — databáze a přihlašování, region <span class="todo">OVĚŘIT a doplnit (EU/jiný)</span>.</li>
-<li><strong>Cloudflare</strong> — hosting aplikace a doručování stránek.</li>
-<li><strong>Poskytovatel e-mailů / notifikací</strong> <span class="todo">DOPLNIT, pokud se používá</span>.</li>
-<li>Veřejné CDN knihovny a písma načítané při otevření aplikace mohou vidět IP adresu návštěvníka
-<span class="todo">DOPLNIT / nahradit vlastním hostingem písem</span>.</li>
+<li><strong>Supabase</strong> — databáze a přihlašování; databáze běží v regionu <span class="todo">DOPLNIT region ze Supabase → Project Settings (např. Frankfurt, EU)</span>.
+Se Supabase je uzavřena smlouva o zpracování (DPA) <span class="todo">ZKONTROLOVAT, že je DPA přijatá</span>; podpůrné a provozní služby mohou
+probíhat i mimo region na základě standardních smluvních doložek.</li>
+<li><strong>Cloudflare</strong> — hosting aplikace a doručování stránek; při načtení stránky zpracovává IP adresu návštěvníka.</li>
+<li><strong>jsDelivr</strong> (CDN) — dodává knihovny, které aplikace potřebuje ke svému běhu; při načtení vidí IP adresu návštěvníka.</li>
+<li><strong>Poskytovatel e-mailů / notifikací</strong> <span class="todo">DOPLNIT, pokud se používá (např. odesílání upozornění e-mailem)</span>.</li>
 </ul>
+<p>Písma aplikace jsou uložena přímo v aplikaci, nenačítají se od Googlu.</p>
+<p><strong>Předání mimo EU:</strong> poskytovatelé výše mohou některé údaje zpracovávat i ve třetích zemích (zejména v USA);
+děje se tak na základě standardních smluvních doložek schválených Evropskou komisí nebo jiného nástroje podle kapitoly V GDPR.</p>
 <p>Údaje o zaměstnanci vidí ve firmě jen ti, kdo je k práci potřebují: administrátor a vedoucí celou organizaci,
 zaměstnanec rozpis kolegů a vlastní údaje. Data různých firem jsou v databázi odděleně.</p>
 
 <h2>4. Jak dlouho údaje uchováváme</h2>
 <ul>
 <li>Údaje účtu a rozpisy po dobu, kdy firma aplikaci používá.</li>
-<li>Smazáním účtu zaměstnance zaniká přihlášení, notifikace a vazba na firmu. Záznamy o odpracované době může
-zaměstnavatel uchovat po dobu, kterou mu ukládá zákon <span class="todo">DOPLNIT lhůtu po konzultaci</span>.</li>
+<li>Smazáním účtu zaměstnance zaniká přihlášení, notifikace a vazba na firmu. Záznamy o odpracované době a mzdách musí
+zaměstnavatel uchovávat podle zvláštních předpisů (lhůty se liší podle druhu záznamu, od několika let až po desítky let u mzdových
+listů pro důchodové pojištění). Směny není mzdový ani archivační systém; tyto lhůty hlídá zaměstnavatel mimo aplikaci,
+a proto smazání účtu neodstraní záznamy ze směn, dokud je zaměstnavatel sám nesmaže.</li>
 <li>Zrušením organizace se smažou všechna její data v aplikaci.</li>
-<li>Záznamy o neúspěšných přihláštěních <span class="todo">DOPLNIT lhůtu, např. 90 dní</span>.</li>
+<li>Technické chyby aplikace 30 dní, záznamy o neúspěšných přihlášeních 90 dní.</li>
 </ul>
 
 <h2>5. Tvoje práva</h2>
@@ -76,8 +88,10 @@ administrátor tvé firmy; můžeš se obrátit i na provozovatele na <span clas
 <p>Stížnost můžeš podat u Úřadu pro ochranu osobních údajů (<a href="https://www.uoou.cz" rel="noopener">uoou.cz</a>).</p>
 
 <h2>6. Cookies a úložiště prohlížeče</h2>
-<p>Aplikace nepoužívá reklamní ani sledovací cookies. Přihlášení a osobní nastavení (např. vzhled, tipy, které už jsi viděl)
-ukládá v úložišti prohlížeče, bez kterého by nefungovala.</p>
+<p>Aplikace nepoužívá reklamní, analytické ani sledovací cookies. Přihlášení a osobní nastavení (např. vzhled, tipy, které už jsi viděl)
+ukládá v úložišti prohlížeče, bez kterého by nefungovala; jde o technické ukládání nezbytné k poskytnutí služby, kterou sis vyžádal/a,
+a proto k němu zákon o elektronických komunikacích (§ 89 odst. 3) souhlas nevyžaduje. Souhlas by byl potřeba, pokud bychom
+v budoucnu přidali měření návštěvnosti nebo reklamu.</p>
 
 <h2>7. Bezpečnost</h2>
 <p>Komunikace je šifrovaná (HTTPS), data jsou chráněná pravidly přístupu na úrovni databáze (každá firma vidí jen svá data),
