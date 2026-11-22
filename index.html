@@ -1210,7 +1210,9 @@ body.dark .search-input{color:var(--ink)}
 .bub-era,.bub-ship,.bub-rocket,.bub-frame,.bub-podium{position:fixed;left:0;top:0;pointer-events:none;z-index:397;transition:opacity .4s}
 .bub-era svg,.bub-ship svg,.bub-rocket svg,.bub-frame svg,.bub-podium svg{width:100%;height:100%;overflow:visible;display:block}
 .bub-era{width:40px;height:41px}.bub-era.bub-flag{width:24px;height:30px}
-.bub-ship{width:120px;height:72px;animation:bubSail 46s ease-in-out infinite alternate}
+.bub-ship{width:120px;height:84px}
+.bub-ship .s-crew,.bub-ship .s-loot{display:none}
+.bub-ship.crewed .s-crew,.bub-ship.loot .s-loot{display:inline}
 .bub-ship svg{animation:bubBob 2.2s ease-in-out infinite alternate}
 @keyframes bubSail{from{transform:translate(20px,var(--y))}to{transform:translate(var(--x1),var(--y))}}
 @keyframes bubBob{from{transform:rotate(-3deg) translateY(0)}to{transform:rotate(3deg) translateY(3px)}}
@@ -2818,7 +2820,7 @@ window.addEventListener('unhandledrejection', e => {
 // odsud, ručně je nepřepisuj. sw.js se od v0.9.29 nebumpuje — je z něj
 // kill-switch bez cache (viz killServiceWorkers() a komentář v sw.js).
 // ============================================================
-const APP_VERSION = '0.9.72';
+const APP_VERSION = '0.9.73';
 
 // Krátký git hash nasazeného buildu. Placeholder níž přepíše build-stamp.js
 // z CF_PAGES_COMMIT_SHA (Cloudflare Pages build command: `node build-stamp.js`).
@@ -4633,7 +4635,8 @@ const Bublik = (()=>{
   const crew = [], bricks = [], trail = [];
   let crewSeq = 0;
   const CREW_ROLES = ['stavitel', 'padakar', 'lezec', 'spac', 'kopac'];
-  const CREW_TINTS = ['hue-rotate(150deg)', 'hue-rotate(265deg)', 'hue-rotate(28deg)', 'hue-rotate(205deg) saturate(.9)', 'hue-rotate(320deg)', 'hue-rotate(-35deg) saturate(1.2)', 'hue-rotate(95deg)', '', 'hue-rotate(60deg) saturate(1.1)', 'hue-rotate(235deg) brightness(1.08)'].sort(() => Math.random() - .5);
+  // v0.9.73: jen odstíny zelené (držíme se designu) — od mátové po tmavě smaragdovou
+  const CREW_TINTS = ['', 'hue-rotate(-16deg) saturate(1.1)', 'hue-rotate(14deg)', 'hue-rotate(20deg) brightness(1.06)', 'saturate(.75) brightness(1.12)', 'brightness(.86) saturate(1.2)', 'hue-rotate(-9deg) brightness(1.1)', 'hue-rotate(8deg) saturate(.85) brightness(.94)', 'saturate(1.35) brightness(.96)', 'hue-rotate(-20deg) saturate(.9) brightness(1.04)'].sort(() => Math.random() - .5);
   function crewSvg(){
     return `<svg viewBox="-36 -62 72 66" aria-hidden="true">
       <ellipse class="c-sh" cx="0" cy="1.5" rx="20" ry="3.6" fill="url(#bub-g-shadow)"/>
@@ -4926,6 +4929,8 @@ const Bublik = (()=>{
   function stepCrew(dt, now){
     for(const c of crew){
       if(c.sc !== c.scT) c.sc += (c.scT - c.sc) * Math.min(1, dt * 6);
+      if(!Number.isFinite(c.x) || !Number.isFinite(c.y)){ c.x = vw() / 2; c.y = floorY(); }
+      if(!Number.isFinite(c.tx) || !Number.isFinite(c.ty)){ c.tx = c.x; c.ty = c.y; }
       if(c.act === 'idle' && now > c.until) crewDecide(c, now);
       // v0.9.72: v klidu na zemi — když stojí před budovou, přes jiného nebo ve scénce, poodejde
       if(c.act === 'idle' && !c.home && now > (c.sepAt || 0) && Math.abs(c.tx - c.x) < 1 && c.y >= floorY() - 6){
@@ -4943,6 +4948,7 @@ const Bublik = (()=>{
       const bob = c.act === 'sleep' ? 0 : Math.sin(now / 420 + c.ph) * 2.2 * (1 - air * .7);
       c.el.style.width = w + 'px'; c.el.style.height = h + 'px';
       c.el.style.transform = `translate(${(c.x - w / 2).toFixed(1)}px,${(c.y - h + bob).toFixed(1)}px)`;
+      if(!Number.isFinite(c.tilt)) c.tilt = 0; if(!Number.isFinite(c.sx)) c.sx = 1; if(!Number.isFinite(c.sy)) c.sy = 1;   // v0.9.73: pojistka proti NaN
       c.body.setAttribute('transform', `rotate(${c.tilt.toFixed(1)}) scale(${c.sx.toFixed(3)} ${c.sy.toFixed(3)})`);
       c.eyes.setAttribute('transform', `translate(${(c.look.x * 2).toFixed(2)} ${(c.look.y * 1.5).toFixed(2)})`);
       c.sh.setAttribute('opacity', air.toFixed(2));
@@ -6074,6 +6080,7 @@ const Bublik = (()=>{
   // ── v0.9.69: opravdová vesnice — různé stavby, roste od táboráku do stran ──
   const BLD = {
     house: { w: 70, h: 60, enter: true, cls: 'bub-house', svg: HOUSE_SVG },
+    chest: { w: 36, h: 28, svg: '<svg viewBox="-18 -28 36 29" aria-hidden="true"><rect x="-16" y="-16" width="32" height="16" rx="2" fill="#8b5a2b" stroke="#4a2e12"/><path d="M-16 -16 Q0 -30 16 -16 Z" fill="#a0652e" stroke="#4a2e12"/><rect x="-16" y="-11" width="32" height="3" fill="#f7c948"/><rect x="-3" y="-14" width="6" height="7" rx="1" fill="#f7c948" stroke="#a87a12"/><circle cx="-8" cy="-21" r="2.2" fill="#9be7c4"/><circle cx="6" cy="-22" r="2" fill="#ffe48a"/></svg>' },
     stage: { w: 200, h: 112, svg: '<svg viewBox="-100 -112 200 113" aria-hidden="true"><rect x="-96" y="-8" width="192" height="8" rx="2" fill="#8b5a2b"/><rect x="-92" y="-104" width="10" height="96" fill="#7a4a1e"/><rect x="82" y="-104" width="10" height="96" fill="#7a4a1e"/><path d="M-82 -96 H82 V-8 H-82 Z" fill="#9e2020"/><path d="M-82 -96 Q-44 -56 -4 -96 M4 -96 Q44 -56 82 -96" stroke="#c93a3a" stroke-width="7" fill="none"/><path d="M0 -96 V-8" stroke="#7a1717" stroke-width="2"/><rect x="-100" y="-112" width="200" height="17" rx="4" fill="#b02a2a"/><text x="0" y="-100" text-anchor="middle" font-size="9" font-weight="800" fill="#ffe48a">DIVADLO</text></svg>' },
     well: { w: 44, h: 50, svg: '<svg viewBox="-22 -50 44 51" aria-hidden="true"><path d="M-17 -22 L-17 0 L17 0 L17 -22 Z" fill="#b9b2a6" stroke="#5c5548" stroke-width="1.2"/><path d="M-17 -15 H17 M-17 -8 H17 M-6 -22 V-15 M8 -15 V-8 M-2 -8 V0" stroke="#7d7568" stroke-width=".9"/><path d="M-14 -22 V-40 M14 -22 V-40" stroke="#6b4319" stroke-width="2.4"/><path d="M-20 -38 L0 -49 L20 -38 Z" fill="#c0392b" stroke="#7a1717"/><path d="M-12 -33 H12" stroke="#6b4319" stroke-width="2"/><path d="M0 -33 V-27" stroke="#555"/><rect x="-3.5" y="-28" width="7" height="6" rx="1" fill="#8b5a2b"/><ellipse cx="0" cy="-22" rx="17" ry="3" fill="#2b6cb0" opacity=".8"/></svg>' },
     tree: { w: 62, h: 86, svg: '<svg viewBox="-31 -86 62 87" aria-hidden="true"><path d="M-4 0 L-3 -30 L3 -30 L4 0 Z" fill="#7a4a1e"/><circle cx="0" cy="-50" r="24" fill="#2e9d5b"/><circle cx="-14" cy="-40" r="15" fill="#25874d"/><circle cx="15" cy="-42" r="15" fill="#33a866"/><circle cx="2" cy="-66" r="15" fill="#3cb371"/><circle cx="-8" cy="-58" r="4" fill="#ff6f8e"/><circle cx="10" cy="-48" r="3.6" fill="#ff6f8e"/><circle cx="-2" cy="-40" r="3.4" fill="#ff6f8e"/></svg>' },
@@ -6085,13 +6092,14 @@ const Bublik = (()=>{
     lamp: { w: 16, h: 60, svg: '<svg viewBox="-8 -60 16 61" aria-hidden="true"><path d="M0 0 V-46" stroke="#333" stroke-width="2.2"/><path d="M-4 0 H4" stroke="#333" stroke-width="3"/><path d="M-6 -46 H6 L4 -56 H-4 Z" fill="#2b3a4a" stroke="#111"/><rect class="l-glass" x="-3.5" y="-54" width="7" height="7" fill="#556"/></svg>' },
   };
   // v0.9.72: domky v různých podobách — kopule, chaloupka s komínem, úzký domek, hříbek, dvojdomek, srub
+  // v0.9.73: domky jen bublinové — kopule, vajíčko, patrový, s přístavkem, trojbublina, dvojdomek
   const HOUSE_VARIANTS = [
     { id: 'dome', w: 70, h: 60, svg: HOUSE_SVG, say: ' Kulatý, samozřejmě.' },
-    { id: 'cottage', w: 72, h: 64, smoke: [56, 6], say: ' S komínem. Kouří, i když se netopí.', svg: '<svg viewBox="-36 -64 72 65" aria-hidden="true"><rect x="16" y="-58" width="8" height="16" fill="#8b5a2b" stroke="#4a2e12"/><path d="M-30 0 V-30 H30 V0 Z" fill="#f6e3c0" stroke="#8b5a2b" stroke-width="1.3"/><path d="M-35 -29 L0 -54 L35 -29 Z" fill="#d35400" stroke="#7a2e00" stroke-width="1.2"/><rect x="-7" y="-20" width="14" height="20" rx="2" fill="#6b4319"/><circle cx="4" cy="-10" r="1.2" fill="#f7c948"/><rect class="h-win" x="-25" y="-24" width="11" height="10" rx="1" fill="#ffe48a" stroke="#8b5a2b"/><rect class="h-win" x="14" y="-24" width="11" height="10" rx="1" fill="#ffe48a" stroke="#8b5a2b"/></svg>' },
-    { id: 'tall', w: 46, h: 84, say: ' Úzký a vysoký. Výtah nemá.', svg: '<svg viewBox="-23 -84 46 85" aria-hidden="true"><path d="M-17 0 V-52 H17 V0 Z" fill="#cfe8f7" stroke="#2c5d7c" stroke-width="1.2"/><path d="M-21 -51 L0 -83 L21 -51 Z" fill="#2980b9" stroke="#1b4f72" stroke-width="1.2"/><circle class="h-win" cx="0" cy="-60" r="4.5" fill="#ffe48a" stroke="#1b4f72"/><rect class="h-win" x="-9" y="-44" width="18" height="10" rx="1.5" fill="#ffe48a" stroke="#2c5d7c"/><rect x="-6" y="-18" width="12" height="18" rx="6" fill="#1b4f72"/></svg>' },
-    { id: 'mushroom', w: 66, h: 62, say: ' Ve tvaru houby. Nejíst.', svg: '<svg viewBox="-33 -62 66 63" aria-hidden="true"><path d="M-16 0 V-26 Q0 -30 16 -26 V0 Z" fill="#fff4dc" stroke="#a88a5a" stroke-width="1.2"/><path d="M-32 -26 Q-30 -60 0 -61 Q30 -60 32 -26 Q0 -20 -32 -26 Z" fill="#e74c3c" stroke="#922b21" stroke-width="1.3"/><circle cx="-14" cy="-44" r="5" fill="#fff"/><circle cx="8" cy="-50" r="4" fill="#fff"/><circle cx="20" cy="-36" r="3.4" fill="#fff"/><circle cx="-2" cy="-34" r="3" fill="#fff"/><rect x="-6" y="-17" width="12" height="17" rx="6" fill="#8b5a2b"/><circle class="h-win" cx="10" cy="-12" r="3.5" fill="#ffe48a" stroke="#a88a5a"/></svg>' },
-    { id: 'duplex', w: 100, h: 56, say: ' Dvojdomek. Sousedi si půjčují pěnu.', svg: '<svg viewBox="-50 -56 100 57" aria-hidden="true"><path d="M-48 0 V-18 A24 26 0 0 1 0 -18 V0 Z" fill="url(#bub-g-body)" stroke="#044a30" stroke-opacity=".6" stroke-width="1.2"/><path d="M0 0 V-22 A24 30 0 0 1 48 -22 V0 Z" fill="url(#bub-g-body)" stroke="#044a30" stroke-opacity=".6" stroke-width="1.2"/><rect x="-30" y="-16" width="11" height="16" rx="5.5" fill="#5a3b12"/><rect x="18" y="-16" width="11" height="16" rx="5.5" fill="#5a3b12"/><circle class="h-win" cx="-12" cy="-24" r="4" fill="#ffe48a" stroke="#044a30"/><circle class="h-win" cx="37" cy="-30" r="4" fill="#ffe48a" stroke="#044a30"/><ellipse cx="-34" cy="-34" rx="5" ry="2.6" fill="#fff" opacity=".6" transform="rotate(-28 -34 -34)"/><ellipse cx="12" cy="-42" rx="5" ry="2.6" fill="#fff" opacity=".6" transform="rotate(-28 12 -42)"/></svg>' },
-    { id: 'cabin', w: 70, h: 60, say: ' Srub. Prý ekologický.', svg: '<svg viewBox="-35 -60 70 61" aria-hidden="true"><path d="M-28 0 V-28 H28 V0 Z" fill="#a0652e" stroke="#5a3410" stroke-width="1.2"/><path d="M-28 -7 H28 M-28 -14 H28 M-28 -21 H28" stroke="#6b3f17" stroke-width="1"/><path d="M-34 -26 L0 -58 L34 -26 Z" fill="#5d6d3a" stroke="#3a4423" stroke-width="1.2"/><rect x="-6" y="-18" width="12" height="18" fill="#4a2e12"/><rect class="h-win" x="12" y="-22" width="10" height="9" fill="#ffe48a" stroke="#5a3410"/><rect x="-24" y="-12" width="12" height="5" fill="#8b5a2b" rx="1"/><circle cx="-21" cy="-14" r="2" fill="#f7a531"/><circle cx="-15" cy="-14" r="2" fill="#ff6f8e"/></svg>' },
+    { id: 'egg', w: 58, h: 74, say: ' Vejčitý. Prý se v něm líp přemýšlí.', svg: '<svg viewBox="-29 -74 58 75" aria-hidden="true"><path d="M-25 0 V-30 C-25 -62 -14 -73 0 -73 C14 -73 25 -62 25 -30 V0 Z" fill="url(#bub-g-body)" stroke="#044a30" stroke-opacity=".6" stroke-width="1.2"/><ellipse cx="-10" cy="-56" rx="4.5" ry="8" fill="#fff" opacity=".6" transform="rotate(20 -10 -56)"/><circle class="h-win" cx="0" cy="-46" r="5" fill="#ffe48a" stroke="#044a30"/><rect x="-7" y="-20" width="14" height="20" rx="7.0" fill="#5a3b12" stroke="#2e1d08" stroke-width=".8"/></svg>' },
+    { id: 'stack', w: 72, h: 86, say: ' Patrový — nahoře pracovna s výhledem.', svg: '<svg viewBox="-36 -86 72 87" aria-hidden="true"><path d="M-33 0 V-16 A33 30 0 0 1 33 -16 V0 Z" fill="url(#bub-g-body)" stroke="#044a30" stroke-opacity=".6" stroke-width="1.2"/><circle cx="6" cy="-62" r="18" fill="url(#bub-g-body)" stroke="#044a30" stroke-opacity=".6" stroke-width="1.2"/><ellipse cx="-1" cy="-71" rx="5" ry="2.6" fill="#fff" opacity=".6" transform="rotate(-28 -1 -71)"/><ellipse cx="-18" cy="-34" rx="6" ry="3" fill="#fff" opacity=".6" transform="rotate(-25 -18 -34)"/><circle class="h-win" cx="8" cy="-60" r="5" fill="#ffe48a" stroke="#044a30"/><circle class="h-win" cx="17" cy="-22" r="4.5" fill="#ffe48a" stroke="#044a30"/><rect x="-14" y="-20" width="13" height="20" rx="6.5" fill="#5a3b12" stroke="#2e1d08" stroke-width=".8"/></svg>' },
+    { id: 'annex', w: 96, h: 62, say: ' S přístavkem na kafe.', svg: '<svg viewBox="-48 -62 96 63" aria-hidden="true"><circle cx="30" cy="-17" r="17" fill="url(#bub-g-body)" stroke="#044a30" stroke-opacity=".6" stroke-width="1.2"/><path d="M-44 0 V-22 A28 38 0 0 1 12 -22 V0 Z" fill="url(#bub-g-body)" stroke="#044a30" stroke-opacity=".6" stroke-width="1.2"/><ellipse cx="-26" cy="-44" rx="6" ry="3" fill="#fff" opacity=".6" transform="rotate(-28 -26 -44)"/><ellipse cx="25" cy="-27" rx="3.5" ry="2" fill="#fff" opacity=".6" transform="rotate(-28 25 -27)"/><circle class="h-win" cx="-4" cy="-30" r="4.5" fill="#ffe48a" stroke="#044a30"/><circle class="h-win" cx="32" cy="-17" r="4" fill="#ffe48a" stroke="#044a30"/><rect x="-24" y="-20" width="13" height="20" rx="6.5" fill="#5a3b12" stroke="#2e1d08" stroke-width=".8"/></svg>' },
+    { id: 'cluster', w: 106, h: 60, say: ' Tři bubliny v jedné. Rodinný.', svg: '<svg viewBox="-53 -60 106 61" aria-hidden="true"><circle cx="-33" cy="-19" r="19" fill="url(#bub-g-body)" stroke="#044a30" stroke-opacity=".6" stroke-width="1.2"/><circle cx="36" cy="-16" r="16" fill="url(#bub-g-body)" stroke="#044a30" stroke-opacity=".6" stroke-width="1.2"/><path d="M-20 0 V-24 A21 34 0 0 1 22 -24 V0 Z" fill="url(#bub-g-body)" stroke="#044a30" stroke-opacity=".6" stroke-width="1.2"/><ellipse cx="-40" cy="-29" rx="4.5" ry="2.4" fill="#fff" opacity=".6" transform="rotate(-28 -40 -29)"/><ellipse cx="-8" cy="-44" rx="5" ry="2.6" fill="#fff" opacity=".6" transform="rotate(-28 -8 -44)"/><ellipse cx="31" cy="-24" rx="3.5" ry="2" fill="#fff" opacity=".6" transform="rotate(-28 31 -24)"/><circle class="h-win" cx="-33" cy="-20" r="4" fill="#ffe48a" stroke="#044a30"/><circle class="h-win" cx="36" cy="-17" r="3.6" fill="#ffe48a" stroke="#044a30"/><circle class="h-win" cx="9" cy="-30" r="4" fill="#ffe48a" stroke="#044a30"/><rect x="-7" y="-19" width="13" height="19" rx="6.5" fill="#5a3b12" stroke="#2e1d08" stroke-width=".8"/></svg>' },
+    { id: 'duplex', w: 100, h: 56, say: ' Dvojdomek. Sousedi si půjčují pěnu.', svg: '<svg viewBox="-50 -56 100 57" aria-hidden="true"><path d="M-48 0 V-18 A24 26 0 0 1 0 -18 V0 Z" fill="url(#bub-g-body)" stroke="#044a30" stroke-opacity=".6" stroke-width="1.2"/><path d="M0 0 V-22 A24 30 0 0 1 48 -22 V0 Z" fill="url(#bub-g-body)" stroke="#044a30" stroke-opacity=".6" stroke-width="1.2"/><rect x="-30" y="-16" width="11" height="16" rx="5.5" fill="#5a3b12" stroke="#2e1d08" stroke-width=".8"/><rect x="18" y="-16" width="11" height="16" rx="5.5" fill="#5a3b12" stroke="#2e1d08" stroke-width=".8"/><circle class="h-win" cx="-12" cy="-24" r="4" fill="#ffe48a" stroke="#044a30"/><circle class="h-win" cx="37" cy="-30" r="4" fill="#ffe48a" stroke="#044a30"/><ellipse cx="-34" cy="-34" rx="5" ry="2.6" fill="#fff" opacity=".6" transform="rotate(-28 -34 -34)"/><ellipse cx="12" cy="-42" rx="5" ry="2.6" fill="#fff" opacity=".6" transform="rotate(-28 12 -42)"/></svg>' },
   ];
   function nextHouseVariant(v){ if(!v.hv) v.hv = HOUSE_VARIANTS.slice(1).sort(() => Math.random() - .5); return v.houses.length === 0 ? HOUSE_VARIANTS[0] : v.hv[(v.houses.length - 1) % v.hv.length]; }
   // v0.9.72: větší rozestupy (mezi stavbami se vejde Bublíček), takže se nevejde všechno — důležité stavby dřív
@@ -6099,6 +6107,7 @@ const Bublik = (()=>{
   const BLD_GAP = 54;
   const BLD_NEWS = {
     house: (w, n, hv) => `${w} ${g(w, 'postavil', 'postavila')} domek č. ${n}.${hv ? hv.say : ''}${n === 4 ? ' Už je to ulice.' : ''}`,
+    chest: w => `${w} ${g(w, 'přivezl', 'přivezla')} truhlu s pokladem. Obsah: tajný. (Tři bubliny.)`,
     stage: () => 'Postavili jsme divadlo. Program zatím žádný, vstupenky vyprodané.',
     well: w => `${w} ${g(w, 'vykopal', 'vykopala')} studnu. Voda je, jak jinak, bublinková.`,
     tree: w => `${w} ${g(w, 'zasadil', 'zasadila')} strom. Za pět minut nesl jablka. Rychlá odrůda.`,
@@ -6116,6 +6125,7 @@ const Bublik = (()=>{
     used.push([cx - 28 - gap, cx + 28 + gap]);
     used.push([homeX() - 70, homeX() + 70]);
     const lab = versionLabelBox(); if(lab) used.push([lab[0] - 20, lab[1] + 20]);   // patička s verzí
+    floorRes.forEach(r => used.push([r.a - 10, r.b + 10]));   // v0.9.73: nestavět do právě hrané scénky
     const lo = 14 + w / 2, hi = vw() - 14 - w / 2;
     for(let d = 44 + w / 2; d < vw(); d += 12){
       for(const sg of (Math.random() < .5 ? [-1, 1] : [1, -1])){
@@ -6281,6 +6291,8 @@ const Bublik = (()=>{
     };
     crew.forEach(c => { if(!c.name) c.name = villagerName(); });
     chron('Založeno Bublíkovo. Zakladatel: Bublík. Rozloha: celá obrazovka.', founded);
+    // v0.9.73: hry na zemi z doby před vesnicí skončí — ať pak nikdo nestojí uprostřed nových domků
+    crew.forEach(c => { if(!c.dead && (c.act === 'game' || c.act === 'script')) c.tk.cancelled = true; });
     if(founded) return;
     // přistěhovalci — přijdou z krajů obrazovky; další pak postupně (villageTick), až do villageMax()
     const add = Math.min(4, villageMax() - crew.length);
@@ -6324,6 +6336,7 @@ const Bublik = (()=>{
     const news = clamp(Math.floor(ms / (10 * 60000)), 1, 6);
     for(let i = 0; i < news; i++) add(.25 + i * (.7 / news), w => { const l = villageNews(); if(l) chron(l, w); });
     ev.sort((a, b) => a.f - b.f).forEach(e => { try{ e.fn(at(e.f)); } catch(err){ console.warn('[Bublík] dopočet', err); } });
+    crew.forEach(c => { c.sepAt = 0; c.until = Math.min(c.until || 0, performance.now() + 300); });   // hned popojdou z míst, kde teď stojí domky
     chron(pick(['Zatímco obrazovka spala, Bublíkovo žilo dál.', 'Obrazovka zhasla. Bublíci si toho všimli až ráno.', 'Kdo nebyl u toho, nic nepropásl. Všechno je v kronice.']));
   }
   function plantFlower(){
@@ -6387,7 +6400,7 @@ const Bublik = (()=>{
     for(let i = 0; i < 24; i++){ const st = document.createElement('i'); st.style.left = rand(2, 98) + '%'; st.style.top = rand(2, 45) + '%'; st.style.animationDelay = rand(0, 3).toFixed(2) + 's'; v.night.appendChild(st); }
     requestAnimationFrame(() => v.night.classList.add('on'));
     chron('Noc. Všichni do domků. Kdo nemá domek, spí u ohně.');
-    crew.forEach(c => { if(!c.dead && c.act === 'idle') goSleep(c); });
+    crew.forEach(c => { if(!c.dead && c.act === 'idle' && !c.home) goSleep(c); });
     villageWindows('#ffe48a'); v.things.forEach(t => { if(t.type === 'lamp') t.el.classList.add('lit'); });
     setTimeout(() => { if(village && village.phase === 'noc') villageWindows('#2b3a4a'); }, 60000);
   }
@@ -6427,7 +6440,7 @@ const Bublik = (()=>{
       v.bubSleeping = false;
       if(S.mode === 'sleep') run(() => Promise.resolve());
     }
-    if(phase === 'noc') crew.forEach(c => { if(!c.dead && c.act === 'idle' && !c.sleeping) goSleep(c); });   // i nově příchozí
+    if(phase === 'noc') crew.forEach(c => { if(!c.dead && c.act === 'idle' && !c.sleeping && !c.home) goSleep(c); });   // i nově příchozí
     if(v.busy) return;
     // stavět se dá i v noci, dokud nemají aspoň dva domky (při lucerně)
     // v0.9.69: hodiny na radnici, přistěhovalci, stavby (zpočátku rychle, pak každé 1,5–2,5 min)
@@ -6486,9 +6499,13 @@ const Bublik = (()=>{
   }
   // ── v0.9.64: Civilizace (od hodiny ve vesnici) — epochy se větví podle péče; ráno noviny ──
   const BALLOT_SVG = `<svg viewBox="-20 -40 40 41" aria-hidden="true"><rect x="-16" y="-30" width="32" height="30" rx="3" fill="#f3efe2" stroke="#4a3b20" stroke-width="1.4"/><rect x="-8" y="-31" width="16" height="3" rx="1.5" fill="#4a3b20"/><text x="0" y="-11" text-anchor="middle" font-size="8" font-weight="700" fill="#4a3b20">VOLBY</text></svg>`;
-  const SHIP_SVG = `<svg viewBox="-60 -70 120 72" aria-hidden="true"><path d="M -2 -64 L -2 -14" stroke="#5a3b12" stroke-width="2.4"/><path d="M 0 -62 Q 30 -44 0 -22 Z" fill="#fff" stroke="#8a7a5a" stroke-width="1.2"/><path d="M -4 -60 Q -30 -44 -4 -26 Z" fill="#f3efe2" stroke="#8a7a5a" stroke-width="1.2"/>
-    <path d="M -2 -64 L 14 -68 L -2 -72 Z" fill="#12a46a"/><circle cx="-20" cy="-22" r="7" fill="url(#bub-g-body)"/><circle cx="16" cy="-22" r="7" fill="url(#bub-g-body)"/><circle cx="-22" cy="-23" r="1.2" fill="#102a1e"/><circle cx="-18" cy="-23" r="1.2" fill="#102a1e"/><circle cx="14" cy="-23" r="1.2" fill="#102a1e"/><circle cx="18" cy="-23" r="1.2" fill="#102a1e"/>
-    <path d="M -52 -16 L 52 -16 L 40 0 L -40 0 Z" fill="#8b5a2b" stroke="#4a2e12" stroke-width="1.4"/><path d="M -46 -9 L 46 -9" stroke="#4a2e12" stroke-width="1"/></svg>`;
+  // v0.9.73: hezčí bublinová loď — oblý trup s okénky, plachta se znakem bubliny, posádka a poklad podle stavu
+  const SHIP_SVG = `<svg viewBox="-60 -82 120 84" aria-hidden="true"><path d="M -1 -78 L -1 -18" stroke="#5a3b12" stroke-width="2.6" stroke-linecap="round"/><path d="M 0 -78 L 22 -74 L 0 -70 Z" fill="#12a46a"/>
+    <path d="M 2 -70 Q 40 -50 2 -24 Z" fill="#fffdf6" stroke="#b9ae92" stroke-width="1.2"/><path d="M -4 -66 Q -34 -48 -4 -28 Z" fill="#f3efe2" stroke="#b9ae92" stroke-width="1.2"/><circle cx="14" cy="-47" r="7" fill="url(#bub-g-body)" opacity=".85"/><ellipse cx="12" cy="-50" rx="2.4" ry="1.3" fill="#fff" opacity=".8"/>
+    <g class="s-crew"><circle cx="-24" cy="-22" r="7" fill="url(#bub-g-body)"/><circle cx="24" cy="-22" r="7" fill="url(#bub-g-body)"/><circle cx="-26" cy="-23" r="1.2" fill="#102a1e"/><circle cx="-22" cy="-23" r="1.2" fill="#102a1e"/><circle cx="22" cy="-23" r="1.2" fill="#102a1e"/><circle cx="26" cy="-23" r="1.2" fill="#102a1e"/></g>
+    <g class="s-loot"><rect x="-12" y="-30" width="20" height="12" rx="2" fill="#8b5a2b" stroke="#4a2e12"/><rect x="-12" y="-26" width="20" height="2.4" fill="#f7c948"/><circle cx="-6" cy="-33" r="2.4" fill="#ffe48a"/><circle cx="2" cy="-34" r="2" fill="#9be7c4"/></g>
+    <path d="M -56 -18 Q 0 -12 56 -18 Q 50 2 0 2 Q -50 2 -56 -18 Z" fill="#8b5a2b" stroke="#4a2e12" stroke-width="1.4"/><path d="M -50 -10 Q 0 -4 50 -10" stroke="#4a2e12" stroke-width="1" fill="none"/>
+    <circle cx="-26" cy="-9" r="3" fill="#ffe48a" stroke="#4a2e12"/><circle cx="0" cy="-8" r="3" fill="#ffe48a" stroke="#4a2e12"/><circle cx="26" cy="-9" r="3" fill="#ffe48a" stroke="#4a2e12"/></svg>`;
   const ROCKET_SVG = `<svg viewBox="-24 -96 48 100" aria-hidden="true"><g class="r-flame" style="display:none"><path d="M -8 0 Q 0 26 8 0 Z" fill="#f7a531"/><path d="M -4 0 Q 0 14 4 0 Z" fill="#ffe48a"/></g>
     <path d="M 0 -94 C 16 -76 16 -30 12 -4 L -12 -4 C -16 -30 -16 -76 0 -94 Z" fill="#f3f5f7" stroke="#4a5560" stroke-width="1.5"/><circle cx="0" cy="-58" r="7" fill="url(#bub-g-body)" stroke="#4a5560" stroke-width="1.2"/>
     <path d="M -12 -26 L -22 -2 L -12 -6 Z M 12 -26 L 22 -2 L 12 -6 Z" fill="#12a46a" stroke="#044a30" stroke-width="1"/><text x="0" y="-16" text-anchor="middle" font-size="6.5" font-weight="700" fill="#4a5560">B-1</text></svg>`;
@@ -6526,15 +6543,42 @@ const Bublik = (()=>{
       info.mayor = win.name; addCrown(win);
       chron(`Volby ${g(win.name, 'vyhrál', 'vyhrála')} ${win.name} (${votes} ${bubWordForm(votes, 'hlas', 'hlasy', 'hlasů')}). Slibuje bubliny pro všechny.`);
     },
+    // v0.9.73: loď připluje, nalodí se jen část posádky, odpluje opravdu pryč z obrazovky a pak se vrátí s pokladem
     async pirati(info){
-      const v = village;
-      const ship = eraItem('bub-ship', SHIP_SVG, 0, 0);
-      ship.style.setProperty('--y', `${floorY() - 74}px`); ship.style.setProperty('--x1', `${vw() - 140}px`);
-      chron('Ahoj! Na obzoru se objevila loď. Piráti hledají poklad.');
+      const ok = () => !!village, T = { cancelled: false };
+      const W = 120, shipY = floorY() - 70;
+      const ship = eraItem('bub-ship', SHIP_SVG, -W - 20, shipY);
+      const at = x => { ship.style.transform = `translate(${(x - W / 2).toFixed(0)}px,${shipY}px)`; };
+      const sail = (x0, x1, ms) => tween(ms, e => at(x0 + (x1 - x0) * e), T, ease.inOut);
+      chron('Ahoj! Na obzoru se objevila loď. Piráti hledají posádku.');
       info.ship = true;
-      await wait(20000, { cancelled: false });
-      if(!village) return;
-      chron(pick(['Piráti našli poklad: tři bubliny a jednu M2.', 'Kapitán prohlásil spodní okraj za pirátské vody.', 'Piráti zakotvili u táboráku. Prý kvůli buřtům.']));
+      const dock = freeFloor(W + 20, village.fireX + 160) ?? vw() * .3;
+      await sail(-W, dock, 7000); if(!ok()) return;
+      // nalodí se dva (nebo tři) — zbytek zůstává doma
+      const crewN = Math.min(3, Math.max(1, Math.floor(crew.length / 3))), sailors = crewFree(crewN);
+      await Promise.all(sailors.map(c => vScript([c], async () => { await cGo(c, dock, floorY(), 160); c.el.style.display = 'none'; c.home = ship; })));
+      if(!sailors.length){ await sail(dock, vw() + W, 9000); ship.remove(); return; }
+      ship.classList.add('crewed');
+      chron(`${sailors.map(c => c.name).join(' a ')} ${sailors.length > 1 ? 'se nalodili' : g(sailors[0] ? sailors[0].name : '', 'se nalodil', 'se nalodila')}. Ostatní mávají z břehu.`);
+      crew.filter(c => !sailors.includes(c) && !c.dead && c.act === 'idle' && !c.home).slice(0, 3).forEach(c => cSay(c, pick(['Ahoj! Přivezte suvenýr!', 'Nezapomeňte pohlednici.', 'Kdo bude zalévat kytky?']), 2200));
+      await wait(1500, T); if(!ok()) return;
+      await sail(dock, vw() + W, 9000); if(!ok()) return;
+      at(-W * 3);
+      chron('Loď zmizela za obzorem. Bublíkovo čeká.');
+      await wait(rand(100000, 160000), T); if(!ok()) return;
+      // návrat s pokladem
+      ship.classList.add('loot');
+      chron('Loď se vrací! Na palubě něco třpytivého.');
+      const dock2 = freeFloor(W + 20, village.fireX - 160) ?? vw() * .6;
+      await sail(-W, dock2, 8000); if(!ok()) return;
+      sailors.forEach((c, i) => { if(c.dead) return; c.home = null; c.el.style.display = ''; c.x = c.tx = dock2 + (i - 1) * 30; c.y = c.ty = floorY(); c.act = 'idle'; c.until = performance.now() + 4000; });
+      ship.classList.remove('loot', 'crewed');
+      const cx = freeFloor(BLD.chest.w + 8, dock2) ?? dock2;
+      if(village.bi !== undefined) placeThing('chest', cx, sailors[0] ? sailors[0].name : 'Kapitán');
+      if(sailors[0]) cSay(sailors[0], pick(['Poklad! Tři bubliny a jedna M2.', 'Byli jsme až v Excelu. Tohle jsme přivezli.']), 2600);
+      await wait(4000, T); if(!ok()) return;
+      await sail(dock2, vw() + W, 8000); if(!ok()) return;
+      ship.remove();
     },
     async veda(info){
       const v = village, rx = freeFloor(70, v.fireX - 170) ?? v.fireX - 170;
