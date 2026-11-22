@@ -15,6 +15,7 @@
 !migration_v099_swap_mode.sql
 !migration_v0934_invite_safety.sql
 !migration_v0935_pending_mode.sql
+!migration_v0977_rls_hardening.sql
 !manifest.json
 !sw.js
 !CLAUDE.md
