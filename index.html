@@ -2820,7 +2820,7 @@ window.addEventListener('unhandledrejection', e => {
 // odsud, ručně je nepřepisuj. sw.js se od v0.9.29 nebumpuje — je z něj
 // kill-switch bez cache (viz killServiceWorkers() a komentář v sw.js).
 // ============================================================
-const APP_VERSION = '0.9.76';
+const APP_VERSION = '0.9.77';
 
 // Krátký git hash nasazeného buildu. Placeholder níž přepíše build-stamp.js
 // z CF_PAGES_COMMIT_SHA (Cloudflare Pages build command: `node build-stamp.js`).
@@ -3425,6 +3425,8 @@ async function joinOrgByCode(orgCode){
     const reason = data && data.reason;
     if(reason === 'expired'){
       showAuthError('signup', t('invite.expired'));
+    } else if(reason === 'too_many'){
+      showAuthError('signup', 'Příliš mnoho neplatných kódů. Zkus to znovu za hodinu.');
     } else if(reason === 'not_found'){
       showAuthError('signup', `Kód firmy "${orgCode}" nebyl nalezen. Zkontroluj kód u svého vedoucího.`);
     } else {
@@ -15460,12 +15462,14 @@ async function loadOrgCode(){
 }
 
 async function regenerateInviteCode(){
-  const newCode = Math.random().toString(36).slice(2,8).toUpperCase();
-  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
-  const { error } = await sb.from('organizations')
-    .update({ invite_code: newCode, invite_expires_at: expiresAt })
-    .eq('id', currentOrg.id);
-  if(error){ toast('Chyba: ' + error.message, 'error'); return; }
+  // v0.9.77: kód vzniká v DB (kryptografický zdroj, 8 znaků, expirace 7 dní).
+  // Dřív update na organizations tiše neuspěl — tabulka nemá UPDATE policy.
+  const { data: rc, error } = await dbRpc('regenerate_invite_code', { p_org_id: currentOrg.id },
+    { action: 'Obnovení kódu firmy' });
+  if(error) return;
+  if(!rc || !rc.ok){ toast('Kód může obnovit jen admin firmy', 'error'); return; }
+  const newCode = rc.code;
+  const expiresAt = rc.expires_at;
   currentOrg.invite_code = newCode;
   currentOrg.invite_expires_at = expiresAt;
   const badge = document.getElementById('org-code-badge');
@@ -16340,9 +16344,10 @@ async function saveProfile(){
   let notes = (myEmp.notes||'').replace(/tel:[^\n\[]+/,'').trim();
   if(phone) notes = `tel:${phone}` + (notes ? '\n'+notes : '');
 
-  const { error } = await sb.from('employees').update({ name, notes }).eq('id', currentEmployeeId);
-  if(error){
-    if(res){res.style.display='block';res.style.color='var(--red)';res.textContent='Chyba: '+error.message;}
+  // v0.9.77: zaměstnanec smí měnit jen jméno a poznámku — přes RPC, ne přímým updatem
+  const { data: pr, error } = await dbRpc('update_own_profile', { p_name: name, p_notes: notes });
+  if(error || !pr || !pr.ok){
+    if(res){res.style.display='block';res.style.color='var(--red)';res.textContent='Chyba: '+(error ? error.message : 'uložení se nepovedlo');}
     return;
   }
   // Update local cache
@@ -16415,7 +16420,7 @@ async function openAccessModal(empId){
       <label style="font-size:12px;font-weight:600;color:var(--ink-soft)">Role</label>
       <select id="member-role-select" style="padding:8px 10px;border:1.5px solid var(--line);border-radius:8px;font-size:13px;font-family:inherit;width:100%">
         <option value="employee"${member.role==='employee'?' selected':''}>Zaměstnanec</option>
-        <option value="branch_manager"${member.role==='branch_manager'?' selected':''}>Manažer pobočky</option>
+        ${member.role==='branch_manager' ? '<option value="branch_manager" selected>Manažer pobočky</option>' : ''}
         <option value="admin"${member.role==='admin'?' selected':''}>Admin</option>
       </select>
       <button onclick="changeMemberRole('${member.id}')" class="btn-outline" style="margin-top:6px;width:100%">Uložit roli</button>
@@ -22872,80 +22877,46 @@ async function loadSwapRequests(){
 // odebere a navázaná žádost o volno zruší (cancelSwapLeaveDay). Každá větev
 // (úspěch i selhání) končí toastem — nikdy tiché nic.
 async function applySwapToSchedule(sw){
-  const { data: dayShifts, error: dayErr } = await dbRun(
-    sb.from('shifts').select('*').eq('org_id', currentOrg.id).eq('shift_date', sw.requester_date)
-      .in('employee_id', [sw.requester_id, sw.target_id]),
-    'select shifts (swap resolve)', { action: 'Schválení výměny' });
-  if(dayErr) return; // dbRun s action už toastnul
-  const reqShift = (dayShifts||[]).find(s=>s.employee_id===sw.requester_id && s.shift_type_code && s.shift_type_code!=='X');
-  const tgtShift = (dayShifts||[]).find(s=>s.employee_id===sw.target_id && s.shift_type_code && s.shift_type_code!=='X');
-  const tgtX     = (dayShifts||[]).find(s=>s.employee_id===sw.target_id && s.shift_type_code==='X');
-  if(!reqShift){
-    toast('Výměna schválena, ale směna žadatele už v rozpisu není. Zkontroluj rozpis ručně.', 'error');
-    return;
+  // v0.9.77: zápis do rozpisu dělá DB funkce apply_shift_swap (zaměstnanec do
+  // `shifts` zapisovat nesmí, dřív to v auto režimu tiše selhalo). Funkce
+  // zároveň nastaví výměně status 'approved'. Vrací true při úspěchu.
+  const { data, error } = await dbRpc('apply_shift_swap', { p_swap_id: sw.id }, { action: 'Zápis výměny do rozpisu' });
+  if(error) return false;
+  if(!data || !data.ok){
+    const msgs = {
+      requester_shift_missing: 'Směna žadatele už v rozpisu není. Zkontroluj rozpis ručně.',
+      already_resolved: 'Nabídka už byla vyřízena.',
+      needs_approval: 'Výměna čeká na schválení vedoucím.',
+      not_target: 'Tuto výměnu nemůžeš přijmout.',
+      admin_only: 'Schválit výměnu může jen admin.',
+      no_target: 'Otevřená nabídka nemá kolegu — předej směnu ručně v rozpisu.',
+      same_employee: 'Výměna sama se sebou nejde.',
+    };
+    toast(msgs[data && data.error] || 'Výměnu se nepodařilo zapsat do rozpisu', 'error');
+    return false;
   }
-  if(tgtShift){
-    const [{ error: eA }, { error: eB }] = await Promise.all([
-      dbUpdate('shifts', { employee_id: sw.target_id,    is_auto: false }, { id: reqShift.id }, { action: 'Výměna směn' }),
-      dbUpdate('shifts', { employee_id: sw.requester_id, is_auto: false }, { id: tgtShift.id }, { action: 'Výměna směn' }),
-    ]);
-    await loadShiftsForMonth(true);
-    if(eA || eB){ toast('Výměnu se nepodařilo zapsat celou — zkontroluj rozpis', 'error'); return; }
-    toast('Směny vyměněny a uloženy do rozpisu');
-    return;
-  }
-  if(tgtX){
-    // unique (employee_id, shift_date): X musí pryč dřív, než na kolegu převedeme směnu
-    const { error: eX } = await dbDelete('shifts', { id: tgtX.id }, { action: 'Odebrání X kvůli výměně' });
-    if(eX){ toast('X kolegy se nepodařilo odebrat — výměna NEBYLA zapsána do rozpisu', 'error'); return; }
-  }
-  const { error: eT } = await dbUpdate('shifts', { employee_id: sw.target_id, is_auto: false }, { id: reqShift.id }, { action: 'Převod směny' });
-  if(eT){
-    toast('Směnu se nepodařilo převést na kolegu' + (tgtX ? ' (jeho X už bylo odebráno — zkontroluj rozpis)' : ''), 'error');
-    await loadShiftsForMonth(true);
-    return;
-  }
-  if(tgtX?.leave_request_id) await cancelSwapLeaveDay(tgtX.leave_request_id, sw);
   await loadShiftsForMonth(true);
-  toast(tgtX
-    ? 'Směna převedena na kolegu — jeho X (volno) na ten den bylo zrušeno'
-    : 'Směna převedena na kolegu (ten den žádnou vlastní neměl)');
-}
-
-// v0.9.9: X kolegy bylo navázané na žádost o volno — jednodenní žádost se
-// rovnou zruší (rejected + poznámka), u vícedenní se jen nahlas ohlásí, že
-// jeden den z rozpisu zmizel a žádost zůstává. Selhání tady nesmí shodit
-// už provedenou výměnu (RLS může zápis zaměstnanci odepřít) — proto toast,
-// ne throw.
-async function cancelSwapLeaveDay(leaveId, sw){
-  try {
-    const { data: l } = await dbRun(sb.from('leave_requests').select('*').eq('id', leaveId).maybeSingle(),
-      'select leave_requests (swap X)');
-    if(!l) return;
-    if(l.date_from === l.date_to){
-      const note = 'Zrušeno výměnou směn — zaměstnanec přijal směnu na tento den';
-      const { error } = await dbUpdate('leave_requests', { status:'rejected', decision_note: note }, { id: leaveId });
-      if(!error){
-        const cached = leaveRequests.find(x=>x.id===leaveId);
-        if(cached) Object.assign(cached, { status:'rejected', decision_note: note });
-        toast('Navázaná žádost o volno na ten den byla zrušena');
-      } else {
-        toast('X odebráno, ale žádost o volno se nepodařilo zrušit — uprav ji ručně v Žádostech', 'error');
-      }
-    } else {
-      toast(`Pozor: X patřilo k vícedenní dovolené (${l.date_from} – ${l.date_to}). Den ${sw.requester_date} byl z rozpisu odebrán, žádost zůstává — zkontroluj ji v Žádostech.`, 'error');
-    }
-  } catch(e){ console.error('cancelSwapLeaveDay', e); }
+  if(data.result === 'swapped') toast('Směny vyměněny a uloženy do rozpisu');
+  else if(data.result === 'moved_x_removed') toast('Směna převedena na kolegu — jeho X (volno) na ten den bylo zrušeno');
+  else toast('Směna převedena na kolegu (ten den žádnou vlastní neměl)');
+  if(data.leave_cancelled){
+    toast('Navázaná žádost o volno na ten den byla zrušena');
+    try { await loadLeaveRequests?.(); } catch(e){ console.warn('reload leave po výměně', e); }
+  } else if(data.leave_multiday){
+    toast(`Pozor: X patřilo k vícedenní dovolené. Den ${sw.requester_date} byl z rozpisu odebrán, žádost zůstává — zkontroluj ji v Žádostech.`, 'error');
+  }
+  return true;
 }
 
 async function resolveSwap(id, newStatus){
   try {
     const { data: sw } = await sb.from('shift_swaps').select('*').eq('id', id).single();
-    const { error } = await sb.from('shift_swaps').update({ status: newStatus }).eq('id', id);
-    if(error) throw error;
     if(newStatus==='approved' && sw?.requester_id && sw?.target_id && sw?.requester_date){
-      await applySwapToSchedule(sw);
+      // v0.9.77: RPC zapíše rozpis a nastaví status 'approved' najednou
+      if(!await applySwapToSchedule(sw)) return;
     } else {
+      const { error } = await sb.from('shift_swaps').update({ status: newStatus }).eq('id', id);
+      if(error) throw error;
       toast(newStatus==='approved' ? 'Schváleno — otevřená nabídka, směnu předej ručně v rozpisu' : 'Odmítnuto');
     }
     // v0.9.8: rozhodnutí vedoucího → notifikace oběma stranám (selhání
@@ -23018,6 +22989,7 @@ async function respondToSwap(swapId, decision){
   if(!sw){ toast('Nabídka výměny už neexistuje', 'error'); overlay?.classList.remove('open'); return; }
   if(sw.status !== 'pending'){ toast('Nabídka už byla vyřízena'); overlay?.classList.remove('open'); return; }
   // otevřená nabídka nemá target_id — přebírá ji ten, kdo odpovídá
+  const wasOpenOffer = !sw.target_id;
   if(!sw.target_id) sw.target_id = currentEmployeeId;
 
   // v0.9.9: režim z řádku výměny (zapsal ho submitShiftSwap) — platí ten
@@ -23030,6 +23002,12 @@ async function respondToSwap(swapId, decision){
   const managers = orgMembers.filter(m => (m.role==='admin' || m.role==='branch_manager') && m.user_id);
   const codeDate = `${sw.requester_code} (${sw.requester_date})`;
 
+  if(decision === 'rejected' && wasOpenOffer){
+    // v0.9.77: otevřenou nabídku nemá kdo odmítnout za všechny — kolega ji jen přeskočí
+    toast('Nabídku jsi přeskočil/a');
+    overlay?.classList.remove('open');
+    return;
+  }
   if(decision === 'rejected'){
     const { error } = await dbUpdate('shift_swaps', { status: 'rejected' }, { id: swapId }, { action: 'Odmítnutí výměny' });
     if(error) return;
@@ -23043,7 +23021,9 @@ async function respondToSwap(swapId, decision){
     } catch(e){ console.error('swap respond notif error', e); }
     toast('Nabídka odmítnuta');
   } else if(swapMode === 'approval'){
-    const { error } = await dbUpdate('shift_swaps', { status: 'accepted' }, { id: swapId }, { action: 'Přijetí výměny' });
+    // v0.9.77: u otevřené nabídky se kolega, který ji přijal, zapíše do DB (dřív jen v paměti,
+    // takže vedoucí pak schvaloval výměnu bez cíle)
+    const { error } = await dbUpdate('shift_swaps', { status: 'accepted', target_id: sw.target_id }, { id: swapId }, { action: 'Přijetí výměny' });
     if(error) return;
     try {
       const rows = managers.map(m => ({
@@ -23063,9 +23043,7 @@ async function respondToSwap(swapId, decision){
     toast('Přijato — výměna čeká na schválení vedoucím');
   } else {
     // auto režim: rozpis hned (applySwapToSchedule si toastne sám), vedoucí jen informativně
-    await applySwapToSchedule(sw);
-    const { error } = await dbUpdate('shift_swaps', { status: 'approved' }, { id: swapId }, { action: 'Dokončení výměny' });
-    if(error) return;
+    if(!await applySwapToSchedule(sw)) return;   // RPC zapíše rozpis i status 'approved'
     try {
       const rows = managers.map(m => ({
         org_id: currentOrg.id, user_id: m.user_id, type: 'swap_resolved',
