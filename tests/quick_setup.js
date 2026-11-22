@@ -112,19 +112,28 @@ const plan = inp => vm.runInContext('buildQuickSetupPlan(' + JSON.stringify(inp)
 
 // ── 1) plán ──────────────────────────────────────────────────────────────
 {
-  const p = plan({ employees: 10, mode: 'flex', perDay: 2 });
+  const p = plan({ employees: 4, mode: 'flex', perDay: 2 });
   check('flex: žádné typy směn', p.types.length === 0);
   check('flex: pobočka chce 2 lidi každý den', [0,1,2,3,4,5,6].every(d => p.branch.weekly_pattern[d].min === 2 && p.branch.weekly_pattern[d].max === 2));
-  check('flex: 10 zaměstnanců, všichni smí na pobočku A', p.employees.length === 10 && p.employees.every(e => e.branch_limits.A && e.name.startsWith('Zaměstnanec ')));
+  check('flex: 4 zaměstnanci, všichni smí na pobočku A', p.employees.length === 4 && p.employees.every(e => e.branch_limits.A && e.name.startsWith('Zaměstnanec ')));
   check('flex: fond 40 h týdně', p.stats.weeklyHours === 40);
-  check('flex: výchozí limity jako ve formuláři (12/15/17)', p.employees[0].min_shifts === 12 && p.employees[0].target_shifts === 15 && p.employees[0].max_shifts === 17);
+  check('flex: akorát lidí → výchozí limity jako ve formuláři (12/15/17)', p.employees[0].min_shifts === 12 && p.employees[0].target_shifts === 15 && p.employees[0].max_shifts === 17);
 }
 {
-  const p = plan({ employees: 8, mode: 'fixed', length: 8, night: false });
+  const p = plan({ employees: 2, mode: 'fixed', length: 8, night: false });
   check('8 h bez noci: Ranní + Odpolední', p.types.map(t => t.code).join() === 'AR,AO' && p.types[0].label === 'Ranní 6–14');
   check('8 h bez noci: dvousměnný fond 38,75 h', p.stats.weeklyHours === 38.75);
   check('8 h: pobočka chce obsadit oba typy denně', p.branch.weekly_pattern[3].min === 2 && p.branch.weekly_pattern[3].max === 2);
-  check('8 h: cíl ~21 směn, max o 2 víc', p.employees[0].target_shifts === 21 && p.employees[0].max_shifts === 23);
+  check('8 h: plný úvazek ~21 směn, max o 2 víc', p.employees[0].target_shifts === 21 && p.employees[0].max_shifts === 23);
+}
+{
+  // regrese: 10 lidí a 2 denně dá za měsíc jen ~60 směn, tj. ~6 na člověka. Výchozí minimum 12
+  // by nešlo splnit nikdy (první rozpis nové firmy pak měl červenou tvrdou podmínku).
+  const p = plan({ employees: 10, mode: 'flex', perDay: 2 });
+  const e = p.employees[0], dem28 = 2 * 28;
+  check('flex: přebytek lidí → minimum jde splnit', e.min_shifts * 10 <= dem28, 'min ' + e.min_shifts);
+  check('flex: přebytek lidí → cíl odpovídá reálnému podílu (6)', e.target_shifts === 6 && e.min_shifts <= e.target_shifts && e.target_shifts <= e.max_shifts);
+  check('flex: přebytek lidí je v souhrnu označen', p.stats.overstaffed === true && p.stats.actualPerPerson === 6 && p.stats.perPerson === 15);
 }
 {
   const p = plan({ employees: 6, mode: 'fixed', length: 8, night: true });
@@ -194,6 +203,50 @@ GEN.forEach((g, i) => {
   catch(e){ check('generátor: ' + g.label, false, 'vyhodil: ' + e.message); return; }
   check('generátor: ' + g.label + ' — bez porušení', r.errs.length === 0, r.errs.slice(0, 3).join('; '));
   check('generátor: ' + g.label + ' — obsazeno ' + Math.round(r.fill * 100) + ' % (≥ ' + Math.round(g.min * 100) + ' %)', r.fill >= g.min, r.filled + '/' + r.demand);
+});
+
+// ── 3) první rozpis nové firmy musí splnit VŠE ───────────────────────────
+// Stejná smyčka jako runAutoSchedule(): až 150 kandidátů, stop při ≥ 95 % bez tvrdých
+// selhání. Tvrdé jsou pokrytí, minimum směn i víkendy (nejpřísnější možné nastavení).
+function firstRun(inp, seedN, year, month){
+  const p = plan(inp);
+  const sb = makeSandbox(seedN);
+  const branches = [{ id: 'b1', ...p.branch, sort_order: 0 }];
+  const shiftTypes = p.types.map((t, i) => ({ id: 't' + i, branch_id: 'b1', code: t.code, label: t.label, color: t.color, sort_order: t.sort_order }));
+  const employees = p.employees.map((e, i) => ({ id: 'e' + i, ...e }));
+  vm.runInContext(
+    'schedYear = ' + year + '; schedMonth = ' + month + ';\n' +
+    'branches = ' + JSON.stringify(branches) + ';\n' +
+    'shiftTypes = ' + JSON.stringify(shiftTypes) + ';\n' +
+    'employees = ' + JSON.stringify(employees) + ';\n' +
+    'shifts = {}; unavail = {};\n' +
+    "orgSettings = { weekend_priority:true };\n" +
+    'hardConstraints = { coverage:true, minshifts:true, weekends:true };', sb, { filename: 'seed' });
+  const dim = new Date(year, month + 1, 0).getDate();
+  let best = null;
+  for(let run = 0; run < 150; run++){
+    const cand = sb.buildSchedule(dim, {});
+    const q = sb.computeQuality(cand, {});
+    if(q.hardFailed.length === 0 && (!best || q.pct > best.pct)) best = q;
+    if(best && best.pct >= 95) break;
+  }
+  return best;
+}
+const FIRST = [];
+[1, 2, 3, 5].forEach(pd => [pd * 2, pd * 3, pd * 5, pd * 8, 20, 30].forEach(n => FIRST.push({ employees: n, mode: 'flex', perDay: pd })));
+[6, 8, 12].forEach(len => [false, true].forEach(night => [4, 6, 8, 12, 20].forEach(n => FIRST.push({ employees: n, mode: 'fixed', length: len, night }))));
+[[2026, 1], [2026, 10], [2026, 11]].forEach(([y, m]) => {   // únor (28 dní), listopad (30), prosinec (31)
+  let bad = [], total = 0;
+  FIRST.forEach((inp, i) => {
+    const p = plan(inp);
+    if(!p.stats.enough) return;                            // nedostatek lidí appka předem hlásí
+    total++;
+    let q;
+    try { q = firstRun(inp, 100 + i, y, m); } catch(e){ bad.push(JSON.stringify(inp) + ' vyhodil ' + e.message); return; }
+    if(!q) bad.push(JSON.stringify(inp) + ' → tvrdá podmínka nesplněna');
+    else if(q.pct < 95) bad.push(JSON.stringify(inp) + ' → jen ' + q.pct + ' %');
+  });
+  check('první rozpis ' + (m + 1) + '/' + y + ': ' + total + ' konfigurací bez tvrdého selhání a ≥ 95 %', bad.length === 0, bad.slice(0, 4).join('; '));
 });
 
 if(fail){ console.error('\n' + fail + ' kontrol selhalo'); process.exit(1); }
