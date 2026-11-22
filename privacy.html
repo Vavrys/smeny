@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Zásady ochrany osobních údajů — Směny</title>
+<style>
+  :root{--accent:#2b6e4f;--ink:#1d2a24;--soft:#5b6b63;--line:#dfe7e2;--bg:#f6f9f7}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  main{max-width:760px;margin:0 auto;padding:24px 18px 64px}
+  h1{font-size:26px;margin:8px 0 4px}
+  h2{font-size:18px;margin:28px 0 6px;color:var(--accent)}
+  p,li{color:var(--ink)} .soft{color:var(--soft);font-size:14px}
+  a{color:var(--accent)}
+  table{border-collapse:collapse;width:100%;font-size:14.5px;margin:8px 0}
+  th,td{border:1px solid var(--line);padding:7px 9px;text-align:left;vertical-align:top}
+  th{background:#eaf2ee}
+  .todo{background:#fff4cc;border:1px solid #e6c84d;border-radius:6px;padding:1px 5px;font-weight:600}
+  .draft{background:#fff4cc;border:1px solid #e6c84d;border-radius:8px;padding:10px 12px;font-size:14px;margin:12px 0}
+</style>
+</head>
+<body>
+<main>
+<p><a href="/">← Zpět do aplikace</a></p>
+<h1>Zásady ochrany osobních údajů</h1>
+<p class="soft">Aplikace Směny (plánování směn) · platné od <span class="todo">DOPLNIT datum</span></p>
+
+<div class="draft"><strong>Koncept k doplnění.</strong> Žlutě označená místa vyplň před vydáním a text nech projít
+odborníkem na ochranu osobních údajů. Tento dokument není právní poradenství.</div>
+
+<h2>1. Kdo je kdo</h2>
+<p><strong>Provozovatel aplikace</strong> (zpracovatel): <span class="todo">DOPLNIT jméno / firma, IČO, adresa, e-mail</span>.</p>
+<p><strong>Správcem</strong> údajů zaměstnanců a rozpisů je firma (zaměstnavatel), která si v aplikaci založila organizaci
+a zve do ní své lidi. Provozovatel zpracovává údaje jen pro ni a podle jejích pokynů. U údajů o samotném přihlašovacím účtu
+administrátora firmy a o provozu aplikace (bezpečnostní logy) jedná provozovatel jako správce.</p>
+
+<h2>2. Jaké údaje zpracováváme</h2>
+<table>
+<tr><th>Údaj</th><th>Účel</th><th>Právní základ</th></tr>
+<tr><td>E-mail a heslo (heslo uložené jen jako hash)</td><td>přihlášení, obnova přístupu</td><td>plnění smlouvy / pokynu zaměstnavatele</td></tr>
+<tr><td>Jméno zaměstnance, poznámka, telefon (nepovinný), nastavení směn a limitů</td><td>sestavení rozpisu</td><td>oprávněný zájem zaměstnavatele, plnění právních povinností (evidence pracovní doby)</td></tr>
+<tr><td>Rozpis směn, nedostupnost („X"), žádosti o volno, výměny směn</td><td>plánování a evidence práce</td><td>plnění právních povinností zaměstnavatele, oprávněný zájem</td></tr>
+<tr><td>Notifikace a historie změn (kdo a kdy co změnil)</td><td>informování uživatelů, bezpečnost a dohledatelnost změn</td><td>oprávněný zájem</td></tr>
+<tr><td>Neúspěšná přihlášení (e-mail, čas)</td><td>ochrana účtů před zneužitím</td><td>oprávněný zájem provozovatele</td></tr>
+<tr><td>Zprávy z podpory a zpětná vazba k nápovědě</td><td>vyřízení dotazu, zlepšení aplikace</td><td>oprávněný zájem / souhlas</td></tr>
+</table>
+<p>Neprovádíme profilování ani automatizované rozhodování s právními účinky. Automatický rozpis je návrh,
+který schvaluje a publikuje vedoucí.</p>
+
+<h2>3. Komu údaje předáváme</h2>
+<ul>
+<li><strong>Supabase</strong> — databáze a přihlašování, region <span class="todo">OVĚŘIT a doplnit (EU/jiný)</span>.</li>
+<li><strong>Cloudflare</strong> — hosting aplikace a doručování stránek.</li>
+<li><strong>Poskytovatel e-mailů / notifikací</strong> <span class="todo">DOPLNIT, pokud se používá</span>.</li>
+<li>Veřejné CDN knihovny a písma načítané při otevření aplikace mohou vidět IP adresu návštěvníka
+<span class="todo">DOPLNIT / nahradit vlastním hostingem písem</span>.</li>
+</ul>
+<p>Údaje o zaměstnanci vidí ve firmě jen ti, kdo je k práci potřebují: administrátor a vedoucí celou organizaci,
+zaměstnanec rozpis kolegů a vlastní údaje. Data různých firem jsou v databázi odděleně.</p>
+
+<h2>4. Jak dlouho údaje uchováváme</h2>
+<ul>
+<li>Údaje účtu a rozpisy po dobu, kdy firma aplikaci používá.</li>
+<li>Smazáním účtu zaměstnance zaniká přihlášení, notifikace a vazba na firmu. Záznamy o odpracované době může
+zaměstnavatel uchovat po dobu, kterou mu ukládá zákon <span class="todo">DOPLNIT lhůtu po konzultaci</span>.</li>
+<li>Zrušením organizace se smažou všechna její data v aplikaci.</li>
+<li>Záznamy o neúspěšných přihláštěních <span class="todo">DOPLNIT lhůtu, např. 90 dní</span>.</li>
+</ul>
+
+<h2>5. Tvoje práva</h2>
+<p>Máš právo na přístup k údajům, jejich opravu, výmaz, omezení zpracování, přenesení a právo vznést námitku.
+V aplikaci to uděláš přímo: <strong>Profil → Moje data a soukromí</strong> — stažení všech údajů (soubor JSON) a smazání účtu.
+Opravit jméno a telefon můžeš v Profilu. Ostatní požadavky (např. smazání záznamu o směnách) vyřídí
+administrátor tvé firmy; můžeš se obrátit i na provozovatele na <span class="todo">DOPLNIT e-mail</span>.</p>
+<p>Stížnost můžeš podat u Úřadu pro ochranu osobních údajů (<a href="https://www.uoou.cz" rel="noopener">uoou.cz</a>).</p>
+
+<h2>6. Cookies a úložiště prohlížeče</h2>
+<p>Aplikace nepoužívá reklamní ani sledovací cookies. Přihlášení a osobní nastavení (např. vzhled, tipy, které už jsi viděl)
+ukládá v úložišti prohlížeče, bez kterého by nefungovala.</p>
+
+<h2>7. Bezpečnost</h2>
+<p>Komunikace je šifrovaná (HTTPS), data jsou chráněná pravidly přístupu na úrovni databáze (každá firma vidí jen svá data),
+hesla se neukládají v čitelné podobě. O případném porušení zabezpečení budeme informovat podle zákona.</p>
+
+<p class="soft">Poslední úprava: <span class="todo">DOPLNIT datum</span></p>
+</main>
+</body>
+</html>
