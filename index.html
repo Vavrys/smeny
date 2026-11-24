@@ -2832,7 +2832,7 @@ window.addEventListener('unhandledrejection', e => {
 // odsud, ručně je nepřepisuj. sw.js se od v0.9.29 nebumpuje — je z něj
 // kill-switch bez cache (viz killServiceWorkers() a komentář v sw.js).
 // ============================================================
-const APP_VERSION = '0.9.83';
+const APP_VERSION = '0.9.84';
 
 // Krátký git hash nasazeného buildu. Placeholder níž přepíše build-stamp.js
 // z CF_PAGES_COMMIT_SHA (Cloudflare Pages build command: `node build-stamp.js`).
@@ -5040,13 +5040,13 @@ const Bublik = (()=>{
   function crewMax(idleFor){ return idleFor < 300000 ? 0 : Math.min(6, 2 + Math.floor((idleFor - 300000) / 90000)); }
   // rozdělení: natáhne se, zaškrtí, prásk — a jsou dva (tři…)
   async function crewSplit(tk){
-    const n = crew.length ? 1 : 2;
+    const n = 1;   // v0.9.84: první rozdělení je na dva (Bublík + 1), další přibývají po jednom
     await travelTo(S.x, S.y, tk);
     moment('rozdělil se na víc Bublíků');
     const used = crew.map(c => c.role);
     const nextRole = () => { const r = CREW_ROLES.filter(x => !used.includes(x))[0] || pick(CREW_ROLES); used.push(r); return r; };
     // v0.9.67: další Bublíčci vznikají pokaždé jinak
-    const style = n === 2 ? 'split' : pick(['split', 'copy', 'bud', 'sneeze']);
+    const style = !crew.length ? 'split' : pick(['split', 'copy', 'bud', 'sneeze']);
     if(style === 'copy'){
       const side = S.x > vw() / 2 ? -1 : 1;
       think('Ctrl+C…', 1300, true); setMouth('cat'); S.lookOverride = { x: side, y: 0 };
@@ -5102,7 +5102,11 @@ const Bublik = (()=>{
     S.awayStats.clones = (S.awayStats.clones || 0) + n;
     await wobble(.3, 750, tk);
     S.eyeWide = 1; setEyes('happy'); setMouth('grin'); await wait(700, tk); setEyes('open'); setMouth('smile');
-    think(crew.length >= 3 ? pick(['Už nás je víc než na poradě.', 'Tým se rozrůstá. Bez pohovoru.']) : pick(['Jsme dva! Konečně můžeme hlasovat. Remíza.', 'Ahoj, já. Ahoj, já.']), 3600, true);
+    // v0.9.84: počítá i sebe (po prvním rozdělení jsou tři, ne dva)
+    const total = crew.filter(c => !c.dead).length + 1;
+    think(total >= 4 ? pick([`Už nás je ${total}. Víc než na poradě.`, 'Tým se rozrůstá. Bez pohovoru.'])
+      : total === 3 ? pick(['Jsme tři! Konečně můžeme hlasovat. A nebude remíza.', 'Tři Bublíci. Jeden mluví, dva poslouchají. Jako na poradě.'])
+      : pick(['Jsme dva! Konečně kolega, který mi rozumí.', 'Ahoj, já. Ahoj, já.', 'Jsme dva. Teď už je to oficiálně tým.']), 3600, true);
   }
   // společné hry (jen když je s kým)
   async function crewPyramid(tk){
