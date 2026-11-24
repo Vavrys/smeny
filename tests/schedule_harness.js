@@ -401,5 +401,48 @@ for (const sc of SCEN) {
   check('[11] „Jen doplnit": stávající směny beze změny, nový člověk dostane směny', errs, kept + ' zachováno, ' + added + ' doplněno');
 }
 
+// ══ 12 — Min 0 / Cíl 1 na víkend se obsadí (v0.9.82) ════════════════════════
+// Pobočka A: Pá–Ne Min 0, Cíl 1, Max 1 (ostatní dny zavřeno). Pobočka B žere kapacitu
+// (Min 2 každý den), takže všichni mají dávno splněné min_shifts. Dřív pravidlo
+// „nad minimem jen člověk pod vlastním min_shifts" nechalo Cíl prázdný (7/13 dnů);
+// s Min 1 přitom A pokryté bylo. Teď musí Min 0 + Cíl 1 pokrýt stejně jako Min 1.
+{
+  const errs = [];
+  const cover = (minA, seedN) => {
+    const sb = makeSandbox(seedN);
+    const emps = Array.from({ length: 5 }, (_, i) => ({
+      id: 'e' + i, name: 'Zam ' + i, is_fixed: false, branch_limits: { A: { max: 31 }, B: { max: 31 } },
+      min_shifts: 5, target_shifts: 8, max_shifts: 16, max_x: 5, min_free_weekends: 1, max_consecutive: 5, ideal_rest: 1,
+    }));
+    seedData(sb, { year: 2026, month: 10, employees: emps });
+    const wpA = {}, wpB = {};
+    for (let d = 0; d < 7; d++) {
+      const we = d === 5 || d === 6 || d === 0;
+      wpA[d] = we ? { min: minA, target: 1, max: 1 } : { min: 0, target: 0, max: 0 };
+      wpB[d] = { min: 2, target: 2, max: 2 };
+    }
+    vm.runInContext("branches = [{ id:'b1', code:'A', name:'A', max_per_day:1, weekly_pattern:" + JSON.stringify(wpA) + " }," +
+      "{ id:'b2', code:'B', name:'B', max_per_day:2, weekly_pattern:" + JSON.stringify(wpB) + " }];", sb);
+    const dim = daysIn(2026, 10);
+    const S = sb.buildSchedule(dim, {});
+    let days = 0, cov = 0;
+    for (let d = 1; d <= dim; d++) {
+      const ds = sb.isoDate(2026, 11, d), w = dowOf(ds);
+      if (w !== 5 && w !== 6 && w !== 0) continue;
+      days++;
+      if (Object.values(S).some(s => s.shift_date === ds && s.shift_type_code === 'A')) cov++;
+    }
+    return { days, cov };
+  };
+  let info = [];
+  for (const seedN of [1, 2, 3]) {
+    const withMin = cover(1, seedN), noMin = cover(0, seedN);
+    info.push(noMin.cov + '/' + noMin.days);
+    if (withMin.cov !== withMin.days) errs.push('seed ' + seedN + ': Min 1 nepokryl všechny víkendové dny (' + withMin.cov + '/' + withMin.days + ')');
+    if (noMin.cov !== noMin.days) errs.push('seed ' + seedN + ': Min 0 / Cíl 1 nepokryl všechny víkendové dny (' + noMin.cov + '/' + noMin.days + ')');
+  }
+  check('[12] Min 0 + Cíl 1 na víkend: pobočka se obsadí stejně jako s Min 1', errs, 'pokrytí ' + info.join(', '));
+}
+
 console.log(fail ? '\n' + fail + ' kontrol(a) selhalo' : '\nvšechny kontroly prošly');
 process.exit(fail ? 1 : 0);
