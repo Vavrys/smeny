@@ -2832,7 +2832,7 @@ window.addEventListener('unhandledrejection', e => {
 // odsud, ručně je nepřepisuj. sw.js se od v0.9.29 nebumpuje — je z něj
 // kill-switch bez cache (viz killServiceWorkers() a komentář v sw.js).
 // ============================================================
-const APP_VERSION = '0.9.82';
+const APP_VERSION = '0.9.83';
 
 // Krátký git hash nasazeného buildu. Placeholder níž přepíše build-stamp.js
 // z CF_PAGES_COMMIT_SHA (Cloudflare Pages build command: `node build-stamp.js`).
@@ -4451,7 +4451,7 @@ async function deleteQuickSetupData(){
 //   • vždy: dýchá (squash & stretch), mrká, oči sledují kurzor
 //   • reakce: najetí, klik = menu (nápověda, průvodci…), naklikání, chycení a hození
 //     (hozený docupitá zpátky; přenesený = chyť, zastav, pusť → tam bude bydlet)
-//   • nuda (jen režim „hravý"): po 30 s nečinnosti blbne (kousek každých 5–11 s), chodí
+//   • nuda (jen režim „hravý"): po 1 min nečinnosti blbne (kousek každých 5–11 s), chodí
 //     na výlety po spodku obrazovky a okukuje; při tvé aktivitě se vrátí do kouta; po 4 min usne
 //     (uspaný z menu spí, dokud na něj neklikneš)
 // Pravidla: nic sám neotevře, nezakryje obsah natrvalo, nikdy nevyčítá. Každý
@@ -4521,7 +4521,8 @@ const Bublik = (()=>{
   };
   // v0.9.53: první kousek po 30 s klidu, pak každých 5–11 s (když už blbne, ať blbne)
   // v0.9.59: usne až po hodině — mezi tím nečinnost graduje (dlouhodobé dění přijde v dalších dávkách)
-  const T = { bored: 30000, between: [5000, 11000], sleep: 3600000 };
+  // v0.9.83: první zlobení až po minutě; prvních 10 min nečinnosti ho ukončí i pohyb myši, pak už jen klik (nebo Esc)
+  const T = { bored: 60000, between: [5000, 11000], sleep: 3600000, clickOnly: 600000 };
 
   const rand = (a, b) => a + Math.random() * (b - a);
   const pick = arr => arr[Math.floor(Math.random() * arr.length)];
@@ -4697,13 +4698,14 @@ const Bublik = (()=>{
     return m;
   }
   // v0.9.54: pár bublinek z hlavy (klik, naklikání, zrození)
-  function hiccup(n){
+  function hiccup(n, slow){
     for(let i = 0; i < n; i++){
       setTimeout(() => {
         if(!started) return;
         const m = svgPoint(rand(-8, 8), -40);
-        spawnBubble(m.x, m.y, rand(9, 18), { vx: rand(-40, 40), vy: -rand(40, 75), life: rand(2.5, 4.5) });
-      }, i * 110);
+        // v0.9.83: po kliknutí méně bublinek, pomalejších a déle žijících — dají se stihnout prasknout
+        spawnBubble(m.x, m.y, slow ? rand(14, 22) : rand(9, 18), slow ? { vx: rand(-18, 18), vy: -rand(16, 28), life: rand(8, 12) } : { vx: rand(-40, 40), vy: -rand(40, 75), life: rand(2.5, 4.5) });
+      }, i * (slow ? 260 : 110));
     }
   }
   // ── v0.9.61: Rozmnožení — Bublíčci s rolemi (vzor: Shimeji se množí, Lemmings mají role) ──
@@ -7055,7 +7057,7 @@ const Bublik = (()=>{
     // v0.9.59: po 5+ min nečinnosti pohyb myši představení neukončí (ať ho ten, kdo přijde, stihne vidět);
     // když myší hýbeš souvisle přes 3 s, nabídne „klikni“. Ukončí ho klik, klávesa nebo kolečko.
     // v0.9.66: od 5 min ho neukončí ani klávesa (probouzení obrazovky) ani kolečko — jen klik nebo Esc
-    if((kind === 'move' || kind === 'key' || kind === 'wheel') && S.stage >= 3 && playful()){
+    if((kind === 'move' || kind === 'key' || kind === 'wheel') && away >= T.clickOnly && playful()){
       if(kind !== 'move' && now0 - (S.noticedAt || 0) > 8000){
         S.noticedAt = now0;
         think(pick(['Ahoj! Klávesy teď nechám být, ať omylem něco nezmáčkneš. Klikni myší a uklidím to.', 'Jsi tu? Klikni myší (nebo Esc) a vrátím se do práce.']), 4600, true);
@@ -8376,7 +8378,7 @@ const Bublik = (()=>{
       })();
       return;
     }
-    hiccup(Math.min(4, 1 + S.clicks.length));   // v0.9.54: šťouchnutí = škytne bublinkami
+    hiccup(S.clicks.length >= 3 ? 2 : 1, true);   // v0.9.54: šťouchnutí = škytne bublinkami (v0.9.83: 1–2 pomalé, ne celá spousta)
     cancelBusy(); const tk = token(); S.mode = 'react';
     (async () => {
       try{
@@ -8426,7 +8428,7 @@ const Bublik = (()=>{
   function onWinKey(e){ userActive(e && e.type === 'wheel' ? 'wheel' : e && e.key === 'Escape' ? 'click' : 'key'); }
   // v0.9.71: běží-li představení (5+ min), Enter/mezerník probouzející obrazovku nesmí nic zmáčknout —
   // ani Bublíka (dřív ho to po kliknutí na něj „probudilo“ a vše zmizelo), ani tlačítko v appce, které má zrovna fokus.
-  const showOn = () => started && S.stage >= 3 && playful();
+  const showOn = () => started && performance.now() - S.lastInput >= T.clickOnly && playful();
   function onShowKey(e){
     if(!showOn() || !(e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar')) return;
     const a = document.activeElement, typing = a && (a.isContentEditable || a.tagName === 'TEXTAREA' || (a.tagName === 'INPUT' && !/^(button|submit|checkbox|radio|reset)$/i.test(a.type)));
@@ -8631,11 +8633,11 @@ function bubDaysWord(n){ return n === 1 ? 'den' : n < 5 ? 'dny' : 'dní'; }
 function bubDayList(days){ return days.slice(0, 3).map(x => x + '.').join(', ') + (days.length > 3 ? ' a další' : ''); }
 
 // ── v0.9.59: nečinnost má příběh — úrovně, myšlenky bez opakování, pointa po návratu ──
-// Úrovně (ms nečinnosti): 0 nic · 1 nuda (30 s) · 2 průzkumník (3 min) · 3 rozmnožení (5 min)
+// Úrovně (ms nečinnosti): 0 nic · 1 nuda (1 min) · 2 průzkumník (3 min) · 3 rozmnožení (5 min)
 // · 4 falešný chaos (15 min) · 5 komunita (30 min+, dlouhodobé dění). Kousky pro úrovně 2–5 přijdou v dalších dávkách;
 // zatím se mění myšlenky, jejich četnost a hláška při přechodu.
 function bublikIdleStage(ms){
-  return ms >= 1800000 ? 5 : ms >= 900000 ? 4 : ms >= 300000 ? 3 : ms >= 180000 ? 2 : ms >= 30000 ? 1 : 0;
+  return ms >= 1800000 ? 5 : ms >= 900000 ? 4 : ms >= 300000 ? 3 : ms >= 180000 ? 2 : ms >= 60000 ? 1 : 0;
 }
 // Pytlík bez opakování: vrátí další položku, kterou ještě neviděl; když už viděl všechny, začne znovu.
 // used = pole klíčů (mění se na místě). rnd: () => 0..1.
