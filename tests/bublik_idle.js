@@ -47,8 +47,8 @@ let fail = 0;
 function check(label, cond, info){ if(!cond){ console.error('FAIL ' + label + (info ? ' — ' + info : '')); fail++; } else console.log('ok   ' + label); }
 
 // úrovně
-check('stage 0 do 30 s', ctx.ST(29999) === 0);
-check('stage 1 od 30 s', ctx.ST(30000) === 1 && ctx.ST(179999) === 1);
+check('stage 0 do 1 min', ctx.ST(59999) === 0);
+check('stage 1 od 1 min', ctx.ST(60000) === 1 && ctx.ST(179999) === 1);
 check('stage 2 od 3 min', ctx.ST(180000) === 2);
 check('stage 3 od 5 min', ctx.ST(300000) === 3);
 check('stage 4 od 15 min', ctx.ST(900000) === 4);
