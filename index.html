@@ -2269,6 +2269,7 @@ body.branch-manager-view .employee-hidden { display: inline-flex !important; }
       <span>Týdenní vzor obsazení</span>
       <span style="font-size:11px;color:var(--ink-faint);font-weight:400">Min / Cíl / Max za den</span>
     </div>
+    <p class="field-hint" style="margin:2px 0 6px">Min = povinné obsazení (algoritmus ho vždy hlídá). Cíl nad Min je jen přání — splní se, jen když zbude kapacita. Chceš-li mít den jistě obsazený, nastav Min.</p>
     <!-- Pattern templates -->
     <div class="pattern-templates">
       <button class="pattern-tpl-btn" onclick="applyPatternTemplate('even')"><span data-icon="tpl_rovnomerne">📐</span> Rovnoměrné</button>
@@ -2831,7 +2832,7 @@ window.addEventListener('unhandledrejection', e => {
 // odsud, ručně je nepřepisuj. sw.js se od v0.9.29 nebumpuje — je z něj
 // kill-switch bez cache (viz killServiceWorkers() a komentář v sw.js).
 // ============================================================
-const APP_VERSION = '0.9.81';
+const APP_VERSION = '0.9.82';
 
 // Krátký git hash nasazeného buildu. Placeholder níž přepíše build-stamp.js
 // z CF_PAGES_COMMIT_SHA (Cloudflare Pages build command: `node build-stamp.js`).
@@ -13449,14 +13450,17 @@ function buildSchedule(daysInMonth, prevMonthShifts){
           return { full, extra };
         };
         const mn = laneCounts('min'), tg = laneCounts('target');
-        for(let i=0;i<tg.full;i++)  lanes.push({ codes, days:wb,             subtype, soft: i>=mn.full });
-        for(let i=0;i<tg.extra;i++) lanes.push({ codes, days:[satDs, sunDs], subtype, soft: i>=mn.extra });
+        // v0.9.82: den s Min 0 a Cíl > 0 je JEDINÝ zdroj obsazení té pobočky — pravidlo
+        // „jen pod vlastním min_shifts" se tam neuplatní (jinak zůstane Cíl prázdný).
+        const minZeroOn = ds => getBranchDayMin(b, new Date(ds+'T00:00:00').getDay(), ds) === 0;
+        for(let i=0;i<tg.full;i++)  lanes.push({ codes, days:wb,             subtype, soft: i>=mn.full, minZero: wb.every(minZeroOn) });
+        for(let i=0;i<tg.extra;i++) lanes.push({ codes, days:[satDs, sunDs], subtype, soft: i>=mn.extra, minZero: [satDs, sunDs].every(minZeroOn) });
       });
       const phaseLanes = lanes.filter(l => phase==='soft' ? l.soft : !l.soft);
       if(!phaseLanes.length) return;
 
       phaseLanes.forEach(lane=>{
-        const { codes, days, subtype, soft } = lane;
+        const { codes, days, subtype, soft, minZero } = lane;
         const scoreDate = days[0];
         const weDate = days.find(ds=>[0,6].includes(new Date(ds+'T00:00:00').getDay())) || scoreDate;
         const empsSorted = [...nonFixed].sort((a,bEmp)=>
@@ -13467,7 +13471,7 @@ function buildSchedule(daysInMonth, prevMonthShifts){
         // vrátí per-day plán pokrývající co nejvíc dní — jedna ruční směna už
         // nevoidí celý víkend.
         function planFor(emp){
-          if(soft && empShiftCount(emp.id) >= emp.min_shifts) return null;
+          if(soft && !minZero && empShiftCount(emp.id) >= emp.min_shifts) return null;
           if(soft && freeWEnow(emp) - weekendCostOf(emp, days) < (emp.min_free_weekends || defaultMinWE)) return null;
           const shared = codes.find(c=>
             (!subtype || days.every(ds=>nextSubtypeCode(codes, cc=>countFilled(ds, cc))===c)) &&
@@ -13782,7 +13786,8 @@ function buildSchedule(daysInMonth, prevMonthShifts){
           // own min_shifts get the extra position (same rule as the subtype branch).
           const isWEday = fullWeekendDays.has(dateStr);
           const belowMin = countFilled(dateStr, b.code) < getBranchDayMin(b, dow3, dateStr);
-          if(isWEday && !belowMin && empShiftCount(emp.id) >= emp.min_shifts) continue;
+          const minZero3 = getBranchDayMin(b, dow3, dateStr) === 0; // v0.9.82: Cíl při Min 0 se plní i lidem nad min_shifts
+          if(isWEday && !belowMin && !minZero3 && empShiftCount(emp.id) >= emp.min_shifts) continue;
           if(!belowMin && !weekendFreeOk(emp, dateStr)) continue; // v0.9.32: nad minimem nebrat volný víkend pod min
           setShift(emp.id, dateStr, b.code);
         }
@@ -13807,7 +13812,7 @@ function buildSchedule(daysInMonth, prevMonthShifts){
           // min_shifts get the extra position (same rule as PASS 0 soft lanes).
           const isWEday = fullWeekendDays.has(dateStr);
           const belowMin = covered < needN;
-          if(isWEday && !belowMin && empShiftCount(emp.id) >= emp.min_shifts) continue;
+          if(isWEday && !belowMin && needN > 0 && empShiftCount(emp.id) >= emp.min_shifts) continue; // v0.9.82: needN 0 = Min 0, Cíl se plní i nad min_shifts
           if(!belowMin && !weekendFreeOk(emp, dateStr)) continue; // v0.9.32: nad minimem nebrat volný víkend pod min
           setShift(emp.id, dateStr, c);
           covered++;
